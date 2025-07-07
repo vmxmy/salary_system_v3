@@ -1,4 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -16,17 +17,17 @@ const HomePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
             <div className="card bg-base-100 shadow-xl">
               <div className="card-body">
-                <h2 className="card-title">工资管理</h2>
-                <p>管理员工工资信息和发放记录</p>
+                <h2 className="card-title">员工管理</h2>
+                <p>管理员工基本信息和部门分配</p>
                 <div className="card-actions justify-end">
-                  <button className="btn btn-primary">进入</button>
+                  <Link to="/employees" className="btn btn-primary">进入</Link>
                 </div>
               </div>
             </div>
             <div className="card bg-base-100 shadow-xl">
               <div className="card-body">
-                <h2 className="card-title">员工管理</h2>
-                <p>管理员工基本信息和部门分配</p>
+                <h2 className="card-title">工资管理</h2>
+                <p>管理员工工资信息和发放记录</p>
                 <div className="card-actions justify-end">
                   <button className="btn btn-primary">进入</button>
                 </div>
@@ -57,4 +58,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage; 
+export default HomePage;
