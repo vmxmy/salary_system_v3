@@ -96,15 +96,8 @@ export default function EmployeeListPage() {
     {
       accessorKey: 'full_name',
       header: '姓名',
-      cell: ({ getValue, row }) => (
-        <div className="flex items-center gap-2">
-          <div className="avatar placeholder">
-            <div className="bg-neutral text-neutral-content rounded-full w-8">
-              <span className="text-xs">{getValue<string>()?.charAt(0)}</span>
-            </div>
-          </div>
-          <span className="font-medium">{getValue<string>()}</span>
-        </div>
+      cell: ({ getValue }) => (
+        <span className="font-medium">{getValue<string>()}</span>
       ),
     },
     
@@ -114,8 +107,18 @@ export default function EmployeeListPage() {
       header: '性别',
       cell: ({ getValue }) => {
         const gender = getValue<string>();
+        let bgClass = '';
+        
+        if (gender === '男') {
+          bgClass = 'bg-blue-100 text-blue-800';
+        } else if (gender === '女') {
+          bgClass = 'bg-pink-100 text-pink-800';
+        } else {
+          bgClass = 'bg-gray-100 text-gray-600';
+        }
+        
         return (
-          <span className={`badge badge-sm ${gender === '男' ? 'badge-info' : 'badge-secondary'}`}>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgClass}`}>
             {gender || '未知'}
           </span>
         );

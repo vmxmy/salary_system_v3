@@ -187,3 +187,6 @@ export function ListItemSkeleton({
     </>
   );
 }
+
+// Default export for convenience
+export default LoadingSpinner;
