@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Employee, EmployeeWithDetails } from '../../types/employee';
+import type { Employee, EmployeeWithDetails } from '../../types/employee';
 import { useEmployeeLookups } from '../../hooks/useEmployeeLookups';
 import LoadingSpinner from '../common/LoadingSpinner';
 
