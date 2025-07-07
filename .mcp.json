@@ -1,0 +1,23 @@
+{
+"mcpServers": {
+    "supabase": {
+        "command": "npx",
+        "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref=rjlymghylrshudywrzec"
+        ],
+    "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_04dcf2eadca8175bfe27474deb78e9e074c016a3"
+        }
+    },
+    "pgs": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-postgres",
+          "postgresql://salary_system_v2:caijing123!@100.65.174.92:5432/salary_system_v2"
+        ]
+      }
+}
+}

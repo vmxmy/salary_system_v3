@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__zen-docker__chat",
+      "Bash(supabase start:*)",
+      "Bash(supabase status:*)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__get_anon_key",
+      "mcp__pgs__query",
+      "mcp__thinking__sequentialthinking",
+      "mcp__supabase__apply_migration",
+      "mcp__zen-docker__thinkdeep",
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__read_file",
+      "mcp__filesystem__directory_tree",
+      "mcp__filesystem__read_multiple_files",
+      "mcp__filesystem__write_file"
+    ],
+    "deny": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}
