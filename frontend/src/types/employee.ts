@@ -184,3 +184,6 @@ export interface ExportOptions {
   filters?: EmployeeFilters;
   includeSensitiveData?: boolean;
 }
+
+// 显式重新导出主要类型（解决导入问题）
+export type { Employee as EmployeeType, EmployeeWithDetails as EmployeeWithDetailsType };
