@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEmployee } from '../../hooks/useEmployee';
 import EmployeeForm from '../../components/employee/EmployeeForm';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { Employee } from '../../types/employee';
+import type { Employee } from '../../types/employee';
 
 const EmployeeEditPage = () => {
   const { id } = useParams<{ id: string }>();
