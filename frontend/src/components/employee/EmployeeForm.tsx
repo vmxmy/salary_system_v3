@@ -12,10 +12,12 @@ interface EmployeeFormProps {
 }
 
 interface FormData {
-  name: string;
-  employee_number: string;
+  full_name: string;
+  employee_code: string;
   gender: string;
+  date_of_birth: string;
   hire_date: string;
+  first_work_date: string;
   phone_number: string;
   email: string;
   id_number: string;
@@ -24,7 +26,7 @@ interface FormData {
   department_id: string;
   position_id: string;
   personnel_category_id: string;
-  is_active: boolean;
+  current_status: string;
 }
 
 const EmployeeForm: React.FC<EmployeeFormProps> = ({
@@ -37,10 +39,12 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
   const { departments, positions, personnelCategories, loading: lookupsLoading } = useEmployeeLookups();
   
   const [formData, setFormData] = useState<FormData>({
-    name: '',
-    employee_number: '',
+    full_name: '',
+    employee_code: '',
     gender: '',
+    date_of_birth: '',
     hire_date: '',
+    first_work_date: '',
     phone_number: '',
     email: '',
     id_number: '',
@@ -49,7 +53,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
     department_id: '',
     position_id: '',
     personnel_category_id: '',
-    is_active: true
+    current_status: 'active'
   });
 
   const [errors, setErrors] = useState<Partial<FormData>>({});
@@ -58,19 +62,21 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
   useEffect(() => {
     if (employee) {
       setFormData({
-        name: employee.name || '',
-        employee_number: employee.employee_number || '',
+        full_name: employee.full_name || '',
+        employee_code: employee.employee_code || '',
         gender: employee.gender || '',
+        date_of_birth: employee.date_of_birth ? employee.date_of_birth.split('T')[0] : '',
         hire_date: employee.hire_date ? employee.hire_date.split('T')[0] : '',
+        first_work_date: employee.first_work_date ? employee.first_work_date.split('T')[0] : '',
         phone_number: employee.phone_number || '',
         email: employee.email || '',
-        id_number: employee.id_number || '',
+        id_number: employee.id_number_reference || '',
         education_level: employee.education_level || '',
         housing_fund_number: employee.housing_fund_number || '',
         department_id: employee.department_id?.toString() || '',
         position_id: employee.position_id?.toString() || '',
         personnel_category_id: employee.personnel_category_id?.toString() || '',
-        is_active: employee.is_active ?? true
+        current_status: employee.current_status || 'active'
       });
     }
   }, [employee]);
@@ -93,16 +99,20 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Partial<FormData> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = '姓名不能为空';
+    if (!formData.full_name.trim()) {
+      newErrors.full_name = '姓名不能为空';
     }
 
-    if (!formData.employee_number.trim()) {
-      newErrors.employee_number = '工号不能为空';
+    if (!formData.employee_code.trim()) {
+      newErrors.employee_code = '工号不能为空';
     }
 
     if (!formData.gender) {
       newErrors.gender = '请选择性别';
+    }
+
+    if (!formData.hire_date) {
+      newErrors.hire_date = '入职日期不能为空';
     }
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -125,19 +135,16 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
     }
 
     const submitData: Partial<Employee> = {
-      name: formData.name.trim(),
-      employee_number: formData.employee_number.trim(),
+      full_name: formData.full_name.trim(),
+      employee_code: formData.employee_code.trim(),
       gender: formData.gender as any,
-      hire_date: formData.hire_date || null,
-      phone_number: formData.phone_number.trim() || null,
-      email: formData.email.trim() || null,
-      id_number: formData.id_number.trim() || null,
-      education_level: formData.education_level.trim() || null,
-      housing_fund_number: formData.housing_fund_number.trim() || null,
-      department_id: formData.department_id ? parseInt(formData.department_id) : null,
-      position_id: formData.position_id ? parseInt(formData.position_id) : null,
-      personnel_category_id: formData.personnel_category_id ? parseInt(formData.personnel_category_id) : null,
-      is_active: formData.is_active
+      date_of_birth: formData.date_of_birth || null,
+      hire_date: formData.hire_date,
+      first_work_date: formData.first_work_date || null,
+      department_id: formData.department_id || null,
+      position_id: formData.position_id || null,
+      personnel_category_id: formData.personnel_category_id || null,
+      employee_status: formData.current_status as any
     };
 
     onSubmit(submitData);
@@ -186,22 +193,22 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
           <div className="border-b border-base-300 pb-6">
             <h3 className="text-lg font-semibold mb-4">基本信息</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="姓名" required error={errors.name}>
+              <FormField label="姓名" required error={errors.full_name}>
                 <input
                   type="text"
-                  className={`input input-bordered w-full ${errors.name ? 'input-error' : ''}`}
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className={`input input-bordered w-full ${errors.full_name ? 'input-error' : ''}`}
+                  value={formData.full_name}
+                  onChange={(e) => handleInputChange('full_name', e.target.value)}
                   placeholder="请输入姓名"
                 />
               </FormField>
 
-              <FormField label="工号" required error={errors.employee_number}>
+              <FormField label="工号" required error={errors.employee_code}>
                 <input
                   type="text"
-                  className={`input input-bordered w-full ${errors.employee_number ? 'input-error' : ''}`}
-                  value={formData.employee_number}
-                  onChange={(e) => handleInputChange('employee_number', e.target.value)}
+                  className={`input input-bordered w-full ${errors.employee_code ? 'input-error' : ''}`}
+                  value={formData.employee_code}
+                  onChange={(e) => handleInputChange('employee_code', e.target.value)}
                   placeholder="请输入工号"
                 />
               </FormField>
@@ -218,22 +225,30 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 </select>
               </FormField>
 
-              <FormField label="入职日期" error={errors.hire_date}>
+              <FormField label="出生日期" error={errors.date_of_birth}>
                 <input
                   type="date"
                   className="input input-bordered w-full"
+                  value={formData.date_of_birth}
+                  onChange={(e) => handleInputChange('date_of_birth', e.target.value)}
+                />
+              </FormField>
+
+              <FormField label="入职日期" required error={errors.hire_date}>
+                <input
+                  type="date"
+                  className={`input input-bordered w-full ${errors.hire_date ? 'input-error' : ''}`}
                   value={formData.hire_date}
                   onChange={(e) => handleInputChange('hire_date', e.target.value)}
                 />
               </FormField>
 
-              <FormField label="身份证号" error={errors.id_number}>
+              <FormField label="首次工作日期" error={errors.first_work_date}>
                 <input
-                  type="text"
+                  type="date"
                   className="input input-bordered w-full"
-                  value={formData.id_number}
-                  onChange={(e) => handleInputChange('id_number', e.target.value)}
-                  placeholder="请输入身份证号"
+                  value={formData.first_work_date}
+                  onChange={(e) => handleInputChange('first_work_date', e.target.value)}
                 />
               </FormField>
 
@@ -348,15 +363,18 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
           <div className="pb-6">
             <h3 className="text-lg font-semibold mb-4">状态信息</h3>
             <div className="form-control">
-              <label className="label cursor-pointer justify-start gap-3">
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-primary"
-                  checked={formData.is_active}
-                  onChange={(e) => handleInputChange('is_active', e.target.checked)}
-                />
-                <span className="label-text">在职状态</span>
+              <label className="label">
+                <span className="label-text font-medium">员工状态</span>
               </label>
+              <select
+                className="select select-bordered w-full"
+                value={formData.current_status}
+                onChange={(e) => handleInputChange('current_status', e.target.value)}
+              >
+                <option value="active">在职</option>
+                <option value="inactive">待岗</option>
+                <option value="terminated">离职</option>
+              </select>
             </div>
           </div>
 
