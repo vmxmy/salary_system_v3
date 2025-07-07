@@ -16,15 +16,41 @@ export interface Employee {
   metadata: Record<string, any>;
 }
 
-export interface EmployeeWithDetails extends Employee {
-  department_name?: string;
+export interface EmployeeWithDetails {
+  // 从视图 v_employees_with_id_numbers 获取的字段
+  id: string;
+  employee_code: string;
+  display_name: string;
+  full_name: string;
+  gender: string;
+  date_of_birth: string | null;
+  hire_date: string | null;
+  first_work_date: string | null;
+  current_status: string;
+  id_number_status: string;
+  id_number_reference: string | null;
+  department_id: string;
+  department_name: string;
+  position: string;
+  job_level: string;
+  personnel_category: string;
+  personnel_category_id: string;
+  personnel_category_name: string;
+  created_at: string;
+  updated_at: string;
+  
+  // 兼容性字段映射
+  name?: string;
+  employee_number?: string;
+  is_active?: boolean;
+  id_number_masked?: string;
   position_name?: string;
-  personnel_category_name?: string;
-  education_level?: string;
+  position_id?: string;
   phone_number?: string;
   email?: string;
-  id_number_masked?: string; // 脱敏后的身份证号
+  education_level?: string;
   housing_fund_number?: string;
+  employee_status?: string;
 }
 
 export interface Department {
