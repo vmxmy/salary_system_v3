@@ -3,6 +3,8 @@ import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import EmployeeListPage from './pages/employee/EmployeeListPage';
+import EmployeeDetailPage from './pages/employee/EmployeeDetailPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -13,7 +15,9 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<HomePage />} />
-          {/* Add other protected routes here */}
+          <Route path="/employees" element={<EmployeeListPage />} />
+          <Route path="/employees/:id" element={<EmployeeDetailPage />} />
+          {/* 其他受保护的路由将在后续添加 */}
         </Route>
       </Route>
     </Routes>
