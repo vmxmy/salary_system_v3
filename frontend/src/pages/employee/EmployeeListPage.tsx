@@ -78,10 +78,10 @@ export default function EmployeeListPage() {
       enableGlobalFilter: false,
     },
     
-    // 工号
+    // 姓名
     {
-      accessorKey: 'employee_code',
-      header: '工号',
+      accessorKey: 'full_name',
+      header: '姓名',
       cell: ({ getValue, row }) => (
         <Link
           to={`/employees/${row.original.id}`}
@@ -89,15 +89,6 @@ export default function EmployeeListPage() {
         >
           {getValue<string>()}
         </Link>
-      ),
-    },
-    
-    // 姓名
-    {
-      accessorKey: 'full_name',
-      header: '姓名',
-      cell: ({ getValue }) => (
-        <span className="font-medium">{getValue<string>()}</span>
       ),
     },
     
@@ -136,7 +127,7 @@ export default function EmployeeListPage() {
     
     // 职位
     {
-      accessorKey: 'position_name',
+      accessorKey: 'position',
       header: '职位',
       cell: ({ getValue }) => (
         <span className="text-sm">{getValue<string>() || '未分配'}</span>
@@ -169,7 +160,7 @@ export default function EmployeeListPage() {
     
     // 状态
     {
-      accessorKey: 'employee_status',
+      accessorKey: 'current_status',
       header: '状态',
       cell: ({ getValue }) => {
         const status = getValue<string>();
@@ -189,19 +180,19 @@ export default function EmployeeListPage() {
       },
     },
     
-    // 身份证号（敏感数据）
-    ...(permissions.canViewSensitiveData ? [{
-      accessorKey: 'id_number_masked',
-      header: '身份证号',
-      cell: ({ getValue }: { getValue: () => string }) => {
-        const idNumber = getValue();
+    // 手机号码
+    {
+      accessorKey: 'phone_number',
+      header: '手机号码',
+      cell: ({ getValue }) => {
+        const phone = getValue<string>();
         return (
-          <span className="text-sm font-mono">
-            {idNumber || '****'}
+          <span className="text-sm">
+            {phone || '-'}
           </span>
         );
       },
-    }] : []),
+    },
     
     // 操作列
     {
@@ -344,7 +335,7 @@ export default function EmployeeListPage() {
             {/* 搜索框 */}
             <div className="flex-1">
               <SearchInput
-                placeholder="搜索员工姓名或工号..."
+                placeholder="搜索姓名、身份证号、部门或人员类别..."
                 onChange={handleSearch}
                 loading={loading}
               />
@@ -378,7 +369,7 @@ export default function EmployeeListPage() {
               
               <select
                 className="select select-bordered"
-                onChange={(e) => updateFilters({ employee_status: e.target.value as any || undefined })}
+                onChange={(e) => updateFilters({ current_status: e.target.value as any || undefined })}
               >
                 <option value="">全部状态</option>
                 <option value="active">在职</option>
@@ -467,7 +458,7 @@ export default function EmployeeListPage() {
         <div className="stat bg-base-100 shadow rounded-lg">
           <div className="stat-title">在职员工</div>
           <div className="stat-value text-success">
-            {employees.filter(emp => emp.employee_status === 'active').length}
+            {employees.filter(emp => emp.current_status === 'active').length}
           </div>
           <div className="stat-desc">当前在职</div>
         </div>

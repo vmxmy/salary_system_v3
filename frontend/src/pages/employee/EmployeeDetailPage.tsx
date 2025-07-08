@@ -72,10 +72,9 @@ const EmployeeDetailPage = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-base-content">{employee.full_name}</h1>
-          <p className="text-base-content/70 mt-1">工号: {employee.employee_code}</p>
+          <p className="text-base-content/70 mt-1">{employee.department_name || '未分配部门'} · {employee.position || '未分配职位'}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <StatusBadge active={employee.current_status === 'active'} />
           <Link 
             to={`/employees/${id}/edit`} 
             className="btn btn-primary"
@@ -109,20 +108,22 @@ const EmployeeDetailPage = () => {
             </h2>
             <div className="space-y-4">
               <InfoItem label="姓名" value={employee.full_name} className="font-semibold text-lg" />
-              <InfoItem label="工号" value={employee.employee_code} />
               <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium text-base-content/70">性别</span>
                 <GenderBadge gender={employee.gender} />
               </div>
               <InfoItem 
-                label="入职日期" 
-                value={employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('zh-CN') : null} 
-              />
-              <InfoItem 
                 label="出生日期" 
                 value={employee.date_of_birth ? new Date(employee.date_of_birth).toLocaleDateString('zh-CN') : null} 
               />
-              <InfoItem label="身份证号" value={employee.id_number_reference} />
+              <InfoItem 
+                label="身份证号" 
+                value={employee.id_number ? 
+                  employee.id_number.replace(/^(.{6})(.{8})(.{4})$/, '$1********$3') : 
+                  null
+                } 
+              />
+              <InfoItem label="教育程度" value={employee.education_level} />
             </div>
           </div>
         </div>
@@ -162,7 +163,86 @@ const EmployeeDetailPage = () => {
             <div className="space-y-4">
               <InfoItem label="电话号码" value={employee.phone_number} />
               <InfoItem label="电子邮箱" value={employee.email} />
+              <InfoItem label="联系地址" value={employee.address} />
+            </div>
+          </div>
+        </div>
+        
+        {/* 银行信息卡片 */}
+        <div className="card bg-base-100 shadow-lg">
+          <div className="card-body">
+            <h2 className="card-title text-lg mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              银行信息
+            </h2>
+            <div className="space-y-4">
+              <InfoItem label="开户银行" value={employee.bank_name} />
+              <InfoItem 
+                label="银行账号" 
+                value={
+                  employee.account_number 
+                    ? employee.account_number.length > 8
+                      ? `${employee.account_number.slice(0, 4)}****${employee.account_number.slice(-4)}`
+                      : '****'
+                    : '未填写'
+                } 
+              />
+              <InfoItem label="账户类型" value={employee.account_type} />
+              <InfoItem label="账户名称" value={employee.account_holder_name} />
+            </div>
+          </div>
+        </div>
+        
+        {/* 工作履历卡片 */}
+        <div className="card bg-base-100 shadow-lg">
+          <div className="card-body">
+            <h2 className="card-title text-lg mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              工作履历
+            </h2>
+            <div className="space-y-4">
+              <InfoItem 
+                label="首次工作日期" 
+                value={employee.first_work_date ? new Date(employee.first_work_date).toLocaleDateString('zh-CN') : null} 
+              />
+              <InfoItem 
+                label="入职日期" 
+                value={employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('zh-CN') : null} 
+              />
+              <InfoItem 
+                label="工龄" 
+                value={employee.first_work_date ? `${Math.floor((new Date().getTime() - new Date(employee.first_work_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} 年` : null}
+              />
+              <InfoItem 
+                label="工龄间断年限" 
+                value={employee.interrupted_service_years ? `${employee.interrupted_service_years} 年` : '0 年'} 
+              />
+              <InfoItem 
+                label="连续工龄" 
+                value={employee.hire_date ? `${Math.floor((new Date().getTime() - new Date(employee.hire_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} 年` : null}
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* 其他信息卡片 */}
+        <div className="card bg-base-100 shadow-lg">
+          <div className="card-body">
+            <h2 className="card-title text-lg mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              其他信息
+            </h2>
+            <div className="space-y-4">
+              <InfoItem label="社保账号" value={employee.social_security_number} />
               <InfoItem label="公积金账号" value={employee.housing_fund_number} />
+              <InfoItem label="政治面貌" value={employee.political_status} />
+              <InfoItem label="婚姻状况" value={employee.marital_status} />
             </div>
           </div>
         </div>
@@ -177,15 +257,7 @@ const EmployeeDetailPage = () => {
             </svg>
             时间记录
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <InfoItem 
-              label="入职日期" 
-              value={employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('zh-CN', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              }) : null}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <InfoItem 
               label="创建时间" 
               value={new Date(employee.created_at).toLocaleString('zh-CN')}

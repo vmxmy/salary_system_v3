@@ -1,0 +1,418 @@
+/**
+ * Layout System - Responsive Layout Utilities
+ * Optimized for data-dense HR/Payroll interfaces
+ */
+
+/* ============================================================================
+ * Container System
+ * ============================================================================ */
+
+/* Base container with consistent padding */
+.container-app {
+  @apply mx-auto px-4 sm:px-6 lg:px-8;
+  max-width: 1280px; /* Optimal for data tables */
+}
+
+/* Narrow container for forms */
+.container-narrow {
+  @apply mx-auto px-4 sm:px-6;
+  max-width: 640px;
+}
+
+/* Wide container for dashboards and tables */
+.container-wide {
+  @apply mx-auto px-4 sm:px-6 lg:px-8;
+  max-width: 1536px;
+}
+
+/* Full-width container for maximum data display */
+.container-full {
+  @apply w-full px-4 sm:px-6 lg:px-8;
+}
+
+/* ============================================================================
+ * Grid System - Specialized for Forms and Dashboards
+ * ============================================================================ */
+
+/* Form grid - responsive column layout */
+.grid-form {
+  @apply grid gap-6;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .grid-form {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-form {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Dashboard grid - flexible card layout */
+.grid-dashboard {
+  @apply grid gap-6;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* Sidebar layout grid */
+.grid-sidebar {
+  @apply grid gap-6;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .grid-sidebar {
+    grid-template-columns: 240px 1fr;
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid-sidebar {
+    grid-template-columns: 280px 1fr;
+  }
+}
+
+/* Table layout grid - handles different table widths */
+.grid-table {
+  @apply grid gap-6;
+  grid-template-rows: auto 1fr auto;
+  min-height: calc(100vh - 4rem); /* Account for header */
+}
+
+/* ============================================================================
+ * Flexbox Utilities for Complex Layouts
+ * ============================================================================ */
+
+/* Header layout - logo, navigation, user menu */
+.flex-header {
+  @apply flex items-center justify-between h-16 px-6;
+  @apply bg-bg-surface border-b border-border-default;
+}
+
+/* Navigation layout */
+.flex-nav {
+  @apply flex items-center space-x-1;
+}
+
+.flex-nav-vertical {
+  @apply flex flex-col space-y-1;
+}
+
+/* Content area layout */
+.flex-content {
+  @apply flex flex-col lg:flex-row gap-6;
+  min-height: calc(100vh - 4rem);
+}
+
+/* Table header with actions */
+.flex-table-header {
+  @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6;
+}
+
+/* Form actions layout */
+.flex-form-actions {
+  @apply flex flex-col sm:flex-row gap-3 sm:justify-end;
+}
+
+/* ============================================================================
+ * Page Layout Templates
+ * ============================================================================ */
+
+/* Standard page layout with optional sidebar */
+.layout-page {
+  @apply min-h-screen bg-bg-page;
+}
+
+.layout-page-header {
+  @apply sticky top-0 z-30 bg-bg-surface border-b border-border-default;
+}
+
+.layout-page-content {
+  @apply flex-1 p-6;
+}
+
+/* Dashboard layout */
+.layout-dashboard {
+  @apply grid gap-6 p-6;
+  grid-template-rows: auto auto 1fr;
+  min-height: calc(100vh - 4rem);
+}
+
+.layout-dashboard-header {
+  @apply flex items-center justify-between mb-6;
+}
+
+.layout-dashboard-stats {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8;
+}
+
+.layout-dashboard-content {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
+}
+
+/* List/Table layout */
+.layout-list {
+  @apply p-6;
+}
+
+.layout-list-header {
+  @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6;
+}
+
+.layout-list-filters {
+  @apply bg-bg-surface border border-border-subtle rounded-lg p-4 mb-6;
+}
+
+.layout-list-content {
+  @apply bg-bg-surface border border-border-subtle rounded-lg overflow-hidden;
+}
+
+/* Form layout */
+.layout-form {
+  @apply max-w-4xl mx-auto p-6;
+}
+
+.layout-form-header {
+  @apply mb-8 pb-6 border-b border-border-subtle;
+}
+
+.layout-form-content {
+  @apply space-y-8;
+}
+
+.layout-form-section {
+  @apply bg-bg-surface border border-border-subtle rounded-lg p-6;
+}
+
+.layout-form-actions {
+  @apply flex justify-end space-x-4 pt-6 border-t border-border-subtle;
+}
+
+/* ============================================================================
+ * Responsive Table Layouts
+ * ============================================================================ */
+
+/* Table container with horizontal scroll */
+.layout-table {
+  @apply bg-bg-surface border border-border-subtle rounded-lg overflow-hidden;
+}
+
+.layout-table-toolbar {
+  @apply p-4 border-b border-border-subtle bg-bg-surface;
+  @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4;
+}
+
+.layout-table-container {
+  @apply overflow-x-auto;
+  /* Custom scrollbar for tables */
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border-default)) hsl(var(--bg-surface));
+}
+
+.layout-table-footer {
+  @apply p-4 border-t border-border-subtle bg-bg-surface;
+  @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4;
+}
+
+/* Mobile-first table card layout */
+@media (max-width: 767px) {
+  .layout-table-mobile {
+    @apply space-y-4 p-4;
+  }
+  
+  .layout-table-card {
+    @apply bg-bg-surface border border-border-subtle rounded-lg p-4;
+  }
+  
+  .layout-table-card-header {
+    @apply flex items-center justify-between mb-3 pb-3 border-b border-border-subtle;
+  }
+  
+  .layout-table-card-content {
+    @apply space-y-2;
+  }
+  
+  .layout-table-card-row {
+    @apply flex justify-between py-1;
+  }
+  
+  .layout-table-card-label {
+    @apply text-sm font-medium text-text-secondary;
+  }
+  
+  .layout-table-card-value {
+    @apply text-sm text-text-primary text-right;
+  }
+}
+
+/* ============================================================================
+ * Modal and Overlay Layouts
+ * ============================================================================ */
+
+/* Modal backdrop */
+.layout-modal-backdrop {
+  @apply fixed inset-0 bg-black bg-opacity-50 z-50;
+  @apply flex items-center justify-center p-4;
+}
+
+/* Modal content */
+.layout-modal {
+  @apply bg-bg-surface rounded-lg shadow-high max-w-2xl w-full max-h-screen overflow-y-auto;
+}
+
+.layout-modal-header {
+  @apply p-6 border-b border-border-subtle;
+  @apply flex items-center justify-between;
+}
+
+.layout-modal-content {
+  @apply p-6;
+}
+
+.layout-modal-actions {
+  @apply p-6 border-t border-border-subtle;
+  @apply flex justify-end space-x-4;
+}
+
+/* Drawer/Sidebar overlay */
+.layout-drawer {
+  @apply fixed inset-y-0 right-0 w-80 bg-bg-surface shadow-high z-50;
+  @apply transform transition-transform duration-300 ease-in-out;
+}
+
+.layout-drawer.closed {
+  @apply translate-x-full;
+}
+
+.layout-drawer-header {
+  @apply p-6 border-b border-border-subtle;
+  @apply flex items-center justify-between;
+}
+
+.layout-drawer-content {
+  @apply p-6 overflow-y-auto;
+  height: calc(100vh - 5rem);
+}
+
+/* ============================================================================
+ * Spacing and Rhythm System
+ * ============================================================================ */
+
+/* Consistent vertical rhythm for content sections */
+.rhythm-section {
+  @apply space-y-8;
+}
+
+.rhythm-subsection {
+  @apply space-y-6;
+}
+
+.rhythm-content {
+  @apply space-y-4;
+}
+
+.rhythm-tight {
+  @apply space-y-2;
+}
+
+/* Horizontal spacing for inline elements */
+.rhythm-inline {
+  @apply space-x-4;
+}
+
+.rhythm-inline-tight {
+  @apply space-x-2;
+}
+
+.rhythm-inline-loose {
+  @apply space-x-6;
+}
+
+/* ============================================================================
+ * Responsive Breakpoint Utilities
+ * ============================================================================ */
+
+/* Hide/show at specific breakpoints */
+.hide-mobile {
+  @apply hidden sm:block;
+}
+
+.hide-tablet {
+  @apply block lg:hidden;
+}
+
+.hide-desktop {
+  @apply block lg:hidden;
+}
+
+.show-mobile {
+  @apply block sm:hidden;
+}
+
+.show-tablet {
+  @apply hidden sm:block lg:hidden;
+}
+
+.show-desktop {
+  @apply hidden lg:block;
+}
+
+/* Text size adjustments for density */
+.text-density-comfortable {
+  @apply text-base leading-7;
+}
+
+.text-density-compact {
+  @apply text-sm leading-6;
+}
+
+.text-density-condensed {
+  @apply text-xs leading-5;
+}
+
+/* ============================================================================
+ * Print Layout Optimizations
+ * ============================================================================ */
+
+@media print {
+  .layout-page {
+    @apply bg-white text-black;
+  }
+  
+  .layout-page-header,
+  .layout-modal-backdrop,
+  .layout-drawer {
+    @apply hidden;
+  }
+  
+  .layout-table {
+    @apply border border-gray-300;
+  }
+  
+  .layout-table-toolbar,
+  .layout-table-footer {
+    @apply hidden;
+  }
+  
+  /* Force table to fit on page */
+  .layout-table-container {
+    @apply overflow-visible;
+  }
+  
+  /* Page break controls */
+  .print-break-before {
+    page-break-before: always;
+  }
+  
+  .print-break-after {
+    page-break-after: always;
+  }
+  
+  .print-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+}

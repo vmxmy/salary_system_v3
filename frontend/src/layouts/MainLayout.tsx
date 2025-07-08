@@ -1,8 +1,46 @@
 import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useRef, useEffect } from 'react';
 
 const MainLayout = () => {
   const { user, signOut, loading } = useAuth();
+  
+  // 引用所有的 details 元素
+  const detailsRefs = useRef<(HTMLDetailsElement | null)[]>([]);
+  const dropdownRefs = useRef<(HTMLDivElement | null)[]>([]);
+  
+  // 关闭所有下拉菜单
+  const closeAllDropdowns = () => {
+    // 关闭所有 details 元素
+    detailsRefs.current.forEach(details => {
+      if (details) details.open = false;
+    });
+    
+    // 关闭所有 dropdown（移除焦点）
+    dropdownRefs.current.forEach(dropdown => {
+      if (dropdown) {
+        const activeElement = dropdown.querySelector('[tabindex="0"]');
+        if (activeElement && activeElement instanceof HTMLElement) {
+          activeElement.blur();
+        }
+      }
+    });
+  };
+  
+  // 点击页面其他地方时关闭菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      
+      // 检查是否点击了导航栏外部
+      if (!target.closest('.navbar')) {
+        closeAllDropdowns();
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -20,33 +58,33 @@ const MainLayout = () => {
                   </Link>
                 </li>
                 <li>
-                  <details>
+                  <details ref={el => detailsRefs.current[0] = el}>
                     <summary>员工管理</summary>
                     <ul className="p-2 bg-base-100 rounded-t-none min-w-max">
-                      <li><Link to="/employees">员工列表</Link></li>
-                      <li><Link to="/employees/create">新建员工</Link></li>
-                      <li><Link to="/departments">部门管理</Link></li>
-                      <li><Link to="/positions">职位管理</Link></li>
+                      <li><Link to="/employees" onClick={closeAllDropdowns}>员工列表</Link></li>
+                      <li><Link to="/employees/create" onClick={closeAllDropdowns}>新建员工</Link></li>
+                      <li><Link to="/departments" onClick={closeAllDropdowns}>部门管理</Link></li>
+                      <li><Link to="/positions" onClick={closeAllDropdowns}>职位管理</Link></li>
                     </ul>
                   </details>
                 </li>
                 <li>
-                  <details>
+                  <details ref={el => detailsRefs.current[1] = el}>
                     <summary>工资管理</summary>
                     <ul className="p-2 bg-base-100 rounded-t-none min-w-max">
-                      <li><a>工资发放</a></li>
-                      <li><a>工资标准</a></li>
-                      <li><a>工资计算</a></li>
+                      <li><a onClick={closeAllDropdowns}>工资发放</a></li>
+                      <li><a onClick={closeAllDropdowns}>工资标准</a></li>
+                      <li><a onClick={closeAllDropdowns}>工资计算</a></li>
                     </ul>
                   </details>
                 </li>
                 <li>
-                  <details>
+                  <details ref={el => detailsRefs.current[2] = el}>
                     <summary>报表统计</summary>
                     <ul className="p-2 bg-base-100 rounded-t-none min-w-max">
-                      <li><a>工资报表</a></li>
-                      <li><a>人员统计</a></li>
-                      <li><a>财务分析</a></li>
+                      <li><a onClick={closeAllDropdowns}>工资报表</a></li>
+                      <li><a onClick={closeAllDropdowns}>人员统计</a></li>
+                      <li><a onClick={closeAllDropdowns}>财务分析</a></li>
                     </ul>
                   </details>
                 </li>
@@ -61,42 +99,42 @@ const MainLayout = () => {
           ) : user ? (
             <div className="flex items-center gap-2">
               {/* 移动端菜单 */}
-              <div className="dropdown lg:hidden">
+              <div className="dropdown lg:hidden" ref={el => dropdownRefs.current[0] = el}>
                 <div tabIndex={0} role="button" className="btn btn-ghost">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </div>
                 <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 right-0">
-                  <li><Link to="/">首页</Link></li>
+                  <li><Link to="/" onClick={closeAllDropdowns}>首页</Link></li>
                   <li>
-                    <details>
+                    <details ref={el => detailsRefs.current[3] = el}>
                       <summary>员工管理</summary>
                       <ul>
-                        <li><Link to="/employees">员工列表</Link></li>
-                        <li><Link to="/employees/create">新建员工</Link></li>
-                        <li><Link to="/departments">部门管理</Link></li>
-                        <li><Link to="/positions">职位管理</Link></li>
+                        <li><Link to="/employees" onClick={closeAllDropdowns}>员工列表</Link></li>
+                        <li><Link to="/employees/create" onClick={closeAllDropdowns}>新建员工</Link></li>
+                        <li><Link to="/departments" onClick={closeAllDropdowns}>部门管理</Link></li>
+                        <li><Link to="/positions" onClick={closeAllDropdowns}>职位管理</Link></li>
                       </ul>
                     </details>
                   </li>
                   <li>
-                    <details>
+                    <details ref={el => detailsRefs.current[4] = el}>
                       <summary>工资管理</summary>
                       <ul>
-                        <li><a>工资发放</a></li>
-                        <li><a>工资标准</a></li>
-                        <li><a>工资计算</a></li>
+                        <li><a onClick={closeAllDropdowns}>工资发放</a></li>
+                        <li><a onClick={closeAllDropdowns}>工资标准</a></li>
+                        <li><a onClick={closeAllDropdowns}>工资计算</a></li>
                       </ul>
                     </details>
                   </li>
                   <li>
-                    <details>
+                    <details ref={el => detailsRefs.current[5] = el}>
                       <summary>报表统计</summary>
                       <ul>
-                        <li><a>工资报表</a></li>
-                        <li><a>人员统计</a></li>
-                        <li><a>财务分析</a></li>
+                        <li><a onClick={closeAllDropdowns}>工资报表</a></li>
+                        <li><a onClick={closeAllDropdowns}>人员统计</a></li>
+                        <li><a onClick={closeAllDropdowns}>财务分析</a></li>
                       </ul>
                     </details>
                   </li>
@@ -104,7 +142,7 @@ const MainLayout = () => {
               </div>
               
               {/* 用户菜单 */}
-              <div className="dropdown dropdown-end">
+              <div className="dropdown dropdown-end" ref={el => dropdownRefs.current[1] = el}>
                 <div tabIndex={0} role="button" className="btn btn-ghost">
                   <div className="flex items-center gap-2">
                     <div className="avatar placeholder">
@@ -120,10 +158,10 @@ const MainLayout = () => {
                   </div>
                 </div>
                 <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                  <li><a>个人资料</a></li>
-                  <li><a>系统设置</a></li>
+                  <li><a onClick={closeAllDropdowns}>个人资料</a></li>
+                  <li><a onClick={closeAllDropdowns}>系统设置</a></li>
                   <li><hr /></li>
-                  <li><button onClick={signOut}>登出</button></li>
+                  <li><button onClick={() => { signOut(); closeAllDropdowns(); }}>登出</button></li>
                 </ul>
               </div>
             </div>
