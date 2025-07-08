@@ -17,7 +17,45 @@ interface UseEmployeeState {
 
 interface UseEmployeeActions {
   fetchEmployee: (id: string) => Promise<void>;
-  updateEmployee: (id: string, data: Partial<Employee>) => Promise<boolean>;
+  fetchEmployeeWithSensitiveData: (id: string) => Promise<void>;
+  createEmployee: (data: Partial<Employee> & { 
+    education_level?: string; 
+    phone_number?: string; 
+    email?: string; 
+    address?: string;
+    bank_name?: string;
+    account_number?: string;
+    account_type?: string;
+    account_holder_name?: string;
+    position?: string;
+    position_id?: string;
+    job_level?: string;
+    interrupted_service_years?: number;
+    social_security_number?: string;
+    housing_fund_number?: string;
+    political_status?: string;
+    marital_status?: string;
+    id_number?: string;
+  }) => Promise<Employee | null>;
+  updateEmployee: (id: string, data: Partial<Employee> & { 
+    education_level?: string; 
+    phone_number?: string; 
+    email?: string; 
+    address?: string;
+    bank_name?: string;
+    account_number?: string;
+    account_type?: string;
+    account_holder_name?: string;
+    position?: string;
+    position_id?: string;
+    job_level?: string;
+    interrupted_service_years?: number;
+    social_security_number?: string;
+    housing_fund_number?: string;
+    political_status?: string;
+    marital_status?: string;
+    id_number?: string;
+  }) => Promise<boolean>;
   deleteEmployee: (id: string) => Promise<boolean>;
   refresh: () => Promise<void>;
   reset: () => void;
@@ -55,8 +93,110 @@ export function useEmployee(options: UseEmployeeOptions = {}) {
     }
   }, []);
 
+  // 获取员工完整信息（用于编辑）
+  const fetchEmployeeWithSensitiveData = useCallback(async (id: string) => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const employee = await EmployeeAPI.getEmployeeWithSensitiveData(id);
+      setState(prev => ({
+        ...prev,
+        employee,
+        loading: false
+      }));
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : '获取员工信息失败'
+      }));
+    }
+  }, []);
+
+  // 创建员工
+  const createEmployee = useCallback(async (data: Partial<Employee> & { 
+    education_level?: string; 
+    phone_number?: string; 
+    email?: string; 
+    address?: string;
+    bank_name?: string;
+    account_number?: string;
+    account_type?: string;
+    account_holder_name?: string;
+    position?: string;
+    position_id?: string;
+    job_level?: string;
+    interrupted_service_years?: number;
+    social_security_number?: string;
+    housing_fund_number?: string;
+    political_status?: string;
+    marital_status?: string;
+    id_number?: string;
+  }): Promise<Employee | null> => {
+    setState(prev => ({ ...prev, saving: true, saveError: null }));
+
+    try {
+      // 准备员工基本数据
+      const employeeData: Omit<Employee, 'id' | 'created_at' | 'updated_at'> = {
+        full_name: data.full_name || '',
+        gender: data.gender as '男' | '女' | null,
+        date_of_birth: data.date_of_birth || null,
+        id_number: data.id_number || '',  // 必填字段
+        hire_date: data.hire_date || '',
+        first_work_date: data.first_work_date || null,
+        current_status: data.current_status || 'active',
+        department_id: data.department_id || null,
+        position: data.position || null,
+        job_level: data.job_level || null,
+        position_id: data.position_id || null,
+        personnel_category_id: data.personnel_category_id || null,
+        metadata: {}
+      };
+
+      const newEmployee = await EmployeeAPI.createEmployee(employeeData);
+      
+      // 如果有额外的信息需要更新（如教育程度、联系方式等）
+      if (newEmployee && Object.keys(data).some(key => 
+        ['education_level', 'phone_number', 'email', 'address', 'bank_name', 
+         'account_number', 'account_type', 'account_holder_name', 
+         'interrupted_service_years', 'social_security_number', 
+         'housing_fund_number', 'political_status', 'marital_status'].includes(key)
+      )) {
+        await EmployeeAPI.updateEmployee(newEmployee.id, data);
+      }
+      
+      setState(prev => ({ ...prev, saving: false }));
+      return newEmployee;
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        saving: false,
+        saveError: error instanceof Error ? error.message : '创建员工失败'
+      }));
+      return null;
+    }
+  }, []);
+
   // 更新员工信息
-  const updateEmployee = useCallback(async (id: string, data: Partial<Employee>): Promise<boolean> => {
+  const updateEmployee = useCallback(async (id: string, data: Partial<Employee> & { 
+    education_level?: string; 
+    phone_number?: string; 
+    email?: string; 
+    address?: string;
+    bank_name?: string;
+    account_number?: string;
+    account_type?: string;
+    account_holder_name?: string;
+    position?: string;
+    position_id?: string;
+    job_level?: string;
+    interrupted_service_years?: number;
+    social_security_number?: string;
+    housing_fund_number?: string;
+    political_status?: string;
+    marital_status?: string;
+    id_number?: string;
+  }): Promise<boolean> => {
     setState(prev => ({ ...prev, saving: true, saveError: null }));
 
     try {
@@ -133,6 +273,8 @@ export function useEmployee(options: UseEmployeeOptions = {}) {
   // 返回状态和操作方法
   const actions: UseEmployeeActions = {
     fetchEmployee,
+    fetchEmployeeWithSensitiveData,
+    createEmployee,
     updateEmployee,
     deleteEmployee,
     refresh,
@@ -149,7 +291,7 @@ export function useEmployee(options: UseEmployeeOptions = {}) {
     
     // 计算属性
     hasEmployee: state.employee !== null,
-    isEditable: state.employee?.employee_status === 'active',
+    isEditable: state.employee?.current_status === 'active',
     
     // 操作方法
     ...actions

@@ -1,14 +1,16 @@
 // 员工管理系统类型定义
 export interface Employee {
   id: string;
-  employee_code: string;
   full_name: string;
   gender: '男' | '女' | null;
   date_of_birth: string | null;
+  id_number: string;  // 现在是必填字段
   hire_date: string;
   first_work_date: string | null;
-  employee_status: 'active' | 'inactive' | 'terminated';
+  current_status: 'active' | 'inactive' | 'terminated';
   department_id: string | null;
+  position: string | null;
+  job_level: string | null;
   position_id: string | null;
   personnel_category_id: string | null;
   created_at: string;
@@ -17,9 +19,8 @@ export interface Employee {
 }
 
 export interface EmployeeWithDetails {
-  // 从视图 v_employees_with_id_numbers 获取的字段
+  // 从视图 v_employees_comprehensive 获取的字段
   id: string;
-  employee_code: string;
   display_name: string;
   full_name: string;
   gender: string;
@@ -27,8 +28,9 @@ export interface EmployeeWithDetails {
   hire_date: string | null;
   first_work_date: string | null;
   current_status: string;
-  id_number_status: string;
-  id_number_reference: string | null;
+  id_number: string; // 直接的身份证号字段，现在是必填
+  id_number_status?: string;
+  id_number_reference?: string | null;
   department_id: string;
   department_name: string;
   position: string;
@@ -39,17 +41,46 @@ export interface EmployeeWithDetails {
   created_at: string;
   updated_at: string;
   
+  // 联系信息
+  phone_number?: string;
+  email?: string;
+  address?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relationship?: string;
+  
+  // 教育和个人详情
+  education_level?: string;
+  education_details?: any;
+  marital_status?: string;
+  political_status?: string;
+  social_security_number?: string;
+  housing_fund_number?: string;
+  certifications?: any;
+  work_experience?: any;
+  interrupted_service_years?: number;
+  special_skills?: string[];
+  languages?: any;
+  personal_notes?: string;
+  
+  // 银行账户信息
+  bank_name?: string;
+  bank_code?: string;
+  branch_name?: string;
+  account_holder_name?: string;
+  account_number?: string;  // 明文银行账号（从视图获取）
+  account_type?: string;
+  
+  // 元数据
+  metadata?: any;
+  tags?: string[];
+  
   // 兼容性字段映射
   name?: string;
-  employee_number?: string;
   is_active?: boolean;
   id_number_masked?: string;
   position_name?: string;
   position_id?: string;
-  phone_number?: string;
-  email?: string;
-  education_level?: string;
-  housing_fund_number?: string;
   employee_status?: string;
 }
 
@@ -120,7 +151,7 @@ export interface EmployeeFilters {
   department_id?: string;
   position_id?: string;
   personnel_category_id?: string;
-  employee_status?: Employee['employee_status'];
+  current_status?: Employee['current_status'];
   date_range?: {
     start: string;
     end: string;
