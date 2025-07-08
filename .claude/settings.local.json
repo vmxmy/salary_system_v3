@@ -15,7 +15,19 @@
       "mcp__filesystem__read_file",
       "mcp__filesystem__directory_tree",
       "mcp__filesystem__read_multiple_files",
-      "mcp__filesystem__write_file"
+      "mcp__filesystem__write_file",
+      "Bash(git commit:*)",
+      "Bash(git add:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "mcp__filesystem__create_directory",
+      "mcp__zen-docker__debug",
+      "mcp__zen-docker__planner",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(grep:*)",
+      "mcp__zen-docker__analyze"
     ],
     "deny": []
   },
