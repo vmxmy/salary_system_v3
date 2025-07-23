@@ -205,7 +205,7 @@ export function useEmployee(options: UseEmployeeOptions = {}) {
       // 更新本地状态
       setState(prev => ({
         ...prev,
-        employee: prev.employee ? { ...prev.employee, ...updatedEmployee } : null,
+        employee: prev.employee ? { ...prev.employee, ...updatedEmployee } as EmployeeWithDetails : null,
         saving: false
       }));
 

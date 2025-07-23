@@ -58,7 +58,7 @@ const MainLayout = () => {
                   </Link>
                 </li>
                 <li>
-                  <details ref={el => detailsRefs.current[0] = el}>
+                  <details ref={el => { detailsRefs.current[0] = el; }}>
                     <summary>员工管理</summary>
                     <ul className="p-2 bg-base-100 rounded-t-none min-w-max">
                       <li><Link to="/employees" onClick={closeAllDropdowns}>员工列表</Link></li>
@@ -69,17 +69,20 @@ const MainLayout = () => {
                   </details>
                 </li>
                 <li>
-                  <details ref={el => detailsRefs.current[1] = el}>
+                  <details ref={el => { detailsRefs.current[1] = el; }}>
                     <summary>工资管理</summary>
                     <ul className="p-2 bg-base-100 rounded-t-none min-w-max">
                       <li><a onClick={closeAllDropdowns}>工资发放</a></li>
                       <li><a onClick={closeAllDropdowns}>工资标准</a></li>
                       <li><a onClick={closeAllDropdowns}>工资计算</a></li>
+                      <li><hr /></li>
+                      <li><Link to="/payroll/insurance-config" onClick={closeAllDropdowns}>五险一金配置</Link></li>
+                      <li><Link to="/payroll/tax-config" onClick={closeAllDropdowns}>个税配置</Link></li>
                     </ul>
                   </details>
                 </li>
                 <li>
-                  <details ref={el => detailsRefs.current[2] = el}>
+                  <details ref={el => { detailsRefs.current[2] = el; }}>
                     <summary>报表统计</summary>
                     <ul className="p-2 bg-base-100 rounded-t-none min-w-max">
                       <li><a onClick={closeAllDropdowns}>工资报表</a></li>
@@ -99,7 +102,7 @@ const MainLayout = () => {
           ) : user ? (
             <div className="flex items-center gap-2">
               {/* 移动端菜单 */}
-              <div className="dropdown lg:hidden" ref={el => dropdownRefs.current[0] = el}>
+              <div className="dropdown lg:hidden" ref={el => { dropdownRefs.current[0] = el; }}>
                 <div tabIndex={0} role="button" className="btn btn-ghost">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -108,7 +111,7 @@ const MainLayout = () => {
                 <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 right-0">
                   <li><Link to="/" onClick={closeAllDropdowns}>首页</Link></li>
                   <li>
-                    <details ref={el => detailsRefs.current[3] = el}>
+                    <details ref={el => { detailsRefs.current[3] = el; }}>
                       <summary>员工管理</summary>
                       <ul>
                         <li><Link to="/employees" onClick={closeAllDropdowns}>员工列表</Link></li>
@@ -119,17 +122,20 @@ const MainLayout = () => {
                     </details>
                   </li>
                   <li>
-                    <details ref={el => detailsRefs.current[4] = el}>
+                    <details ref={el => { detailsRefs.current[4] = el; }}>
                       <summary>工资管理</summary>
                       <ul>
                         <li><a onClick={closeAllDropdowns}>工资发放</a></li>
                         <li><a onClick={closeAllDropdowns}>工资标准</a></li>
                         <li><a onClick={closeAllDropdowns}>工资计算</a></li>
+                        <li><hr /></li>
+                        <li><Link to="/payroll/insurance-config" onClick={closeAllDropdowns}>五险一金配置</Link></li>
+                        <li><Link to="/payroll/tax-config" onClick={closeAllDropdowns}>个税配置</Link></li>
                       </ul>
                     </details>
                   </li>
                   <li>
-                    <details ref={el => detailsRefs.current[5] = el}>
+                    <details ref={el => { detailsRefs.current[5] = el; }}>
                       <summary>报表统计</summary>
                       <ul>
                         <li><a onClick={closeAllDropdowns}>工资报表</a></li>
@@ -142,7 +148,7 @@ const MainLayout = () => {
               </div>
               
               {/* 用户菜单 */}
-              <div className="dropdown dropdown-end" ref={el => dropdownRefs.current[1] = el}>
+              <div className="dropdown dropdown-end" ref={el => { dropdownRefs.current[1] = el; }}>
                 <div tabIndex={0} role="button" className="btn btn-ghost">
                   <div className="flex items-center gap-2">
                     <div className="avatar placeholder">

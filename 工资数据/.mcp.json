@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref=sfenhhtvcyslxplvewmt"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_c7c95f7899c63453d348af27ad36d9a7e0f99371"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless"
+      ]
+    },
+    "mem0-memory-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@mem0ai/mem0-memory-mcp",
+        "--key",
+        "2d559e73-c95e-4c88-94f5-b0ba7ebeb2ce",
+        "--profile",
+        "fit-aphid-EDV9NM"
+      ]
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { cn } from '../../lib/utils';
 
 /**
@@ -205,7 +205,7 @@ export function DataTable<T>({
   selectable = false,
   selectedRows = new Set(),
   onSelectionChange,
-  getRowId = (row, index) => index,
+  getRowId = (_row, index) => index,
   sortConfig,
   onSortChange,
   onRowClick,
@@ -293,15 +293,15 @@ export function DataTable<T>({
   };
 
   return (
-    <div className={cn('bg-bg-surface border border-border-subtle rounded-lg overflow-hidden', className)}>
+    <div className={cn('bg-base-200 border border-gray-200 rounded-lg overflow-hidden', className)}>
       {/* Desktop Table */}
       <div className={cn('overflow-x-auto', responsive && 'hidden md:block')}>
         <table className="w-full border-collapse">
-          <thead className="bg-bg-surface border-b border-border-default">
+          <thead className="bg-base-200 border-b border-gray-300">
             <tr>
               {/* Selection Header */}
               {selectable && (
-                <th className={cn('sticky top-0 bg-bg-surface z-10', cellPadding[size])}>
+                <th className={cn('sticky top-0 bg-base-200 z-10', cellPadding[size])}>
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -309,7 +309,7 @@ export function DataTable<T>({
                       if (el) el.indeterminate = isIndeterminate;
                     }}
                     onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="rounded border-border-default focus:ring-primary"
+                    className="rounded border-gray-300 focus:ring-primary"
                     aria-label="Select all rows"
                   />
                 </th>
@@ -320,11 +320,11 @@ export function DataTable<T>({
                 <th
                   key={column.id}
                   className={cn(
-                    'sticky top-0 bg-bg-surface z-10 text-left font-medium text-text-primary border-b border-border-default',
+                    'sticky top-0 bg-base-200 z-10 text-left font-medium text-gray-900 border-b border-gray-300',
                     cellPadding[size],
                     sizeClasses[size],
                     column.headerClassName,
-                    column.sortable && 'cursor-pointer hover:bg-bg-interactive-hover',
+                    column.sortable && 'cursor-pointer hover:bg-gray-100',
                     column.align === 'center' && 'text-center',
                     column.align === 'right' && 'text-right',
                     column.sticky === 'left' && 'sticky left-0',
@@ -372,8 +372,8 @@ export function DataTable<T>({
                 <tr
                   key={rowId}
                   className={cn(
-                    'border-b border-border-subtle',
-                    hover && 'hover:bg-bg-interactive-hover',
+                    'border-b border-gray-200',
+                    hover && 'hover:bg-gray-100',
                     onRowClick && 'cursor-pointer',
                     isSelected && 'bg-primary/5'
                   )}
@@ -389,7 +389,7 @@ export function DataTable<T>({
                           e.stopPropagation();
                           handleRowSelection(rowId, e.target.checked);
                         }}
-                        className="rounded border-border-default focus:ring-primary"
+                        className="rounded border-gray-300 focus:ring-primary"
                         aria-label={`Select row ${index + 1}`}
                       />
                     </td>
@@ -405,12 +405,12 @@ export function DataTable<T>({
                         className={cn(
                           cellPadding[size],
                           sizeClasses[size],
-                          'text-text-secondary',
+                          'text-gray-600',
                           column.className,
                           column.align === 'center' && 'text-center',
                           column.align === 'right' && 'text-right',
-                          column.sticky === 'left' && 'sticky left-0 bg-bg-surface',
-                          column.sticky === 'right' && 'sticky right-0 bg-bg-surface'
+                          column.sticky === 'left' && 'sticky left-0 bg-base-200',
+                          column.sticky === 'right' && 'sticky right-0 bg-base-200'
                         )}
                         style={typeof column.width === 'number' ? { width: column.width } : undefined}
                       >
@@ -427,10 +427,10 @@ export function DataTable<T>({
               <tr>
                 <td 
                   colSpan={columns.length + (selectable ? 1 : 0)} 
-                  className={cn('text-center text-text-tertiary py-12', sizeClasses[size])}
+                  className={cn('text-center text-gray-500 py-12', sizeClasses[size])}
                 >
                   <div className="flex flex-col items-center space-y-2">
-                    <svg className="w-12 h-12 text-text-placeholder" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
                     <p>{emptyMessage}</p>
@@ -444,7 +444,7 @@ export function DataTable<T>({
 
       {/* Mobile Card Layout */}
       {responsive && (
-        <div className="md:hidden divide-y divide-border-subtle">
+        <div className="md:hidden divide-y divide-gray-200">
           {loading && (
             <div className="p-4 space-y-4">
               {Array.from({ length: 3 }).map((_, index) => (
@@ -465,7 +465,7 @@ export function DataTable<T>({
                 key={rowId}
                 className={cn(
                   'p-4 space-y-3',
-                  onRowClick && 'cursor-pointer hover:bg-bg-interactive-hover',
+                  onRowClick && 'cursor-pointer hover:bg-gray-100',
                   isSelected && 'bg-primary/5'
                 )}
                 onClick={() => onRowClick?.(row, index)}
@@ -479,9 +479,9 @@ export function DataTable<T>({
                         e.stopPropagation();
                         handleRowSelection(rowId, e.target.checked);
                       }}
-                      className="rounded border-border-default focus:ring-primary"
+                      className="rounded border-gray-300 focus:ring-primary"
                     />
-                    <span className="ml-2 text-sm text-text-tertiary">Select</span>
+                    <span className="ml-2 text-sm text-gray-500">Select</span>
                   </div>
                 )}
 
@@ -492,10 +492,10 @@ export function DataTable<T>({
                     
                     return (
                       <div key={column.id} className="flex justify-between">
-                        <span className="text-sm font-medium text-text-primary">
+                        <span className="text-sm font-medium text-gray-900">
                           {column.header}:
                         </span>
-                        <span className="text-sm text-text-secondary text-right">
+                        <span className="text-sm text-gray-600 text-right">
                           {column.cell ? column.cell(cellValue, row, index) : cellValue}
                         </span>
                       </div>
@@ -508,10 +508,10 @@ export function DataTable<T>({
           {!loading && data.length === 0 && (
             <div className="p-12 text-center">
               <div className="flex flex-col items-center space-y-2">
-                <svg className="w-12 h-12 text-text-placeholder" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
-                <p className="text-text-tertiary">{emptyMessage}</p>
+                <p className="text-gray-500">{emptyMessage}</p>
               </div>
             </div>
           )}
@@ -520,7 +520,7 @@ export function DataTable<T>({
 
       {/* Pagination */}
       {pagination && (
-        <div className="border-t border-border-subtle bg-bg-surface px-4 py-3">
+        <div className="border-t border-gray-200 bg-base-200 px-4 py-3">
           {pagination}
         </div>
       )}

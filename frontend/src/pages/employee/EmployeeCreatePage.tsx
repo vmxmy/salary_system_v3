@@ -26,6 +26,7 @@ const EmployeeCreatePage = () => {
     political_status?: string;
     marital_status?: string;
     id_number?: string;
+    position_id?: string;
   }) => {
     const result = await createEmployee(data);
     if (result) {

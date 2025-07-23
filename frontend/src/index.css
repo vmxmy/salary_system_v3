@@ -3,12 +3,10 @@
 
 /* Import elegant serif fonts */
 @import '@fontsource/source-serif-pro/400.css';
-@import '@fontsource/source-serif-pro/500.css';
 @import '@fontsource/source-serif-pro/600.css';
 @import '@fontsource/source-serif-pro/700.css';
 
 @import '@fontsource/crimson-text/400.css';
-@import '@fontsource/crimson-text/500.css';
 @import '@fontsource/crimson-text/600.css';
 @import '@fontsource/crimson-text/700.css';
 
@@ -36,8 +34,8 @@ html {
 /* Base body styling with elegant serif typography */
 body {
   font-family: 'Crimson Text', 'Noto Serif SC', Georgia, serif;
-  background-color: hsl(var(--bg-page));
-  color: hsl(var(--text-primary));
+  background-color: #f5f5f5;
+  color: #111827;
   line-height: 1.75;
   letter-spacing: 0.015em;
   font-weight: 400;
@@ -76,16 +74,16 @@ button, input, select, textarea {
 }
 
 .table-enhanced th {
-  @apply bg-bg-surface border-b border-border-default px-4 py-3 text-left text-sm font-medium text-text-primary;
+  @apply bg-base-200 border-b border-gray-300 px-4 py-3 text-left text-sm font-medium text-gray-900;
   @apply sticky top-0 z-10;
 }
 
 .table-enhanced td {
-  @apply border-b border-border-subtle px-4 py-3 text-sm text-text-secondary;
+  @apply border-b border-gray-200 px-4 py-3 text-sm text-gray-600;
 }
 
 .table-enhanced tbody tr:hover {
-  @apply bg-bg-interactive-hover;
+  @apply bg-gray-100;
 }
 
 /* Enhanced form styling */
@@ -94,36 +92,36 @@ button, input, select, textarea {
 }
 
 .form-enhanced .form-label {
-  @apply block text-sm font-medium text-text-primary mb-2;
+  @apply block text-sm font-medium text-gray-900 mb-2;
 }
 
 .form-enhanced .form-input {
-  @apply w-full px-3 py-2 border border-border-default rounded-md;
-  @apply bg-bg-surface text-text-primary placeholder-text-placeholder;
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md;
+  @apply bg-base-200 text-gray-900 placeholder-gray-400;
   @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
   @apply transition-colors duration-150;
 }
 
 .form-enhanced .form-input:disabled {
-  @apply bg-bg-interactive opacity-60 cursor-not-allowed;
+  @apply bg-gray-100 opacity-60 cursor-not-allowed;
 }
 
 .form-enhanced .form-error {
-  @apply text-negative text-sm mt-1;
+  @apply text-red-600 text-sm mt-1;
 }
 
 .form-enhanced .form-help {
-  @apply text-text-tertiary text-sm mt-1;
+  @apply text-gray-500 text-sm mt-1;
 }
 
 /* Card component styling */
 .card-enhanced {
-  @apply bg-bg-surface border border-border-subtle rounded-lg shadow-soft;
+  @apply bg-base-200 border border-gray-200 rounded-lg shadow-sm;
   @apply p-6;
 }
 
 .card-enhanced.elevated {
-  @apply shadow-moderate;
+  @apply shadow-md;
 }
 
 /* Button enhancements beyond DaisyUI */
@@ -138,16 +136,16 @@ button, input, select, textarea {
 
 /* Navigation styling */
 .nav-enhanced {
-  @apply bg-bg-surface border-b border-border-default;
+  @apply bg-base-200 border-b border-gray-300;
 }
 
 .nav-enhanced .nav-link {
-  @apply px-4 py-2 text-text-secondary hover:text-text-primary;
-  @apply hover:bg-bg-interactive-hover rounded-md transition-colors duration-150;
+  @apply px-4 py-2 text-gray-600 hover:text-gray-900;
+  @apply hover:bg-gray-100 rounded-md transition-colors duration-150;
 }
 
 .nav-enhanced .nav-link.active {
-  @apply text-primary bg-bg-interactive-hover;
+  @apply text-primary bg-gray-100;
 }
 
 /* ============================================================================
@@ -159,7 +157,7 @@ button, input, select, textarea {
   @apply overflow-x-auto;
   /* Add scrollbar styling */
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--border-default)) hsl(var(--bg-surface));
+  scrollbar-color: #d1d5db #f3f4f6;
 }
 
 .table-scroll-container::-webkit-scrollbar {
@@ -167,22 +165,22 @@ button, input, select, textarea {
 }
 
 .table-scroll-container::-webkit-scrollbar-track {
-  background: hsl(var(--bg-surface));
+  background: #f3f4f6;
 }
 
 .table-scroll-container::-webkit-scrollbar-thumb {
-  background: hsl(var(--border-default));
+  background: #d1d5db;
   border-radius: 4px;
 }
 
 .table-scroll-container::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--border-strong));
+  background: #9ca3af;
 }
 
 /* Mobile table card layout */
 @media (max-width: 767px) {
   .table-mobile-cards .table-row {
-    @apply block border border-border-default rounded-lg mb-4 p-4 bg-bg-surface;
+    @apply block border border-gray-300 rounded-lg mb-4 p-4 bg-base-200;
   }
   
   .table-mobile-cards .table-cell {
@@ -191,7 +189,7 @@ button, input, select, textarea {
   
   .table-mobile-cards .table-cell::before {
     content: attr(data-label) ": ";
-    @apply font-medium text-text-primary;
+    @apply font-medium text-gray-900;
   }
 }
 
@@ -201,11 +199,11 @@ button, input, select, textarea {
 
 /* Skeleton loading animation */
 .skeleton {
-  @apply animate-pulse bg-bg-interactive-hover rounded;
+  @apply animate-pulse bg-gray-100 rounded;
 }
 
 .skeleton-text {
-  @apply h-4 bg-bg-interactive-hover rounded;
+  @apply h-4 bg-gray-100 rounded;
 }
 
 .skeleton-text.w-3-4 {
@@ -279,11 +277,11 @@ button, input, select, textarea {
 }
 
 .status-badge.positive {
-  @apply bg-positive text-positive-content;
+  @apply bg-success text-success-content;
 }
 
 .status-badge.negative {
-  @apply bg-negative text-negative-content;
+  @apply bg-red-600 text-white;
 }
 
 .status-badge.warning {
@@ -295,12 +293,12 @@ button, input, select, textarea {
 }
 
 .status-badge.neutral {
-  @apply bg-bg-interactive text-text-secondary;
+  @apply bg-gray-100 text-gray-600;
 }
 
 /* Progress bars for completion status */
 .progress-enhanced {
-  @apply w-full bg-bg-interactive rounded-full h-2;
+  @apply w-full bg-gray-100 rounded-full h-2;
 }
 
 .progress-enhanced .progress-bar {
@@ -308,7 +306,7 @@ button, input, select, textarea {
 }
 
 .progress-enhanced .progress-bar.positive {
-  @apply bg-positive;
+  @apply bg-success;
 }
 
 .progress-enhanced .progress-bar.warning {

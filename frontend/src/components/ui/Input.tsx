@@ -8,15 +8,15 @@ import { cn } from '../../lib/utils';
  */
 const inputVariants = cva(
   // Base classes with accessibility and UX optimizations
-  'flex w-full rounded-md border bg-bg-surface px-3 py-2 text-sm text-text-primary ' +
-  'placeholder:text-text-placeholder ' +
+  'flex w-full rounded-md border bg-base-200 px-3 py-2 text-sm text-gray-900 ' +
+  'placeholder:text-gray-400 ' +
   'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ' +
-  'disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-bg-interactive ' +
+  'disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-gray-100 ' +
   'transition-all duration-150 ease-in-out',
   {
     variants: {
       variant: {
-        default: 'border-border-default hover:border-border-strong',
+        default: 'border-gray-300 hover:border-gray-400',
         error: 'border-negative focus:ring-negative',
         success: 'border-positive focus:ring-positive',
         warning: 'border-warning focus:ring-warning',
@@ -131,7 +131,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-text-primary"
+            className="block text-sm font-medium text-gray-900"
           >
             {label}
             {required && (
@@ -146,7 +146,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <div className="relative">
           {/* Left Icon */}
           {leftIcon && (
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary">
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
               {leftIcon}
             </div>
           )}
@@ -171,7 +171,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
           {/* Right Icon */}
           {rightIcon && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-tertiary">
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
               {rightIcon}
             </div>
           )}
@@ -179,7 +179,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
         {/* Help Text */}
         {helpText && !error && (
-          <p id={helpTextId} className="text-sm text-text-tertiary">
+          <p id={helpTextId} className="text-sm text-gray-500">
             {helpText}
           </p>
         )}
@@ -255,7 +255,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
         type="text"
         inputMode="decimal"
         leftIcon={
-          <span className="text-text-secondary font-medium">{currency}</span>
+          <span className="text-gray-600 font-medium">{currency}</span>
         }
         onChange={handleChange}
         value={value}
@@ -305,7 +305,7 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
             <button
               type="button"
               onClick={onClear}
-              className="p-1 hover:bg-bg-interactive-hover rounded-full transition-colors"
+              className="p-1 hover:bg-gray-100-hover rounded-full transition-colors"
               aria-label="Clear search"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
