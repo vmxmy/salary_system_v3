@@ -201,12 +201,12 @@ export class EmployeeAPI {
       } = employeeData;
 
       // position和job_level直接存储在employees表中
-      if (position !== undefined) baseEmployeeData.position = position || null;
-      if (job_level !== undefined) baseEmployeeData.job_level = job_level || null;
+      if ('position' in employeeData) (baseEmployeeData as any).position = position || null;
+      if ('job_level' in employeeData) (baseEmployeeData as any).job_level = job_level || null;
 
       // 处理身份证号（现在直接存储明文）
-      if (id_number !== undefined) {
-        baseEmployeeData.id_number = id_number || null;
+      if ('id_number' in employeeData) {
+        (baseEmployeeData as any).id_number = id_number || null;
       }
       
       // 更新employees表

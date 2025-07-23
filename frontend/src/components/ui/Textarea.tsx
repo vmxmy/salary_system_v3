@@ -6,15 +6,15 @@ import { cn } from '../../lib/utils';
  * Textarea Variants
  */
 const textareaVariants = cva(
-  'flex w-full rounded-md border bg-bg-surface px-3 py-2 text-sm text-text-primary ' +
-  'placeholder:text-text-placeholder resize-vertical ' +
+  'flex w-full rounded-md border bg-base-200 px-3 py-2 text-sm text-gray-900 ' +
+  'placeholder:text-gray-400 resize-vertical ' +
   'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ' +
-  'disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-bg-interactive ' +
+  'disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-gray-100 ' +
   'transition-all duration-150 ease-in-out',
   {
     variants: {
       variant: {
-        default: 'border-border-default hover:border-border-strong',
+        default: 'border-gray-300 hover:border-gray-strong',
         error: 'border-negative focus:ring-negative',
         success: 'border-positive focus:ring-positive',
         warning: 'border-warning focus:ring-warning',
@@ -262,7 +262,7 @@ export const Textarea: React.FC<TextareaProps> = ({
       {label && (
         <label
           htmlFor={textareaId}
-          className="block text-sm font-medium text-text-primary"
+          className="block text-sm font-medium text-gray-900"
         >
           {label}
           {required && (
@@ -308,10 +308,10 @@ export const Textarea: React.FC<TextareaProps> = ({
           <div
             id={charCountId}
             className={cn(
-              'absolute bottom-2 right-2 text-xs px-2 py-1 rounded bg-bg-surface border border-border-default',
+              'absolute bottom-2 right-2 text-xs px-2 py-1 rounded bg-base-200 border border-gray-300',
               isOverLimit && 'text-negative border-negative bg-negative/10',
               isNearLimit && !isOverLimit && 'text-warning border-warning bg-warning/10',
-              !isNearLimit && 'text-text-tertiary'
+              !isNearLimit && 'text-gray-500'
             )}
           >
             {charCount}/{maxLength}
@@ -321,7 +321,7 @@ export const Textarea: React.FC<TextareaProps> = ({
 
       {/* Help Text */}
       {helpText && !error && (
-        <p id={helpTextId} className="text-sm text-text-tertiary">
+        <p id={helpTextId} className="text-sm text-gray-500">
           {helpText}
         </p>
       )}
@@ -350,7 +350,7 @@ export const Textarea: React.FC<TextareaProps> = ({
 
       {/* Character Count (Bottom Display) */}
       {showCharCount && !maxLength && (
-        <p className="text-sm text-text-tertiary">
+        <p className="text-sm text-gray-500">
           {charCount} characters
         </p>
       )}

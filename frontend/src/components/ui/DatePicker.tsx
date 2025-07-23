@@ -6,15 +6,15 @@ import { cn } from '../../lib/utils';
  * Date Picker Variants
  */
 const datePickerVariants = cva(
-  'flex w-full rounded-md border bg-bg-surface px-3 py-2 text-sm text-text-primary ' +
-  'placeholder:text-text-placeholder cursor-pointer ' +
+  'flex w-full rounded-md border bg-base-200 px-3 py-2 text-sm text-gray-900 ' +
+  'placeholder:text-gray-400 cursor-pointer ' +
   'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ' +
-  'disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-bg-interactive ' +
+  'disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-gray-100 ' +
   'transition-all duration-150 ease-in-out',
   {
     variants: {
       variant: {
-        default: 'border-border-default hover:border-border-strong',
+        default: 'border-gray-300 hover:border-gray-400',
         error: 'border-negative focus:ring-negative',
         success: 'border-positive focus:ring-positive',
         warning: 'border-warning focus:ring-warning',
@@ -115,7 +115,7 @@ export interface DatePickerProps extends VariantProps<typeof datePickerVariants>
  * Utility functions for date operations
  */
 const dateUtils = {
-  formatDate: (date: Date, format: string = 'YYYY-MM-DD', locale: string = 'zh-CN'): string => {
+  formatDate: (date: Date, format: string = 'YYYY-MM-DD'): string => {
     if (!date) return '';
     
     const year = date.getFullYear();
@@ -173,7 +173,6 @@ const Calendar: React.FC<{
   minDate, 
   maxDate, 
   showTime = false,
-  timeFormat = '24',
   onDateSelect, 
   onMonthChange,
   onClose
@@ -267,25 +266,25 @@ const Calendar: React.FC<{
   const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
 
   return (
-    <div className="bg-bg-surface border border-border-default rounded-lg shadow-elevated p-4 w-72">
+    <div className="bg-base-200 border border-gray-300 rounded-lg shadow-elevated p-4 w-72">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => onMonthChange('prev')}
-          className="p-1 hover:bg-bg-interactive-hover rounded"
+          className="p-1 hover:bg-gray-100 rounded"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         
-        <h3 className="text-sm font-medium text-text-primary">
+        <h3 className="text-sm font-medium text-gray-900">
           {year}年 {monthNames[month]}
         </h3>
         
         <button
           onClick={() => onMonthChange('next')}
-          className="p-1 hover:bg-bg-interactive-hover rounded"
+          className="p-1 hover:bg-gray-100 rounded"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -296,7 +295,7 @@ const Calendar: React.FC<{
       {/* Week Days */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {weekDays.map(day => (
-          <div key={day} className="text-center text-xs font-medium text-text-tertiary p-2">
+          <div key={day} className="text-center text-xs font-medium text-gray-500 p-2">
             {day}
           </div>
         ))}
@@ -310,10 +309,10 @@ const Calendar: React.FC<{
             onClick={() => handleDateClick(date, isCurrentMonth)}
             disabled={!isCurrentMonth || isDateDisabled(date)}
             className={cn(
-              'p-2 text-sm rounded hover:bg-bg-interactive-hover transition-colors',
+              'p-2 text-sm rounded hover:bg-gray-100 transition-colors',
               'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1',
-              !isCurrentMonth && 'text-text-tertiary',
-              isCurrentMonth && 'text-text-primary',
+              !isCurrentMonth && 'text-gray-500',
+              isCurrentMonth && 'text-gray-900',
               isDateSelected(date) && isCurrentMonth && 'bg-primary text-primary-content',
               isDateDisabled(date) && 'opacity-50 cursor-not-allowed hover:bg-transparent'
             )}
@@ -325,7 +324,7 @@ const Calendar: React.FC<{
 
       {/* Time Picker */}
       {showTime && (
-        <div className="border-t border-border-subtle pt-4">
+        <div className="border-t border-gray-200 pt-4">
           <div className="flex items-center justify-center space-x-2">
             <div className="flex items-center">
               <input
@@ -334,7 +333,7 @@ const Calendar: React.FC<{
                 max="23"
                 value={timeValue.hours}
                 onChange={(e) => handleTimeChange('hours', parseInt(e.target.value) || 0)}
-                className="w-12 px-2 py-1 text-sm border border-border-default rounded text-center"
+                className="w-12 px-2 py-1 text-sm border border-gray-300 rounded text-center"
               />
               <span className="mx-1">:</span>
               <input
@@ -343,7 +342,7 @@ const Calendar: React.FC<{
                 max="59"
                 value={timeValue.minutes}
                 onChange={(e) => handleTimeChange('minutes', parseInt(e.target.value) || 0)}
-                className="w-12 px-2 py-1 text-sm border border-border-default rounded text-center"
+                className="w-12 px-2 py-1 text-sm border border-gray-300 rounded text-center"
               />
             </div>
           </div>
@@ -351,10 +350,10 @@ const Calendar: React.FC<{
       )}
 
       {/* Footer */}
-      <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-border-subtle">
+      <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-200">
         <button
           onClick={onClose}
-          className="px-3 py-1 text-sm text-text-secondary hover:text-text-primary"
+          className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
         >
           取消
         </button>
@@ -405,7 +404,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   minDate,
   maxDate,
   dateFormat = 'YYYY-MM-DD',
-  locale = 'zh-CN',
   showTime = false,
   timeFormat = '24',
   onChange,
@@ -488,8 +486,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const displayValue = selectedDate
     ? dateUtils.formatDate(
         selectedDate, 
-        showTime ? `${dateFormat} HH:mm` : dateFormat, 
-        locale
+        showTime ? `${dateFormat} HH:mm` : dateFormat
       )
     : '';
 
@@ -499,7 +496,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       {label && (
         <label
           htmlFor={datePickerId}
-          className="block text-sm font-medium text-text-primary"
+          className="block text-sm font-medium text-gray-900"
         >
           {label}
           {required && (
@@ -533,7 +530,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             }
           }}
         >
-          <span className={displayValue ? 'text-text-primary' : 'text-text-placeholder'}>
+          <span className={displayValue ? 'text-gray-900' : 'text-gray-400'}>
             {displayValue || placeholder}
           </span>
           
@@ -543,7 +540,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               <button
                 type="button"
                 onClick={handleClear}
-                className="p-1 hover:bg-bg-interactive-hover rounded"
+                className="p-1 hover:bg-gray-100 rounded"
                 aria-label="Clear date"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -553,7 +550,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             )}
             
             {/* Calendar Icon */}
-            <svg className="w-4 h-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
@@ -579,7 +576,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
       {/* Help Text */}
       {helpText && !error && (
-        <p id={helpTextId} className="text-sm text-text-tertiary">
+        <p id={helpTextId} className="text-sm text-gray-500">
           {helpText}
         </p>
       )}

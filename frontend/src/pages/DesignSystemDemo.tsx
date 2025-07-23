@@ -87,7 +87,7 @@ export const DesignSystemDemo: React.FC = () => {
   const [salaryFilter, setSalaryFilter] = useState<number | null>(null);
   
   // Additional demo state
-  const [selectedDepartment, setSelectedDepartment] = useState<string | number | (string | number)[] | undefined>('');
+  const [selectedDepartment, setSelectedDepartment] = useState<string | number | undefined>('');
   const [selectedNotifications, setSelectedNotifications] = useState<(string | number)[]>(['email']);
   const [selectedPayFrequency, setSelectedPayFrequency] = useState<string | number>('monthly');
   const [employeeNotes, setEmployeeNotes] = useState('');
@@ -157,8 +157,8 @@ export const DesignSystemDemo: React.FC = () => {
             {value.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="font-medium text-text-primary">{value}</div>
-            <div className="text-sm text-text-tertiary">{row.email}</div>
+            <div className="font-medium text-gray-900">{value}</div>
+            <div className="text-sm text-gray-500">{row.email}</div>
           </div>
         </div>
       )
@@ -244,17 +244,17 @@ export const DesignSystemDemo: React.FC = () => {
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-primary-content font-bold text-sm">HR</span>
           </div>
-          <span className="ml-2 font-semibold text-text-primary">薪资系统</span>
+          <span className="ml-2 font-semibold text-gray-900">薪资系统</span>
         </div>
       }
     >
       <div className="space-y-8">
         {/* Header Section */}
-        <div className="bg-bg-surface rounded-lg p-6 border border-border-subtle">
-          <h2 className="text-2xl font-semibold text-text-primary mb-4">
+        <div className="bg-base-200 rounded-lg p-6 border border-gray-200">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
             专业 HR/薪资管理系统设计组件
           </h2>
-          <p className="text-text-secondary mb-6">
+          <p className="text-gray-600 mb-6">
             基于 Tailwind CSS v4 + DaisyUI 构建的现代化设计系统，专为数据密集的人力资源和薪资管理界面优化。
             支持中英文双语显示，具备完整的响应式布局和无障碍访问功能。
           </p>
@@ -314,12 +314,12 @@ export const DesignSystemDemo: React.FC = () => {
         </div>
 
         {/* Button Components Demo */}
-        <div className="bg-bg-surface rounded-lg p-6 border border-border-subtle">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">按钮组件 Button Components</h3>
+        <div className="bg-base-200 rounded-lg p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">按钮组件 Button Components</h3>
           <div className="space-y-4">
             {/* Primary Actions */}
             <div>
-              <h4 className="text-sm font-medium text-text-secondary mb-2">主要操作 Primary Actions</h4>
+              <h4 className="text-sm font-medium text-gray-600 mb-2">主要操作 Primary Actions</h4>
               <div className="flex flex-wrap gap-3">
                 <Button variant="primary">保存 Save</Button>
                 <Button variant="primary" loading>处理中 Processing</Button>
@@ -332,7 +332,7 @@ export const DesignSystemDemo: React.FC = () => {
 
             {/* Secondary Actions */}
             <div>
-              <h4 className="text-sm font-medium text-text-secondary mb-2">次要操作 Secondary Actions</h4>
+              <h4 className="text-sm font-medium text-gray-600 mb-2">次要操作 Secondary Actions</h4>
               <div className="flex flex-wrap gap-3">
                 <Button variant="secondary">编辑 Edit</Button>
                 <Button variant="outline">取消 Cancel</Button>
@@ -343,7 +343,7 @@ export const DesignSystemDemo: React.FC = () => {
 
             {/* Sizes */}
             <div>
-              <h4 className="text-sm font-medium text-text-secondary mb-2">尺寸变化 Sizes</h4>
+              <h4 className="text-sm font-medium text-gray-600 mb-2">尺寸变化 Sizes</h4>
               <div className="flex flex-wrap items-center gap-3">
                 <Button size="sm">小按钮 Small</Button>
                 <Button size="default">默认 Default</Button>
@@ -355,12 +355,12 @@ export const DesignSystemDemo: React.FC = () => {
         </div>
 
         {/* Form Components Demo */}
-        <div className="bg-bg-surface rounded-lg p-6 border border-border-subtle">
-          <h3 className="text-lg font-semibold text-text-primary mb-6">表单组件 Form Components</h3>
+        <div className="bg-base-200 rounded-lg p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">表单组件 Form Components</h3>
           
           {/* Input Components */}
           <div className="mb-8">
-            <h4 className="text-base font-medium text-text-primary mb-4">输入框组件 Input Components</h4>
+            <h4 className="text-base font-medium text-gray-900 mb-4">输入框组件 Input Components</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Basic Inputs */}
               <div className="space-y-4">
@@ -414,7 +414,7 @@ export const DesignSystemDemo: React.FC = () => {
 
           {/* Select Components */}
           <div className="mb-8">
-            <h4 className="text-base font-medium text-text-primary mb-4">选择器组件 Select Components</h4>
+            <h4 className="text-base font-medium text-gray-900 mb-4">选择器组件 Select Components</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Select
                 label="所属部门 Department"
@@ -428,7 +428,7 @@ export const DesignSystemDemo: React.FC = () => {
                   { value: 'operations', label: '运营部 Operations' }
                 ]}
                 value={selectedDepartment}
-                onChange={(value) => setSelectedDepartment(value)}
+                onChange={(value) => setSelectedDepartment(value as string | number)}
                 helpText="选择员工所属的主要部门"
               />
               
@@ -452,7 +452,7 @@ export const DesignSystemDemo: React.FC = () => {
 
           {/* Radio & Checkbox Components */}
           <div className="mb-8">
-            <h4 className="text-base font-medium text-text-primary mb-4">选项组件 Choice Components</h4>
+            <h4 className="text-base font-medium text-gray-900 mb-4">选项组件 Choice Components</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <RadioGroup
                 label="薪资发放频率 Pay Frequency"
@@ -506,7 +506,7 @@ export const DesignSystemDemo: React.FC = () => {
 
           {/* Textarea & DatePicker */}
           <div className="mb-8">
-            <h4 className="text-base font-medium text-text-primary mb-4">高级输入组件 Advanced Input Components</h4>
+            <h4 className="text-base font-medium text-gray-900 mb-4">高级输入组件 Advanced Input Components</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Textarea
                 label="员工备注 Employee Notes"
@@ -533,7 +533,7 @@ export const DesignSystemDemo: React.FC = () => {
 
           {/* Single Components */}
           <div>
-            <h4 className="text-base font-medium text-text-primary mb-4">单项选择 Single Options</h4>
+            <h4 className="text-base font-medium text-gray-900 mb-4">单项选择 Single Options</h4>
             <div className="space-y-4">
               <Checkbox
                 label="同意服务条款 Accept Terms of Service"
@@ -553,9 +553,9 @@ export const DesignSystemDemo: React.FC = () => {
         </div>
 
         {/* DataTable Demo */}
-        <div className="bg-bg-surface rounded-lg p-6 border border-border-subtle">
+        <div className="bg-base-200 rounded-lg p-6 border border-gray-200">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-text-primary">数据表格 Data Table</h3>
+            <h3 className="text-lg font-semibold text-gray-900">数据表格 Data Table</h3>
             <div className="flex gap-3">
               <Button
                 variant="primary"
@@ -589,23 +589,23 @@ export const DesignSystemDemo: React.FC = () => {
         </div>
 
         {/* Typography Demo */}
-        <div className="bg-bg-surface rounded-lg p-6 border border-border-subtle">
-          <h3 className="text-lg font-semibold text-text-primary mb-6">优雅衬线字体系统 Elegant Serif Typography</h3>
+        <div className="bg-base-200 rounded-lg p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">优雅衬线字体系统 Elegant Serif Typography</h3>
           <div className="space-y-8">
             {/* Font Families Demo */}
             <div>
-              <h4 className="text-base font-medium text-text-secondary mb-4">字体族 Font Families</h4>
+              <h4 className="text-base font-medium text-gray-600 mb-4">字体族 Font Families</h4>
               <div className="space-y-4">
-                <div className="p-4 border border-border-subtle rounded-lg">
-                  <p className="text-sm text-text-tertiary mb-2">标题字体 - Source Serif Pro + Noto Serif SC</p>
-                  <h3 className="font-serif text-2xl font-semibold text-text-primary">
+                <div className="p-4 border border-gray-200 rounded-lg">
+                  <p className="text-sm text-gray-500 mb-2">标题字体 - Source Serif Pro + Noto Serif SC</p>
+                  <h3 className="font-serif text-2xl font-semibold text-gray-900">
                     专业人力资源薪资管理系统 Professional HR Payroll Management System
                   </h3>
                 </div>
                 
-                <div className="p-4 border border-border-subtle rounded-lg">
-                  <p className="text-sm text-text-tertiary mb-2">正文字体 - Crimson Text + Noto Serif SC</p>
-                  <p className="font-serif-body text-base text-text-primary">
+                <div className="p-4 border border-gray-200 rounded-lg">
+                  <p className="text-sm text-gray-500 mb-2">正文字体 - Crimson Text + Noto Serif SC</p>
+                  <p className="font-serif-body text-base text-gray-900">
                     这是一个优雅的衬线字体系统，专为中英文混排而设计。Crimson Text 是一款经典的正文衬线字体，
                     具有出色的可读性和优雅的字形设计。配合思源宋体，为中文内容提供了完美的视觉体验。
                     This elegant serif typography system is designed for mixed Chinese-English content with superior 
@@ -613,9 +613,9 @@ export const DesignSystemDemo: React.FC = () => {
                   </p>
                 </div>
                 
-                <div className="p-4 border border-border-subtle rounded-lg">
-                  <p className="text-sm text-text-tertiary mb-2">等宽字体 - JetBrains Mono</p>
-                  <code className="font-mono text-sm text-text-primary bg-bg-interactive px-2 py-1 rounded">
+                <div className="p-4 border border-gray-200 rounded-lg">
+                  <p className="text-sm text-gray-500 mb-2">等宽字体 - JetBrains Mono</p>
+                  <code className="font-mono text-sm text-gray-900 bg-gray-100 px-2 py-1 rounded">
                     employee_salary = 15000.00; // 员工薪资 {`{ id: "EMP001", amount: ¥15,000.00 }`}
                   </code>
                 </div>
@@ -624,24 +624,24 @@ export const DesignSystemDemo: React.FC = () => {
 
             {/* Headings Hierarchy */}
             <div>
-              <h4 className="text-base font-medium text-text-secondary mb-4">标题层级 Heading Hierarchy</h4>
+              <h4 className="text-base font-medium text-gray-600 mb-4">标题层级 Heading Hierarchy</h4>
               <div className="space-y-3">
-                <h1 className="font-serif text-4xl font-bold text-text-primary">
+                <h1 className="font-serif text-4xl font-bold text-gray-900">
                   一级标题 H1 - 主要页面标题 Main Page Title
                 </h1>
-                <h2 className="font-serif text-3xl font-semibold text-text-primary">
+                <h2 className="font-serif text-3xl font-semibold text-gray-900">
                   二级标题 H2 - 章节标题 Section Title
                 </h2>
-                <h3 className="font-serif text-2xl font-semibold text-text-primary">
+                <h3 className="font-serif text-2xl font-semibold text-gray-900">
                   三级标题 H3 - 子章节 Subsection
                 </h3>
-                <h4 className="font-serif text-xl font-medium text-text-primary">
+                <h4 className="font-serif text-xl font-medium text-gray-900">
                   四级标题 H4 - 组件标题 Component Title
                 </h4>
-                <h5 className="font-serif text-lg font-medium text-text-primary">
+                <h5 className="font-serif text-lg font-medium text-gray-900">
                   五级标题 H5 - 小节标题 Minor Section
                 </h5>
-                <h6 className="font-serif text-base font-medium text-text-primary">
+                <h6 className="font-serif text-base font-medium text-gray-900">
                   六级标题 H6 - 最小标题 Smallest Heading
                 </h6>
               </div>
@@ -649,17 +649,17 @@ export const DesignSystemDemo: React.FC = () => {
 
             {/* Body Text Sizes */}
             <div>
-              <h4 className="text-base font-medium text-text-secondary mb-4">正文文本 Body Text Styles</h4>
+              <h4 className="text-base font-medium text-gray-600 mb-4">正文文本 Body Text Styles</h4>
               <div className="space-y-4">
                 <div>
-                  <p className="text-lg font-serif-body text-text-primary">
+                  <p className="text-lg font-serif-body text-gray-900">
                     大号正文 (18px) - 适用于重要介绍文字和引导内容。这种尺寸的文字具有很好的视觉冲击力，
                     适合用于重要信息的传达。Large body text for important introductions and lead content.
                   </p>
                 </div>
                 
                 <div>
-                  <p className="text-base font-serif-body text-text-primary">
+                  <p className="text-base font-serif-body text-gray-900">
                     标准正文 (16px) - 这是默认的正文字体大小，适用于大部分内容显示。优雅的衬线字体设计确保了
                     在长时间阅读时的舒适性。支持中英文混排，字间距和行间距都经过精心优化。
                     Standard body text for most content with optimized spacing for Chinese-English mixed typography.
@@ -667,14 +667,14 @@ export const DesignSystemDemo: React.FC = () => {
                 </div>
                 
                 <div>
-                  <p className="text-sm font-serif-body text-text-secondary">
+                  <p className="text-sm font-serif-body text-gray-600">
                     小号文本 (14px) - 用于辅助信息、帮助文本和次要内容。适合用于表格中的数据、
                     注释说明和补充信息。Small text for auxiliary information and supplementary content.
                   </p>
                 </div>
                 
                 <div>
-                  <p className="text-xs font-serif-body text-text-tertiary">
+                  <p className="text-xs font-serif-body text-gray-500">
                     极小文本 (12px) - 用于版权信息、技术细节和最次要的内容显示。
                     Extra small text for copyright and technical details.
                   </p>
@@ -684,7 +684,7 @@ export const DesignSystemDemo: React.FC = () => {
 
             {/* Financial & Data Text */}
             <div>
-              <h4 className="text-base font-medium text-text-secondary mb-4">财务数据展示 Financial Data Display</h4>
+              <h4 className="text-base font-medium text-gray-600 mb-4">财务数据展示 Financial Data Display</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-positive/10 border border-positive/20 rounded-lg">
                   <p className="text-sm text-positive mb-1">收入 Income</p>
@@ -708,18 +708,18 @@ export const DesignSystemDemo: React.FC = () => {
 
             {/* Mixed Content Example */}
             <div>
-              <h4 className="text-base font-medium text-text-secondary mb-4">中英文混排示例 Mixed Content Example</h4>
-              <div className="p-6 bg-bg-interactive rounded-lg border border-border-subtle">
-                <h3 className="font-serif text-xl font-semibold text-text-primary mb-3">
+              <h4 className="text-base font-medium text-gray-600 mb-4">中英文混排示例 Mixed Content Example</h4>
+              <div className="p-6 bg-gray-100 rounded-lg border border-gray-200">
+                <h3 className="font-serif text-xl font-semibold text-gray-900 mb-3">
                   Employee Performance Review 员工绩效评估报告
                 </h3>
-                <p className="font-serif-body text-base text-text-primary leading-relaxed">
+                <p className="font-serif-body text-base text-gray-900 leading-relaxed">
                   根据 Q4 2023 的绩效数据分析，张三 (Employee ID: EMP001) 在 Software Development 
                   岗位上表现出色。其技术能力评分为 92/100，团队协作能力评分为 88/100。
                   建议在下一季度将其 Base Salary 从 ¥12,000 调整至 ¥15,000，
                   并给予 Performance Bonus ¥3,000 作为激励。
                 </p>
-                <div className="mt-4 text-sm text-text-tertiary">
+                <div className="mt-4 text-sm text-gray-500">
                   Report generated on 2024-01-15 by HR System v2.0
                 </div>
               </div>
@@ -728,11 +728,11 @@ export const DesignSystemDemo: React.FC = () => {
         </div>
 
         {/* Status and Badges */}
-        <div className="bg-bg-surface rounded-lg p-6 border border-border-subtle">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">状态标识 Status & Badges</h3>
+        <div className="bg-base-200 rounded-lg p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">状态标识 Status & Badges</h3>
           <div className="space-y-4">
             <div>
-              <h4 className="text-sm font-medium text-text-secondary mb-2">状态徽章 Status Badges</h4>
+              <h4 className="text-sm font-medium text-gray-600 mb-2">状态徽章 Status Badges</h4>
               <div className="flex flex-wrap gap-2">
                 <span className="status-badge positive">活跃 Active</span>
                 <span className="status-badge negative">停用 Inactive</span>
@@ -743,7 +743,7 @@ export const DesignSystemDemo: React.FC = () => {
             </div>
 
             <div>
-              <h4 className="text-sm font-medium text-text-secondary mb-2">进度条 Progress Bars</h4>
+              <h4 className="text-sm font-medium text-gray-600 mb-2">进度条 Progress Bars</h4>
               <div className="space-y-3">
                 <div>
                   <div className="flex justify-between text-sm mb-1">

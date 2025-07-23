@@ -38,7 +38,7 @@ const checkboxInputVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border-border-default hover:border-border-strong',
+        default: 'border-gray-300 hover:border-gray-strong',
         error: 'border-negative focus:ring-negative',
         success: 'border-positive focus:ring-positive',
         warning: 'border-warning focus:ring-warning',
@@ -246,7 +246,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         
         <div className="flex-1">
           {label && (
-            <span className="font-medium text-text-primary">
+            <span className="font-medium text-gray-900">
               {label}
               {required && (
                 <span className="ml-1 text-negative" aria-label="Required field">
@@ -257,7 +257,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
           )}
           
           {description && (
-            <p className="text-sm text-text-secondary mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               {description}
             </p>
           )}
@@ -266,7 +266,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
 
       {/* Help Text */}
       {helpText && !error && (
-        <p id={helpTextId} className="text-sm text-text-tertiary">
+        <p id={helpTextId} className="text-sm text-gray-500">
           {helpText}
         </p>
       )}
@@ -356,7 +356,7 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
     <fieldset className={cn('space-y-3', wrapperClassName)}>
       {/* Group Label */}
       {label && (
-        <legend className="text-sm font-medium text-text-primary">
+        <legend className="text-sm font-medium text-gray-900">
           {label}
           {required && (
             <span className="ml-1 text-negative" aria-label="Required field">
@@ -394,7 +394,7 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
 
       {/* Help Text */}
       {helpText && !error && (
-        <p id={helpTextId} className="text-sm text-text-tertiary">
+        <p id={helpTextId} className="text-sm text-gray-500">
           {helpText}
         </p>
       )}

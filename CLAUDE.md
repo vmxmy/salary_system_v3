@@ -229,3 +229,18 @@ This v3 refactor represents a migration from a complex FastAPI + SQLAlchemy arch
 - Performance testing for complex queries
 
 The system maintains the sophisticated HR and payroll management capabilities of the original while adopting a more modern, maintainable architecture based on Supabase's Backend-as-a-Service platform.
+
+## User Management Memories
+
+### User Role Assignments
+- 用户 mailto:blueyang@gmail.com 分配超级管理员角色：
+  - 用户ID: 089b777e-0fa4-4238-adbc-066860cee037
+  - 角色: super_admin (超级管理员)
+  - 状态: active (已激活)
+  - 分配时间: 2025-07-09 01:22:31
+
+## Development Memories
+
+### Database Development
+- postgresql数据库要先检查schema再定位表
+```

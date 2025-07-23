@@ -103,7 +103,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
   loading = false,
   isEdit = false
 }) => {
-  const { departments, positions, personnelCategories, loading: lookupsLoading } = useEmployeeLookups();
+  const { departments, personnelCategories, loading: lookupsLoading } = useEmployeeLookups();
   
   const [formData, setFormData] = useState<FormData>({
     // 基本信息
@@ -279,22 +279,22 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
       first_work_date: formData.first_work_date || null,
       
       // 需要更新到其他表的字段
-      education_level: formData.education_level || null,
-      phone_number: formData.phone_number || null,
-      email: formData.email || null,
-      address: formData.address || null,
-      bank_name: formData.bank_name || null,
-      account_number: formData.account_number || null,
-      account_type: formData.account_type || null,
-      account_holder_name: formData.account_holder_name || null,
-      position: formData.position || null,
-      position_id: formData.position_id || null,
-      job_level: formData.job_level || null,
-      interrupted_service_years: formData.interrupted_service_years ? parseFloat(formData.interrupted_service_years) : null,
-      social_security_number: formData.social_security_number || null,
-      housing_fund_number: formData.housing_fund_number || null,
-      political_status: formData.political_status || null,
-      marital_status: formData.marital_status || null
+      education_level: formData.education_level || undefined,
+      phone_number: formData.phone_number || undefined,
+      email: formData.email || undefined,
+      address: formData.address || undefined,
+      bank_name: formData.bank_name || undefined,
+      account_number: formData.account_number || undefined,
+      account_type: formData.account_type || undefined,
+      account_holder_name: formData.account_holder_name || undefined,
+      position: formData.position || undefined,
+      position_id: formData.position_id || undefined,
+      job_level: formData.job_level || undefined,
+      interrupted_service_years: formData.interrupted_service_years ? parseFloat(formData.interrupted_service_years) : undefined,
+      social_security_number: formData.social_security_number || undefined,
+      housing_fund_number: formData.housing_fund_number || undefined,
+      political_status: formData.political_status || undefined,
+      marital_status: formData.marital_status || undefined
     };
 
     onSubmit(submitData);

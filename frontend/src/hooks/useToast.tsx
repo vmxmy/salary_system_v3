@@ -100,6 +100,19 @@ export const useToast = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  const showToast = useCallback((message: string, type: Toast['type'], duration = 3000) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    const toast: Toast = { id, message, type, duration };
+    
+    setToasts(prev => [...prev, toast]);
+
+    if (duration > 0) {
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+      }, duration);
+    }
+  }, []);
+
   const toast: ToastContextValue = {
     success: (message, duration) => addToast(message, 'success', duration),
     error: (message, duration) => addToast(message, 'error', duration),
@@ -107,8 +120,11 @@ export const useToast = () => {
     info: (message, duration) => addToast(message, 'info', duration)
   };
 
+  const ToastContainerElement = () => <ToastContainer toasts={toasts} removeToast={removeToast} />;
+  
   return {
+    showToast,
     toast,
-    ToastContainer: () => <ToastContainer toasts={toasts} removeToast={removeToast} />
+    ToastContainer: ToastContainerElement
   };
 };
