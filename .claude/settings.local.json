@@ -27,7 +27,17 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(grep:*)",
-      "mcp__zen-docker__analyze"
+      "mcp__zen-docker__analyze",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run dev:*)",
+      "Bash(rg:*)",
+      "mcp__zen-docker__codereview",
+      "mcp__postgre-sql-database-management-server__pg_analyze_database",
+      "mcp__postgre-sql-database-management-server__pg_debug_database",
+      "mcp__gemini-server__gemini_generateContent",
+      "mcp__cloudflare-playwright__browser_snapshot"
     ],
     "deny": []
   },

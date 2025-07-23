@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { type ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '../../components/common/DataTable';
 import { SearchInput } from '../../components/common/SearchInput';
-import { LoadingSpinner, ButtonLoading } from '../../components/common/LoadingSpinner';
+import { ButtonLoading } from '../../components/common/LoadingSpinner';
 import { useEmployees } from '../../hooks/useEmployees';
 import { useEmployeeLookups } from '../../hooks/useEmployeeLookups';
 import { useBulkEmployeeActions } from '../../hooks/useEmployee';
@@ -11,7 +11,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { EmployeeWithDetails, UserPermissions } from '../../types/employee';
 
 export default function EmployeeListPage() {
-  const { user } = useAuth();
+  const { } = useAuth();
   const [selectedEmployees, setSelectedEmployees] = useState<EmployeeWithDetails[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
 
@@ -43,10 +43,7 @@ export default function EmployeeListPage() {
   // 查找数据
   const {
     departments,
-    positions,
-    personnelCategories,
     departmentOptions,
-    positionOptions,
     personnelCategoryOptions
   } = useEmployeeLookups();
 
@@ -471,7 +468,7 @@ export default function EmployeeListPage() {
         
         <div className="stat bg-base-100 shadow rounded-lg">
           <div className="stat-title">职位数量</div>
-          <div className="stat-value text-warning">{positions.length}</div>
+          <div className="stat-value text-warning">0</div>
           <div className="stat-desc">活跃职位</div>
         </div>
       </div>

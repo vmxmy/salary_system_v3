@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -6,9 +5,9 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   type ColumnDef,
-  type Table as TableType,
   flexRender,
 } from '@tanstack/react-table';
+import { useState } from 'react';
 
 interface DataTableProps<T> {
   data: T[];
@@ -49,6 +48,9 @@ export function DataTable<T>({
   emptyMessage = '暂无数据'
 }: DataTableProps<T>) {
   
+  // 添加行选择状态
+  const [rowSelection, setRowSelection] = useState({});
+  
   const table = useReactTable({
     data,
     columns,
@@ -59,24 +61,28 @@ export function DataTable<T>({
     enableRowSelection: selection?.enableRowSelection ?? false,
     enableSorting: sorting.enableSorting,
     enableGlobalFilter: filtering?.enableGlobalFilter ?? false,
-    globalFilter: filtering?.globalFilter ?? '',
-    onGlobalFilterChange: filtering?.onGlobalFilterChange,
     state: {
       pagination: pagination ? {
         pageIndex: pagination.pageIndex,
         pageSize: pagination.pageSize
       } : undefined,
       globalFilter: filtering?.globalFilter ?? '',
+      rowSelection, // 添加行选择状态
     },
+    onGlobalFilterChange: filtering?.onGlobalFilterChange ? 
+      (updater: any) => filtering.onGlobalFilterChange!(typeof updater === 'function' ? updater(filtering.globalFilter ?? '') : updater) : 
+      undefined,
     pageCount: pagination ? Math.ceil(pagination.total / pagination.pageSize) : undefined,
     manualPagination: !!pagination,
     onRowSelectionChange: (updaterOrValue) => {
+      // 更新内部状态
+      const newSelection = typeof updaterOrValue === 'function' 
+        ? updaterOrValue(rowSelection)
+        : updaterOrValue;
+      setRowSelection(newSelection);
+      
+      // 通知父组件
       if (selection?.onRowSelectionChange) {
-        // 获取选中的行数据
-        const newSelection = typeof updaterOrValue === 'function' 
-          ? updaterOrValue(table.getState().rowSelection)
-          : updaterOrValue;
-        
         const selectedRows = Object.keys(newSelection)
           .filter(key => newSelection[key])
           .map(key => data[parseInt(key)])
@@ -188,9 +194,9 @@ export function DataTable<T>({
 
       {/* 分页控件 */}
       {pagination && (
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
           {/* 左侧：页面大小选择 */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-sm">每页显示</span>
             <select
               className="select select-bordered select-sm"
@@ -207,7 +213,7 @@ export function DataTable<T>({
           </div>
 
           {/* 中间：页码信息 */}
-          <div className="text-sm text-base-content/70">
+          <div className="text-sm text-base-content/70 text-center">
             第 {pagination.pageIndex + 1} 页，共 {Math.ceil(pagination.total / pagination.pageSize)} 页
             （总计 {pagination.total} 条）
           </div>

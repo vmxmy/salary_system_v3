@@ -115,11 +115,11 @@ const Sidebar: React.FC<{
           }}
           className={cn(
             'w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-150',
-            'hover:bg-bg-interactive-hover focus:outline-none focus:ring-2 focus:ring-primary',
+            'hover:bg-gray-100-hover focus:outline-none focus:ring-2 focus:ring-primary',
             level > 0 && 'ml-4 pl-6',
             isActive
               ? 'bg-primary text-primary-content'
-              : 'text-text-secondary hover:text-text-primary',
+              : 'text-gray-600 hover:text-gray-900',
             collapsed && level === 0 && 'justify-center px-2'
           )}
         >
@@ -197,7 +197,7 @@ const Header: React.FC<{
           {showSidebarToggle && (
             <button
               onClick={onToggleSidebar}
-              className="p-2 rounded-md hover:bg-bg-interactive-hover focus:outline-none focus:ring-2 focus:ring-primary lg:hidden"
+              className="p-2 rounded-md hover:bg-gray-100-hover focus:outline-none focus:ring-2 focus:ring-primary lg:hidden"
               aria-label="Toggle sidebar"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,11 +209,11 @@ const Header: React.FC<{
           {/* Title and Breadcrumbs */}
           <div className="flex flex-col">
             {title && (
-              <h1 className="text-xl font-semibold text-text-primary">{title}</h1>
+              <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
             )}
             
             {breadcrumbs && breadcrumbs.length > 0 && (
-              <nav className="flex items-center space-x-2 text-sm text-text-tertiary">
+              <nav className="flex items-center space-x-2 text-sm text-gray-500">
                 {breadcrumbs.map((crumb, index) => (
                   <React.Fragment key={index}>
                     {index > 0 && (
@@ -224,12 +224,12 @@ const Header: React.FC<{
                     {crumb.href ? (
                       <a
                         href={crumb.href}
-                        className="hover:text-text-primary transition-colors"
+                        className="hover:text-gray-900 transition-colors"
                       >
                         {crumb.label}
                       </a>
                     ) : (
-                      <span className="text-text-primary">{crumb.label}</span>
+                      <span className="text-gray-900">{crumb.label}</span>
                     )}
                   </React.Fragment>
                 ))}
@@ -244,7 +244,7 @@ const Header: React.FC<{
           {headerActions}
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-md hover:bg-bg-interactive-hover focus:outline-none focus:ring-2 focus:ring-primary">
+          <button className="relative p-2 rounded-md hover:bg-gray-100-hover focus:outline-none focus:ring-2 focus:ring-primary">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5l-5-5h5z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V2" />
@@ -262,7 +262,7 @@ const Header: React.FC<{
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center space-x-2 p-2 rounded-md hover:bg-bg-interactive-hover focus:outline-none focus:ring-2 focus:ring-primary"
+                className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100-hover focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {user.avatar ? (
                   <img
@@ -276,9 +276,9 @@ const Header: React.FC<{
                   </div>
                 )}
                 <div className="hidden md:block text-left">
-                  <div className="text-sm font-medium text-text-primary">{user.name}</div>
+                  <div className="text-sm font-medium text-gray-900">{user.name}</div>
                   {user.role && (
-                    <div className="text-xs text-text-tertiary">{user.role}</div>
+                    <div className="text-xs text-gray-500">{user.role}</div>
                   )}
                 </div>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,22 +288,22 @@ const Header: React.FC<{
 
               {/* User Dropdown */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-bg-surface border border-border-default rounded-md shadow-elevated py-1 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-base-200 border border-gray-300 rounded-md shadow-elevated py-1 z-50">
                   <a
                     href="/profile"
-                    className="block px-4 py-2 text-sm text-text-secondary hover:bg-bg-interactive-hover hover:text-text-primary"
+                    className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100-hover hover:text-gray-900"
                   >
                     Profile Settings
                   </a>
                   <a
                     href="/preferences"
-                    className="block px-4 py-2 text-sm text-text-secondary hover:bg-bg-interactive-hover hover:text-text-primary"
+                    className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100-hover hover:text-gray-900"
                   >
                     Preferences
                   </a>
-                  <div className="border-t border-border-subtle my-1"></div>
+                  <div className="border-t border-gray-200 my-1"></div>
                   <button
-                    className="block w-full text-left px-4 py-2 text-sm text-text-secondary hover:bg-bg-interactive-hover hover:text-text-primary"
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-100-hover hover:text-gray-900"
                   >
                     Sign Out
                   </button>
@@ -415,7 +415,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         {showSidebar && (
           <aside
             className={cn(
-              'bg-bg-surface border-r border-border-default transition-all duration-300 ease-in-out',
+              'bg-base-200 border-r border-gray-300 transition-all duration-300 ease-in-out',
               // Desktop sidebar
               'hidden lg:flex lg:flex-col',
               sidebarCollapsed ? 'lg:w-16' : 'lg:w-64',
@@ -427,7 +427,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           >
             {/* Logo */}
             {logo && (
-              <div className={cn('flex items-center h-16 px-4 border-b border-border-subtle', sidebarCollapsed && 'justify-center')}>
+              <div className={cn('flex items-center h-16 px-4 border-b border-gray-200', sidebarCollapsed && 'justify-center')}>
                 {logo}
               </div>
             )}
@@ -444,10 +444,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
             {/* Collapse Toggle */}
             {collapsibleSidebar && (
-              <div className="p-4 border-t border-border-subtle">
+              <div className="p-4 border-t border-gray-200">
                 <button
                   onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                  className="w-full p-2 rounded-md hover:bg-bg-interactive-hover focus:outline-none focus:ring-2 focus:ring-primary hidden lg:flex items-center justify-center"
+                  className="w-full p-2 rounded-md hover:bg-gray-100-hover focus:outline-none focus:ring-2 focus:ring-primary hidden lg:flex items-center justify-center"
                   aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 >
                   <svg

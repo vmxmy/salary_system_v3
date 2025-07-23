@@ -16,15 +16,15 @@ export interface SelectOption {
  * Select Variants
  */
 const selectVariants = cva(
-  'flex w-full rounded-md border bg-bg-surface px-3 py-2 text-sm text-text-primary ' +
-  'placeholder:text-text-placeholder cursor-pointer ' +
+  'flex w-full rounded-md border bg-base-200 px-3 py-2 text-sm text-gray-900 ' +
+  'placeholder:text-gray-400 cursor-pointer ' +
   'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ' +
-  'disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-bg-interactive ' +
+  'disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-gray-100 ' +
   'transition-all duration-150 ease-in-out',
   {
     variants: {
       variant: {
-        default: 'border-border-default hover:border-border-strong',
+        default: 'border-gray-300 hover:border-gray-strong',
         error: 'border-negative focus:ring-negative',
         success: 'border-positive focus:ring-positive',
         warning: 'border-warning focus:ring-warning',
@@ -183,9 +183,9 @@ export const Select: React.FC<SelectProps> = ({
   const handleSelect = (optionValue: string | number) => {
     if (multiple) {
       const currentValues = Array.isArray(value) ? value : [];
-      const newValues = currentValues.includes(optionValue)
+      const newValues = currentValues.includes(optionValue as never)
         ? currentValues.filter(v => v !== optionValue)
-        : [...currentValues, optionValue];
+        : [...currentValues, optionValue as never];
       onChange?.(newValues);
     } else {
       onChange?.(optionValue);
@@ -264,7 +264,7 @@ export const Select: React.FC<SelectProps> = ({
       {label && (
         <label
           htmlFor={selectId}
-          className="block text-sm font-medium text-text-primary"
+          className="block text-sm font-medium text-gray-900"
         >
           {label}
           {required && (
@@ -319,16 +319,16 @@ export const Select: React.FC<SelectProps> = ({
                     </span>
                   ))}
                   {Array.isArray(selectedOptions) && selectedOptions.length > 2 && (
-                    <span className="text-text-tertiary text-xs">
+                    <span className="text-gray-500 text-xs">
                       +{selectedOptions.length - 2} more
                     </span>
                   )}
                 </div>
               ) : (
-                <span className="text-text-placeholder">{placeholder}</span>
+                <span className="text-gray-400">{placeholder}</span>
               )
             ) : (
-              <span className={selectedOptions ? 'text-text-primary' : 'text-text-placeholder'}>
+              <span className={selectedOptions ? 'text-gray-900' : 'text-gray-400'}>
                 {selectedOptions ? (selectedOptions as SelectOption).label : placeholder}
               </span>
             )}
@@ -337,7 +337,7 @@ export const Select: React.FC<SelectProps> = ({
           {/* Dropdown Arrow */}
           <svg
             className={cn(
-              'w-4 h-4 text-text-tertiary transition-transform ml-2 flex-shrink-0',
+              'w-4 h-4 text-gray-500 transition-transform ml-2 flex-shrink-0',
               isOpen && 'rotate-180'
             )}
             fill="none"
@@ -352,16 +352,16 @@ export const Select: React.FC<SelectProps> = ({
         {isOpen && (
           <div
             ref={dropdownRef}
-            className="absolute z-50 w-full mt-1 bg-bg-surface border border-border-default rounded-md shadow-elevated"
+            className="absolute z-50 w-full mt-1 bg-base-200 border border-gray-300 rounded-md shadow-elevated"
             style={{ maxHeight: maxHeight + 'px' }}
           >
             {/* Search Input */}
             {searchable && (
-              <div className="p-2 border-b border-border-subtle">
+              <div className="p-2 border-b border-gray-200">
                 <input
                   ref={searchInputRef}
                   type="text"
-                  className="w-full px-3 py-2 text-sm border border-border-default rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Search options..."
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
@@ -378,7 +378,7 @@ export const Select: React.FC<SelectProps> = ({
               style={{ maxHeight: (maxHeight - (searchable ? 60 : 0)) + 'px' }}
             >
               {filteredOptions.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-text-tertiary">
+                <div className="px-3 py-2 text-sm text-gray-500">
                   No options found
                 </div>
               ) : (
@@ -395,9 +395,9 @@ export const Select: React.FC<SelectProps> = ({
                       aria-selected={isSelected}
                       className={cn(
                         'px-3 py-2 text-sm cursor-pointer flex items-center justify-between',
-                        'hover:bg-bg-interactive-hover',
+                        'hover:bg-gray-100-hover',
                         isSelected && 'bg-primary/10 text-primary',
-                        isFocused && 'bg-bg-interactive-hover',
+                        isFocused && 'bg-gray-100-hover',
                         option.disabled && 'opacity-50 cursor-not-allowed'
                       )}
                       onClick={() => !option.disabled && handleSelect(option.value)}
@@ -419,7 +419,7 @@ export const Select: React.FC<SelectProps> = ({
 
       {/* Help Text */}
       {helpText && !error && (
-        <p id={helpTextId} className="text-sm text-text-tertiary">
+        <p id={helpTextId} className="text-sm text-gray-500">
           {helpText}
         </p>
       )}

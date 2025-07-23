@@ -22,10 +22,10 @@ const buttonVariants = cva(
         secondary: 'bg-secondary text-secondary-content hover:bg-secondary/90 shadow-soft',
         
         // Outline button - for secondary actions with less weight
-        outline: 'border border-border-default bg-bg-surface text-text-primary hover:bg-bg-interactive-hover',
+        outline: 'border border-gray-300 bg-base-200 text-gray-900 hover:bg-gray-100-hover',
         
         // Ghost button - minimal styling for tertiary actions
-        ghost: 'text-text-primary hover:bg-bg-interactive-hover',
+        ghost: 'text-gray-900 hover:bg-gray-100-hover',
         
         // Destructive button - for delete/remove actions
         destructive: 'bg-negative text-negative-content hover:bg-negative/90 shadow-soft',
