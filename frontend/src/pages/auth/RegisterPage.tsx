@@ -1,0 +1,210 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/hooks/useTranslation';
+import { validateEmail } from '@/lib/utils';
+
+export default function RegisterPage() {
+  const navigate = useNavigate();
+  const { signUp } = useAuth();
+  const { t } = useTranslation('auth');
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    fullName: '',
+  });
+  const [errors, setErrors] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    fullName: '',
+  });
+
+  const validateForm = () => {
+    const newErrors = {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      fullName: '',
+    };
+
+    if (!formData.fullName) {
+      newErrors.fullName = t('validation.nameRequired', '请输入姓名');
+    }
+
+    if (!formData.email) {
+      newErrors.email = t('validation.emailRequired', '请输入邮箱');
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = t('validation.emailInvalid', '邮箱格式不正确');
+    }
+
+    if (!formData.password) {
+      newErrors.password = t('validation.passwordRequired', '请输入密码');
+    } else if (formData.password.length < 6) {
+      newErrors.password = t('validation.passwordMinLength', '密码至少6位');
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = t('validation.confirmPasswordRequired', '请确认密码');
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = t('validation.passwordMismatch', '两次输入的密码不一致');
+    }
+
+    setErrors(newErrors);
+    return !newErrors.email && !newErrors.password && !newErrors.confirmPassword && !newErrors.fullName;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await signUp(formData.email, formData.password, {
+        full_name: formData.fullName,
+      });
+      
+      // For now, use alert - can be replaced with a proper toast system later
+      alert(t('register.success', '注册成功！'));
+      navigate('/dashboard');
+    } catch (error: any) {
+      let errorMessage = t('register.failed', '注册失败');
+      
+      if (error.message?.includes('already registered')) {
+        errorMessage = t('register.emailExists', '该邮箱已被注册');
+      }
+      
+      // For now, use alert - can be replaced with a proper toast system later
+      alert(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="card bg-base-100 shadow-xl">
+      <div className="card-body">
+        <h2 className="card-title text-2xl font-serif mb-2">
+          {t('register.title')}
+        </h2>
+        <p className="text-base-content/60 mb-6">
+          {t('register.subtitle')}
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">{t('register.fullName')}</span>
+            </label>
+            <input
+              type="text"
+              className={`input input-bordered ${errors.fullName ? 'input-error' : ''}`}
+              value={formData.fullName}
+              onChange={(e) => {
+                setFormData({ ...formData, fullName: e.target.value });
+                setErrors({ ...errors, fullName: '' });
+              }}
+              required
+            />
+            {errors.fullName && (
+              <label className="label">
+                <span className="label-text-alt text-error">{errors.fullName}</span>
+              </label>
+            )}
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">{t('register.email')}</span>
+            </label>
+            <input
+              type="email"
+              className={`input input-bordered ${errors.email ? 'input-error' : ''}`}
+              value={formData.email}
+              onChange={(e) => {
+                setFormData({ ...formData, email: e.target.value });
+                setErrors({ ...errors, email: '' });
+              }}
+              required
+              autoComplete="email"
+            />
+            {errors.email && (
+              <label className="label">
+                <span className="label-text-alt text-error">{errors.email}</span>
+              </label>
+            )}
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">{t('register.password')}</span>
+            </label>
+            <input
+              type="password"
+              className={`input input-bordered ${errors.password ? 'input-error' : ''}`}
+              value={formData.password}
+              onChange={(e) => {
+                setFormData({ ...formData, password: e.target.value });
+                setErrors({ ...errors, password: '' });
+              }}
+              required
+              autoComplete="new-password"
+            />
+            {errors.password && (
+              <label className="label">
+                <span className="label-text-alt text-error">{errors.password}</span>
+              </label>
+            )}
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">{t('register.confirmPassword')}</span>
+            </label>
+            <input
+              type="password"
+              className={`input input-bordered ${errors.confirmPassword ? 'input-error' : ''}`}
+              value={formData.confirmPassword}
+              onChange={(e) => {
+                setFormData({ ...formData, confirmPassword: e.target.value });
+                setErrors({ ...errors, confirmPassword: '' });
+              }}
+              required
+              autoComplete="new-password"
+            />
+            {errors.confirmPassword && (
+              <label className="label">
+                <span className="label-text-alt text-error">{errors.confirmPassword}</span>
+              </label>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary w-full"
+            disabled={isLoading}
+          >
+            {isLoading && <span className="loading loading-spinner"></span>}
+            {t('register.submit')}
+          </button>
+        </form>
+
+        <div className="divider">OR</div>
+
+        <p className="text-center text-sm">
+          {t('register.hasAccount')}{' '}
+          <Link to="/auth/login" className="link link-primary">
+            {t('register.login')}
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}

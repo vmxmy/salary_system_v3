@@ -1,0 +1,111 @@
+{
+  "title": "System Management",
+  "organization": {
+    "title": "Organization Structure",
+    "departments": {
+      "title": "Department Management",
+      "add": "Add Department",
+      "edit": "Edit Department",
+      "tree": "Department Tree",
+      "parent": "Parent Department",
+      "code": "Department Code",
+      "name": "Department Name",
+      "manager": "Department Manager",
+      "employeeCount": "Employee Count"
+    },
+    "positions": {
+      "title": "Position Management",
+      "add": "Add Position",
+      "edit": "Edit Position",
+      "code": "Position Code",
+      "name": "Position Name",
+      "level": "Position Level",
+      "category": "Position Category"
+    },
+    "categories": {
+      "title": "Personnel Category Management",
+      "add": "Add Category",
+      "edit": "Edit Category",
+      "code": "Category Code",
+      "name": "Category Name",
+      "description": "Category Description"
+    }
+  },
+  "users": {
+    "title": "User Management",
+    "list": "User List",
+    "add": "Add User",
+    "edit": "Edit User",
+    "username": "Username",
+    "email": "Email",
+    "role": "Role",
+    "status": "Status",
+    "lastLogin": "Last Login",
+    "resetPassword": "Reset Password",
+    "activate": "Activate",
+    "deactivate": "Deactivate"
+  },
+  "roles": {
+    "title": "Role Management",
+    "list": "Role List",
+    "add": "Add Role",
+    "edit": "Edit Role",
+    "permissions": "Permissions",
+    "name": "Role Name",
+    "description": "Role Description",
+    "userCount": "User Count"
+  },
+  "permissions": {
+    "title": "Permission Management",
+    "module": "Module",
+    "view": "View",
+    "create": "Create",
+    "update": "Update",
+    "delete": "Delete",
+    "approve": "Approve",
+    "export": "Export"
+  },
+  "config": {
+    "title": "System Configuration",
+    "general": "General Settings",
+    "security": "Security Settings",
+    "notification": "Notification Settings",
+    "integration": "Integration Settings",
+    "backup": "Backup Settings"
+  },
+  "audit": {
+    "title": "Audit Log",
+    "user": "User",
+    "action": "Action",
+    "module": "Module",
+    "details": "Details",
+    "ip": "IP Address",
+    "time": "Time",
+    "result": "Result"
+  },
+  "maintenance": {
+    "title": "System Maintenance",
+    "backup": "Data Backup",
+    "restore": "Data Restore",
+    "cache": "Cache Management",
+    "logs": "System Logs",
+    "health": "Health Check"
+  },
+  "validation": {
+    "codeRequired": "Please enter code",
+    "codeExists": "Code already exists",
+    "nameRequired": "Please enter name",
+    "emailRequired": "Please enter email",
+    "roleRequired": "Please select role"
+  },
+  "message": {
+    "saveSuccess": "Saved successfully",
+    "deleteSuccess": "Deleted successfully",
+    "deleteConfirm": "Are you sure you want to delete? This operation cannot be undone",
+    "resetPasswordSuccess": "Password reset successfully",
+    "activateSuccess": "User activated successfully",
+    "deactivateSuccess": "User deactivated successfully",
+    "backupSuccess": "Backup successful",
+    "restoreSuccess": "Restore successful"
+  }
+}
