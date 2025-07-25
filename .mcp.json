@@ -1,0 +1,26 @@
+{
+    "mcpServers": {
+        "zen": {
+          "command": "/Users/xumingyang/app/zen-mcp-server/zen-mcp-server"
+        },
+        "postgres": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-postgres",
+            "postgresql://salary_system:caijing123!@8.137.160.207:5432/salary_system"
+          ]
+        },
+        "supabase": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@supabase/mcp-server-supabase@latest",
+            "--project-ref=rjlymghylrshudywrzec"
+          ],
+          "env": {
+            "SUPABASE_ACCESS_TOKEN": "sbp_8a78ab2e06e72da7317d88ce9aaabe16c7248deb"
+          }
+        }
+    }
+}

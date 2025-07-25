@@ -1,0 +1,89 @@
+{
+  "title": "Payroll Management",
+  "periods": {
+    "title": "Payroll Period Management",
+    "list": "Period List",
+    "create": "Create Period",
+    "current": "Current Period",
+    "status": {
+      "open": "Open",
+      "closed": "Closed",
+      "processing": "Processing"
+    }
+  },
+  "calculation": {
+    "title": "Payroll Calculation",
+    "run": "Run Calculation",
+    "preview": "Preview Results",
+    "approve": "Approve Payroll",
+    "lock": "Lock Payroll",
+    "unlock": "Unlock Payroll",
+    "status": {
+      "draft": "Draft",
+      "calculated": "Calculated",
+      "approved": "Approved",
+      "locked": "Locked"
+    }
+  },
+  "components": {
+    "title": "Payroll Components",
+    "basic": "Basic Salary",
+    "overtime": "Overtime Pay",
+    "allowance": "Allowance",
+    "bonus": "Bonus",
+    "deduction": "Deduction",
+    "socialInsurance": "Social Insurance",
+    "individualTax": "Individual Tax",
+    "housingFund": "Housing Fund"
+  },
+  "payslip": {
+    "title": "Payslip",
+    "view": "View Payslip",
+    "print": "Print Payslip",
+    "send": "Send Payslip",
+    "batchPrint": "Batch Print",
+    "batchSend": "Batch Send"
+  },
+  "reports": {
+    "title": "Payroll Reports",
+    "summary": "Payroll Summary",
+    "detail": "Payroll Details",
+    "distribution": "Salary Distribution Analysis",
+    "comparison": "Salary Comparison Analysis",
+    "costCenter": "Cost Center Analysis"
+  },
+  "config": {
+    "title": "Payroll Configuration",
+    "formula": "Calculation Formula",
+    "rules": "Calculation Rules",
+    "taxTable": "Tax Rate Table",
+    "insuranceBase": "Insurance Base",
+    "contributionRatio": "Contribution Ratio"
+  },
+  "fields": {
+    "period": "Payroll Period",
+    "employee": "Employee",
+    "department": "Department",
+    "grossPay": "Gross Pay",
+    "deductions": "Total Deductions",
+    "netPay": "Net Pay",
+    "payDate": "Pay Date",
+    "bankAccount": "Bank Account",
+    "taxableIncome": "Taxable Income",
+    "taxAmount": "Tax Amount"
+  },
+  "validation": {
+    "periodRequired": "Please select payroll period",
+    "amountInvalid": "Invalid amount format",
+    "formulaInvalid": "Invalid formula format",
+    "periodConflict": "Period time conflict"
+  },
+  "message": {
+    "calculateSuccess": "Payroll calculated successfully",
+    "approveSuccess": "Payroll approved successfully",
+    "lockSuccess": "Payroll locked successfully",
+    "unlockSuccess": "Payroll unlocked successfully",
+    "sendSuccess": "Payslip sent successfully",
+    "configSaveSuccess": "Configuration saved successfully"
+  }
+}

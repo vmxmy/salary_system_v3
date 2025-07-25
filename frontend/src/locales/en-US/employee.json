@@ -1,0 +1,89 @@
+{
+  "title": "Employee Management",
+  "list": {
+    "title": "Employee List",
+    "addEmployee": "Add Employee",
+    "importEmployees": "Batch Import",
+    "exportEmployees": "Export Employees"
+  },
+  "fields": {
+    "employeeId": "Employee ID",
+    "fullName": "Full Name",
+    "gender": "Gender",
+    "dateOfBirth": "Date of Birth",
+    "idNumber": "ID Number",
+    "department": "Department",
+    "position": "Position",
+    "jobRank": "Job Rank",
+    "employeeCategory": "Employee Category",
+    "hireDate": "Hire Date",
+    "terminationDate": "Termination Date",
+    "employmentStatus": "Employment Status",
+    "manager": "Direct Manager",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "bankName": "Bank Name",
+    "bankAccount": "Bank Account",
+    "accountHolder": "Account Holder"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "onLeave": "On Leave"
+  },
+  "gender": {
+    "male": "Male",
+    "female": "Female",
+    "other": "Other"
+  },
+  "category": {
+    "civilServant": "Civil Servant",
+    "publicInstitution": "Public Institution",
+    "contract": "Contract",
+    "temporary": "Temporary"
+  },
+  "detail": {
+    "title": "Employee Details",
+    "basicInfo": "Basic Information",
+    "contactInfo": "Contact Information",
+    "jobInfo": "Job Information",
+    "educationInfo": "Education Background",
+    "bankInfo": "Bank Information",
+    "documents": "Related Documents",
+    "jobHistory": "Job History",
+    "salaryHistory": "Salary History"
+  },
+  "form": {
+    "addTitle": "Add Employee",
+    "editTitle": "Edit Employee",
+    "basicInfoSection": "Basic Information",
+    "contactSection": "Contact Information",
+    "jobSection": "Job Information",
+    "bankSection": "Bank Information"
+  },
+  "onboarding": {
+    "title": "Employee Onboarding Wizard",
+    "step1": "Basic Information",
+    "step2": "Organization Relations",
+    "step3": "Salary Configuration",
+    "step4": "Social Insurance Setup",
+    "step5": "Account Creation",
+    "success": "Employee onboarded successfully"
+  },
+  "validation": {
+    "nameRequired": "Please enter employee name",
+    "idNumberRequired": "Please enter ID number",
+    "idNumberInvalid": "Invalid ID number format",
+    "emailInvalid": "Invalid email format",
+    "phoneInvalid": "Invalid phone number format",
+    "hireDateRequired": "Please select hire date"
+  },
+  "message": {
+    "addSuccess": "Employee added successfully",
+    "updateSuccess": "Employee information updated successfully",
+    "deleteSuccess": "Employee deleted successfully",
+    "importSuccess": "Successfully imported {{count}} employees",
+    "exportSuccess": "Employee data exported successfully"
+  }
+}

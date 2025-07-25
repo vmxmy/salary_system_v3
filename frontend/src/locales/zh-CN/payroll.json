@@ -1,0 +1,89 @@
+{
+  "title": "薪资管理",
+  "periods": {
+    "title": "薪资期间管理",
+    "list": "期间列表",
+    "create": "创建期间",
+    "current": "当前期间",
+    "status": {
+      "open": "进行中",
+      "closed": "已关闭",
+      "processing": "处理中"
+    }
+  },
+  "calculation": {
+    "title": "薪资计算",
+    "run": "执行计算",
+    "preview": "预览计算结果",
+    "approve": "审批薪资",
+    "lock": "锁定薪资",
+    "unlock": "解锁薪资",
+    "status": {
+      "draft": "草稿",
+      "calculated": "已计算",
+      "approved": "已审批",
+      "locked": "已锁定"
+    }
+  },
+  "components": {
+    "title": "薪资组件",
+    "basic": "基本工资",
+    "overtime": "加班费",
+    "allowance": "津贴",
+    "bonus": "奖金",
+    "deduction": "扣款",
+    "socialInsurance": "社保",
+    "individualTax": "个税",
+    "housingFund": "公积金"
+  },
+  "payslip": {
+    "title": "工资条",
+    "view": "查看工资条",
+    "print": "打印工资条",
+    "send": "发送工资条",
+    "batchPrint": "批量打印",
+    "batchSend": "批量发送"
+  },
+  "reports": {
+    "title": "薪资报表",
+    "summary": "薪资汇总表",
+    "detail": "薪资明细表",
+    "distribution": "薪资分布分析",
+    "comparison": "薪资对比分析",
+    "costCenter": "成本中心分析"
+  },
+  "config": {
+    "title": "薪资配置",
+    "formula": "计算公式",
+    "rules": "计算规则",
+    "taxTable": "税率表",
+    "insuranceBase": "社保基数",
+    "contributionRatio": "缴费比例"
+  },
+  "fields": {
+    "period": "薪资期间",
+    "employee": "员工",
+    "department": "部门",
+    "grossPay": "应发工资",
+    "deductions": "扣款合计",
+    "netPay": "实发工资",
+    "payDate": "发放日期",
+    "bankAccount": "银行账号",
+    "taxableIncome": "应税收入",
+    "taxAmount": "个税金额"
+  },
+  "validation": {
+    "periodRequired": "请选择薪资期间",
+    "amountInvalid": "金额格式不正确",
+    "formulaInvalid": "公式格式不正确",
+    "periodConflict": "期间时间冲突"
+  },
+  "message": {
+    "calculateSuccess": "薪资计算成功",
+    "approveSuccess": "薪资审批成功",
+    "lockSuccess": "薪资锁定成功",
+    "unlockSuccess": "薪资解锁成功",
+    "sendSuccess": "工资条发送成功",
+    "configSaveSuccess": "配置保存成功"
+  }
+}

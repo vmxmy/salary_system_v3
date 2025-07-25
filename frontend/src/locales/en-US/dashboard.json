@@ -1,0 +1,26 @@
+{
+  "title": "Dashboard",
+  "stats": {
+    "totalEmployees": "Total Employees",
+    "departments": "Departments",
+    "payrollTotal": "Payroll Total",
+    "activePositions": "Active Positions",
+    "fromLastMonth": "↗︎ {{percent}}% from last month",
+    "newThisMonth": "{{count}} new this month",
+    "nextRunIn": "Next run in {{days}} days",
+    "vacantPositions": "↘︎ {{count}} vacant positions"
+  },
+  "recentActivities": {
+    "title": "Recent Activities",
+    "newEmployee": "New employee onboarded - {{name}}",
+    "payrollCompleted": "Payroll run completed for {{month}}",
+    "departmentRestructure": "Department restructure - {{department}}"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "addEmployee": "Add Employee",
+    "runPayroll": "Run Payroll",
+    "viewReports": "View Reports",
+    "settings": "Settings"
+  }
+}
