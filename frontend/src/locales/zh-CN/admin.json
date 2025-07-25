@@ -1,0 +1,111 @@
+{
+  "title": "系统管理",
+  "organization": {
+    "title": "组织架构",
+    "departments": {
+      "title": "部门管理",
+      "add": "新增部门",
+      "edit": "编辑部门",
+      "tree": "部门树形图",
+      "parent": "上级部门",
+      "code": "部门编码",
+      "name": "部门名称",
+      "manager": "部门负责人",
+      "employeeCount": "员工数量"
+    },
+    "positions": {
+      "title": "职务管理",
+      "add": "新增职务",
+      "edit": "编辑职务",
+      "code": "职务编码",
+      "name": "职务名称",
+      "level": "职务级别",
+      "category": "职务类别"
+    },
+    "categories": {
+      "title": "人员类别管理",
+      "add": "新增类别",
+      "edit": "编辑类别",
+      "code": "类别编码",
+      "name": "类别名称",
+      "description": "类别描述"
+    }
+  },
+  "users": {
+    "title": "用户管理",
+    "list": "用户列表",
+    "add": "新增用户",
+    "edit": "编辑用户",
+    "username": "用户名",
+    "email": "邮箱",
+    "role": "角色",
+    "status": "状态",
+    "lastLogin": "最后登录",
+    "resetPassword": "重置密码",
+    "activate": "激活",
+    "deactivate": "停用"
+  },
+  "roles": {
+    "title": "角色管理",
+    "list": "角色列表",
+    "add": "新增角色",
+    "edit": "编辑角色",
+    "permissions": "权限设置",
+    "name": "角色名称",
+    "description": "角色描述",
+    "userCount": "用户数量"
+  },
+  "permissions": {
+    "title": "权限管理",
+    "module": "功能模块",
+    "view": "查看",
+    "create": "创建",
+    "update": "修改",
+    "delete": "删除",
+    "approve": "审批",
+    "export": "导出"
+  },
+  "config": {
+    "title": "系统配置",
+    "general": "基本设置",
+    "security": "安全设置",
+    "notification": "通知设置",
+    "integration": "集成设置",
+    "backup": "备份设置"
+  },
+  "audit": {
+    "title": "审计日志",
+    "user": "操作用户",
+    "action": "操作类型",
+    "module": "功能模块",
+    "details": "操作详情",
+    "ip": "IP地址",
+    "time": "操作时间",
+    "result": "操作结果"
+  },
+  "maintenance": {
+    "title": "系统维护",
+    "backup": "数据备份",
+    "restore": "数据恢复",
+    "cache": "缓存管理",
+    "logs": "系统日志",
+    "health": "健康检查"
+  },
+  "validation": {
+    "codeRequired": "请输入编码",
+    "codeExists": "编码已存在",
+    "nameRequired": "请输入名称",
+    "emailRequired": "请输入邮箱",
+    "roleRequired": "请选择角色"
+  },
+  "message": {
+    "saveSuccess": "保存成功",
+    "deleteSuccess": "删除成功",
+    "deleteConfirm": "确定要删除吗？此操作不可恢复",
+    "resetPasswordSuccess": "密码重置成功",
+    "activateSuccess": "用户激活成功",
+    "deactivateSuccess": "用户停用成功",
+    "backupSuccess": "备份成功",
+    "restoreSuccess": "恢复成功"
+  }
+}

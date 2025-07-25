@@ -9,13 +9,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Navigate to frontend directory
 cd frontend
 
+# Copy environment configuration
+cp env.local.example .env.local
+# Update .env.local with your Supabase credentials
+
 # Install dependencies
 npm install
 
 # Development server with hot reload
 npm run dev
 
-# Build for production
+# Build for production (includes TypeScript compilation)
 npm run build
 
 # Preview production build
@@ -30,7 +34,7 @@ npm run lint
 # Navigate to backend directory
 cd backend
 
-# Install Python dependencies
+# Install Python dependencies (minimal: python-dotenv, supabase)
 pip install -r requirements.txt
 
 # Start development server
@@ -63,7 +67,7 @@ supabase gen types typescript --local > ../frontend/src/types/supabase.ts
 ### High-Level Structure
 This is a **refactored salary management system** migrating to Supabase and Render architecture:
 
-- **Frontend**: React 19 + TypeScript + Vite + DaisyUI + TailwindCSS
+- **Frontend**: React 19 + TypeScript 5.8 + Vite 7 + DaisyUI 5 + TailwindCSS 4
 - **Backend**: Python + Supabase integration (minimal FastAPI alternative)
 - **Database**: Supabase PostgreSQL with comprehensive schema
 - **Authentication**: Supabase Auth with JWT tokens
@@ -93,6 +97,18 @@ v3/
 │   └── migrations/             # Database migration files
 └── docs/                       # Project documentation
 ```
+
+### Key Dependencies
+
+#### Frontend Dependencies
+- **React 19**: Latest React with improved performance and concurrent features
+- **TypeScript 5.8**: Strict type checking and enhanced developer experience
+- **Vite 7**: Lightning-fast build tool with HMR support
+- **TailwindCSS 4**: Utility-first CSS framework with JIT compilation
+- **DaisyUI 5**: Component library built on TailwindCSS
+- **Supabase JS Client**: Official Supabase JavaScript SDK
+- **TanStack Table**: Powerful table component for data display
+- **React Router 7**: Client-side routing with type-safe navigation
 
 ### Key Architectural Patterns
 
@@ -243,4 +259,5 @@ The system maintains the sophisticated HR and payroll management capabilities of
 
 ### Database Development
 - postgresql数据库要先检查schema再定位表
-```
+- 新系统的数据库操作使用 supabase-mcp-server；老系统的数据查询使用postgres MCP Server
+- 不要使用模拟数据，所有模块都需要基于真是的supabase数据进行设计

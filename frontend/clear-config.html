@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清除表格配置</title>
+</head>
+<body>
+    <h1>清除表格配置工具</h1>
+    <p>点击下面的按钮清除本地存储的表格配置：</p>
+    <button onclick="clearTableConfigs()">清除所有表格配置</button>
+    <div id="result"></div>
+
+    <script>
+        function clearTableConfigs() {
+            const STORAGE_KEY_PREFIX = 'table_config_';
+            const keysToRemove = [];
+            
+            // 查找所有表格配置键
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(STORAGE_KEY_PREFIX)) {
+                    keysToRemove.push(key);
+                }
+            }
+            
+            // 清除配置
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            // 显示结果
+            const resultDiv = document.getElementById('result');
+            if (keysToRemove.length > 0) {
+                resultDiv.innerHTML = `
+                    <h3 style="color: green;">清除成功！</h3>
+                    <p>已清除 ${keysToRemove.length} 个表格配置：</p>
+                    <ul>
+                        ${keysToRemove.map(key => `<li>${key}</li>`).join('')}
+                    </ul>
+                    <p>请刷新员工管理页面以查看新的默认配置。</p>
+                `;
+            } else {
+                resultDiv.innerHTML = '<p style="color: orange;">没有找到需要清除的表格配置。</p>';
+            }
+        }
+    </script>
+</body>
+</html>

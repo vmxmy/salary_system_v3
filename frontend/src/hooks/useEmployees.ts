@@ -1,237 +1,218 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { EmployeeAPI } from '../lib/employeeApi';
-import type { 
-  EmployeeWithDetails, 
-  EmployeeFilters, 
-  EmployeeListResponse 
-} from '../types/employee';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { employeeService } from '@/services/employee.service';
+import type { EmployeeListItem, EmployeeQueryParams } from '@/types/employee';
 
-interface UseEmployeesOptions {
-  initialPageSize?: number;
-  enableRealtime?: boolean;
-  autoFetch?: boolean;
-}
+// Query Keys
+export const employeeQueryKeys = {
+  all: ['employees'] as const,
+  list: () => [...employeeQueryKeys.all, 'list'] as const,
+  detail: (id: string) => [...employeeQueryKeys.all, 'detail', id] as const,
+  departments: () => [...employeeQueryKeys.all, 'departments'] as const,
+  categories: () => [...employeeQueryKeys.all, 'categories'] as const,
+  positions: () => [...employeeQueryKeys.all, 'positions'] as const,
+};
 
-interface UseEmployeesState {
-  data: EmployeeWithDetails[];
-  loading: boolean;
-  error: string | null;
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
-  filters: EmployeeFilters;
-}
-
-interface UseEmployeesActions {
-  fetchEmployees: () => Promise<void>;
-  setPage: (page: number) => void;
-  setPageSize: (pageSize: number) => void;
-  setFilters: (filters: EmployeeFilters) => void;
-  updateFilters: (partialFilters: Partial<EmployeeFilters>) => void;
-  clearFilters: () => void;
-  refresh: () => Promise<void>;
-  searchEmployees: (searchTerm: string) => void;
-}
-
-export function useEmployees(options: UseEmployeesOptions = {}) {
-  const {
-    initialPageSize = 20,
-    enableRealtime = true,
-    autoFetch = true
-  } = options;
-
-  // 使用 ref 来避免无限循环
-  const filtersRef = useRef<EmployeeFilters>({});
-  const paginationRef = useRef({
-    page: 0,
-    pageSize: initialPageSize,
-    total: 0,
-    totalPages: 0
+/**
+ * 获取所有员工数据 - 用于客户端排序和筛选
+ */
+export function useAllEmployees() {
+  return useQuery({
+    queryKey: employeeQueryKeys.list(),
+    queryFn: () => employeeService.getAllEmployeesRaw(),
+    staleTime: 5 * 60 * 1000, // 5分钟内认为数据是新鲜的
   });
+}
 
-  // 状态管理
-  const [state, setState] = useState<UseEmployeesState>({
-    data: [],
-    loading: false,
-    error: null,
-    pagination: paginationRef.current,
-    filters: filtersRef.current
+/**
+ * 获取部门列表
+ */
+export function useDepartments() {
+  return useQuery({
+    queryKey: employeeQueryKeys.departments(),
+    queryFn: () => employeeService.getDepartments(),
+    staleTime: 10 * 60 * 1000, // 部门信息相对静态，10分钟缓存
   });
+}
 
-  // 计算总页数
-  const totalPages = useMemo(() => {
-    return Math.ceil(state.pagination.total / state.pagination.pageSize);
-  }, [state.pagination.total, state.pagination.pageSize]);
+/**
+ * 获取人员类别列表
+ */
+export function usePersonnelCategories() {
+  return useQuery({
+    queryKey: employeeQueryKeys.categories(),
+    queryFn: () => employeeService.getPersonnelCategories(),
+    staleTime: 10 * 60 * 1000,
+  });
+}
 
-  // 获取员工列表
-  const fetchEmployees = useCallback(async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      const response: EmployeeListResponse = await EmployeeAPI.getEmployees(
-        paginationRef.current.page,
-        paginationRef.current.pageSize,
-        filtersRef.current
-      );
+/**
+ * 获取职位列表
+ */
+export function usePositions() {
+  return useQuery({
+    queryKey: employeeQueryKeys.positions(),
+    queryFn: () => employeeService.getPositions(),
+    staleTime: 10 * 60 * 1000,
+  });
+}
 
-      const newPagination = {
-        ...paginationRef.current,
-        total: response.total,
-        totalPages: Math.ceil(response.total / response.pageSize)
-      };
+/**
+ * 获取单个员工详情
+ */
+export function useEmployee(id: string) {
+  return useQuery({
+    queryKey: employeeQueryKeys.detail(id),
+    queryFn: () => employeeService.getById(id),
+    enabled: !!id,
+  });
+}
 
-      paginationRef.current = newPagination;
+/**
+ * 创建员工
+ */
+export function useCreateEmployee() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: employeeService.create.bind(employeeService),
+    onSuccess: () => {
+      // 创建成功后刷新员工列表
+      queryClient.invalidateQueries({ queryKey: employeeQueryKeys.list() });
+    },
+  });
+}
 
-      setState(prev => ({
-        ...prev,
-        data: response.data,
-        loading: false,
-        pagination: newPagination
-      }));
+/**
+ * 更新员工
+ */
+export function useUpdateEmployee() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => 
+      employeeService.update(id, data),
+    onSuccess: (_, { id }) => {
+      // 更新成功后刷新相关数据
+      queryClient.invalidateQueries({ queryKey: employeeQueryKeys.list() });
+      queryClient.invalidateQueries({ queryKey: employeeQueryKeys.detail(id) });
+    },
+  });
+}
 
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: error instanceof Error ? error.message : '获取员工列表失败'
-      }));
-    }
-  }, []);
+/**
+ * 删除员工
+ */
+export function useDeleteEmployee() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: string) => employeeService.delete(id),
+    onSuccess: () => {
+      // 删除成功后刷新员工列表
+      queryClient.invalidateQueries({ queryKey: employeeQueryKeys.list() });
+    },
+  });
+}
 
-  // 设置页码
-  const setPage = useCallback((page: number) => {
-    paginationRef.current = { ...paginationRef.current, page };
-    setState(prev => ({
-      ...prev,
-      pagination: { ...prev.pagination, page }
-    }));
-  }, []);
-
-  // 设置页面大小
-  const setPageSize = useCallback((pageSize: number) => {
-    paginationRef.current = { ...paginationRef.current, pageSize, page: 0 };
-    setState(prev => ({
-      ...prev,
-      pagination: { ...prev.pagination, pageSize, page: 0 }
-    }));
-  }, []);
-
-  // 设置过滤条件
-  const setFilters = useCallback((filters: EmployeeFilters) => {
-    filtersRef.current = filters;
-    paginationRef.current = { ...paginationRef.current, page: 0 };
-    setState(prev => ({
-      ...prev,
-      filters,
-      pagination: { ...prev.pagination, page: 0 }
-    }));
-  }, []);
-
-  // 更新部分过滤条件
-  const updateFilters = useCallback((partialFilters: Partial<EmployeeFilters>) => {
-    const newFilters = { ...filtersRef.current, ...partialFilters };
-    filtersRef.current = newFilters;
-    paginationRef.current = { ...paginationRef.current, page: 0 };
-    setState(prev => ({
-      ...prev,
-      filters: newFilters,
-      pagination: { ...prev.pagination, page: 0 }
-    }));
-  }, []);
-
-  // 清除过滤条件
-  const clearFilters = useCallback(() => {
-    filtersRef.current = {};
-    paginationRef.current = { ...paginationRef.current, page: 0 };
-    setState(prev => ({
-      ...prev,
-      filters: {},
-      pagination: { ...prev.pagination, page: 0 }
-    }));
-  }, []);
-
-  // 刷新数据
-  const refresh = useCallback(async () => {
-    await fetchEmployees();
-  }, [fetchEmployees]);
-
-  // 搜索员工
-  const searchEmployees = useCallback((searchTerm: string) => {
-    updateFilters({ search: searchTerm });
-  }, [updateFilters]);
-
-  // 实时订阅
-  useEffect(() => {
-    let subscription: any;
-
-    if (enableRealtime) {
-      subscription = EmployeeAPI.subscribeToEmployees((payload) => {
-        console.log('员工数据变更:', payload);
-        // 数据变更时自动刷新
-        fetchEmployees();
-      });
-    }
-
-    return () => {
-      if (subscription) {
-        EmployeeAPI.unsubscribeFromEmployees(subscription);
+/**
+ * 客户端数据处理工具函数
+ */
+export function useEmployeeListFiltering() {
+  // 排序函数
+  const sortEmployees = (
+    employees: EmployeeListItem[], 
+    sortBy: string, 
+    sortOrder: 'asc' | 'desc'
+  ): EmployeeListItem[] => {
+    return [...employees].sort((a, b) => {
+      let aValue: any = a[sortBy as keyof EmployeeListItem];
+      let bValue: any = b[sortBy as keyof EmployeeListItem];
+      
+      // 处理空值 - 空值排在最后
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+      
+      // 字符串比较
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
       }
+      
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  // 筛选函数
+  const filterEmployees = (
+    employees: EmployeeListItem[],
+    filters: {
+      search?: string;
+      department?: string;
+      employment_status?: string;
+      category?: string;
+    }
+  ): EmployeeListItem[] => {
+    return employees.filter(employee => {
+      // 搜索过滤
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        const searchableFields = [
+          employee.full_name,
+          employee.employee_id,
+          employee.email,
+          employee.mobile_phone,
+        ].filter(Boolean);
+        
+        const matchesSearch = searchableFields.some(field => 
+          field?.toLowerCase().includes(searchTerm)
+        );
+        
+        if (!matchesSearch) return false;
+      }
+      
+      // 部门过滤
+      if (filters.department && employee.department_name !== filters.department) {
+        return false;
+      }
+      
+      // 状态过滤
+      if (filters.employment_status && employee.employment_status !== filters.employment_status) {
+        return false;
+      }
+      
+      // 类别过滤
+      if (filters.category && employee.category_name !== filters.category) {
+        return false;
+      }
+      
+      return true;
+    });
+  };
+
+  // 分页函数
+  const paginateEmployees = (
+    employees: EmployeeListItem[],
+    page: number,
+    pageSize: number
+  ) => {
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    
+    return {
+      data: employees.slice(startIndex, endIndex),
+      total: employees.length,
+      page,
+      pageSize,
+      totalPages: Math.ceil(employees.length / pageSize),
     };
-  }, [enableRealtime, fetchEmployees]);
-
-  // 当分页或过滤条件变化时自动获取数据
-  useEffect(() => {
-    if (autoFetch) {
-      fetchEmployees();
-    }
-  }, [
-    state.pagination.page, 
-    state.pagination.pageSize, 
-    JSON.stringify(state.filters), // 序列化对象避免引用比较
-    autoFetch, 
-    fetchEmployees
-  ]);
-
-  // 初始加载
-  useEffect(() => {
-    if (autoFetch) {
-      fetchEmployees();
-    }
-  }, []); // 只在组件挂载时执行一次
-
-  // 返回状态和操作方法
-  const actions: UseEmployeesActions = {
-    fetchEmployees,
-    setPage,
-    setPageSize,
-    setFilters,
-    updateFilters,
-    clearFilters,
-    refresh,
-    searchEmployees
   };
 
   return {
-    // 状态
-    data: state.data,
-    loading: state.loading,
-    error: state.error,
-    pagination: {
-      ...state.pagination,
-      totalPages
-    },
-    filters: state.filters,
-    
-    // 计算属性
-    isEmpty: state.data.length === 0 && !state.loading,
-    hasData: state.data.length > 0,
-    hasNextPage: state.pagination.page < totalPages - 1,
-    hasPreviousPage: state.pagination.page > 0,
-    
-    // 操作方法
-    ...actions
+    sortEmployees,
+    filterEmployees,
+    paginateEmployees,
   };
 }

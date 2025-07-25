@@ -1,0 +1,26 @@
+{
+  "title": "仪表板",
+  "stats": {
+    "totalEmployees": "员工总数",
+    "departments": "部门数量",
+    "payrollTotal": "薪资总额",
+    "activePositions": "在职岗位",
+    "fromLastMonth": "较上月增长 {{percent}}%",
+    "newThisMonth": "本月新增 {{count}} 个",
+    "nextRunIn": "{{days}} 天后执行",
+    "vacantPositions": "{{count}} 个空缺职位"
+  },
+  "recentActivities": {
+    "title": "最近活动",
+    "newEmployee": "新员工入职 - {{name}}",
+    "payrollCompleted": "{{month}}薪资已完成",
+    "departmentRestructure": "部门重组 - {{department}}"
+  },
+  "quickActions": {
+    "title": "快捷操作",
+    "addEmployee": "添加员工",
+    "runPayroll": "执行薪资",
+    "viewReports": "查看报表",
+    "settings": "系统设置"
+  }
+}
