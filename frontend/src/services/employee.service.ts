@@ -2,6 +2,7 @@ import { BaseService } from './base.service';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 import type { 
+  EmployeeBasicInfo,
   EmployeeCurrentStatus,
   EmployeeWithDetails,
   EmployeeListItem,
@@ -29,7 +30,7 @@ export class EmployeeService extends BaseService<'employees'> {
   /**
    * Get employee with all details from view
    */
-  async getEmployeeWithDetails(employeeId: string): Promise<EmployeeWithDetails | null> {
+  async getEmployeeWithDetails(employeeId: string): Promise<EmployeeBasicInfo | null> {
     const { data, error } = await supabase
       .from('view_employee_basic_info')
       .select('*')
@@ -64,7 +65,9 @@ export class EmployeeService extends BaseService<'employees'> {
       id: emp.employee_id,
       employee_id: emp.employee_id,
       full_name: emp.full_name,
+      gender: emp.gender,
       employment_status: emp.employment_status,
+      current_status: emp.employment_status as 'active' | 'inactive' | 'terminated',
       department_name: emp.department_name,
       position_name: emp.position_name,
       category_name: emp.category_name,
@@ -73,6 +76,10 @@ export class EmployeeService extends BaseService<'employees'> {
       email: emp.email,
       primary_bank_account: emp.primary_bank_account,
       bank_name: emp.bank_name,
+      latest_institution: emp.latest_institution,
+      latest_degree: emp.latest_degree,
+      latest_field_of_study: emp.latest_field_of_study,
+      latest_graduation_date: emp.latest_graduation_date,
     }));
 
     return employees;
@@ -191,6 +198,213 @@ export class EmployeeService extends BaseService<'employees'> {
   }
 
   /**
+   * 更新员工详细信息
+   */
+  async updateEmployeeDetails(employeeId: string, updates: {
+    // 基本信息
+    full_name?: string;
+    gender?: string;
+    date_of_birth?: string;
+    id_number?: string;
+    hire_date?: string;
+    // 联系信息
+    mobile_phone?: string;
+    work_email?: string;
+    personal_email?: string;
+    // 银行信息
+    primary_bank_account?: string;
+    bank_name?: string;
+    branch_name?: string;
+    // 工作信息（需要查找对应ID并创建新的工作历史记录）
+    department_name?: string;
+    position_name?: string;
+    category_name?: string;
+    employment_status?: string;
+    // 工作信息变更生效日期
+    job_change_effective_date?: string;
+  }) {
+    // 1. 更新员工基本信息
+    const employeeUpdates: any = {};
+    if (updates.full_name !== undefined) employeeUpdates.full_name = updates.full_name;
+    if (updates.gender !== undefined) employeeUpdates.gender = updates.gender;
+    if (updates.date_of_birth !== undefined) employeeUpdates.date_of_birth = updates.date_of_birth;
+    if (updates.id_number !== undefined) employeeUpdates.id_number = updates.id_number;
+    if (updates.hire_date !== undefined) employeeUpdates.hire_date = updates.hire_date;
+    if (updates.mobile_phone !== undefined) employeeUpdates.mobile_phone = updates.mobile_phone;
+    if (updates.work_email !== undefined) employeeUpdates.work_email = updates.work_email;
+    if (updates.personal_email !== undefined) employeeUpdates.personal_email = updates.personal_email;
+    if (updates.primary_bank_account !== undefined) employeeUpdates.primary_bank_account = updates.primary_bank_account;
+    if (updates.bank_name !== undefined) employeeUpdates.bank_name = updates.bank_name;
+    if (updates.branch_name !== undefined) employeeUpdates.branch_name = updates.branch_name;
+
+    if (Object.keys(employeeUpdates).length > 0) {
+      employeeUpdates.updated_at = new Date().toISOString();
+      const { error: employeeError } = await supabase
+        .from('employees')
+        .update(employeeUpdates)
+        .eq('employee_id', employeeId);
+      
+      if (employeeError) throw employeeError;
+    }
+
+    // 2. 如果有工作信息更新，需要更新 employee_job_history 表
+    if (updates.department_name || updates.position_name || updates.category_name) {
+      // 获取生效日期，默认为当前日期
+      const effectiveDate = updates.job_change_effective_date || new Date().toISOString().split('T')[0];
+      
+      // 验证生效日期的合理性
+      await this.validateEffectiveDate(employeeId, effectiveDate);
+      
+      // 获取当前的工作历史记录，以便继承未更新的字段
+      const { data: currentJobHistory } = await supabase
+        .from('employee_job_history')
+        .select('department_id, position_id, rank_id, effective_start_date')
+        .eq('employee_id', employeeId)
+        .is('effective_end_date', null)
+        .single();
+
+      // 查找对应的ID，如果没有提供更新值则使用当前值
+      let departmentId = currentJobHistory?.department_id;
+      let positionId = currentJobHistory?.position_id;
+      let rankId = currentJobHistory?.rank_id;
+
+      if (updates.department_name) {
+        const { data: dept } = await supabase
+          .from('departments')
+          .select('id')
+          .eq('name', updates.department_name)
+          .single();
+        if (dept?.id) departmentId = dept.id;
+      }
+
+      if (updates.position_name) {
+        const { data: pos } = await supabase
+          .from('positions')
+          .select('id')
+          .eq('name', updates.position_name)
+          .single();
+        if (pos?.id) positionId = pos.id;
+      }
+
+      if (updates.category_name) {
+        const { data: rank } = await supabase
+          .from('job_ranks')
+          .select('id')
+          .eq('name', updates.category_name)
+          .single();
+        if (rank?.id) rankId = rank.id;
+      }
+
+      // 验证必填字段
+      if (!departmentId || !positionId) {
+        throw new Error('部门和职位信息不完整，无法更新工作历史记录');
+      }
+
+      // 如果存在当前记录，需要智能处理结束日期
+      if (currentJobHistory) {
+        // 计算前一天作为结束日期
+        const endDate = new Date(effectiveDate);
+        endDate.setDate(endDate.getDate() - 1);
+        const formattedEndDate = endDate.toISOString().split('T')[0];
+        
+        // 确保结束日期不早于开始日期
+        if (formattedEndDate >= currentJobHistory.effective_start_date) {
+          const { error: endError } = await supabase
+            .from('employee_job_history')
+            .update({ effective_end_date: formattedEndDate })
+            .eq('employee_id', employeeId)
+            .is('effective_end_date', null);
+
+          if (endError) throw endError;
+        } else {
+          // 如果生效日期太早，直接删除当前记录（通常是数据修正情况）
+          const { error: deleteError } = await supabase
+            .from('employee_job_history')
+            .delete()
+            .eq('employee_id', employeeId)
+            .is('effective_end_date', null);
+
+          if (deleteError) throw deleteError;
+        }
+      }
+
+      // 创建新的工作历史记录
+      const newJobHistory = {
+        employee_id: employeeId,
+        department_id: departmentId,
+        position_id: positionId,
+        rank_id: rankId,
+        effective_start_date: effectiveDate,
+        effective_end_date: null,
+        notes: updates.job_change_effective_date ? 
+          `变更生效日期: ${effectiveDate}` : 
+          undefined
+      };
+
+      const { error: jobHistoryError } = await supabase
+        .from('employee_job_history')
+        .insert(newJobHistory);
+
+      if (jobHistoryError) throw jobHistoryError;
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * 验证工作信息变更的生效日期
+   */
+  private async validateEffectiveDate(employeeId: string, effectiveDate: string): Promise<void> {
+    // 1. 获取员工的雇佣日期
+    const { data: employee, error: employeeError } = await supabase
+      .from('employees')
+      .select('hire_date')
+      .eq('employee_id', employeeId)
+      .single();
+
+    if (employeeError) {
+      throw new Error(`获取员工信息失败: ${employeeError.message}`);
+    }
+
+    // 2. 验证生效日期不能早于雇佣日期
+    if (employee.hire_date && effectiveDate < employee.hire_date) {
+      throw new Error(`生效日期(${effectiveDate})不能早于雇佣日期(${employee.hire_date})`);
+    }
+
+    // 3. 验证生效日期不能晚于当前日期（可选，根据业务需求）
+    const today = new Date().toISOString().split('T')[0];
+    if (effectiveDate > today) {
+      // 允许未来日期，但给出警告信息
+      console.warn(`生效日期(${effectiveDate})设置为未来日期，请确认此变更将在未来生效`);
+    }
+
+    // 4. 检查是否与现有历史记录产生冲突
+    const { data: existingRecords, error: historyError } = await supabase
+      .from('employee_job_history')
+      .select('effective_start_date, effective_end_date')
+      .eq('employee_id', employeeId)
+      .order('effective_start_date', { ascending: false });
+
+    if (historyError) {
+      throw new Error(`获取工作历史失败: ${historyError.message}`);
+    }
+
+    // 检查是否存在日期冲突
+    if (existingRecords && existingRecords.length > 0) {
+      for (const record of existingRecords) {
+        // 跳过当前有效的记录（即将被更新）
+        if (record.effective_end_date === null) continue;
+        
+        // 检查新的生效日期是否落在已有记录的时间范围内
+        if (effectiveDate >= record.effective_start_date && 
+            (record.effective_end_date === null || effectiveDate <= record.effective_end_date)) {
+          throw new Error(`生效日期(${effectiveDate})与现有工作历史记录存在冲突`);
+        }
+      }
+    }
+  }
+
+  /**
    * 获取部门列表 - 基于真实departments表
    */
   async getDepartments(): Promise<string[]> {
@@ -208,11 +422,11 @@ export class EmployeeService extends BaseService<'employees'> {
   }
 
   /**
-   * 获取人员类别列表 - 基于真实employee_categories表
+   * 获取人员类别列表 - 基于真实job_ranks表
    */
   async getPersonnelCategories(): Promise<string[]> {
     const { data, error } = await supabase
-      .from('employee_categories')
+      .from('job_ranks')
       .select('name')
       .order('name');
 
@@ -221,7 +435,7 @@ export class EmployeeService extends BaseService<'employees'> {
       throw new Error(`获取人员类别失败: ${error.message}`);
     }
 
-    return data?.map(cat => cat.name) || [];
+    return data?.map(rank => rank.name) || [];
   }
 
   /**

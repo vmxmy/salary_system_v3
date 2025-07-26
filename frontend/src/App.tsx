@@ -3,13 +3,16 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from './locales';
 import { router } from './router';
 import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 
 function App() {
   return (
     <I18nextProvider i18n={i18n}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </ToastProvider>
     </I18nextProvider>
   );
 }

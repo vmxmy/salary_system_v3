@@ -59,11 +59,11 @@ export function usePositions() {
 /**
  * 获取单个员工详情
  */
-export function useEmployee(id: string) {
+export function useEmployee(employeeId: string) {
   return useQuery({
-    queryKey: employeeQueryKeys.detail(id),
-    queryFn: () => employeeService.getById(id),
-    enabled: !!id,
+    queryKey: employeeQueryKeys.detail(employeeId),
+    queryFn: () => employeeService.getEmployeeWithDetails(employeeId),
+    enabled: !!employeeId,
   });
 }
 
@@ -89,12 +89,12 @@ export function useUpdateEmployee() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => 
-      employeeService.update(id, data),
-    onSuccess: (_, { id }) => {
+    mutationFn: ({ employeeId, updates }: { employeeId: string; updates: any }) => 
+      employeeService.updateEmployeeDetails(employeeId, updates),
+    onSuccess: (_, { employeeId }) => {
       // 更新成功后刷新相关数据
       queryClient.invalidateQueries({ queryKey: employeeQueryKeys.list() });
-      queryClient.invalidateQueries({ queryKey: employeeQueryKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: employeeQueryKeys.detail(employeeId) });
     },
   });
 }

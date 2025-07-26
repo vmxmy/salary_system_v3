@@ -8,6 +8,9 @@ import { useTableConfiguration } from '@/hooks/useTableConfiguration';
 import { DataTable } from '@/components/common/DataTable';
 import { SimpleSearchBox } from '@/components/common/AdvancedSearchBox';
 import { FieldSelector } from '@/components/common/FieldSelector';
+import { PageToolbar } from '@/components/common/PageToolbar';
+import { ModernButton } from '@/components/common/ModernButton';
+import { EmployeeDetailModal } from '@/components/employee/EmployeeDetailModal';
 import type { SortingState } from '@tanstack/react-table';
 
 export default function EmployeeListPage() {
@@ -25,7 +28,12 @@ export default function EmployeeListPage() {
     columns,
     updateUserConfig,
     resetToDefault,
-  } = useTableConfiguration('employees');
+  } = useTableConfiguration('employees', {
+    onViewDetail: (row) => {
+      setSelectedEmployeeId(row.employee_id);
+      setIsDetailModalOpen(true);
+    },
+  });
 
   // 客户端数据处理
   const { sortEmployees, paginateEmployees } = useEmployeeListFiltering();
@@ -34,6 +42,8 @@ export default function EmployeeListPage() {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'full_name', desc: false }]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 });
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // 数据处理流程
   const processedData = useMemo(() => {
@@ -109,33 +119,67 @@ export default function EmployeeListPage() {
     );
   }
 
+  // 准备导出功能
+  const handleExport = () => {
+    // 这里可以实现数据导出功能
+    console.log('导出员工数据', processedData);
+  };
+
   return (
     <div className="p-6 space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold text-base-content">{t('employee:list.title')}</h1>
-        <p className="text-base-content/70 mt-2">{t('employee:list.description')}</p>
-      </header>
-
-      {/* 工具栏：搜索框和字段选择器 */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <SimpleSearchBox
-          value={searchQuery}
-          onChange={setSearchQuery}
-          onSearch={handleSearch}
-          onReset={handleResetSearch}
-          loading={totalLoading}
-          placeholder="搜索员工姓名、部门、职位、手机号、邮箱..."
-          className="flex-1 max-w-md"
-        />
-        
-        <FieldSelector
-          fields={metadata.fields}
-          userConfig={userConfig}
-          onChange={updateUserConfig}
-          onReset={resetToDefault}
-          className="shrink-0"
-        />
-      </div>
+      <PageToolbar
+        title={t('employee:list.title')}
+        subtitle={t('employee:list.description')}
+        searchComponent={
+          <SimpleSearchBox
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onSearch={handleSearch}
+            onReset={handleResetSearch}
+            loading={totalLoading}
+            placeholder="搜索员工姓名、部门、职位、手机号、邮箱..."
+            className="w-full"
+          />
+        }
+        fieldSelector={
+          <FieldSelector
+            fields={metadata.fields}
+            userConfig={userConfig}
+            onChange={updateUserConfig}
+            onReset={resetToDefault}
+          />
+        }
+        exportComponent={
+          <ModernButton
+            variant="secondary"
+            size="md"
+            onClick={handleExport}
+            icon={
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            }
+          >
+            {t('common:common.export')}
+          </ModernButton>
+        }
+        extraActions={[
+          <ModernButton
+            key="add-employee"
+            variant="primary"
+            size="md"
+            icon={
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            }
+          >
+            添加员工
+          </ModernButton>
+        ]}
+      />
 
       {/* 表格 */}
       <div className="overflow-x-auto">
@@ -148,12 +192,21 @@ export default function EmployeeListPage() {
           currentPage={pagination.pageIndex + 1}
           onPaginationChange={setPagination}
           onSortingChange={setSorting}
-          enableExport={true}
-          exportFileName="employees"
+          enableExport={false}
           showGlobalFilter={false}
           showColumnToggle={false}
         />
       </div>
+
+      {/* 员工详情模态框 */}
+      <EmployeeDetailModal
+        employeeId={selectedEmployeeId}
+        open={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedEmployeeId(null);
+        }}
+      />
     </div>
   );
 }
