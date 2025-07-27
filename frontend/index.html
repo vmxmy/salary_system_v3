@@ -1,10 +1,42 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="zh-CN" data-theme="cupcake">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Salary System</title>
+    <title>薪资管理系统</title>
+    <!-- 使用系统字体，性能更好且更可靠 -->
+    <!-- Font rendering optimization for Chinese -->
+    <style>
+      /* 字体渲染优化 */
+      * {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        font-feature-settings: "kern" 1;
+      }
+      
+      /* 字体加载优化 - 避免字体闪烁 */
+      .font-display-swap {
+        font-display: swap;
+      }
+      
+      /* 为网络字体添加加载状态 */
+      .fonts-loading {
+        visibility: hidden;
+      }
+      
+      .fonts-loaded {
+        visibility: visible;
+      }
+      
+      /* 中文字体特殊优化 */
+      .chinese-text {
+        font-variant-east-asian: proportional-width;
+        text-align: justify;
+        text-justify: inter-ideograph;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

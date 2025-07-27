@@ -36,35 +36,63 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
   // 按可见性和顺序排序的字段配置
   const sortedColumns = useMemo(() => {
     const configMap = new Map(userConfig.columns.map(col => [col.field, col]));
-    return fields
-      .map(field => configMap.get(field.name) || {
-        field: field.name,
-        visible: false,
-        order: field.order || 999,
-        label: field.label,
-      })
-      .sort((a, b) => {
-        // 先按可见性排序，再按顺序排序
-        if (a.visible !== b.visible) {
-          return a.visible ? -1 : 1;
-        }
-        return a.order - b.order;
-      });
+    
+    // 为所有字段创建配置，包括动态获取的字段
+    const allColumns = fields.map(field => {
+      const existingConfig = configMap.get(field.name);
+      if (existingConfig) {
+        return existingConfig;
+      } else {
+        // 为动态字段创建默认配置
+        return {
+          field: field.name,
+          visible: field.visible ?? false, // 使用字段的默认可见性
+          order: field.order ?? 999,
+          label: field.label,
+          width: field.width,
+        };
+      }
+    });
+    
+    return allColumns.sort((a, b) => {
+      // 先按可见性排序，再按顺序排序
+      if (a.visible !== b.visible) {
+        return a.visible ? -1 : 1;
+      }
+      return a.order - b.order;
+    });
   }, [fields, userConfig.columns]);
 
   // 切换字段可见性
   const toggleFieldVisibility = useCallback((fieldName: string) => {
-    const newColumns = userConfig.columns.map(col => 
-      col.field === fieldName 
-        ? { ...col, visible: !col.visible }
-        : col
-    );
+    const existingColumnIndex = userConfig.columns.findIndex(col => col.field === fieldName);
+    let newColumns = [...userConfig.columns];
+
+    if (existingColumnIndex >= 0) {
+      // 更新现有字段
+      newColumns[existingColumnIndex] = {
+        ...newColumns[existingColumnIndex],
+        visible: !newColumns[existingColumnIndex].visible
+      };
+    } else {
+      // 添加新字段（对于动态获取的字段）
+      const field = fields.find(f => f.name === fieldName);
+      if (field) {
+        newColumns.push({
+          field: fieldName,
+          visible: true, // 新添加的字段默认可见
+          width: field.width,
+          order: field.order ?? newColumns.length,
+          label: field.label,
+        });
+      }
+    }
 
     onChange({
       ...userConfig,
       columns: newColumns,
     });
-  }, [userConfig, onChange]);
+  }, [userConfig, onChange, fields]);
 
   // 移动字段位置
   const moveField = useCallback((fieldName: string, direction: 'up' | 'down') => {
@@ -75,8 +103,38 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
     if (newIndex < 0 || newIndex >= sortedColumns.length) return;
 
     const newColumns = [...userConfig.columns];
-    const currentCol = newColumns.find(col => col.field === fieldName);
-    const targetCol = newColumns.find(col => col.field === sortedColumns[newIndex].field);
+    let currentCol = newColumns.find(col => col.field === fieldName);
+    let targetCol = newColumns.find(col => col.field === sortedColumns[newIndex].field);
+
+    // 如果当前字段不在用户配置中，添加它
+    if (!currentCol) {
+      const field = fields.find(f => f.name === fieldName);
+      if (field) {
+        currentCol = {
+          field: fieldName,
+          visible: true,
+          width: field.width,
+          order: field.order ?? newColumns.length,
+          label: field.label,
+        };
+        newColumns.push(currentCol);
+      }
+    }
+
+    // 如果目标字段不在用户配置中，添加它
+    if (!targetCol) {
+      const targetField = fields.find(f => f.name === sortedColumns[newIndex].field);
+      if (targetField) {
+        targetCol = {
+          field: sortedColumns[newIndex].field,
+          visible: sortedColumns[newIndex].visible,
+          width: targetField.width,
+          order: targetField.order ?? newColumns.length,
+          label: targetField.label,
+        };
+        newColumns.push(targetCol);
+      }
+    }
 
     if (currentCol && targetCol) {
       const tempOrder = currentCol.order;
@@ -88,11 +146,11 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
         columns: newColumns,
       });
     }
-  }, [sortedColumns, userConfig, onChange]);
+  }, [sortedColumns, userConfig, onChange, fields]);
 
   // 统计信息
-  const visibleCount = userConfig.columns.filter(col => col.visible).length;
-  const totalCount = userConfig.columns.length;
+  const visibleCount = sortedColumns.filter(col => col.visible).length;
+  const totalCount = sortedColumns.length;
 
   return (
     <div className={cn('relative', className)}>
@@ -166,8 +224,8 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
                   if (!config) return null;
 
                   const currentIndex = sortedColumns.findIndex(col => col.field === field.name);
-                  const canMoveUp = currentIndex > 0;
-                  const canMoveDown = currentIndex < sortedColumns.length - 1;
+                  const canMoveUp = currentIndex > 0 && config.visible;
+                  const canMoveDown = currentIndex < sortedColumns.length - 1 && config.visible;
 
                   return (
                     <div

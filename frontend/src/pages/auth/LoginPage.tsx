@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
-import { validateEmail } from '@/lib/utils';
+import { validateEmail, cn } from '@/lib/utils';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -30,15 +30,15 @@ export default function LoginPage() {
     };
 
     if (!formData.email) {
-      newErrors.email = t('validation.emailRequired', '请输入邮箱');
+      newErrors.email = t('validation.emailRequired');
     } else if (!validateEmail(formData.email)) {
-      newErrors.email = t('validation.emailInvalid', '邮箱格式不正确');
+      newErrors.email = t('validation.emailInvalid');
     }
 
     if (!formData.password) {
-      newErrors.password = t('validation.passwordRequired', '请输入密码');
+      newErrors.password = t('validation.passwordRequired');
     } else if (formData.password.length < 6) {
-      newErrors.password = t('validation.passwordMinLength', '密码至少6位');
+      newErrors.password = t('validation.passwordMinLength');
     }
 
     setErrors(newErrors);
@@ -64,9 +64,9 @@ export default function LoginPage() {
       let errorMessage = t('login.failed');
       
       if (error.message?.includes('Invalid login credentials')) {
-        errorMessage = t('login.invalidCredentials', '邮箱或密码错误');
+        errorMessage = t('login.invalidCredentials');
       } else if (error.message?.includes('Email not confirmed')) {
-        errorMessage = t('login.emailNotConfirmed', '请先验证您的邮箱');
+        errorMessage = t('login.emailNotConfirmed');
       }
       
       // For now, use alert - can be replaced with a proper toast system later
@@ -79,17 +79,17 @@ export default function LoginPage() {
   return (
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">
-        <h2 className="card-title text-2xl font-serif mb-2">
+        <h2 className={cn("card-title mb-2", "text-base")}>
           {t('login.title')}
         </h2>
-        <p className="text-base-content/60 mb-6">
+        <p className={cn("text-base", "text-base-content/60 mb-6")}>
           {t('login.subtitle')}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="form-control">
             <label className="label">
-              <span className="label-text">{t('login.email')}</span>
+              <span className={cn("label-text", "text-base")}>{t('login.email')}</span>
             </label>
             <input
               type="email"
@@ -105,14 +105,14 @@ export default function LoginPage() {
             />
             {errors.email && (
               <label className="label">
-                <span className="label-text-alt text-error">{errors.email}</span>
+                <span className={cn("label-text-alt text-error", "text-base")}>{errors.email}</span>
               </label>
             )}
           </div>
 
           <div className="form-control">
             <label className="label">
-              <span className="label-text">{t('login.password')}</span>
+              <span className={cn("label-text", "text-base")}>{t('login.password')}</span>
             </label>
             <input
               type="password"
@@ -128,14 +128,14 @@ export default function LoginPage() {
             />
             {errors.password && (
               <label className="label">
-                <span className="label-text-alt text-error">{errors.password}</span>
+                <span className={cn("label-text-alt text-error", "text-base")}>{errors.password}</span>
               </label>
             )}
           </div>
 
           <div className="form-control">
             <label className="label cursor-pointer">
-              <span className="label-text">{t('login.rememberMe')}</span>
+              <span className={cn("label-text", "text-base")}>{t('login.rememberMe')}</span>
               <input
                 type="checkbox"
                 className="checkbox checkbox-primary"
@@ -148,7 +148,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-between">
             <Link
               to="/auth/forgot-password"
-              className="link link-primary text-sm"
+              className={cn("link link-primary", "text-base")}
             >
               {t('login.forgotPassword')}
             </Link>
@@ -156,7 +156,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="btn btn-primary w-full"
+            className={cn("btn btn-primary w-full", "text-base")}
             disabled={isLoading}
           >
             {isLoading && <span className="loading loading-spinner"></span>}
@@ -166,7 +166,7 @@ export default function LoginPage() {
 
         <div className="divider">OR</div>
 
-        <p className="text-center text-sm">
+        <p className={cn("text-center", "text-base")}>
           {t('login.noAccount')}{' '}
           <Link to="/auth/register" className="link link-primary">
             {t('login.register')}

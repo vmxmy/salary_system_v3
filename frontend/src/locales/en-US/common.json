@@ -9,10 +9,27 @@
     "dashboard": "Dashboard",
     "employees": "Employees",
     "payroll": "Payroll",
+    "organization": "Organization",
+    "departments": "Departments",
+    "positions": "Positions",
     "admin": "Admin",
     "profile": "Profile",
     "logout": "Logout"
   },
+  "viewMode": "View Mode",
+  "tableView": "Table",
+  "cards": "Cards",
+  "filter": "Filter",
+  "exportAction": "Export",
+  "loading": "Loading...",
+  "person": "Person",
+  "allStatus": "All Status",
+  "unknown": "Unknown",
+  "actions": "Actions",
+  "back": "Back",
+  "applicable": "Applicable",
+  "notApplicable": "Not Applicable",
+  "ongoing": "Ongoing",
   "common": {
     "add": "Add",
     "view": "View", 
@@ -100,10 +117,43 @@
   },
   "placeholder": {
     "search": "Please enter search content",
-    "select": "Please select",
+    "select": "Please select", 
     "input": "Please enter",
     "date": "Please select date",
     "dateRange": "Please select date range",
     "filterColumn": "Filter column..."
+  },
+  "months": {
+    "January": "January",
+    "February": "February",
+    "March": "March",
+    "April": "April",
+    "May": "May",
+    "June": "June",
+    "July": "July",
+    "August": "August",
+    "September": "September",
+    "October": "October",
+    "November": "November",
+    "December": "December"
+  },
+  "table": {
+    "pageSize": "Items per page",
+    "page": "Page",
+    "prev": "Previous",
+    "next": "Next",
+    "first": "First",
+    "last": "Last",
+    "showing": "Showing",
+    "of": "of",
+    "entries": "entries",
+    "noData": "No data",
+    "loading": "Loading..."
+  },
+  "dataTable": {
+    "loading": "Loading...",
+    "noData": "No data available",
+    "noDataDescription": "Try adjusting your search criteria or clear filters",
+    "showingRows": "Showing {{from}} - {{to}} of {{total}} rows"
   }
 }

@@ -15,6 +15,43 @@ export interface Employee {
   updated_at: string;
 }
 
+// 员工基本信息视图类型（view_employee_basic_info）
+export interface EmployeeBasicInfo {
+  employee_id: string;
+  full_name: string;
+  id_number?: string;
+  hire_date: string;
+  termination_date?: string;
+  gender?: string;
+  date_of_birth?: string;
+  employment_status: string;
+  manager_id?: string;
+  department_id?: string;
+  department_name?: string;
+  position_id?: string;
+  position_name?: string;
+  rank_id?: string;
+  rank_name?: string;
+  job_start_date?: string;
+  category_id?: string;
+  category_name?: string;
+  category_start_date?: string;
+  has_occupational_pension?: string;
+  mobile_phone?: string;
+  email?: string;
+  work_email?: string;
+  personal_email?: string;
+  primary_bank_account?: string;
+  bank_name?: string;
+  branch_name?: string;
+  latest_institution?: string;
+  latest_degree?: string;
+  latest_field_of_study?: string;
+  latest_graduation_date?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // 员工当前状态视图类型（v_employee_current_status）
 export interface EmployeeCurrentStatus {
   employee_id: string;
@@ -119,7 +156,7 @@ export interface EmployeeSpecialDeduction {
 }
 
 // 扩展的员工信息，包含所有相关数据
-export interface EmployeeWithDetails extends EmployeeCurrentStatus {
+export interface EmployeeWithDetails extends EmployeeBasicInfo {
   contacts: EmployeeContact[];
   bankAccounts: EmployeeBankAccount[];
   education: EmployeeEducation[];
@@ -127,10 +164,6 @@ export interface EmployeeWithDetails extends EmployeeCurrentStatus {
   contributionBases: EmployeeContributionBase[];
   documents: EmployeeDocument[];
   specialDeductions: EmployeeSpecialDeduction[];
-  hire_date: string;
-  date_of_birth?: string;
-  gender?: string;
-  id_number?: string;
 }
 
 // 员工列表项类型（用于表格显示）
@@ -138,15 +171,22 @@ export interface EmployeeListItem {
   id: string;
   employee_id: string;
   full_name: string;
+  gender?: string; // 性别
   employment_status: string;
+  current_status: 'active' | 'inactive' | 'terminated'; // 添加当前状态字段
   department_name?: string;
   position_name?: string;
   category_name?: string;
   hire_date?: string;
+  base_salary?: number; // 添加基本工资字段
   mobile_phone?: string;
   email?: string;
   primary_bank_account?: string; // 主要银行账户号码
   bank_name?: string; // 银行名称
+  latest_institution?: string; // 最新教育机构
+  latest_degree?: string; // 最新学位
+  latest_field_of_study?: string; // 最新专业
+  latest_graduation_date?: string; // 最新毕业日期
 }
 
 // 员工创建/更新请求类型

@@ -13,7 +13,7 @@ export default function UnauthorizedPage() {
           {t('permission.deniedMessage')}
         </p>
         <Link to="/dashboard" className="btn btn-primary">
-          {t('common.back')} {t('nav.dashboard')}
+          {t('back')} {t('nav.dashboard')}
         </Link>
       </div>
     </div>

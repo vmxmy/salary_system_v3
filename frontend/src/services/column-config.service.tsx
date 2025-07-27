@@ -2,6 +2,7 @@ import React from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { FieldMetadata, TableMetadata } from './metadata.service';
 import { DataTableColumnHeader } from '@/components/common/DataTable/DataTableColumnHeader';
+import { GenderBadge } from '@/components/common/GenderBadge';
 import { formatDate, formatDateTime, cn } from '@/lib/utils';
 
 export interface ColumnConfig {
@@ -26,6 +27,12 @@ export interface DynamicCellProps<T = any> {
   field: FieldMetadata;
 }
 
+export interface ActionColumn {
+  onViewDetail?: (row: any) => void;
+  onEdit?: (row: any) => void;
+  onDelete?: (row: any) => void;
+}
+
 class ColumnConfigService {
   private readonly STORAGE_KEY_PREFIX = 'table_config_';
 
@@ -34,12 +41,20 @@ class ColumnConfigService {
    */
   generateColumns<T extends Record<string, any>>(
     metadata: TableMetadata,
-    userConfig?: UserTableConfig
+    userConfig?: UserTableConfig,
+    actions?: ActionColumn
   ): ColumnDef<T>[] {
     const visibleFields = this.getVisibleFields(metadata, userConfig);
     const sortedFields = this.sortFields(visibleFields, userConfig);
 
-    return sortedFields.map(field => this.createColumn<T>(field, metadata));
+    const columns = sortedFields.map(field => this.createColumn<T>(field, metadata));
+    
+    // 如果提供了操作列配置，添加操作列
+    if (actions) {
+      columns.push(this.createActionsColumn<T>(actions));
+    }
+
+    return columns;
   }
 
   /**
@@ -257,6 +272,68 @@ class ColumnConfigService {
   }
 
   /**
+   * 创建操作列
+   */
+  private createActionsColumn<T extends Record<string, any>>(
+    actions: ActionColumn
+  ): ColumnDef<T> {
+    return {
+      id: 'actions',
+      header: '操作',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          {actions.onViewDetail && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                actions.onViewDetail!(row.original);
+              }}
+              className="btn btn-ghost btn-xs"
+              title="查看详情"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+          )}
+          {actions.onEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                actions.onEdit!(row.original);
+              }}
+              className="btn btn-ghost btn-xs"
+              title="编辑"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          )}
+          {actions.onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                actions.onDelete!(row.original);
+              }}
+              className="btn btn-ghost btn-xs text-error"
+              title="删除"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+      ),
+      enableSorting: false,
+      enableHiding: false,
+      size: 100,
+    };
+  }
+
+  /**
    * 获取可用字段列表（用于字段选择器）
    */
   getAvailableFields(metadata: TableMetadata): FieldMetadata[] {
@@ -332,14 +409,9 @@ function DynamicCell<T = any>({ value, row, field }: DynamicCellProps<T>) {
         );
       }
       
-      // 性别字段的特殊样式处理
+      // 性别字段的特殊样式处理 - 使用GenderBadge组件
       if (field.name === 'gender') {
-        const option = field.options?.find(opt => opt.value === value);
-        return (
-          <span className={cn(cellClass, 'badge badge-sm badge-outline')}>
-            {option?.label || value}
-          </span>
-        );
+        return <GenderBadge gender={value} size="sm" />;
       }
       
       // 其他select类型字段

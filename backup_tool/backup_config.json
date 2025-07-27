@@ -1,0 +1,18 @@
+{
+  "supabase_url": "https://rjlymghylrshudywrzec.supabase.co",
+  "supabase_service_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqbHltZ2h5bHJzaHVkeXdyemVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4ODgzODIsImV4cCI6MjA2NzQ2NDM4Mn0.C4aGzJCzk7iMIC9xWBpEKn9mBYHpVPg78THZb4unJqM",
+  "database_url": "postgresql://postgres.rjlymghylrshudywrzec:1oODN6d22quqpyKz@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres",
+  "backup_dir": "./backups",
+  "max_backups": 30,
+  "compress": true,
+  "include_data": true,
+  "include_schema": true,
+  "email_notifications": false,
+  "email_smtp_server": "smtp.gmail.com",
+  "email_smtp_port": 587,
+  "email_from": "your-email@gmail.com",
+  "email_to": ["admin@yourcompany.com"],
+  "email_password": "your-app-password",
+  "schedule_enabled": true,
+  "schedule_time": "02:00"
+}

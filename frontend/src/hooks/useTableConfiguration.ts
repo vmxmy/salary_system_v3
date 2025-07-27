@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { metadataService } from '@/services/metadata.service';
 import type { TableMetadata } from '@/services/metadata.service';
 import { columnConfigService } from '@/services/column-config.service';
-import type { UserTableConfig } from '@/services/column-config.service';
+import type { UserTableConfig, ActionColumn } from '@/services/column-config.service';
 import type { ColumnDef } from '@tanstack/react-table';
 
 export interface UseTableConfigurationReturn {
@@ -29,7 +29,7 @@ export interface UseTableConfigurationReturn {
  * 表格配置管理 Hook
  * 统一管理表格元数据、用户配置和动态列生成
  */
-export function useTableConfiguration(tableName: string): UseTableConfigurationReturn {
+export function useTableConfiguration(tableName: string, actions?: ActionColumn): UseTableConfigurationReturn {
   // 状态管理
   const [metadata, setMetadata] = useState<TableMetadata | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(true);
@@ -84,8 +84,8 @@ export function useTableConfiguration(tableName: string): UseTableConfigurationR
   // 生成动态列定义
   const columns = useMemo(() => {
     if (!metadata || !userConfig) return [];
-    return columnConfigService.generateColumns(metadata, userConfig);
-  }, [metadata, userConfig]);
+    return columnConfigService.generateColumns(metadata, userConfig, actions);
+  }, [metadata, userConfig, actions]);
 
   // 更新用户配置
   const updateUserConfig = useCallback((newConfig: UserTableConfig) => {

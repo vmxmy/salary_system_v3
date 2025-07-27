@@ -297,3 +297,102 @@ export function deepClone<T>(obj: T): T {
   }
   return obj;
 }
+
+/**
+ * DaisyUI Card Effects - Modern card styling patterns
+ * Provides consistent card appearance across the application
+ */
+export const cardEffects = {
+  modern: cn(
+    'card bg-base-100 shadow-sm border border-base-200/60',
+    'hover:shadow-md transition-all duration-200',
+    'backdrop-blur-sm'
+  ),
+  elevated: cn(
+    'card bg-base-100 shadow-lg border border-base-200/60',
+    'hover:shadow-xl transition-all duration-300',
+    'backdrop-blur-md'
+  ),
+  glass: cn(
+    'card bg-base-100/80 backdrop-blur-xl shadow-sm',
+    'border border-base-200/40',
+    'hover:bg-base-100/90 transition-all duration-200'
+  ),
+  gradient: cn(
+    'card bg-gradient-to-br from-base-100 to-base-50/50',
+    'shadow-sm border border-base-200/60',
+    'hover:shadow-md transition-all duration-200'
+  )
+};
+
+/**
+ * DaisyUI Icon Container - Consistent icon styling
+ * Provides themed icon containers with various sizes and colors
+ */
+export const iconContainer = {
+  modern: (variant: string = 'primary', size: string = 'md') => {
+    const sizeClasses = {
+      xs: 'w-6 h-6',
+      sm: 'w-8 h-8', 
+      md: 'w-10 h-10',
+      lg: 'w-12 h-12',
+      xl: 'w-14 h-14',
+      '2xl': 'w-16 h-16'
+    };
+
+    const variantClasses = {
+      primary: 'bg-primary/10 text-primary border-primary/20',
+      secondary: 'bg-secondary/10 text-secondary border-secondary/20',
+      accent: 'bg-accent/10 text-accent border-accent/20',
+      success: 'bg-success/10 text-success border-success/20',
+      warning: 'bg-warning/10 text-warning border-warning/20',
+      error: 'bg-error/10 text-error border-error/20',
+      info: 'bg-info/10 text-info border-info/20',
+      neutral: 'bg-neutral/10 text-neutral border-neutral/20'
+    };
+
+    return cn(
+      'rounded-lg border flex items-center justify-center',
+      'transition-all duration-200 hover:scale-105',
+      sizeClasses[size as keyof typeof sizeClasses] || sizeClasses.md,
+      variantClasses[variant as keyof typeof variantClasses] || variantClasses.primary
+    );
+  }
+};
+
+/**
+ * DaisyUI Button Effects - Consistent button styling
+ * Provides themed button styles following DaisyUI patterns
+ */
+export const buttonEffects = {
+  primary: cn(
+    'btn-primary hover:btn-primary',
+    'transition-all duration-200',
+    'hover:scale-105 active:scale-95'
+  ),
+  secondary: cn(
+    'btn-secondary hover:btn-secondary',
+    'transition-all duration-200',
+    'hover:scale-105 active:scale-95'
+  ),
+  accent: cn(
+    'btn-accent hover:btn-accent',
+    'transition-all duration-200',
+    'hover:scale-105 active:scale-95'
+  ),
+  ghost: cn(
+    'btn-ghost hover:btn-ghost',
+    'transition-all duration-200',
+    'hover:scale-105 active:scale-95'
+  ),
+  outline: cn(
+    'btn-outline hover:btn-outline',
+    'transition-all duration-200',
+    'hover:scale-105 active:scale-95'
+  ),
+  link: cn(
+    'btn-link hover:btn-link',
+    'transition-all duration-200',
+    'hover:scale-105 active:scale-95'
+  )
+};

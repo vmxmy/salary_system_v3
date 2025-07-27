@@ -88,6 +88,75 @@ export class EmployeeService extends BaseService<'employees'> {
   
 
   /**
+   * 分页获取员工数据
+   */
+  async getEmployees(params: EmployeeQueryParams): Promise<EmployeeQueryResult> {
+    const { page = 1, pageSize = 10, search, employment_status, department_id, sortBy = 'full_name', sortOrder = 'asc' } = params;
+    
+    // 使用视图查询
+    let query = supabase
+      .from('view_employee_basic_info')
+      .select('*', { count: 'exact' });
+
+    // 应用筛选条件
+    if (search) {
+      query = query.or(`full_name.ilike.%${search}%,employee_id.ilike.%${search}%,mobile_phone.ilike.%${search}%`);
+    }
+    
+    if (employment_status) {
+      query = query.eq('employment_status', employment_status);
+    }
+    
+    if (department_id) {
+      query = query.eq('department_name', department_id); // 假设传入的是部门名称
+    }
+
+    // 应用排序
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+    // 应用分页
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize - 1;
+    query = query.range(start, end);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      throw new Error(`获取员工列表失败: ${error.message}`);
+    }
+
+    // 转换数据格式
+    const employees: EmployeeListItem[] = (data || []).map(emp => ({
+      id: emp.employee_id,
+      employee_id: emp.employee_id,
+      full_name: emp.full_name,
+      gender: emp.gender,
+      employment_status: emp.employment_status,
+      current_status: emp.employment_status as 'active' | 'inactive' | 'terminated',
+      department_name: emp.department_name,
+      position_name: emp.position_name,
+      category_name: emp.category_name,
+      hire_date: emp.hire_date,
+      mobile_phone: emp.mobile_phone,
+      email: emp.email,
+      primary_bank_account: emp.primary_bank_account,
+      bank_name: emp.bank_name,
+      latest_institution: emp.latest_institution,
+      latest_degree: emp.latest_degree,
+      latest_field_of_study: emp.latest_field_of_study,
+      latest_graduation_date: emp.latest_graduation_date,
+    }));
+
+    return {
+      data: employees,
+      total: count || 0,
+      page,
+      pageSize,
+      totalPages: Math.ceil((count || 0) / pageSize)
+    };
+  }
+
+  /**
    * Get all employees with details - 兼容旧接口
    */
   async getAllWithDetails(options: {
@@ -143,7 +212,7 @@ export class EmployeeService extends BaseService<'employees'> {
         employee_id: newEmployee.id,
         department_id: assignment.department_id,
         position_id: assignment.position_id,
-        rank_id: assignment.personnel_category_id,
+        rank_id: null, // Rank will be assigned separately
         effective_start_date: new Date().toISOString().split('T')[0],
       });
 
@@ -151,6 +220,22 @@ export class EmployeeService extends BaseService<'employees'> {
       // Rollback by deleting the employee
       await supabase.from('employees').delete().eq('id', newEmployee.id);
       throw assignmentError;
+    }
+
+    // Create personnel category assignment
+    const { error: categoryError } = await supabase
+      .from('employee_category_assignments')
+      .insert({
+        employee_id: newEmployee.id,
+        employee_category_id: assignment.personnel_category_id,
+        effective_start_date: new Date().toISOString().split('T')[0],
+        effective_end_date: null
+      });
+
+    if (categoryError) {
+      // Rollback by deleting the employee and job history
+      await supabase.from('employees').delete().eq('id', newEmployee.id);
+      throw categoryError;
     }
 
     return newEmployee;
@@ -223,32 +308,49 @@ export class EmployeeService extends BaseService<'employees'> {
     // 工作信息变更生效日期
     job_change_effective_date?: string;
   }) {
-    // 1. 更新员工基本信息
+    // 1. 更新员工基本信息（不包括银行信息）
     const employeeUpdates: any = {};
     if (updates.full_name !== undefined) employeeUpdates.full_name = updates.full_name;
     if (updates.gender !== undefined) employeeUpdates.gender = updates.gender;
     if (updates.date_of_birth !== undefined) employeeUpdates.date_of_birth = updates.date_of_birth;
     if (updates.id_number !== undefined) employeeUpdates.id_number = updates.id_number;
     if (updates.hire_date !== undefined) employeeUpdates.hire_date = updates.hire_date;
-    if (updates.mobile_phone !== undefined) employeeUpdates.mobile_phone = updates.mobile_phone;
-    if (updates.work_email !== undefined) employeeUpdates.work_email = updates.work_email;
-    if (updates.personal_email !== undefined) employeeUpdates.personal_email = updates.personal_email;
-    if (updates.primary_bank_account !== undefined) employeeUpdates.primary_bank_account = updates.primary_bank_account;
-    if (updates.bank_name !== undefined) employeeUpdates.bank_name = updates.bank_name;
-    if (updates.branch_name !== undefined) employeeUpdates.branch_name = updates.branch_name;
+    // Note: contact information (mobile_phone, work_email, personal_email) is handled separately in employee_contacts table
 
     if (Object.keys(employeeUpdates).length > 0) {
       employeeUpdates.updated_at = new Date().toISOString();
       const { error: employeeError } = await supabase
         .from('employees')
         .update(employeeUpdates)
-        .eq('employee_id', employeeId);
+        .eq('id', employeeId);
       
       if (employeeError) throw employeeError;
     }
 
+    // 1.5. 处理银行信息更新（独立处理）
+    if (updates.bank_name !== undefined || updates.branch_name !== undefined || updates.primary_bank_account !== undefined) {
+      await this.updateOrCreateBankAccount(employeeId, {
+        account_number: updates.primary_bank_account,
+        bank_name: updates.bank_name,
+        branch_name: updates.branch_name
+      });
+    }
+
+    // 1.6. 处理联系信息更新（独立处理）
+    const hasContactUpdates = updates.mobile_phone !== undefined || updates.work_email !== undefined || updates.personal_email !== undefined;
+    if (hasContactUpdates) {
+      await this.updateEmployeeContacts(employeeId, {
+        mobile_phone: updates.mobile_phone,
+        work_email: updates.work_email,
+        personal_email: updates.personal_email
+      });
+    }
+
     // 2. 如果有工作信息更新，需要更新 employee_job_history 表
-    if (updates.department_name || updates.position_name || updates.category_name) {
+    const hasJobUpdates = (updates.department_name !== undefined && updates.department_name !== null && updates.department_name.trim() !== '') || 
+                         (updates.position_name !== undefined && updates.position_name !== null && updates.position_name.trim() !== '');
+    
+    if (hasJobUpdates) {
       // 获取生效日期，默认为当前日期
       const effectiveDate = updates.job_change_effective_date || new Date().toISOString().split('T')[0];
       
@@ -256,12 +358,15 @@ export class EmployeeService extends BaseService<'employees'> {
       await this.validateEffectiveDate(employeeId, effectiveDate);
       
       // 获取当前的工作历史记录，以便继承未更新的字段
-      const { data: currentJobHistory } = await supabase
+      const { data: jobHistoryData } = await supabase
         .from('employee_job_history')
         .select('department_id, position_id, rank_id, effective_start_date')
         .eq('employee_id', employeeId)
         .is('effective_end_date', null)
-        .single();
+        .order('effective_start_date', { ascending: false })
+        .limit(1);
+      
+      const currentJobHistory = jobHistoryData?.[0] || null;
 
       // 查找对应的ID，如果没有提供更新值则使用当前值
       let departmentId = currentJobHistory?.department_id;
@@ -286,18 +391,21 @@ export class EmployeeService extends BaseService<'employees'> {
         if (pos?.id) positionId = pos.id;
       }
 
-      if (updates.category_name) {
-        const { data: rank } = await supabase
-          .from('job_ranks')
-          .select('id')
-          .eq('name', updates.category_name)
-          .single();
-        if (rank?.id) rankId = rank.id;
-      }
+      // Note: category_name updates are handled separately in employee_category_assignments
+      // rank_id should only be set if we have actual job rank updates, not category updates
 
-      // 验证必填字段
+      // 验证必填字段 - 只有在没有现有记录且没有提供必要信息时才报错
       if (!departmentId || !positionId) {
-        throw new Error('部门和职位信息不完整，无法更新工作历史记录');
+        if (!currentJobHistory) {
+          // 没有现有记录时，必须提供完整的部门和职位信息
+          if (!updates.department_name || !updates.position_name) {
+            throw new Error('创建工作历史记录需要提供完整的部门和职位信息');
+          } else {
+            throw new Error('无法找到指定的部门或职位，请检查名称是否正确');
+          }
+        } else {
+          throw new Error('部门和职位信息不完整，无法更新工作历史记录');
+        }
       }
 
       // 如果存在当前记录，需要智能处理结束日期
@@ -348,6 +456,43 @@ export class EmployeeService extends BaseService<'employees'> {
       if (jobHistoryError) throw jobHistoryError;
     }
 
+    // 3. 如果有人员类别更新，需要更新 employee_category_assignments 表
+    if (updates.category_name !== undefined && updates.category_name !== null && updates.category_name.trim() !== '') {
+      const effectiveDate = updates.job_change_effective_date || new Date().toISOString().split('T')[0];
+      
+      // 根据category_name查找category_id
+      const { data: category } = await supabase
+        .from('view_employee_category_hierarchy')
+        .select('id')
+        .eq('name', updates.category_name)
+        .single();
+
+      if (!category?.id) {
+        throw new Error(`无法找到指定的人员类别: ${updates.category_name}`);
+      }
+
+      // 结束当前的类别分配
+      const { error: endError } = await supabase
+        .from('employee_category_assignments')
+        .update({ effective_end_date: effectiveDate })
+        .eq('employee_id', employeeId)
+        .is('effective_end_date', null);
+
+      if (endError) throw endError;
+
+      // 创建新的类别分配
+      const { error: categoryError } = await supabase
+        .from('employee_category_assignments')
+        .insert({
+          employee_id: employeeId,
+          employee_category_id: category.id,
+          effective_start_date: effectiveDate,
+          effective_end_date: null
+        });
+
+      if (categoryError) throw categoryError;
+    }
+
     return { success: true };
   }
 
@@ -359,7 +504,7 @@ export class EmployeeService extends BaseService<'employees'> {
     const { data: employee, error: employeeError } = await supabase
       .from('employees')
       .select('hire_date')
-      .eq('employee_id', employeeId)
+      .eq('id', employeeId)
       .single();
 
     if (employeeError) {
@@ -422,20 +567,34 @@ export class EmployeeService extends BaseService<'employees'> {
   }
 
   /**
-   * 获取人员类别列表 - 基于真实job_ranks表
+   * 获取人员类别列表 - 基于view_employee_category_hierarchy视图
    */
-  async getPersonnelCategories(): Promise<string[]> {
+  async getPersonnelCategories(): Promise<Array<{
+    id: string;
+    name: string;
+    parent_category_id: string | null;
+    full_path: string;
+    level: number;
+  }>> {
     const { data, error } = await supabase
-      .from('job_ranks')
-      .select('name')
-      .order('name');
+      .from('view_employee_category_hierarchy')
+      .select('*')
+      .order('full_path');
 
     if (error) {
       console.error('Failed to fetch personnel categories:', error);
       throw new Error(`获取人员类别失败: ${error.message}`);
     }
 
-    return data?.map(rank => rank.name) || [];
+    return data || [];
+  }
+
+  /**
+   * 获取人员类别名称列表 - 用于简单下拉选择
+   */
+  async getPersonnelCategoryNames(): Promise<string[]> {
+    const categories = await this.getPersonnelCategories();
+    return categories.map(category => category.name);
   }
 
   /**
@@ -453,6 +612,23 @@ export class EmployeeService extends BaseService<'employees'> {
     }
 
     return data?.map(pos => pos.name) || [];
+  }
+
+  /**
+   * 获取职级列表 - 基于真实job_ranks表
+   */
+  async getJobRanks(): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('job_ranks')
+      .select('name')
+      .order('name');
+
+    if (error) {
+      console.error('Failed to fetch job ranks:', error);
+      throw new Error(`获取职级列表失败: ${error.message}`);
+    }
+
+    return data?.map(rank => rank.name) || [];
   }
 
   /**
@@ -605,6 +781,107 @@ export class EmployeeService extends BaseService<'employees'> {
     if (error) {
       console.error('Failed to delete employee bank account:', error);
       throw new Error(`删除员工银行账户失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 简化的银行账户创建方法
+   */
+  async createBankAccountSimple(employeeId: string, bankInfo: {
+    account_number?: string;
+    bank_name?: string;
+    branch_name?: string;
+  }): Promise<void> {
+    // 检查是否有有效的银行信息需要创建
+    if (!bankInfo.account_number && !bankInfo.bank_name && !bankInfo.branch_name) {
+      return;
+    }
+
+    // 直接创建新账户，不查询现有账户以避免RLS问题
+    const { error: createError } = await supabase
+      .from('employee_bank_accounts')
+      .insert({
+        employee_id: employeeId,
+        account_holder_name: '员工本人',
+        account_number: bankInfo.account_number || '',
+        bank_name: bankInfo.bank_name || '',
+        branch_name: bankInfo.branch_name || '',
+        is_primary: true,
+        effective_start_date: new Date().toISOString().split('T')[0]
+      });
+
+    if (createError) {
+      throw new Error(`创建银行账户失败: ${createError.message}`);
+    }
+  }
+
+  /**
+   * 更新或创建员工银行账户信息
+   */
+  async updateOrCreateBankAccount(employeeId: string, bankInfo: {
+    account_number?: string;
+    bank_name?: string;
+    branch_name?: string;
+  }): Promise<void> {
+    // 检查是否有有效的银行信息需要更新
+    if (!bankInfo.account_number && !bankInfo.bank_name && !bankInfo.branch_name) {
+      return;
+    }
+
+    // 获取当前主要银行账户
+    const { data: currentAccount, error: fetchError } = await supabase
+      .from('employee_bank_accounts')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .eq('is_primary', true)
+      .is('effective_end_date', null)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('Failed to fetch current bank account:', fetchError);
+      throw new Error(`获取当前银行账户失败: ${fetchError.message}`);
+    }
+
+    // 准备银行账户数据
+    const accountData = {
+      account_holder_name: bankInfo.account_number ? '员工本人' : (currentAccount?.account_holder_name || '员工本人'),
+      account_number: bankInfo.account_number || currentAccount?.account_number || '',
+      bank_name: bankInfo.bank_name || currentAccount?.bank_name || '',
+      branch_name: bankInfo.branch_name || currentAccount?.branch_name || '',
+      is_primary: true,
+      effective_start_date: new Date().toISOString().split('T')[0]
+    };
+
+    if (currentAccount) {
+      // 更新现有账户
+      const { error: updateError } = await supabase
+        .from('employee_bank_accounts')
+        .update({
+          account_holder_name: accountData.account_holder_name,
+          account_number: accountData.account_number,
+          bank_name: accountData.bank_name,
+          branch_name: accountData.branch_name,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentAccount.id);
+
+      if (updateError) {
+        console.error('Failed to update bank account:', updateError);
+        throw new Error(`更新银行账户失败: ${updateError.message}`);
+      }
+    } else {
+      // 创建新账户
+      const { error: createError } = await supabase
+        .from('employee_bank_accounts')
+        .insert({
+          employee_id: employeeId,
+          ...accountData
+        });
+
+      if (createError) {
+        console.error('Failed to create bank account:', createError);
+        throw new Error(`创建银行账户失败: ${createError.message}`);
+      }
     }
   }
 
@@ -1037,6 +1314,245 @@ export class EmployeeService extends BaseService<'employees'> {
   }
 
   /**
+   * 创建员工（重写基类方法以处理多表关联）
+   */
+  async create(employeeData: any) {
+    // 提取基本员工信息（只包含employees表的字段）
+    const { 
+      // 银行信息
+      bank_name, branch_name, primary_bank_account,
+      // 联系信息
+      mobile_phone, work_email, personal_email,
+      // 工作信息
+      department_name, position_name, category_name,
+      job_change_effective_date,
+      // 员工基本信息
+      ...employeeFields 
+    } = employeeData;
+    
+    // 只保留employees表实际存在的字段
+    const basicEmployeeData = {
+      full_name: employeeFields.full_name,
+      gender: employeeFields.gender,
+      date_of_birth: employeeFields.date_of_birth,
+      id_number: employeeFields.id_number,
+      hire_date: employeeFields.hire_date,
+      employment_status: employeeFields.employment_status || 'active'
+    };
+
+    // 1. 创建员工基本信息
+    const { data: newEmployee, error: employeeError } = await supabase
+      .from('employees')
+      .insert(basicEmployeeData)
+      .select()
+      .single();
+
+    if (employeeError) {
+      // 处理身份证号重复的特殊错误
+      if (employeeError.code === '23505' && employeeError.message.includes('employees_id_number_unique')) {
+        throw new Error(`身份证号 ${basicEmployeeData.id_number} 已存在，请检查是否重复创建`);
+      }
+      throw new Error(`创建员工失败: ${employeeError.message}`);
+    }
+
+    const employeeId = newEmployee.id;
+
+    try {
+      // 2. 创建联系信息
+      if (mobile_phone || work_email || personal_email) {
+        await this.createEmployeeContacts(employeeId, {
+          mobile_phone,
+          work_email, 
+          personal_email
+        });
+      }
+
+      // 3. 创建银行信息（暂时跳过，直到RLS策略配置正确）
+      if (bank_name || branch_name || primary_bank_account) {
+        try {
+          await this.createBankAccountSimple(employeeId, {
+            account_number: primary_bank_account,
+            bank_name: bank_name,
+            branch_name: branch_name
+          });
+        } catch (bankError) {
+          console.warn('银行信息创建失败，跳过:', bankError);
+          // 不抛出错误，继续创建其他信息
+        }
+      }
+
+      // 4. 创建工作信息
+      if (department_name || position_name) {
+        try {
+          await this.createEmployeeJobRecord(employeeId, {
+            department_name,
+            position_name,
+            effective_date: job_change_effective_date || employeeFields.hire_date || new Date().toISOString().split('T')[0]
+          });
+        } catch (jobError) {
+          console.warn('工作信息创建失败，跳过:', jobError);
+          // 不抛出错误，继续创建其他信息
+        }
+      }
+
+      // 5. 创建人员类别分配（触发器已修复）
+      if (category_name) {
+        await this.createEmployeeCategoryAssignment(employeeId, {
+          category_name,
+          effective_date: job_change_effective_date || employeeFields.hire_date || new Date().toISOString().split('T')[0]
+        });
+      }
+
+    } catch (error) {
+      // 如果任何关联数据创建失败，回滚员工创建
+      try {
+        await supabase.from('employees').delete().eq('id', employeeId);
+      } catch (deleteError) {
+        console.error('回滚员工创建失败:', deleteError);
+      }
+      throw new Error(`创建员工关联数据失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    return newEmployee;
+  }
+
+  /**
+   * 创建员工联系信息
+   */
+  async createEmployeeContacts(employeeId: string, contacts: {
+    mobile_phone?: string;
+    work_email?: string;
+    personal_email?: string;
+  }) {
+    const contactRecords = [];
+
+    if (contacts.mobile_phone) {
+      contactRecords.push({
+        employee_id: employeeId,
+        contact_type: 'mobile_phone',
+        contact_details: contacts.mobile_phone,
+        is_primary: true
+      });
+    }
+
+    if (contacts.work_email) {
+      contactRecords.push({
+        employee_id: employeeId,
+        contact_type: 'work_email', 
+        contact_details: contacts.work_email,
+        is_primary: true
+      });
+    }
+
+    if (contacts.personal_email) {
+      contactRecords.push({
+        employee_id: employeeId,
+        contact_type: 'personal_email',
+        contact_details: contacts.personal_email,
+        is_primary: false
+      });
+    }
+
+    if (contactRecords.length > 0) {
+      const { error } = await supabase
+        .from('employee_contacts')
+        .insert(contactRecords);
+
+      if (error) {
+        throw new Error(`创建联系信息失败: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * 创建员工工作记录
+   */
+  async createEmployeeJobRecord(employeeId: string, jobInfo: {
+    department_name?: string;
+    position_name?: string;
+    effective_date: string;
+  }) {
+    if (!jobInfo.department_name || !jobInfo.position_name) {
+      console.warn('部门或职位信息不完整，跳过工作记录创建');
+      return; // 部门和职位都是必需的
+    }
+
+    try {
+      // 查找部门ID
+      const { data: department, error: deptError } = await supabase
+        .from('departments')
+        .select('id')
+        .eq('name', jobInfo.department_name)
+        .single();
+
+      // 查找职位ID
+      const { data: position, error: posError } = await supabase
+        .from('positions')
+        .select('id')
+        .eq('name', jobInfo.position_name)
+        .single();
+
+      if (deptError || posError || !department?.id || !position?.id) {
+        throw new Error(`找不到对应的部门或职位: ${jobInfo.department_name}, ${jobInfo.position_name}`);
+      }
+
+      const { error } = await supabase
+        .from('employee_job_history')
+        .insert({
+          employee_id: employeeId,
+          department_id: department.id,
+          position_id: position.id,
+          rank_id: null, // 暂时设为null
+          effective_start_date: jobInfo.effective_date,
+          effective_end_date: null
+        });
+
+      if (error) {
+        throw new Error(`创建工作记录失败: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('工作记录创建失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 创建员工类别分配
+   */
+  async createEmployeeCategoryAssignment(employeeId: string, categoryInfo: {
+    category_name: string;
+    effective_date: string;
+  }) {
+    // 查找人员类别ID
+    const { data: category } = await supabase
+      .from('employee_categories')
+      .select('id')
+      .eq('name', categoryInfo.category_name)
+      .single();
+
+    if (!category?.id) {
+      throw new Error(`找不到对应的人员类别: ${categoryInfo.category_name}`);
+    }
+
+    // 获取当前用户ID作为创建者
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error } = await supabase
+      .from('employee_category_assignments')
+      .insert({
+        employee_id: employeeId,
+        employee_category_id: category.id,
+        effective_start_date: categoryInfo.effective_date,
+        effective_end_date: null,
+        created_by: user?.id || null // 添加创建者ID
+      });
+
+    if (error) {
+      throw new Error(`创建人员类别分配失败: ${error.message}`);
+    }
+  }
+
+  /**
    * Batch import employees
    */
   async batchImport(employees: EmployeeInsert[]) {
@@ -1047,6 +1563,91 @@ export class EmployeeService extends BaseService<'employees'> {
 
     if (error) throw error;
     return data;
+  }
+
+  /**
+   * Delete employee and all related data (override BaseService delete)
+   */
+  async delete(id: string | number): Promise<void> {
+    try {
+      // Delete in order to respect foreign key constraints
+      // 1. Delete related records first
+      await Promise.all([
+        supabase.from('employee_bank_accounts').delete().eq('employee_id', id),
+        supabase.from('employee_contacts').delete().eq('employee_id', id),
+        supabase.from('employee_education').delete().eq('employee_id', id),
+        supabase.from('employee_job_history').delete().eq('employee_id', id),
+        supabase.from('employee_category_assignments').delete().eq('employee_id', id),
+        supabase.from('employee_contribution_bases').delete().eq('employee_id', id),
+        supabase.from('employee_documents').delete().eq('employee_id', id),
+        supabase.from('employee_special_deductions').delete().eq('employee_id', id),
+      ]);
+
+      // 2. Delete the main employee record
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Failed to delete employee:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新员工联系信息
+   */
+  private async updateEmployeeContacts(employeeId: string, contacts: {
+    mobile_phone?: string;
+    work_email?: string;
+    personal_email?: string;
+  }) {
+    const contactUpdates = [
+      { type: 'mobile_phone', value: contacts.mobile_phone },
+      { type: 'work_email', value: contacts.work_email },
+      { type: 'personal_email', value: contacts.personal_email }
+    ].filter(contact => contact.value !== undefined);
+
+    for (const contact of contactUpdates) {
+      if (contact.value && contact.value.trim()) {
+        // 更新或创建联系信息
+        const { data: existingContacts } = await supabase
+          .from('employee_contacts')
+          .select('id')
+          .eq('employee_id', employeeId)
+          .eq('contact_type', contact.type)
+          .limit(1);
+        
+        const existing = existingContacts?.[0] || null;
+
+        if (existing) {
+          // 更新现有记录
+          const { error } = await supabase
+            .from('employee_contacts')
+            .update({
+              contact_details: contact.value,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existing.id);
+          
+          if (error) throw error;
+        } else {
+          // 创建新记录
+          const { error } = await supabase
+            .from('employee_contacts')
+            .insert({
+              employee_id: employeeId,
+              contact_type: contact.type,
+              contact_details: contact.value,
+              is_primary: true
+            });
+          
+          if (error) throw error;
+        }
+      }
+    }
   }
 }
 
