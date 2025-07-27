@@ -34,56 +34,52 @@ class MetadataService {
 
   /**
    * 从Supabase获取表结构元数据
-   * 由于没有可用的RPC函数，直接使用基于真实数据库结构的硬编码数据
    */
   async getTableStructure(tableName: string): Promise<any[]> {
-    // 直接使用基于真实Supabase数据的结构
-    console.log('Using hardcoded table structure based on real Supabase schema for:', tableName);
-    return this.getHardcodedTableStructure(tableName);
+    try {
+      // 使用RPC函数获取表结构信息
+      const { data, error } = await supabase.rpc('get_table_columns', { 
+        table_name_param: tableName,
+        schema_name_param: 'public'
+      });
+      
+      if (error) {
+        console.warn('RPC function failed, using fallback:', error);
+        return this.getHardcodedTableStructure(tableName);
+      }
+      
+      console.log(`Successfully retrieved ${data?.length || 0} columns for ${tableName} via RPC`);
+      return data || [];
+    } catch (error) {
+      console.warn('Failed to get table structure via RPC, using fallback:', error);
+      return this.getHardcodedTableStructure(tableName);
+    }
   }
 
+
   /**
-   * 硬编码的表结构（基于真实Supabase数据）
+   * 硬编码的表结构（仅作为最后的备选方案）
    */
   private getHardcodedTableStructure(tableName: string): any[] {
+    console.warn(`Using hardcoded fallback structure for ${tableName}`);
+    
     // 标准化表名 - 将 'employees' 映射到视图
     const normalizedTableName = tableName === 'employees' ? 'view_employee_basic_info' : tableName;
     
-    const structures = {
+    // 仅保留基本字段作为应急备选
+    const basicStructure = {
       'view_employee_basic_info': [
         { column_name: 'employee_id', data_type: 'uuid', is_nullable: 'YES', ordinal_position: 1 },
         { column_name: 'full_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 2 },
-        { column_name: 'id_number', data_type: 'text', is_nullable: 'YES', ordinal_position: 3 },
-        { column_name: 'hire_date', data_type: 'date', is_nullable: 'YES', ordinal_position: 4 },
-        { column_name: 'termination_date', data_type: 'date', is_nullable: 'YES', ordinal_position: 5 },
-        { column_name: 'gender', data_type: 'text', is_nullable: 'YES', ordinal_position: 6 },
-        { column_name: 'date_of_birth', data_type: 'date', is_nullable: 'YES', ordinal_position: 7 },
-        { column_name: 'employment_status', data_type: 'text', is_nullable: 'YES', ordinal_position: 8 },
-        { column_name: 'manager_id', data_type: 'uuid', is_nullable: 'YES', ordinal_position: 9 },
-        { column_name: 'department_id', data_type: 'uuid', is_nullable: 'YES', ordinal_position: 10 },
-        { column_name: 'department_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 11 },
-        { column_name: 'position_id', data_type: 'uuid', is_nullable: 'YES', ordinal_position: 12 },
-        { column_name: 'position_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 13 },
-        { column_name: 'rank_id', data_type: 'uuid', is_nullable: 'YES', ordinal_position: 14 },
-        { column_name: 'rank_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 15 },
-        { column_name: 'job_start_date', data_type: 'date', is_nullable: 'YES', ordinal_position: 16 },
-        { column_name: 'category_id', data_type: 'uuid', is_nullable: 'YES', ordinal_position: 17 },
-        { column_name: 'category_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 18 },
-        { column_name: 'category_start_date', data_type: 'date', is_nullable: 'YES', ordinal_position: 19 },
-        { column_name: 'has_occupational_pension', data_type: 'text', is_nullable: 'YES', ordinal_position: 20 },
-        { column_name: 'mobile_phone', data_type: 'text', is_nullable: 'YES', ordinal_position: 21 },
-        { column_name: 'email', data_type: 'text', is_nullable: 'YES', ordinal_position: 22 },
-        { column_name: 'work_email', data_type: 'text', is_nullable: 'YES', ordinal_position: 23 },
-        { column_name: 'personal_email', data_type: 'text', is_nullable: 'YES', ordinal_position: 24 },
-        { column_name: 'primary_bank_account', data_type: 'text', is_nullable: 'YES', ordinal_position: 25 },
-        { column_name: 'bank_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 26 },
-        { column_name: 'branch_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 27 },
-        { column_name: 'created_at', data_type: 'timestamp with time zone', is_nullable: 'YES', ordinal_position: 28 },
-        { column_name: 'updated_at', data_type: 'timestamp with time zone', is_nullable: 'YES', ordinal_position: 29 }
+        { column_name: 'department_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 3 },
+        { column_name: 'position_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 4 },
+        { column_name: 'employment_status', data_type: 'text', is_nullable: 'YES', ordinal_position: 5 },
+        { column_name: 'hire_date', data_type: 'date', is_nullable: 'YES', ordinal_position: 6 },
+        { column_name: 'mobile_phone', data_type: 'text', is_nullable: 'YES', ordinal_position: 7 },
       ]
     };
 
-    return structures[normalizedTableName as keyof typeof structures] || [];
+    return basicStructure[normalizedTableName as keyof typeof basicStructure] || [];
   }
 
   /**
@@ -92,14 +88,20 @@ class MetadataService {
   async getEmployeeViewMetadata(): Promise<TableMetadata> {
     const cacheKey = 'employee_view_metadata';
     
-    // 检查缓存
+    // 检查缓存（开发环境下减少缓存时间以便测试）
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const cacheTime = isDevelopment ? 30 * 1000 : this.CACHE_DURATION; // 开发环境30秒，生产环境5分钟
+    
     if (this.cache.has(cacheKey) && Date.now() < (this.cacheExpiry.get(cacheKey) || 0)) {
+      console.log('Using cached employee metadata');
       return this.cache.get(cacheKey)!;
     }
 
     try {
-      // 从view_employee_basic_info视图获取字段信息（基于真实Supabase数据）
+      // 从view_employee_basic_info视图获取字段信息
+      console.log('Getting employee view metadata...');
       const columns = await this.getTableStructure('view_employee_basic_info');
+      console.log('Retrieved columns:', columns.length);
       
       const fields: FieldMetadata[] = columns.map((col: any) => {
         const fieldType = this.mapPostgresTypeToFieldType(col.data_type, col.column_name);
@@ -139,7 +141,8 @@ class MetadataService {
 
       // 缓存结果
       this.cache.set(cacheKey, metadata);
-      this.cacheExpiry.set(cacheKey, Date.now() + this.CACHE_DURATION);
+      this.cacheExpiry.set(cacheKey, Date.now() + cacheTime);
+      console.log('Metadata cached successfully');
 
       return metadata;
     } catch (error) {
@@ -154,7 +157,7 @@ class MetadataService {
   private mapPostgresTypeToFieldType(pgType: string, fieldName?: string): FieldMetadata['type'] {
     // 特殊字段类型处理
     if (fieldName === 'has_occupational_pension') return 'boolean';
-    if (fieldName === 'employment_status' || fieldName === 'gender') return 'select';
+    if (fieldName === 'employment_status' || fieldName === 'gender' || fieldName === 'latest_degree') return 'select';
     if (fieldName && fieldName.includes('email')) return 'email';
     if (fieldName && (fieldName.includes('phone') || fieldName.includes('mobile'))) return 'phone';
     if (fieldName === 'employee_id' || fieldName === 'uuid') return 'text';
@@ -210,6 +213,10 @@ class MetadataService {
       'primary_bank_account': '银行账号',
       'bank_name': '银行名称',
       'branch_name': '支行名称',
+      'latest_institution': '最新毕业院校',
+      'latest_degree': '最高学历',
+      'latest_field_of_study': '专业',
+      'latest_graduation_date': '毕业时间',
       'created_at': '创建时间',
       'updated_at': '更新时间',
     };
@@ -241,7 +248,7 @@ class MetadataService {
       'full_name', 'employee_id', 'id_number', 'department_name', 
       'position_name', 'rank_name', 'category_name', 'mobile_phone',
       'email', 'work_email', 'personal_email', 'bank_name',
-      'primary_bank_account'
+      'primary_bank_account', 'latest_institution', 'latest_field_of_study'
     ];
     return searchableFields.includes(fieldName);
   }
@@ -260,7 +267,8 @@ class MetadataService {
   private isFilterableField(fieldName: string): boolean {
     const filterableFields = [
       'employment_status', 'department_name', 'position_name', 
-      'rank_name', 'category_name', 'gender', 'has_occupational_pension'
+      'rank_name', 'category_name', 'gender', 'has_occupational_pension',
+      'latest_degree'
     ];
     return filterableFields.includes(fieldName);
   }
@@ -284,6 +292,10 @@ class MetadataService {
       'date_of_birth': 120,
       'gender': 80,
       'has_occupational_pension': 100,
+      'latest_institution': 150,
+      'latest_degree': 100,
+      'latest_field_of_study': 120,
+      'latest_graduation_date': 120,
     };
 
     return widthMap[fieldName] || 100;
@@ -334,6 +346,12 @@ class MetadataService {
         { value: 'female', label: '女' },
         { value: 'other', label: '其他' },
       ],
+      'latest_degree': [
+        { value: '大学专科', label: '大学专科' },
+        { value: '学士学位', label: '学士学位' },
+        { value: '硕士学位', label: '硕士学位' },
+        { value: '博士学位', label: '博士学位' },
+      ],
     };
 
     return optionsMap[fieldName];
@@ -371,8 +389,12 @@ class MetadataService {
       'work_email': 25,
       'personal_email': 26,
       'branch_name': 27,
-      'created_at': 28,
-      'updated_at': 29,
+      'latest_institution': 28,
+      'latest_degree': 29,
+      'latest_field_of_study': 30,
+      'latest_graduation_date': 31,
+      'created_at': 32,
+      'updated_at': 33,
     };
 
     return orderMap[fieldName] || 999;
@@ -594,6 +616,64 @@ class MetadataService {
           visible: false,
           order: 14,
         },
+        {
+          name: 'latest_institution',
+          type: 'text',
+          label: '最新毕业院校',
+          required: false,
+          searchable: true,
+          sortable: true,
+          filterable: false,
+          width: 150,
+          alignment: 'left',
+          visible: false,
+          order: 15,
+        },
+        {
+          name: 'latest_degree',
+          type: 'select',
+          label: '最高学历',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: true,
+          width: 100,
+          alignment: 'center',
+          visible: false,
+          order: 16,
+          options: [
+            { value: '大学专科', label: '大学专科' },
+            { value: '学士学位', label: '学士学位' },
+            { value: '硕士学位', label: '硕士学位' },
+            { value: '博士学位', label: '博士学位' },
+          ],
+        },
+        {
+          name: 'latest_field_of_study',
+          type: 'text',
+          label: '专业',
+          required: false,
+          searchable: true,
+          sortable: true,
+          filterable: false,
+          width: 120,
+          alignment: 'left',
+          visible: false,
+          order: 17,
+        },
+        {
+          name: 'latest_graduation_date',
+          type: 'date',
+          label: '毕业时间',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: false,
+          width: 120,
+          alignment: 'center',
+          visible: false,
+          order: 18,
+        },
       ],
     };
   }
@@ -603,12 +683,23 @@ class MetadataService {
    */
   clearCache(tableName?: string): void {
     if (tableName) {
-      this.cache.delete(`${tableName}_metadata`);
-      this.cacheExpiry.delete(`${tableName}_metadata`);
+      const cacheKey = `${tableName}_metadata`;
+      this.cache.delete(cacheKey);
+      this.cacheExpiry.delete(cacheKey);
+      console.log(`Cleared cache for ${tableName}`);
     } else {
       this.cache.clear();
       this.cacheExpiry.clear();
+      console.log('Cleared all metadata cache');
     }
+  }
+
+  /**
+   * 强制刷新员工视图元数据（用于开发测试）
+   */
+  async forceRefreshEmployeeMetadata(): Promise<TableMetadata> {
+    this.clearCache('employee_view');
+    return this.getEmployeeViewMetadata();
   }
 }
 

@@ -14,11 +14,19 @@ const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'));
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const EmployeeListPage = lazy(() => import('@/pages/employee/EmployeeListPage'));
 const EmployeeDetailPage = lazy(() => import('@/pages/employee/EmployeeDetailPage'));
-const DepartmentPage = lazy(() => import('@/pages/organization/DepartmentPage'));
+const DepartmentPage = lazy(() => import('@/pages/department/DepartmentManagementPage'));
+const DepartmentPayrollStatsPage = lazy(() => import('@/pages/department/DepartmentPayrollStatsPage'));
 const PositionPage = lazy(() => import('@/pages/organization/PositionPage'));
-const PayrollPage = lazy(() => import('@/pages/payroll/PayrollPage'));
+const PayrollListPage = lazy(() => import('@/pages/payroll/PayrollListPage'));
+const PayrollDetailPage = lazy(() => import('@/pages/payroll/PayrollDetailPage'));
+const CreateBatchPayrollPage = lazy(() => import('@/pages/payroll/CreateBatchPayrollPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
+const ThemeShowcasePage = lazy(() => import('@/pages/ThemeShowcasePage'));
+const DesignTokensPage = lazy(() => import('@/pages/DesignTokensPage'));
+const DesignSystemShowcase = lazy(() => import('@/pages/DesignSystemShowcase'));
+const TypographyShowcasePage = lazy(() => import('@/pages/TypographyShowcasePage'));
+const FontTestPage = lazy(() => import('@/pages/FontTestPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const DebugPage = lazy(() => import('@/pages/DebugPage'));
@@ -128,6 +136,14 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: 'departments/payroll-stats',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <DepartmentPayrollStatsPage />
+              </Suspense>
+            ),
+          },
+          {
             path: 'positions',
             element: (
               <Suspense fallback={<LoadingScreen />}>
@@ -139,11 +155,32 @@ export const router = createBrowserRouter([
       },
       {
         path: 'payroll',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <PayrollPage />
-          </Suspense>
-        ),
+        children: [
+          {
+            index: true,
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PayrollListPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'create-batch',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <CreateBatchPayrollPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: ':id',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PayrollDetailPage />
+              </Suspense>
+            ),
+          },
+        ],
       },
       {
         path: 'profile',
@@ -158,6 +195,46 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingScreen />}>
             <SettingsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'theme-showcase',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <ThemeShowcasePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'design-tokens',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <DesignTokensPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'design-system',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <DesignSystemShowcase />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'typography',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <TypographyShowcasePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'font-test',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <FontTestPage />
           </Suspense>
         ),
       },

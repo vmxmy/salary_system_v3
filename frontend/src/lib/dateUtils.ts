@@ -1,0 +1,97 @@
+/**
+ * 日期工具函数
+ */
+
+/**
+ * 根据年月获取该月的开始和结束日期
+ * @param yearMonth 格式: YYYY-MM
+ * @returns { startDate: string, endDate: string } 格式: YYYY-MM-DD
+ */
+export function getMonthDateRange(yearMonth: string): { startDate: string; endDate: string } {
+  if (!yearMonth) {
+    return { startDate: '', endDate: '' };
+  }
+
+  const [year, month] = yearMonth.split('-').map(Number);
+  
+  // 直接构造日期字符串，避免时区问题
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  
+  // 获取下个月的第一天，然后减去一天得到当月最后一天
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  
+  // 创建下个月第一天的日期对象（使用中国时区）
+  const nextMonthFirst = new Date(`${nextYear}-${String(nextMonth).padStart(2, '0')}-01T00:00:00+08:00`);
+  
+  // 减去一天得到当月最后一天
+  const lastDayDate = new Date(nextMonthFirst.getTime() - 1);
+  
+  // 格式化为 YYYY-MM-DD
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`;
+  
+  return {
+    startDate,
+    endDate
+  };
+}
+
+/**
+ * 获取当前年月
+ * @returns 格式: YYYY-MM
+ */
+export function getCurrentYearMonth(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * 获取上个月年月
+ * @returns 格式: YYYY-MM
+ */
+export function getLastYearMonth(): string {
+  const now = new Date();
+  const month = now.getMonth(); // 0-11
+  const year = now.getFullYear();
+  
+  if (month === 0) {
+    return `${year - 1}-12`;
+  }
+  
+  return `${year}-${String(month).padStart(2, '0')}`;
+}
+
+/**
+ * 比较两个年月的大小
+ * @param yearMonth1 格式: YYYY-MM
+ * @param yearMonth2 格式: YYYY-MM
+ * @returns -1: yearMonth1 < yearMonth2, 0: 相等, 1: yearMonth1 > yearMonth2
+ */
+export function compareYearMonth(yearMonth1: string, yearMonth2: string): number {
+  if (yearMonth1 === yearMonth2) return 0;
+  return yearMonth1 < yearMonth2 ? -1 : 1;
+}
+
+/**
+ * 格式化年月为中文显示
+ * @param yearMonth 格式: YYYY-MM
+ * @returns 格式: YYYY年M月
+ */
+export function formatYearMonth(yearMonth: string): string {
+  if (!yearMonth) return '';
+  
+  const [year, month] = yearMonth.split('-');
+  return `${year}年${parseInt(month)}月`;
+}
+
+/**
+ * 格式化月份为中文显示
+ * @param month 月份数字 (1-12) 或字符串格式的月份
+ * @returns 格式: M月
+ */
+export function formatMonth(month: number | string): string {
+  if (!month) return '';
+  
+  const monthNum = typeof month === 'string' ? parseInt(month) : month;
+  return `${monthNum}月`;
+}

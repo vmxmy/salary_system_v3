@@ -38,7 +38,18 @@
       "mcp__postgre-sql-database-management-server__pg_debug_database",
       "mcp__gemini-server__gemini_generateContent",
       "mcp__cloudflare-playwright__browser_snapshot",
-      "mcp__postgres__query"
+      "mcp__postgres__query",
+      "Bash(git tag:*)",
+      "Bash(touch:*)",
+      "mcp__zen__thinkdeep",
+      "mcp__context-7__get-library-docs",
+      "mcp__context-7__resolve-library-id",
+      "mcp__zen__analyze",
+      "mcp__zen__planner",
+      "mcp__zen__thinkdeep",
+      "mcp__zen__debug",
+      "Bash(curl:*)",
+      "mcp__zen__chat"
     ],
     "deny": []
   },

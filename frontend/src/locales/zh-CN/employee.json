@@ -26,21 +26,29 @@
     "jobRank": "职级",
     "employeeCategory": "员工类别",
     "hireDate": "入职日期",
-    "joinDate": "入职日期",
+    "joinDate": "入职日期", 
+    "birthDate": "出生日期",
     "terminationDate": "离职日期",
     "employmentStatus": "在职状态",
     "manager": "直属上级",
     "email": "邮箱",
+    "mobilePhone": "手机号",
     "phone": "手机号",
     "address": "地址",
     "bankName": "开户银行",
     "bankAccount": "银行账号",
-    "accountHolder": "账户名称"
+    "branchName": "开户支行",
+    "accountHolder": "账户名称",
+    "category": "人员类别",
+    "categoryName": "人员类别",
+    "baseSalary": "基本工资"
   },
   "status": {
     "active": "在职",
     "inactive": "离职",
-    "onLeave": "休假"
+    "onLeave": "休假",
+    "probation": "试用期",
+    "leave": "休假"
   },
   "gender": {
     "male": "男",
@@ -56,13 +64,22 @@
   "detail": {
     "title": "员工详情",
     "basicInfo": "基本信息",
-    "contactInfo": "联系方式",
+    "contactInfo": "联系方式", 
     "jobInfo": "职务信息",
     "educationInfo": "教育背景",
     "bankInfo": "银行信息",
     "documents": "相关文档",
     "jobHistory": "职位历史",
     "salaryHistory": "薪资历史"
+  },
+  "sections": {
+    "basicInfo": "基本信息",
+    "jobInfo": "工作信息",
+    "contactInfo": "联系信息",
+    "bankInfo": "银行信息",
+    "educationInfo": "教育信息",
+    "documents": "文档管理",
+    "auditLogs": "操作日志"
   },
   "form": {
     "addTitle": "新增员工",
@@ -89,11 +106,54 @@
     "phoneInvalid": "手机号格式不正确",
     "hireDateRequired": "请选择入职日期"
   },
+  "statistics": {
+    "totalEmployees": "员工总数",
+    "departmentDistribution": "部门分布",
+    "ageStructure": "年龄结构",
+    "regularStaff": "正编",
+    "contractStaff": "聘用", 
+    "hired": "聘用",
+    "male": "男性",
+    "female": "女性",
+    "masters": "硕士",
+    "bachelorsAndBelow": "本科及以下",
+    "units": {
+      "people": "人",
+      "departments": "个部门"
+    }
+  },
   "message": {
     "addSuccess": "员工添加成功",
     "updateSuccess": "员工信息更新成功",
     "deleteSuccess": "员工删除成功",
     "importSuccess": "成功导入 {{count}} 名员工",
-    "exportSuccess": "员工数据导出成功"
+    "exportSuccess": "员工数据导出成功",
+    "noChangesDetected": "没有检测到数据变更",
+    "saveFailed": "保存员工信息失败"
+  },
+  "cancelEdit": "取消编辑",
+  "education": {
+    "title": "教育信息",
+    "institution": "学校名称",
+    "unknownInstitution": "未知院校",
+    "degree": "学历",
+    "unknownDegree": "学历未知",
+    "highSchoolOrBelow": "高中及以下",
+    "major": "专业",
+    "unspecifiedMajor": "未指定专业",
+    "graduationDate": "毕业时间",
+    "notes": "备注",
+    "notesPlaceholder": "从旧系统迁移，原始学历：大学本科毕业",
+    "noData": "暂无教育信息",
+    "add": "添加教育信息",
+    "edit": "编辑教育信息",
+    "createSuccess": "教育信息添加成功",
+    "createFailed": "添加教育信息失败",
+    "updateSuccess": "教育信息更新成功",
+    "updateFailed": "更新教育信息失败",
+    "deleteSuccess": "教育信息删除成功",
+    "deleteFailed": "删除教育信息失败",
+    "loadFailed": "加载教育信息失败",
+    "confirmDelete": "确定要删除这条教育记录吗？"
   }
 }

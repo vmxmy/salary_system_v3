@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="cupcake">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>主题测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5.0.46/dist/full.min.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <div class="p-8">
+        <h1 class="text-3xl font-bold mb-4">主题测试</h1>
+        
+        <div class="flex gap-4 mb-8">
+            <button onclick="changeTheme('cupcake')" class="btn btn-primary">Cupcake</button>
+            <button onclick="changeTheme('dark')" class="btn btn-secondary">Dark</button>
+            <button onclick="changeTheme('valentine')" class="btn btn-accent">Valentine</button>
+            <button onclick="changeTheme('cyberpunk')" class="btn btn-warning">Cyberpunk</button>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-primary">主要颜色</h2>
+                    <p class="text-base-content">这是基础内容文字</p>
+                    <div class="card-actions justify-end">
+                        <button class="btn btn-primary">主要按钮</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-secondary">次要颜色</h2>
+                    <p class="text-base-content">这是次要卡片</p>
+                    <div class="card-actions justify-end">
+                        <button class="btn btn-secondary">次要按钮</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function changeTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            console.log('Changed to theme:', theme);
+        }
+    </script>
+</body>
+</html>

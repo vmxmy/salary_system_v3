@@ -20,7 +20,7 @@ export function DataTableColumnHeader<TData, TValue>({
   const canFilter = column.getCanFilter();
 
   if (!canSort && !canFilter) {
-    return <div className={cn(className)}>{title}</div>;
+    return <div className={cn("text-base", className)}>{title}</div>;
   }
 
   return (
@@ -37,7 +37,7 @@ export function DataTableColumnHeader<TData, TValue>({
             }}
             className="flex items-center gap-1 hover:text-base-content/80 transition-colors"
           >
-            <span>{title}</span>
+            <span className={"text-base"}>{title}</span>
             {column.getIsSorted() === 'desc' ? (
               <ChevronDownIcon className="h-4 w-4" />
             ) : column.getIsSorted() === 'asc' ? (
@@ -47,7 +47,7 @@ export function DataTableColumnHeader<TData, TValue>({
             )}
           </button>
         ) : (
-          <span>{title}</span>
+          <span className={"text-base"}>{title}</span>
         )}
       </div>
 

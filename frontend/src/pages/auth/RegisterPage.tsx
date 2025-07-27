@@ -32,25 +32,25 @@ export default function RegisterPage() {
     };
 
     if (!formData.fullName) {
-      newErrors.fullName = t('validation.nameRequired', '请输入姓名');
+      newErrors.fullName = t('validation.nameRequired');
     }
 
     if (!formData.email) {
-      newErrors.email = t('validation.emailRequired', '请输入邮箱');
+      newErrors.email = t('validation.emailRequired');
     } else if (!validateEmail(formData.email)) {
-      newErrors.email = t('validation.emailInvalid', '邮箱格式不正确');
+      newErrors.email = t('validation.emailInvalid');
     }
 
     if (!formData.password) {
-      newErrors.password = t('validation.passwordRequired', '请输入密码');
+      newErrors.password = t('validation.passwordRequired');
     } else if (formData.password.length < 6) {
-      newErrors.password = t('validation.passwordMinLength', '密码至少6位');
+      newErrors.password = t('validation.passwordMinLength');
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = t('validation.confirmPasswordRequired', '请确认密码');
+      newErrors.confirmPassword = t('validation.confirmPasswordRequired');
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = t('validation.passwordMismatch', '两次输入的密码不一致');
+      newErrors.confirmPassword = t('validation.passwordMismatch');
     }
 
     setErrors(newErrors);
@@ -72,13 +72,13 @@ export default function RegisterPage() {
       });
       
       // For now, use alert - can be replaced with a proper toast system later
-      alert(t('register.success', '注册成功！'));
+      alert(t('register.success'));
       navigate('/dashboard');
     } catch (error: any) {
-      let errorMessage = t('register.failed', '注册失败');
+      let errorMessage = t('register.failed');
       
       if (error.message?.includes('already registered')) {
-        errorMessage = t('register.emailExists', '该邮箱已被注册');
+        errorMessage = t('register.emailExists');
       }
       
       // For now, use alert - can be replaced with a proper toast system later

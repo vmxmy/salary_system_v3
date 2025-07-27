@@ -261,3 +261,138 @@ The system maintains the sophisticated HR and payroll management capabilities of
 - postgresql数据库要先检查schema再定位表
 - 新系统的数据库操作使用 supabase-mcp-server；老系统的数据查询使用postgres MCP Server
 - 不要使用模拟数据，所有模块都需要基于真是的supabase数据进行设计
+
+### Frontend Development Memories
+- 前端使用标准的daisyUI5样式，不要使用任何自定义的样式管理
+
+## DaisyUI 5 + TailwindCSS 4 样式配置管理指南
+
+### 核心配置原则
+
+**重要提醒：DaisyUI 5 与 TailwindCSS 4 是最佳搭档，但必须使用正确的配置方式。**
+
+#### 1. 配置文件分离原则
+- **CSS 配置**：所有 DaisyUI 相关配置都在 CSS 文件中
+- **JS 配置**：`tailwind.config.js` 只配置内容路径，不包含任何 DaisyUI 插件
+
+#### 2. 正确的配置方式
+
+**src/index.css（正确）：**
+```css
+/* TailwindCSS 4 + DaisyUI 5 标准配置 */
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light, dark, cupcake, bumblebee, emerald, corporate, synthwave, retro, cyberpunk, valentine, halloween, garden, forest, aqua, lofi, pastel, fantasy, wireframe, black, luxury, dracula, cmyk, autumn, business, acid, lemonade, night, coffee, winter, dim, nord, sunset;
+}
+```
+
+**tailwind.config.js（正确）：**
+```javascript
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  // TailwindCSS 4: 所有 DaisyUI 配置都在 CSS 中，这里不需要任何插件配置
+}
+```
+
+#### 3. 常见错误配置（避免）
+
+**❌ 错误：混合配置导致冲突**
+```javascript
+// tailwind.config.js - 不要这样做
+export default {
+  plugins: [require('daisyui')], // ❌ TailwindCSS 4 中不需要
+  daisyui: { themes: [...] }      // ❌ 应该在 CSS 中配置
+}
+```
+
+```css
+/* index.css - 同时使用会冲突 */
+@import "tailwindcss";
+@plugin "daisyui"; /* 如果 JS 中也配置了会冲突 */
+```
+
+#### 4. 主题切换实现
+
+**JavaScript 主题切换：**
+```typescript
+// 设置主题
+document.documentElement.setAttribute('data-theme', 'cupcake');
+
+// 检查主题是否生效
+const primaryColor = getComputedStyle(document.documentElement)
+  .getPropertyValue('--p');
+console.log('Primary color:', primaryColor); // 应该有值
+```
+
+**React Hook 实现：**
+```typescript
+const useTheme = () => {
+  const [currentTheme, setCurrentTheme] = useState('cupcake');
+  
+  const setTheme = (theme: string) => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('daisyui-theme', theme);
+    setCurrentTheme(theme);
+    
+    // 广播事件同步所有组件
+    window.dispatchEvent(new CustomEvent('daisyui-theme-change', {
+      detail: { theme }
+    }));
+  };
+  
+  return { currentTheme, setTheme };
+};
+```
+
+#### 5. 故障排查指南
+
+**问题：CSS 变量为空**
+```bash
+# 症状：getComputedStyle(...).getPropertyValue('--p') 返回空字符串
+# 原因：配置冲突或初始化失败
+# 解决：检查是否混合了新旧配置语法
+```
+
+**问题：主题切换无效果**
+```bash
+# 症状：data-theme 属性设置正确，但视觉效果不变
+# 原因：DaisyUI 未正确初始化或 CSS 变量未注入
+# 解决：确保只在 CSS 中配置 DaisyUI，移除 JS 配置
+```
+
+**问题：控制台错误**
+```bash
+# 症状：@plugin directive 相关错误
+# 原因：TailwindCSS 版本不兼容或语法错误
+# 解决：确保使用 TailwindCSS 4.x 和 DaisyUI 5.x
+```
+
+#### 6. 开发调试技巧
+
+**验证配置是否正确：**
+```javascript
+// 开发环境中验证主题加载
+console.log('Theme vars:', {
+  primary: getComputedStyle(document.documentElement).getPropertyValue('--p'),
+  secondary: getComputedStyle(document.documentElement).getPropertyValue('--s'),
+  accent: getComputedStyle(document.documentElement).getPropertyValue('--a'),
+});
+```
+
+**清理缓存：**
+```bash
+# 配置更改后清理构建缓存
+rm -rf node_modules/.vite
+npm run dev
+```
+
+#### 7. 最佳实践
+
+1. **单一配置源**：所有 DaisyUI 配置都在 CSS 中
+2. **主题列表**：在 CSS 中明确列出所有需要的主题
+3. **状态同步**：使用事件机制同步组件间的主题状态
+4. **性能优化**：避免频繁切换主题，使用防抖
+5. **用户体验**：保存用户选择的主题到 localStorage

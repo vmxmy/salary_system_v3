@@ -35,12 +35,23 @@ export function useDepartments() {
 }
 
 /**
- * 获取人员类别列表
+ * 获取人员类别列表（层级结构）
  */
 export function usePersonnelCategories() {
   return useQuery({
     queryKey: employeeQueryKeys.categories(),
     queryFn: () => employeeService.getPersonnelCategories(),
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+/**
+ * 获取人员类别名称列表（简单字符串数组，用于向后兼容）
+ */
+export function usePersonnelCategoryNames() {
+  return useQuery({
+    queryKey: [...employeeQueryKeys.categories(), 'names'],
+    queryFn: () => employeeService.getPersonnelCategoryNames(),
     staleTime: 10 * 60 * 1000,
   });
 }

@@ -1,10 +1,9 @@
 import { type Table } from '@tanstack/react-table';
-import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeftIcon, ChevronsRightIcon } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { cn } from '@/lib/utils';
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
-  // Server-side pagination info (optional)
   totalRows?: number;
   currentPage?: number;
   totalPages?: number;
@@ -18,81 +17,88 @@ export function DataTablePagination<TData>({
 }: DataTablePaginationProps<TData>) {
   const { t } = useTranslation('common');
 
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageSize = table.getState().pagination.pageSize;
+  const isFirstPage = !table.getCanPreviousPage();
+  const isLastPage = !table.getCanNextPage();
+
   return (
-    <div className="flex items-center justify-between px-2 py-4">
-      {/* Row selection and total info */}
-      <div className="flex-1 text-sm text-base-content/70">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4">
+      {/* Row Info */}
+      <div className="text-sm text-base-content/70">
         {table.getFilteredSelectedRowModel().rows.length > 0 ? (
           <span>
-            {table.getFilteredSelectedRowModel().rows.length} of{' '}
-            {totalRows ?? table.getFilteredRowModel().rows.length} row(s) selected
+            已选择 {table.getFilteredSelectedRowModel().rows.length} 项，
+            共 {totalRows ?? table.getFilteredRowModel().rows.length} 项
           </span>
         ) : (
-          totalRows && (
-            <span>
-              {t('table.total', { total: totalRows })}
-            </span>
-          )
+          <span>
+            共 {totalRows ?? table.getFilteredRowModel().rows.length} 项
+          </span>
         )}
       </div>
 
-      {/* Pagination controls */}
-      <div className="flex items-center space-x-6 lg:space-x-8">
-        {/* Page size selector */}
-        <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium">{t('table.pageSize', { size: '' }).replace(' ', '')}</p>
+      {/* Pagination Controls */}
+      <div className="flex items-center gap-2">
+        {/* Page Size Selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-base-content/70">每页显示：</span>
           <select
             className="select select-bordered select-sm"
-            value={table.getState().pagination.pageSize}
-            onChange={(e) => {
-              table.setPageSize(Number(e.target.value));
-            }}
+            value={pageSize}
+            onChange={(e) => table.setPageSize(Number(e.target.value))}
           >
-            {[10, 20, 30, 40, 50, 100].map((pageSize) => (
-              <option key={pageSize} value={pageSize}>
-                {pageSize}
+            {[10, 20, 30, 40, 50].map((size) => (
+              <option key={size} value={size}>
+                {size}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Page info */}
-        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-          {t('table.page', {
-            current: currentPage ?? (table.getState().pagination.pageIndex + 1),
-            total: totalPages ?? table.getPageCount(),
-          })}
+        {/* Page Info */}
+        <div className="text-sm text-base-content/70">
+          第 {currentPage ?? (pageIndex + 1)} 页，
+          共 {totalPages ?? table.getPageCount()} 页
         </div>
 
-        {/* Navigation buttons */}
-        <div className="flex items-center space-x-2">
+        {/* Navigation Buttons */}
+        <div className="join">
           <button
-            className="btn btn-sm btn-ghost"
+            className="join-item btn btn-sm"
             onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
+            disabled={isFirstPage}
           >
-            <ChevronsLeftIcon className="h-4 w-4" />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
           </button>
           <button
-            className="btn btn-sm btn-ghost"
+            className="join-item btn btn-sm"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            disabled={isFirstPage}
           >
-            <ChevronLeftIcon className="h-4 w-4" />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
           </button>
           <button
-            className="btn btn-sm btn-ghost"
+            className="join-item btn btn-sm"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            disabled={isLastPage}
           >
-            <ChevronRightIcon className="h-4 w-4" />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
           </button>
           <button
-            className="btn btn-sm btn-ghost"
+            className="join-item btn btn-sm"
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
+            disabled={isLastPage}
           >
-            <ChevronsRightIcon className="h-4 w-4" />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
           </button>
         </div>
       </div>

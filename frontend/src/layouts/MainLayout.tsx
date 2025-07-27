@@ -3,39 +3,40 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { cn } from '@/lib/utils';
 
 export function MainLayout() {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-base-200">
-      {/* Sidebar */}
-      <Sidebar 
-        isCollapsed={isSidebarCollapsed} 
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
+    <div className="drawer lg:drawer-open">
+      <input 
+        id="drawer-toggle" 
+        type="checkbox" 
+        className="drawer-toggle" 
+        checked={isSidebarOpen}
+        onChange={(e) => setIsSidebarOpen(e.target.checked)}
       />
-
-      {/* Main Content Area */}
-      <div 
-        className={cn(
-          "flex-1 flex flex-col transition-all duration-300",
-          isSidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
-        )}
-      >
+      
+      <div className="drawer-content flex flex-col">
         {/* Header */}
         <Header />
-
+        
         {/* Page Content */}
         <main className="flex-1 p-4 lg:p-6">
           <div className="mx-auto max-w-7xl">
             <Outlet />
           </div>
         </main>
-
+        
         {/* Footer */}
         <Footer />
       </div>
+      
+      {/* Sidebar */}
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
     </div>
   );
 }

@@ -5,10 +5,10 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="footer footer-center p-4 bg-base-100 text-base-content border-t border-base-300">
+    <footer className="footer footer-center p-4 bg-base-100 text-base-content border-t border-base-200">
       <div>
         <p>
-          {t('app.copyright')} © {currentYear} {t('app.name')}
+          © {currentYear} 薪资管理系统
         </p>
       </div>
     </footer>
