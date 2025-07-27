@@ -22,6 +22,9 @@ export function DataTable<TData, TValue>({
   enableRowSelection = false,
   onRowSelectionChange,
   onColumnVisibilityChange,
+  onTableReady,
+  initialSorting,
+  initialPagination,
   loading = false,
   emptyMessage,
   showToolbar = true,
@@ -52,132 +55,150 @@ export function DataTable<TData, TValue>({
     pageCount,
     enableRowSelection,
     enableColumnResizing: true,
-    // Set initial pagination based on external state or defaults
+    initialSorting,
     initialPagination: pageCount !== undefined ? {
-      pageIndex: 0, // Will be updated by external pagination handler
-      pageSize: 50 // Default page size
-    } : { pageIndex: 0, pageSize: 50 },
+      pageIndex: (currentPage || 1) - 1,
+      pageSize: data.length,
+    } : (initialPagination || {
+      pageIndex: 0,
+      pageSize: 50, // 默认每页50条
+    }),
   });
 
-  // Update external state when internal state changes
+  // 同步外部状态变化到内部
   useEffect(() => {
-    if (onPaginationChange) {
-      const paginationState = table.getState().pagination;
-      onPaginationChange(paginationState);
+    if (onPaginationChange && pageCount !== undefined) {
+      onPaginationChange?.(tablePagination);
     }
-  }, [tablePagination.pageIndex, tablePagination.pageSize, onPaginationChange, table]);
+  }, [tablePagination, onPaginationChange, pageCount]);
 
   useEffect(() => {
-    if (onSortingChange) {
-      const sortingState = table.getState().sorting;
-      onSortingChange(sortingState);
-    }
-  }, [sorting, onSortingChange, table]);
+    onSortingChange?.(sorting);
+  }, [sorting, onSortingChange]);
+
+  useEffect(() => {
+    onColumnFiltersChange?.(columnFilters);
+  }, [columnFilters, onColumnFiltersChange]);
+
+  useEffect(() => {
+    onRowSelectionChange?.(rowSelection);
+  }, [rowSelection, onRowSelectionChange]);
+
+  useEffect(() => {
+    onColumnVisibilityChange?.(columnVisibility);
+  }, [columnVisibility, onColumnVisibilityChange]);
+
+  // 将 table 实例传递给父组件
+  useEffect(() => {
+    onTableReady?.(table);
+  }, [table, onTableReady]);
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen variant="inline" />;
   }
 
   return (
-    <div className={cn('w-full space-y-4', className)}>
+    <div className={cn("card bg-base-100 shadow", className)}>
       {/* Toolbar */}
       {showToolbar && (
-        <DataTableToolbar
-          table={table}
-          globalFilter={globalFilter}
-          onGlobalFilterChange={showGlobalFilter ? onGlobalFilterChange : undefined}
-          showColumnToggle={showColumnToggle}
-          enableExport={enableExport}
-          exportFileName={exportFileName}
-        />
+        <div className="card-body pb-0">
+          <DataTableToolbar
+            table={table}
+            globalFilter={globalFilter}
+            onGlobalFilterChange={onGlobalFilterChange}
+            showColumnToggle={showColumnToggle}
+            enableExport={enableExport}
+            exportFileName={exportFileName}
+          />
+        </div>
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-base-300">
-        <table className={cn(
-          'table w-full',
-          striped && 'table-zebra',
-          hover && 'table-hover',
-          compact && 'table-compact'
-        )} style={{ width: table.getCenterTotalSize() }}>
-          <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th 
-                    key={header.id} 
-                    className="bg-base-200 relative"
-                    style={{ width: header.getSize() }}
-                  >
-                    {header.isPlaceholder ? null : 
-                      flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )
-                    }
-                    {/* Column resizer */}
-                    {header.column.getCanResize() && (
-                      <div
-                        onMouseDown={header.getResizeHandler()}
-                        onTouchStart={header.getResizeHandler()}
-                        className={cn(
-                          'absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none',
-                          'bg-base-300 opacity-0 hover:opacity-100 hover:bg-primary',
-                          header.column.getIsResizing() && 'opacity-100 bg-primary'
-                        )}
-                      />
-                    )}
-                  </th>
-                ))}
-                {actions && <th className="bg-base-200">{t('common.actions')}</th>}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className={cn(
-                    'border-b border-base-200',
-                    row.getIsSelected() && 'bg-base-200'
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} style={{ width: cell.column.getSize() }}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
+      <div className="card-body pt-4">
+        <div className="overflow-x-auto">
+          <table className={cn(
+            "table",
+            compact && "table-sm",
+            striped && "table-zebra",
+            hover && "table-hover"
+          )}>
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      style={{
+                        width: header.getSize(),
+                        minWidth: header.column.columnDef.minSize,
+                        maxWidth: header.column.columnDef.maxSize,
+                      }}
+                      className={cn(
+                        header.column.getCanSort() && "cursor-pointer select-none",
+                      )}
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <div className="flex items-center gap-2">
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                          {{
+                            asc: <span className="text-primary">↑</span>,
+                            desc: <span className="text-primary">↓</span>,
+                          }[header.column.getIsSorted() as string] ?? null}
+                        </div>
+                      )}
+                    </th>
                   ))}
-                  {actions && (
-                    <td className="w-32">
-                      {actions(row.original)}
-                    </td>
-                  )}
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={columns.length + (actions ? 1 : 0)}
-                  className="h-24 text-center"
-                >
-                  {emptyMessage || t('table.noData')}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              ))}
+            </thead>
+            <tbody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className={cn(
+                      row.getIsSelected() && "bg-primary/10"
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={columns.length} className="text-center py-8">
+                    <div className="text-base-content/60">
+                      {emptyMessage || t('table.noData')}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Pagination */}
       {showPagination && (
-        <DataTablePagination 
-          table={table}
-          totalRows={totalRows}
-          currentPage={currentPage}
-          totalPages={pageCount}
-        />
+        <div className="card-body pt-0">
+          <DataTablePagination
+            table={table}
+            totalRows={totalRows}
+            currentPage={currentPage}
+            totalPages={pageCount}
+          />
+        </div>
       )}
     </div>
   );

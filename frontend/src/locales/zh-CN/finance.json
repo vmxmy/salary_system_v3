@@ -1,0 +1,10 @@
+{
+  "title": "财务管理",
+  "status": {
+    "profit": "盈利",
+    "loss": "亏损",
+    "pending": "待处理",
+    "approved": "已批准",
+    "rejected": "已拒绝"
+  }
+}

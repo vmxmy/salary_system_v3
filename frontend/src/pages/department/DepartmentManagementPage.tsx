@@ -30,7 +30,7 @@ import { filterDepartmentTree } from '@/utils/departmentFilters';
 import type { DepartmentViewMode, DepartmentSearchFilters, DepartmentNode } from '@/types/department';
 
 export default function DepartmentManagementPage() {
-  const { showToast } = useToast();
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
   const navigate = useNavigate();
   
   // 状态管理
@@ -156,11 +156,8 @@ export default function DepartmentManagementPage() {
     // 刷新部门数据
     // TODO: 添加刷新逻辑
     setShowImportExport(false);
-    showToast({
-      type: 'success',
-      message: '部门数据导入完成，正在刷新...'
-    });
-  }, [showToast]);
+    showSuccess('部门数据导入完成，正在刷新...');
+  }, [showSuccess]);
 
   const isLoading = isLoadingTree || isLoadingStats;
 

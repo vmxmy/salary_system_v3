@@ -57,7 +57,7 @@ export function DataTableColumnFilter<TData, TValue>({
           'btn btn-ghost btn-xs p-1 h-6 w-6',
           isFiltered && 'text-primary'
         )}
-        title={t('common.filter')}
+        title={t('filter')}
       >
         <FilterIcon className="h-3 w-3" />
       </button>
@@ -67,13 +67,13 @@ export function DataTableColumnFilter<TData, TValue>({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">
-                {t('common.filter')}
+                {t('filter')}
               </span>
               {isFiltered && (
                 <button
                   onClick={handleClearFilter}
                   className="btn btn-ghost btn-xs p-1"
-                  title={t('common.clear')}
+                  title={t('clear')}
                 >
                   <XIcon className="h-3 w-3" />
                 </button>
@@ -91,7 +91,7 @@ export function DataTableColumnFilter<TData, TValue>({
 
             {/* For future enhancement: Add dropdown for specific filter types */}
             <div className="text-xs text-base-content/60">
-              {t('common.filterHelp')}
+              {t('filterHelp')}
             </div>
           </div>
         </div>

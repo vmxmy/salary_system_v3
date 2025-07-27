@@ -28,6 +28,11 @@ export interface DataTableProps<TData, TValue> {
   onRowSelectionChange?: (selection: RowSelectionState) => void;
   // Column visibility
   onColumnVisibilityChange?: (visibility: VisibilityState) => void;
+  // Table instance callback
+  onTableReady?: (table: Table<TData>) => void;
+  // Initial states
+  initialSorting?: SortingState;
+  initialPagination?: PaginationState;
   // UI Options
   loading?: boolean;
   emptyMessage?: string;

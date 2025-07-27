@@ -4,7 +4,7 @@ export { DataTableColumnFilter } from './DataTableColumnFilter';
 export { DataTablePagination } from './DataTablePagination';
 export { DataTableToolbar } from './DataTableToolbar';
 export { useDataTable } from './hooks/useDataTable';
-export { createDataTableColumnHelper, createSelectionColumn, exportTableToCSV, exportTableToJSON, exportTableToExcel } from './utils.tsx';
+export { createDataTableColumnHelper, createSelectionColumn, exportTableToCSV, exportTableToJSON, exportTableToExcel } from './utils';
 export type {
   DataTableProps,
   DataTableToolbarProps,

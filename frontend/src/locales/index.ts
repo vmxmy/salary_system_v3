@@ -59,6 +59,23 @@ i18n
     react: {
       useSuspense: false, // Set to false for better error handling
     },
+    
+    // Disable debug mode to prevent console overload
+    debug: false,
+    
+    // Better missing key handling
+    saveMissing: false,
+    missingKeyHandler: (lng, ns, key) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Missing translation key: ${ns}:${key} for language ${lng}`);
+      }
+      return key; // Return the key itself as fallback
+    },
+  })
+  .then(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[i18n] Initialization complete');
+    }
   });
 
 export default i18n;
