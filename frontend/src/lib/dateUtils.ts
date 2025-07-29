@@ -62,6 +62,14 @@ export function getLastYearMonth(): string {
 }
 
 /**
+ * 获取上个月年月 (别名函数)
+ * @returns 格式: YYYY-MM
+ */
+export function getPreviousMonth(): string {
+  return getLastYearMonth();
+}
+
+/**
  * 比较两个年月的大小
  * @param yearMonth1 格式: YYYY-MM
  * @param yearMonth2 格式: YYYY-MM
@@ -86,11 +94,18 @@ export function formatYearMonth(yearMonth: string): string {
 
 /**
  * 格式化月份为中文显示
- * @param month 月份数字 (1-12) 或字符串格式的月份
- * @returns 格式: M月
+ * @param month 月份数字 (1-12) 或字符串格式的月份，也支持 YYYY-MM 格式
+ * @returns 格式: M月 或 YYYY年M月
  */
 export function formatMonth(month: number | string): string {
   if (!month) return '';
+  
+  // 如果是 YYYY-MM 格式，提取月份部分
+  if (typeof month === 'string' && month.includes('-')) {
+    const [year, monthPart] = month.split('-');
+    const monthNum = parseInt(monthPart);
+    return `${year}年${monthNum}月`;
+  }
   
   const monthNum = typeof month === 'string' ? parseInt(month) : month;
   return `${monthNum}月`;

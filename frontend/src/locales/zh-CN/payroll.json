@@ -1,5 +1,9 @@
 {
   "title": "薪资管理",
+  "payPeriod": "薪资期间",
+  "grossPay": "应发工资",
+  "deductions": "扣款合计",
+  "netPay": "实发工资",
   "payrollManagement": "薪资管理",
   "payrollManagementDesc": "管理员工薪资记录、计算和支付",
   "payrollDetails": "薪资详情",
@@ -183,5 +187,34 @@
     "amount": "缴费基数",
     "effectiveStartDate": "生效开始日期",
     "effectiveEndDate": "生效结束日期"
+  },
+  "wizard": {
+    "createPayrollCycle": "创建薪资周期",
+    "selectCreationMode": "选择创建方式",
+    "selectCreationModeDesc": "请选择最适合您需求的薪资数据创建方式",
+    "processing": "正在处理...",
+    "draftSaved": "草稿已保存",
+    "draftSaveFailed": "草稿保存失败",
+    "cycleCreated": "薪资周期创建成功",
+    "cycleCreateFailed": "薪资周期创建失败",
+    "createCycle": "创建周期"
+  },
+  "modes": {
+    "copy": {
+      "title": "复制上月数据",
+      "description": "基于上个薪资周期的数据快速创建新周期"
+    },
+    "import": {
+      "title": "Excel导入",
+      "description": "从Excel文件批量导入员工薪资数据"
+    },
+    "manual": {
+      "title": "手动创建",
+      "description": "逐个添加员工薪资记录，完全手动控制"
+    },
+    "template": {
+      "title": "使用模板",
+      "description": "基于预设的薪资模板快速创建"
+    }
   }
 }

@@ -10,7 +10,6 @@ export interface Employee {
   employment_status: 'active' | 'inactive' | 'terminated';
   gender?: 'male' | 'female' | 'other';
   date_of_birth?: string;
-  manager_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -25,7 +24,6 @@ export interface EmployeeBasicInfo {
   gender?: string;
   date_of_birth?: string;
   employment_status: string;
-  manager_id?: string;
   department_id?: string;
   department_name?: string;
   position_id?: string;
@@ -197,7 +195,6 @@ export interface CreateEmployeeRequest {
   employment_status?: 'active' | 'inactive';
   gender?: 'male' | 'female' | 'other';
   date_of_birth?: string;
-  manager_id?: string;
   contacts?: Omit<EmployeeContact, 'id' | 'employee_id' | 'created_at' | 'updated_at'>[];
   bankAccounts?: Omit<EmployeeBankAccount, 'id' | 'employee_id' | 'created_at' | 'updated_at'>[];
   education?: Omit<EmployeeEducation, 'id' | 'employee_id' | 'created_at'>[];

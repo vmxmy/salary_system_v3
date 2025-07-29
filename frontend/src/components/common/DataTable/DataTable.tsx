@@ -49,12 +49,15 @@ export function DataTable<TData, TValue>({
     rowSelection,
     pagination: tablePagination,
     columnSizing,
+    setPagination,
   } = useDataTable({
     data,
     columns,
     pageCount,
     enableRowSelection,
     enableColumnResizing: true,
+    onPaginationChange,
+    onRowSelectionChange,
     initialSorting,
     initialPagination: pageCount !== undefined ? {
       pageIndex: (currentPage || 1) - 1,
@@ -65,12 +68,12 @@ export function DataTable<TData, TValue>({
     }),
   });
 
-  // 同步外部状态变化到内部
-  useEffect(() => {
-    if (onPaginationChange && pageCount !== undefined) {
-      onPaginationChange?.(tablePagination);
-    }
-  }, [tablePagination, onPaginationChange, pageCount]);
+  // 同步外部状态变化到内部 - 移除有问题的useEffect以避免无限循环
+  // useEffect(() => {
+  //   if (onPaginationChange && pageCount !== undefined) {
+  //     onPaginationChange?.(tablePagination);
+  //   }
+  // }, [tablePagination, onPaginationChange, pageCount]);
 
   useEffect(() => {
     onSortingChange?.(sorting);
@@ -80,9 +83,10 @@ export function DataTable<TData, TValue>({
     onColumnFiltersChange?.(columnFilters);
   }, [columnFilters, onColumnFiltersChange]);
 
-  useEffect(() => {
-    onRowSelectionChange?.(rowSelection);
-  }, [rowSelection, onRowSelectionChange]);
+  // 移除有问题的useEffect以避免无限循环 - 现在在useDataTable中处理
+  // useEffect(() => {
+  //   onRowSelectionChange?.(rowSelection);
+  // }, [rowSelection, onRowSelectionChange]);
 
   useEffect(() => {
     onColumnVisibilityChange?.(columnVisibility);

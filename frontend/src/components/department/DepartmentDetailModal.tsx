@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils';
 import type { Department, DepartmentFormData, DepartmentPayrollStatistics, DepartmentEmployee, DepartmentWithDetails } from '@/types/department';
 
 interface DepartmentDetailModalProps {
-  departmentId: string | null;
+  departmentId?: string | null;
   open: boolean;
   onClose: () => void;
   mode?: 'view' | 'edit' | 'create';
@@ -47,10 +47,7 @@ export function DepartmentDetailModal({
   const [isEditing, setIsEditing] = useState(initialMode === 'edit');
   const [editData, setEditData] = useState<DepartmentFormData>({
     name: '',
-    parent_department_id: null,
-    manager_id: null,
-    description: '',
-    sort_order: 0
+    parent_department_id: null
   });
   
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['basic']));
@@ -92,18 +89,12 @@ export function DepartmentDetailModal({
     if (department && initialMode !== 'create') {
       setEditData({
         name: department.name,
-        parent_department_id: department.parent_department_id,
-        manager_id: department.manager_id,
-        description: department.description || '',
-        sort_order: department.sort_order || 0
+        parent_department_id: department.parent_department_id
       });
     } else if (initialMode === 'create') {
       setEditData({
         name: '',
-        parent_department_id: null,
-        manager_id: null,
-        description: '',
-        sort_order: 0
+        parent_department_id: null
       });
       setIsEditing(true);
     }
@@ -517,33 +508,6 @@ function DepartmentDetailContent({
               { value: '', label: '无（顶级部门）' },
               ...parentDepartmentOptions
             ]}
-          />
-          <DetailField 
-            label="部门主管" 
-            value={isEditing ? editData.manager_id : department?.manager_id}
-            isEditing={isEditing}
-            onChange={(value) => updateEditData('manager_id', value || null)}
-            type="select"
-            options={[
-              { value: '', label: '未指定' },
-              // TODO: 添加员工选项
-            ]}
-          />
-          <DetailField 
-            label="排序顺序" 
-            value={isEditing ? editData.sort_order : department?.sort_order}
-            type="number"
-            isEditing={isEditing}
-            onChange={(value) => updateEditData('sort_order', parseInt(value) || 0)}
-          />
-          <DetailField 
-            label="部门描述" 
-            value={isEditing ? editData.description : department?.description}
-            type="textarea"
-            isEditing={isEditing}
-            onChange={(value) => updateEditData('description', value)}
-            rows={3}
-            placeholder="请输入部门描述或职责说明"
           />
         </AccordionContent>
       </AccordionSection>

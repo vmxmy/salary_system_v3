@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAllEmployees } from '@/hooks/useEmployees';
 import { useCreateBatchPayrolls } from '@/hooks/payroll';
-import { PageHeader } from '@/components/layout/PageHeader';
+import { ManagementPageLayout } from '@/components/layout/ManagementPageLayout';
 import { DataTable } from '@/components/common/DataTable/DataTable';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { MonthPicker } from '@/components/common/MonthPicker';

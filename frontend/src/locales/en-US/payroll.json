@@ -1,5 +1,9 @@
 {
   "title": "Payroll Management",
+  "payPeriod": "Pay Period",
+  "grossPay": "Gross Pay",
+  "deductions": "Total Deductions",
+  "netPay": "Net Pay",
   "periods": {
     "title": "Payroll Period Management",
     "list": "Period List",

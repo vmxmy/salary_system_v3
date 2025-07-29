@@ -28,6 +28,24 @@ const formatNumber = (value: any, decimals: number = 2): number => {
 
 // 薪资服务类
 export class PayrollService {
+  // 获取最近有薪资记录的月份
+  static async getLatestPayrollMonth(): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('payrolls')
+      .select('pay_date')
+      .order('pay_date', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      // 从pay_date中提取年月 (YYYY-MM-DD -> YYYY-MM)
+      return data[0].pay_date.substring(0, 7);
+    }
+    
+    return null;
+  }
+
   // 获取薪资列表
   static async getPayrolls(filters?: {
     status?: PayrollStatusType;
@@ -92,8 +110,8 @@ export class PayrollService {
       .from('view_payroll_detail_items')
       .select('*')
       .eq('payroll_id', payrollId)
-      .order('category_sort_order')
-      .order('component_name');
+      .order('category_sort_order', { ascending: true })
+      .order('component_name', { ascending: true });
 
     if (error) throw error;
     return data || [];

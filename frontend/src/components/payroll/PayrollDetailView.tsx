@@ -80,7 +80,7 @@ export function PayrollDetailView({
                 {payroll.employee?.full_name} ({payroll.employee?.id_number})
               </p>
             </div>
-            <PayrollStatusBadge status={payroll.status} size="lg" />
+            <PayrollStatusBadge status={payroll.status} size="lg" showIcon={false} />
           </div>
 
           {/* Pay Period Info */}
@@ -108,7 +108,7 @@ export function PayrollDetailView({
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-base-content/60">{t('payDate')}</p>
+                <p className="text-sm text-base-content/60">{t('payroll:payDate')}</p>
                 <p className="font-medium">{formatDate(payroll.pay_date)}</p>
               </div>
             </div>

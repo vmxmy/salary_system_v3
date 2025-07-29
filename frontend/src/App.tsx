@@ -3,15 +3,19 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from './locales';
 import { router } from './router';
 import { AuthProvider } from './contexts/AuthContext';
+import { DevAuthProvider } from './contexts/DevAuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 
 function App() {
+  const isDevelopment = import.meta.env.DEV;
+  const ActiveAuthProvider = isDevelopment ? DevAuthProvider : AuthProvider;
+
   return (
     <I18nextProvider i18n={i18n}>
       <ToastProvider>
-        <AuthProvider>
+        <ActiveAuthProvider>
           <RouterProvider router={router} />
-        </AuthProvider>
+        </ActiveAuthProvider>
       </ToastProvider>
     </I18nextProvider>
   );
