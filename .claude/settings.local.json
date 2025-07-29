@@ -49,6 +49,8 @@
       "mcp__zen__thinkdeep",
       "mcp__zen__debug",
       "Bash(curl:*)",
+      "mcp__zen__chat",
+      "Bash(npx tsc:*)",
       "mcp__zen__chat"
     ],
     "deny": []

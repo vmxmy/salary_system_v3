@@ -100,7 +100,7 @@ export function PayrollList({
         accessorKey: 'status',
         header: t('common:common.status'),
         cell: ({ row }) => (
-          <PayrollStatusBadge status={row.original.status} size="sm" />
+          <PayrollStatusBadge status={row.original.status} size="sm" showIcon={false} />
         ),
         filterFn: (row, id, value) => {
           return value.includes(row.getValue(id));

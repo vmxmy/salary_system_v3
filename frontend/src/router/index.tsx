@@ -20,6 +20,7 @@ const PositionPage = lazy(() => import('@/pages/organization/PositionPage'));
 const PayrollListPage = lazy(() => import('@/pages/payroll/PayrollListPage'));
 const PayrollDetailPage = lazy(() => import('@/pages/payroll/PayrollDetailPage'));
 const CreateBatchPayrollPage = lazy(() => import('@/pages/payroll/CreateBatchPayrollPage'));
+const PayrollCycleWizardPage = lazy(() => import('@/pages/payroll/PayrollCycleWizardPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const ThemeShowcasePage = lazy(() => import('@/pages/ThemeShowcasePage'));
@@ -27,6 +28,9 @@ const DesignTokensPage = lazy(() => import('@/pages/DesignTokensPage'));
 const DesignSystemShowcase = lazy(() => import('@/pages/DesignSystemShowcase'));
 const TypographyShowcasePage = lazy(() => import('@/pages/TypographyShowcasePage'));
 const FontTestPage = lazy(() => import('@/pages/FontTestPage'));
+const SalaryComponentDemoPage = lazy(() => import('@/pages/SalaryComponentDemoPage'));
+const MonthPickerDemoPage = lazy(() => import('@/pages/MonthPickerDemoPage'));
+const ValidationTestPage = lazy(() => import('@/pages/ValidationTestPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const DebugPage = lazy(() => import('@/pages/DebugPage'));
@@ -173,6 +177,14 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: 'create-cycle',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PayrollCycleWizardPage />
+              </Suspense>
+            ),
+          },
+          {
             path: ':id',
             element: (
               <Suspense fallback={<LoadingScreen />}>
@@ -235,6 +247,22 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingScreen />}>
             <FontTestPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'salary-component-demo',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <SalaryComponentDemoPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'validation-test',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <ValidationTestPage />
           </Suspense>
         ),
       },

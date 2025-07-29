@@ -51,9 +51,6 @@ export interface DepartmentWithDetails extends Department {
   children_count?: number;
   full_path?: string;
   level?: number;
-  manager_id?: string | null;
-  sort_order?: number;
-  description?: string | null;
 }
 
 // Department employee basic info
@@ -73,9 +70,6 @@ export interface DepartmentEmployee {
 export interface DepartmentFormData {
   name: string;
   parent_department_id?: string | null;
-  manager_id?: string | null;
-  description?: string;
-  sort_order?: number;
 }
 
 // Department search filters

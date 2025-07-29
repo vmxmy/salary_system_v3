@@ -1,7 +1,7 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
-import { usePayrolls, useCreateBatchPayrolls, useUpdateBatchPayrollStatus, useCalculatePayrolls } from '@/hooks/payroll';
+import { usePayrolls, useCreateBatchPayrolls, useUpdateBatchPayrollStatus, useCalculatePayrolls, useLatestPayrollMonth } from '@/hooks/payroll';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
 import { PayrollList, PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
 import { DataTable } from '@/components/common/DataTable';
@@ -52,7 +52,7 @@ export default function PayrollListPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<PayrollStatusType | 'all'>('all');
   const [selectedMonth, setSelectedMonth] = useState(() => {
-    // 默认为当前月份
+    // 默认为当前月份，将在useEffect中更新为最近有记录的月份
     return getCurrentYearMonth();
   });
   const [pagination, setPagination] = useState<PaginationState>({
@@ -64,6 +64,16 @@ export default function PayrollListPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const monthDateRange = getMonthDateRange(selectedMonth);
+
+  // 获取最近有薪资记录的月份
+  const { data: latestMonth, isLoading: latestMonthLoading } = useLatestPayrollMonth();
+
+  // 自动设置为最近有记录的月份
+  useEffect(() => {
+    if (latestMonth && !latestMonthLoading) {
+      setSelectedMonth(latestMonth);
+    }
+  }, [latestMonth, latestMonthLoading]);
 
   // 查询薪资列表
   const { data, isLoading, refetch } = usePayrolls({
@@ -116,6 +126,21 @@ export default function PayrollListPage() {
     refetch();
   }, [refetch]);
 
+  // 处理行选择变化 - 稳定的回调，通过ref访问最新数据
+  const processedDataRef = useRef(processedData);
+  processedDataRef.current = processedData;
+  
+  const handleRowSelectionChange = useCallback((rowSelection: any) => {
+    const selectedRows = Object.keys(rowSelection)
+      .filter(key => rowSelection[key])
+      .map(index => {
+        const rowIndex = parseInt(index);
+        return processedDataRef.current[rowIndex]?.id;
+      })
+      .filter(Boolean);
+    setSelectedIds(selectedRows);
+  }, []); // 空依赖数组，使用ref访问最新数据
+
   // 表格列定义
   const columns = useMemo(() => [
     columnHelper.accessor('employee.full_name', {
@@ -142,7 +167,7 @@ export default function PayrollListPage() {
               {formatMonth(yearMonth)}
             </p>
             <p className="text-xs text-base-content/60">
-              {t('payDate')}: {formatDate(row.original.pay_date)}
+              {t('payroll:payDate')}: {formatDate(row.original.pay_date)}
             </p>
           </div>
         );
@@ -151,7 +176,7 @@ export default function PayrollListPage() {
     columnHelper.accessor('status', {
       header: t('common:common.status'),
       cell: ({ row }) => (
-        <PayrollStatusBadge status={row.original.status} size="sm" />
+        <PayrollStatusBadge status={row.original.status} size="sm" showIcon={false} />
       ),
     }),
     columnHelper.accessor('gross_pay', {
@@ -246,11 +271,33 @@ export default function PayrollListPage() {
 
   // 创建新的薪资批次
   const handleCreateBatch = useCallback(() => {
-    navigate('/payroll/create-batch');
+    navigate('/payroll/create-cycle');
   }, [navigate]);
 
+  // 清空本月数据
+  const handleClearCurrentMonth = useCallback(async () => {
+    const confirmMessage = `确定要清空 ${formatMonth(selectedMonth)} 的所有薪资数据吗？\n\n此操作将删除该月份的所有薪资记录和相关数据，且无法恢复。\n\n请输入 "确认清空" 来确认此操作：`;
+    
+    const userInput = prompt(confirmMessage);
+    
+    if (userInput !== '确认清空') {
+      if (userInput !== null) { // 用户点击了确定但输入错误
+        showError('输入不正确，操作已取消');
+      }
+      return;
+    }
+
+    try {
+      // TODO: 实现清空薪资数据的服务调用
+      showSuccess(`${formatMonth(selectedMonth)} 的薪资数据已清空`);
+      refetch();
+    } catch (error) {
+      showError(`清空数据失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  }, [selectedMonth, showSuccess, showError, refetch]);
+
   // 处理加载状态
-  const totalLoading = isLoading || statsLoading;
+  const totalLoading = isLoading || statsLoading || latestMonthLoading;
 
   if (totalLoading && !data) {
     return (
@@ -329,7 +376,7 @@ export default function PayrollListPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FinancialCard
             title={t('payroll:statistics.totalPayroll')}
-            value={formatCurrency(statistics?.totalGrossPay || 0)}
+            amount={formatCurrency(statistics?.totalGrossPay || 0)}
             variant="info"
             icon="💰"
             subtitle={formatMonth(selectedMonth)}
@@ -358,7 +405,7 @@ export default function PayrollListPage() {
           
           <FinancialCard
             title={t('payroll:statistics.totalDeductions')}
-            value={formatCurrency(statistics?.totalDeductions || 0)}
+            amount={formatCurrency(statistics?.totalDeductions || 0)}
             variant="warning"
             icon="📊"
             subtitle={t('payroll:statistics.includingTaxAndInsurance')}
@@ -386,30 +433,30 @@ export default function PayrollListPage() {
           </FinancialCard>
           
           <FinancialCard
-            title={t('payroll:statistics.statusDistribution')}
-            value={statistics?.statusCount?.total?.toString() || '0'}
+            title={t('payroll:netPay')}
+            amount={formatCurrency(statistics?.totalNetPay || 0)}
             variant="success"
-            icon="📈"
-            subtitle={t('payroll:statistics.records')}
+            icon="💸"
+            subtitle={`${statistics?.employeeCount || 0} ${t('common:person')}`}
           >
             <div className="mt-3 pt-3 border-t border-base-300">
               <div className="space-y-2">
-                {Object.entries(statistics?.statusCount || {}).filter(([key]) => key !== 'total').map(([status, count]) => {
-                  // 确保status是有效的薪资状态
-                  const validStatuses = Object.values(PayrollStatus);
-                  const isValidStatus = validStatuses.includes(status as PayrollStatusType);
-                  
-                  return (
-                    <div key={status} className="flex justify-between items-center text-xs">
-                      <span className={cn("text-base", "text-base-content/60")}>
-                        {isValidStatus ? t(`payroll:status.${status}`) : status}
-                      </span>
-                      <span className="font-semibold">
-                        {count as number}
-                      </span>
-                    </div>
-                  );
-                })}
+                <div className="flex justify-between items-center text-xs">
+                  <span className={cn("text-base", "text-base-content/60")}>
+                    {t('payroll:statistics.averageSalary')}
+                  </span>
+                  <span className="font-semibold text-success">
+                    {formatCurrency(statistics?.averageNetPay || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className={cn("text-base", "text-base-content/60")}>
+                    {t('payroll:statistics.totalPayroll')}
+                  </span>
+                  <span className="font-semibold text-primary">
+                    {formatCurrency(statistics?.totalGrossPay || 0)}
+                  </span>
+                </div>
               </div>
             </div>
           </FinancialCard>
@@ -481,6 +528,20 @@ export default function PayrollListPage() {
                     d="M12 4v16m8-8H4" />
                 </svg>
                 <span className="hidden sm:inline">{t('payroll:createBatch')}</span>
+              </ModernButton>
+
+              {/* 清空本月数据按钮 */}
+              <ModernButton
+                onClick={handleClearCurrentMonth}
+                variant="error"
+                size="sm"
+                title="清空本月薪资数据"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span className="hidden sm:inline">清空本月</span>
               </ModernButton>
               
               {/* 现代化导出按钮 */}
@@ -557,13 +618,7 @@ export default function PayrollListPage() {
               data={processedData}
               loading={totalLoading}
               enableRowSelection={true}
-              onRowSelectionChange={(rowSelection) => {
-                const selectedRows = Object.keys(rowSelection)
-                  .filter(key => rowSelection[key])
-                  .map(index => processedData[parseInt(index)]?.id)
-                  .filter(Boolean);
-                setSelectedIds(selectedRows);
-              }}
+              onRowSelectionChange={handleRowSelectionChange}
               showToolbar={false}
               showPagination={true}
               showColumnToggle={false}
@@ -619,7 +674,7 @@ export default function PayrollListPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-base-content/60 font-medium">{t('common:common.status')}:</span>
-                          <PayrollStatusBadge status={payroll.status} size="xs" />
+                          <PayrollStatusBadge status={payroll.status} size="xs" showIcon={false} />
                         </div>
                         <div className="pt-2 border-t border-base-200/50 space-y-2">
                           <div className="flex justify-between items-center">

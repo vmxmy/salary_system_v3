@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BuildingOfficeIcon, 
@@ -10,24 +10,33 @@ import {
   ChartBarIcon,
   UsersIcon,
   CurrencyDollarIcon,
-  DocumentChartBarIcon
+  DocumentChartBarIcon,
+  FolderOpenIcon,
+  FolderIcon
 } from '@heroicons/react/24/outline';
 import { useToast } from '@/contexts/ToastContext';
 import { cn } from '@/lib/utils';
 import { ModernButton } from '@/components/common/ModernButton';
-import { PageHeader, PageContent } from '@/components/layout/PageLayout';
 import { DepartmentTree } from '@/components/department/DepartmentTree';
 import { DepartmentCardGrid } from '@/components/department/DepartmentCardGrid';
 import { DepartmentDetailModal } from '@/components/department/DepartmentDetailModal';
 import { DepartmentSearchPanel } from '@/components/department/DepartmentSearchPanel';
 import { DepartmentBatchOperations } from '@/components/department/DepartmentBatchOperations';
-import { DepartmentImportExport } from '@/components/department/DepartmentImportExport';
 import { 
   useDepartmentTree, 
   useDepartmentPayrollStats 
 } from '@/hooks/useDepartments';
 import { filterDepartmentTree } from '@/utils/departmentFilters';
 import type { DepartmentViewMode, DepartmentSearchFilters, DepartmentNode } from '@/types/department';
+
+// 添加统计卡片类型定义
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  description?: string;
+  icon: React.ReactNode;
+  colorClass?: string;
+}
 
 export default function DepartmentManagementPage() {
   const { showSuccess, showError, showWarning, showInfo } = useToast();
@@ -45,9 +54,9 @@ export default function DepartmentManagementPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedDepartments, setSelectedDepartments] = useState<DepartmentNode[]>([]);
   
-  // 导入导出状态
-  const [showImportExport, setShowImportExport] = useState(false);
-  const [importExportType, setImportExportType] = useState<'import' | 'export'>('import');
+  // 树形展开状态
+  const [treeExpandedNodes, setTreeExpandedNodes] = useState<Set<string>>(new Set());
+  
 
   // 数据查询
   const { data: departmentTree = [], isLoading: isLoadingTree } = useDepartmentTree();
@@ -93,6 +102,38 @@ export default function DepartmentManagementPage() {
     };
   }, [filteredDepartments, payrollStatsMap]);
 
+  // 准备统计卡片数据
+  const statCards: StatCardProps[] = useMemo(() => [
+    {
+      title: '部门总数',
+      value: stats.totalDepartments,
+      description: '组织架构',
+      icon: <BuildingOfficeIcon className="w-8 h-8" />,
+      colorClass: 'text-purple-500'
+    },
+    {
+      title: '员工总数',
+      value: stats.totalEmployees,
+      description: '人员规模',
+      icon: <UsersIcon className="w-8 h-8" />,
+      colorClass: 'text-blue-500'
+    },
+    {
+      title: '活跃部门',
+      value: stats.activeDepartments,
+      description: '有员工的部门',
+      icon: <ChartBarIcon className="w-8 h-8" />,
+      colorClass: 'text-green-500'
+    },
+    {
+      title: '平均薪资',
+      value: `¥${stats.avgSalary.toFixed(0)}`,
+      description: '薪资水平',
+      icon: <CurrencyDollarIcon className="w-8 h-8" />,
+      colorClass: 'text-yellow-500'
+    }
+  ], [stats]);
+
   // 处理搜索
   const handleSearch = useCallback((filters: DepartmentSearchFilters) => {
     setSearchFilters(filters);
@@ -112,17 +153,44 @@ export default function DepartmentManagementPage() {
     setShowDetailModal(true);
   }, []);
 
-  // 处理导入
-  const handleImport = useCallback(() => {
-    setImportExportType('import');
-    setShowImportExport(true);
-  }, []);
-
   // 处理导出
   const handleExport = useCallback(() => {
-    setImportExportType('export');
-    setShowImportExport(true);
-  }, []);
+    // 准备导出数据
+    const flatData = flattenTree(filteredDepartments);
+    const csvData = flatData.map(dept => ({
+      '部门名称': dept.name,
+      '员工数量': dept.employee_count || 0,
+      '父级部门': dept.parent_department_name || '无',
+      '创建时间': dept.created_at ? new Date(dept.created_at).toLocaleDateString() : '',
+      '更新时间': dept.updated_at ? new Date(dept.updated_at).toLocaleDateString() : ''
+    }));
+
+    // 转换为CSV格式
+    const headers = Object.keys(csvData[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => 
+        headers.map(header => 
+          typeof row[header] === 'string' && row[header].includes(',') 
+            ? `"${row[header]}"` 
+            : row[header]
+        ).join(',')
+      )
+    ].join('\n');
+
+    // 创建下载链接
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `部门数据_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showSuccess('部门数据导出成功');
+  }, [filteredDepartments, showSuccess]);
 
   // 跳转到薪资统计页面
   const handleViewPayrollStats = useCallback(() => {
@@ -150,259 +218,254 @@ export default function DepartmentManagementPage() {
     setSelectedDepartments([]);
     setSelectionMode(false);
   }, []);
+  
+  // 树形控制功能
+  const handleExpandAll = useCallback(() => {
+    const getAllIds = (nodes: DepartmentNode[]): string[] => {
+      return nodes.reduce((acc: string[], node) => {
+        acc.push(node.id);
+        if (node.children) {
+          acc.push(...getAllIds(node.children));
+        }
+        return acc;
+      }, []);
+    };
+    
+    if (filteredDepartments) {
+      setTreeExpandedNodes(new Set(getAllIds(filteredDepartments)));
+    }
+  }, [filteredDepartments]);
+  
+  const handleCollapseAll = useCallback(() => {
+    setTreeExpandedNodes(new Set());
+  }, []);
 
-  // 处理导入完成
-  const handleImportComplete = useCallback(() => {
-    // 刷新部门数据
-    // TODO: 添加刷新逻辑
-    setShowImportExport(false);
-    showSuccess('部门数据导入完成，正在刷新...');
-  }, [showSuccess]);
 
   const isLoading = isLoadingTree || isLoadingStats;
 
-  return (
-    <>
-      <PageHeader
-        title="部门管理"
-        description="管理组织架构，查看部门层级和薪资统计"
-        icon={BuildingOfficeIcon}
-        iconClassName="text-purple-500 dark:text-purple-400"
-        actions={
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            {/* 移动端优先显示主要操作 */}
-            <div className="hidden sm:flex gap-3">
-              <ModernButton
-                variant="ghost"
-                size="sm"
-                onClick={handleViewPayrollStats}
-              >
-                <DocumentChartBarIcon className="w-4 h-4 mr-2" />
-                薪资统计
-              </ModernButton>
-              <ModernButton
-                variant="ghost"
-                size="sm"
-                onClick={handleImport}
-              >
-                <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
-                导入
-              </ModernButton>
-              <ModernButton
-                variant="ghost"
-                size="sm"
-                onClick={handleExport}
-              >
-                <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
-                导出
-              </ModernButton>
-              <ModernButton
-                variant={selectionMode ? "secondary" : "ghost"}
-                size="sm"
-                onClick={handleToggleSelectionMode}
-              >
-                <TableCellsIcon className="w-4 h-4 mr-2" />
-                {selectionMode ? '退出批量' : '批量操作'}
-              </ModernButton>
-            </div>
-            
-            {/* 移动端简化版操作 */}
-            <div className="flex sm:hidden gap-2">
-              <ModernButton
-                variant="ghost"
-                size="sm"
-                onClick={handleViewPayrollStats}
-                title="薪资统计"
-              >
-                <DocumentChartBarIcon className="w-4 h-4" />
-              </ModernButton>
-              <ModernButton
-                variant="ghost"
-                size="sm"
-                onClick={handleImport}
-                title="导入"
-              >
-                <ArrowDownTrayIcon className="w-4 h-4" />
-              </ModernButton>
-              <ModernButton
-                variant="ghost"
-                size="sm"
-                onClick={handleExport}
-                title="导出"
-              >
-                <ArrowUpTrayIcon className="w-4 h-4" />
-              </ModernButton>
-              <ModernButton
-                variant={selectionMode ? "secondary" : "ghost"}
-                size="sm"
-                onClick={handleToggleSelectionMode}
-                title={selectionMode ? '退出批量' : '批量操作'}
-              >
-                <TableCellsIcon className="w-4 h-4" />
-              </ModernButton>
-            </div>
-            
-            <ModernButton
-              variant="primary"
-              size="sm"
-              onClick={handleCreateDepartment}
-              className="flex-shrink-0"
-            >
-              <PlusIcon className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">新建部门</span>
-            </ModernButton>
-          </div>
-        }
-      />
-
-      <PageContent>
-        <div className="space-y-6">
-          {/* 统计卡片 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="部门总数"
-              value={stats.totalDepartments}
-              icon={<BuildingOfficeIcon className="w-5 h-5" />}
-              color="purple"
-            />
-            <StatCard
-              title="员工总数"
-              value={stats.totalEmployees}
-              icon={<UsersIcon className="w-5 h-5" />}
-              color="blue"
-            />
-            <StatCard
-              title="活跃部门"
-              value={stats.activeDepartments}
-              icon={<ChartBarIcon className="w-5 h-5" />}
-              color="green"
-            />
-            <StatCard
-              title="平均薪资"
-              value={`¥${stats.avgSalary.toFixed(0)}`}
-              icon={<CurrencyDollarIcon className="w-5 h-5" />}
-              color="yellow"
-            />
-          </div>
-
-          {/* 搜索面板 */}
-          <DepartmentSearchPanel
-            onSearch={handleSearch}
-            loading={isLoading}
-            showAdvancedFilters={showAdvancedFilters}
-            onToggleAdvancedFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-          />
-
-          {/* 批量操作工具栏 */}
-          {selectionMode && (
-            <DepartmentBatchOperations
-              selectedDepartments={selectedDepartments}
-              onClearSelection={handleClearSelection}
-              onOperationComplete={handleBatchOperationComplete}
-            />
+  // 创建自定义内容区域
+  const customContent = (
+    <div className="space-y-6">
+      {/* 视图切换 */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-base-content">
+            部门列表
+          </h2>
+          {filteredDepartments.length !== departmentTree.length && (
+            <p className="text-base-content/70 text-sm mt-1">
+              已筛选 {filteredDepartments.length} / {departmentTree.length} 个部门
+            </p>
           )}
-
-          {/* 视图切换 */}
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-text-primary">
-                部门列表
-              </h2>
-              {filteredDepartments.length !== departmentTree.length && (
-                <p className="text-text-secondary text-sm mt-1">
-                  已筛选 {filteredDepartments.length} / {departmentTree.length} 个部门
-                </p>
-              )}
-            </div>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* 树形控制按钮（仅在树形视图时显示） */}
+          {viewMode === 'tree' && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-text-secondary hidden sm:inline">视图：</span>
-              <div className="join w-full sm:w-auto">
-                <button
-                  className={cn(
-                    'join-item btn btn-sm flex-1 sm:flex-none',
-                    viewMode === 'tree' ? 'btn-primary' : 'btn-ghost'
-                  )}
-                  onClick={() => setViewMode('tree')}
-                >
-                  <BuildingOfficeIcon className="w-4 h-4 sm:mr-1" />
-                  <span className="hidden sm:inline">树形结构</span>
-                </button>
-                <button
-                  className={cn(
-                    'join-item btn btn-sm flex-1 sm:flex-none',
-                    viewMode === 'cards' ? 'btn-primary' : 'btn-ghost'
-                  )}
-                  onClick={() => setViewMode('cards')}
-                >
-                  <RectangleGroupIcon className="w-4 h-4 sm:mr-1" />
-                  <span className="hidden sm:inline">卡片视图</span>
-                </button>
-                <button
-                  className={cn(
-                    'join-item btn btn-sm flex-1 sm:flex-none',
-                    viewMode === 'table' ? 'btn-primary' : 'btn-ghost'
-                  )}
-                  onClick={() => setViewMode('table')}
-                  disabled
-                >
-                  <TableCellsIcon className="w-4 h-4 sm:mr-1" />
-                  <span className="hidden sm:inline">表格视图</span>
-                </button>
-              </div>
+              <ModernButton
+                variant="ghost"
+                size="sm"
+                onClick={handleExpandAll}
+                icon={<FolderOpenIcon className="w-4 h-4" />}
+              >
+                <span className="hidden sm:inline">展开全部</span>
+              </ModernButton>
+              <ModernButton
+                variant="ghost"
+                size="sm"
+                onClick={handleCollapseAll}
+                icon={<FolderIcon className="w-4 h-4" />}
+              >
+                <span className="hidden sm:inline">折叠全部</span>
+              </ModernButton>
             </div>
-          </div>
-
-          {/* 部门视图 */}
-          <div className="min-h-[400px]">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-96">
-                <div className="text-center">
-                  <div className="loading loading-spinner loading-lg text-primary mb-4" />
-                  <p className="text-text-secondary">加载部门数据中...</p>
-                </div>
-              </div>
-            ) : filteredDepartments.length === 0 ? (
-              <div className="flex items-center justify-center h-96">
-                <div className="text-center">
-                  <BuildingOfficeIcon className="w-16 h-16 text-text-disabled mx-auto mb-4" />
-                  <p className="text-lg font-medium text-text-secondary">未找到匹配的部门</p>
-                  <p className="text-sm text-text-tertiary mt-2">请尝试调整搜索条件</p>
-                </div>
-              </div>
-            ) : (
-              <>
-                {viewMode === 'tree' && (
-                  <DepartmentTree
-                    data={filteredDepartments}
-                    onSelect={handleSelectDepartment}
-                    selectedId={selectedDepartmentId}
-                    selectionMode={selectionMode}
-                    selectedDepartments={selectedDepartments}
-                    onSelectionChange={handleSelectionChange}
-                  />
+          )}
+          
+          {/* 视图切换按钮 */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-base-content/70 hidden sm:inline">视图：</span>
+            <div className="join w-full sm:w-auto">
+              <button
+                className={cn(
+                  'join-item btn btn-sm flex-1 sm:flex-none',
+                  viewMode === 'tree' ? 'btn-primary' : 'btn-ghost'
                 )}
-                {viewMode === 'cards' && (
-                  <DepartmentCardGrid
-                    departments={filteredDepartments}
-                    payrollStats={payrollStatsMap}
-                    onSelect={handleSelectDepartment}
-                    selectionMode={selectionMode}
-                    selectedDepartments={selectedDepartments}
-                    onSelectionChange={handleSelectionChange}
-                  />
+                onClick={() => setViewMode('tree')}
+              >
+                <BuildingOfficeIcon className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline">树形结构</span>
+              </button>
+              <button
+                className={cn(
+                  'join-item btn btn-sm flex-1 sm:flex-none',
+                  viewMode === 'cards' ? 'btn-primary' : 'btn-ghost'
                 )}
-                {viewMode === 'table' && (
-                  <div className="text-center py-12 text-text-secondary">
-                    表格视图开发中...
-                  </div>
+                onClick={() => setViewMode('cards')}
+              >
+                <RectangleGroupIcon className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline">卡片视图</span>
+              </button>
+              <button
+                className={cn(
+                  'join-item btn btn-sm flex-1 sm:flex-none',
+                  viewMode === 'table' ? 'btn-primary' : 'btn-ghost'
                 )}
-              </>
-            )}
+                onClick={() => setViewMode('table')}
+                disabled
+              >
+                <TableCellsIcon className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline">表格视图</span>
+              </button>
+            </div>
           </div>
         </div>
-      </PageContent>
+      </div>
 
-      {/* 部门详情模态框 */}
+      {/* 部门视图 */}
+      <div className="min-h-[400px]">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="loading loading-spinner loading-lg text-primary mb-4" />
+              <p className="text-base-content/70">加载部门数据中...</p>
+            </div>
+          </div>
+        ) : filteredDepartments.length === 0 ? (
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <BuildingOfficeIcon className="w-16 h-16 text-base-content/30 mx-auto mb-4" />
+              <p className="text-lg font-medium text-base-content/70">未找到匹配的部门</p>
+              <p className="text-sm text-base-content/50 mt-2">请尝试调整搜索条件</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {viewMode === 'tree' && (
+              <DepartmentTree
+                data={filteredDepartments}
+                onSelect={handleSelectDepartment}
+                selectedId={selectedDepartmentId}
+                selectionMode={selectionMode}
+                selectedDepartments={selectedDepartments}
+                onSelectionChange={handleSelectionChange}
+                onExpandAll={handleExpandAll}
+                onCollapseAll={handleCollapseAll}
+                showControls={false}
+                showSearch={false}
+                expandedNodes={treeExpandedNodes}
+                onExpandedNodesChange={setTreeExpandedNodes}
+              />
+            )}
+            {viewMode === 'cards' && (
+              <DepartmentCardGrid
+                departments={filteredDepartments}
+                payrollStats={payrollStatsMap}
+                onSelect={handleSelectDepartment}
+                selectionMode={selectionMode}
+                selectedDepartments={selectedDepartments}
+                onSelectionChange={handleSelectionChange}
+              />
+            )}
+            {viewMode === 'table' && (
+              <div className="text-center py-12 text-base-content/70">
+                表格视图开发中...
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  // 创建简化的工具栏内容
+  const toolbarContent = (
+    <div className="flex items-center justify-between gap-4">
+      {/* 高级搜索框 */}
+      <div className="flex-1">
+        <DepartmentSearchPanel
+          onSearch={handleSearch}
+          loading={isLoading}
+          showAdvancedFilters={showAdvancedFilters}
+          onToggleAdvancedFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+        />
+      </div>
+
+      {/* 操作按钮组 */}
+      <div className="flex items-center gap-2">
+        {/* 创建新部门按钮 */}
+        <ModernButton
+          variant="primary"
+          size="md"
+          onClick={handleCreateDepartment}
+          icon={<PlusIcon className="w-4 h-4" />}
+        >
+          <span className="hidden sm:inline">新建部门</span>
+          <span className="sm:hidden">新建</span>
+        </ModernButton>
+
+        {/* 导出按钮 */}
+        <ModernButton
+          variant="outline"
+          size="md"
+          onClick={handleExport}
+          disabled={filteredDepartments.length === 0}
+          icon={<ArrowUpTrayIcon className="w-4 h-4" />}
+        >
+          <span className="hidden sm:inline">导出 CSV</span>
+          <span className="sm:hidden">导出</span>
+        </ModernButton>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* 页面标题和统计卡片 */}
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-base-content">部门管理</h1>
+          <p className="text-base-content/70 mt-2">管理组织架构，查看部门层级和薪资统计</p>
+        </div>
+
+        {/* 统计卡片 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {statCards.map((card, index) => (
+            <div key={index} className="stat bg-base-100 border border-base-200 rounded-lg p-4">
+              <div className={`stat-figure ${card.colorClass || 'text-primary'}`}>
+                {card.icon}
+              </div>
+              <div className="stat-title text-base-content/70">{card.title}</div>
+              <div className={`stat-value text-2xl font-bold ${card.colorClass || ''}`}>
+                {card.value}
+              </div>
+              {card.description && (
+                <div className="stat-desc text-base-content/50">{card.description}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 简化的工具栏 */}
+      <div className="card bg-base-100 border border-base-200">
+        <div className="card-body p-4">
+          {toolbarContent}
+        </div>
+      </div>
+
+      {/* 批量操作工具栏 */}
+      {selectionMode && (
+        <DepartmentBatchOperations
+          selectedDepartments={selectedDepartments}
+          onClearSelection={handleClearSelection}
+          onOperationComplete={handleBatchOperationComplete}
+        />
+      )}
+
+      {/* 部门内容区域 */}
+      {customContent}
+
+      {/* 模态框 */}
       {showDetailModal && (
         <DepartmentDetailModal
           departmentId={selectedDepartmentId || undefined}
@@ -412,53 +475,10 @@ export default function DepartmentManagementPage() {
         />
       )}
 
-      {/* 导入导出模态框 */}
-      <DepartmentImportExport
-        isOpen={showImportExport}
-        onClose={() => setShowImportExport(false)}
-        type={importExportType}
-        departments={flattenTree(departmentTree)}
-        onImportComplete={handleImportComplete}
-      />
-    </>
-  );
-}
-
-// 统计卡片组件
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  color: 'purple' | 'blue' | 'green' | 'yellow';
-}
-
-function StatCard({ title, value, icon, color }: StatCardProps) {
-  const colorClasses = {
-    purple: 'bg-purple-500/10 text-purple-500 dark:bg-purple-400/10 dark:text-purple-400',
-    blue: 'bg-blue-500/10 text-blue-500 dark:bg-blue-400/10 dark:text-blue-400',
-    green: 'bg-green-500/10 text-green-500 dark:bg-green-400/10 dark:text-green-400',
-    yellow: 'bg-yellow-500/10 text-yellow-500 dark:bg-yellow-400/10 dark:text-yellow-400'
-  };
-
-  return (
-    <div className="card bg-base-100 shadow-lg border border-base-200">
-      <div className="card-body p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-base-content/70">{title}</p>
-            <p className="text-2xl font-bold text-base-content mt-1">{value}</p>
-          </div>
-          <div className={cn(
-            'w-12 h-12 rounded-lg flex items-center justify-center',
-            colorClasses[color]
-          )}>
-            {icon}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
+
 
 // 辅助函数：展开树形结构
 function flattenTree(tree: DepartmentNode[]): DepartmentNode[] {

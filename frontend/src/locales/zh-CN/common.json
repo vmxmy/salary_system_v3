@@ -167,7 +167,8 @@
     "of": "共",
     "entries": "条记录",
     "noData": "暂无数据",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "columns": "列"
   },
   "dataTable": {
     "loading": "加载中...",

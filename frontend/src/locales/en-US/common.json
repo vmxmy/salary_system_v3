@@ -148,7 +148,8 @@
     "of": "of",
     "entries": "entries",
     "noData": "No data",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "columns": "Columns"
   },
   "dataTable": {
     "loading": "Loading...",

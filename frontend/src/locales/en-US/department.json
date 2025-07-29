@@ -1,0 +1,49 @@
+{
+  "department": {
+    "title": "Department Management",
+    "description": "Manage organizational structure, view department hierarchy and payroll statistics",
+    "createNew": "Create Department",
+    "createNewDescription": "Fill in department information to create a new department",
+    "detail": "Department Details",
+    "list": "Department List",
+    "tree": "Tree View",
+    "cards": "Card View",
+    "table": "Table View",
+    "expandAll": "Expand All",
+    "collapseAll": "Collapse All",
+    "export": "Export CSV",
+    "stats": {
+      "total": "Total Departments",
+      "totalDescription": "Organizational Structure",
+      "employees": "Total Employees",
+      "employeesDescription": "Workforce Size",
+      "active": "Active Departments",
+      "activeDescription": "Departments with employees",
+      "avgSalary": "Average Salary",
+      "avgSalaryDescription": "Salary Level"
+    },
+    "fields": {
+      "name": "Department Name",
+      "parentDepartment": "Parent Department",
+      "employeeCount": "Employee Count",
+      "id": "Department ID",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At"
+    },
+    "actions": {
+      "create": "Create",
+      "edit": "Edit",
+      "delete": "Delete",
+      "view": "View"
+    },
+    "messages": {
+      "createSuccess": "Department created successfully",
+      "updateSuccess": "Department updated successfully",
+      "deleteSuccess": "Department deleted successfully",
+      "loadError": "Failed to load",
+      "noDataFound": "No matching departments found",
+      "noDataDescription": "Try adjusting your search criteria",
+      "exportSuccess": "Department data exported successfully"
+    }
+  }
+}

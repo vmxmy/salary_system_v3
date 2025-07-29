@@ -15,6 +15,15 @@ const PAYROLL_KEYS = {
   costAnalysis: (params: any) => [...PAYROLL_KEYS.all, 'cost-analysis', params] as const,
 };
 
+// 获取最近有薪资记录的月份
+export const useLatestPayrollMonth = () => {
+  return useQuery({
+    queryKey: [...PAYROLL_KEYS.all, 'latest-month'] as const,
+    queryFn: () => PayrollService.getLatestPayrollMonth(),
+    staleTime: 10 * 60 * 1000, // 10分钟
+  });
+};
+
 // 获取薪资列表
 export const usePayrolls = (filters?: {
   status?: PayrollStatusType;
