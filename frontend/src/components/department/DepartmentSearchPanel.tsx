@@ -152,24 +152,6 @@ export function DepartmentSearchPanel({
               )}
             </div>
             
-            {/* 高级筛选按钮 */}
-            {onToggleAdvancedFilters && (
-              <ModernButton
-                variant={showAdvancedFilters ? "primary" : "secondary"}
-                size="md"
-                onClick={onToggleAdvancedFilters}
-                disabled={loading}
-                className="min-w-[120px]"
-              >
-                <FunnelIcon className="w-4 h-4 mr-2" />
-                高级筛选
-                {activeFilterCount > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 text-xs bg-primary/20 rounded-full">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </ModernButton>
-            )}
             
             {/* 搜索按钮 */}
             <ModernButton

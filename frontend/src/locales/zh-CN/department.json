@@ -1,0 +1,49 @@
+{
+  "department": {
+    "title": "部门管理",
+    "description": "管理组织架构，查看部门层级和薪资统计",
+    "createNew": "新建部门",
+    "createNewDescription": "填写部门信息以创建新部门",
+    "detail": "部门详情",
+    "list": "部门列表",
+    "tree": "树形结构",
+    "cards": "卡片视图",
+    "table": "表格视图",
+    "expandAll": "展开全部",
+    "collapseAll": "折叠全部",
+    "export": "导出 CSV",
+    "stats": {
+      "total": "部门总数",
+      "totalDescription": "组织架构",
+      "employees": "员工总数",
+      "employeesDescription": "人员规模",
+      "active": "活跃部门",
+      "activeDescription": "有员工的部门",
+      "avgSalary": "平均薪资",
+      "avgSalaryDescription": "薪资水平"
+    },
+    "fields": {
+      "name": "部门名称",
+      "parentDepartment": "上级部门",
+      "employeeCount": "员工数量",
+      "id": "部门ID",
+      "createdAt": "创建时间",
+      "updatedAt": "更新时间"
+    },
+    "actions": {
+      "create": "创建",
+      "edit": "编辑",
+      "delete": "删除",
+      "view": "查看"
+    },
+    "messages": {
+      "createSuccess": "部门创建成功",
+      "updateSuccess": "部门更新成功",
+      "deleteSuccess": "部门删除成功",
+      "loadError": "加载失败",
+      "noDataFound": "未找到匹配的部门",
+      "noDataDescription": "请尝试调整搜索条件",
+      "exportSuccess": "部门数据导出成功"
+    }
+  }
+}

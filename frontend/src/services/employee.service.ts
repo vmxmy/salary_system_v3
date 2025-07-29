@@ -192,7 +192,6 @@ export class EmployeeService extends BaseService<'employees'> {
       department_id: string;
       position_id: string;
       personnel_category_id: string;
-      manager_id?: string;
       employment_status: string;
     }
   ) {

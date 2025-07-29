@@ -20,6 +20,12 @@ interface DepartmentTreeProps {
   selectionMode?: boolean;
   selectedDepartments?: DepartmentNode[];
   onSelectionChange?: (departments: DepartmentNode[]) => void;
+  // Tree control callbacks
+  onExpandAll?: () => void;
+  onCollapseAll?: () => void;
+  // External expanded state control
+  expandedNodes?: Set<string>;
+  onExpandedNodesChange?: (expandedNodes: Set<string>) => void;
 }
 
 export function DepartmentTree({
@@ -33,11 +39,19 @@ export function DepartmentTree({
   loading = false,
   selectionMode = false,
   selectedDepartments = [],
-  onSelectionChange
+  onSelectionChange,
+  onExpandAll,
+  onCollapseAll,
+  expandedNodes: externalExpandedNodes,
+  onExpandedNodesChange
 }: DepartmentTreeProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [internalExpandedNodes, setInternalExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedDepartment, setSelectedDepartment] = useState<DepartmentNode | null>(null);
+  
+  // Use external expanded state if provided, otherwise use internal state
+  const expandedNodes = externalExpandedNodes || internalExpandedNodes;
+  const setExpandedNodes = onExpandedNodesChange || setInternalExpandedNodes;
   
   // 使用 DaisyUI 样式系统
   const cardClasses = 'card bg-base-100 shadow-lg border border-base-200';
@@ -79,16 +93,14 @@ export function DepartmentTree({
 
   // 处理节点展开/折叠
   const handleToggleNode = useCallback((departmentId: string) => {
-    setExpandedNodes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(departmentId)) {
-        newSet.delete(departmentId);
-      } else {
-        newSet.add(departmentId);
-      }
-      return newSet;
-    });
-  }, []);
+    const newSet = new Set(expandedNodes);
+    if (newSet.has(departmentId)) {
+      newSet.delete(departmentId);
+    } else {
+      newSet.add(departmentId);
+    }
+    setExpandedNodes(newSet);
+  }, [expandedNodes, setExpandedNodes]);
 
   // 处理部门选择
   const handleDepartmentSelect = useCallback((department: DepartmentNode) => {
@@ -114,8 +126,13 @@ export function DepartmentTree({
     onSelectionChange(newSelection);
   }, [selectedDepartments, onSelectionChange]);
 
-  // 展开全部
+  // 展开全部 - 支持外部控制
   const handleExpandAll = useCallback(() => {
+    if (onExpandAll) {
+      onExpandAll();
+      return;
+    }
+    
     const getAllIds = (nodes: DepartmentNode[]): string[] => {
       return nodes.reduce((acc: string[], node) => {
         acc.push(node.id);
@@ -129,12 +146,17 @@ export function DepartmentTree({
     if (departmentTree) {
       setExpandedNodes(new Set(getAllIds(departmentTree)));
     }
-  }, [departmentTree]);
+  }, [onExpandAll, departmentTree]);
 
-  // 折叠全部
+  // 折叠全部 - 支持外部控制
   const handleCollapseAll = useCallback(() => {
+    if (onCollapseAll) {
+      onCollapseAll();
+      return;
+    }
+    
     setExpandedNodes(new Set());
-  }, []);
+  }, [onCollapseAll]);
 
   // 清空搜索
   const handleClearSearch = useCallback(() => {
@@ -230,8 +252,8 @@ export function DepartmentTree({
             </div>
           )}
 
-          {/* 控制按钮 */}
-          {showControls && (
+          {/* 控制按钮 - 只在没有外部控制时显示 */}
+          {showControls && !onExpandAll && !onCollapseAll && (
             <div className="flex items-center gap-2">
               <ModernButton
                 variant="ghost"
@@ -249,12 +271,13 @@ export function DepartmentTree({
                 <FolderIcon className="w-4 h-4 mr-1.5" />
                 折叠全部
               </ModernButton>
-              
-              {searchTerm && (
-                <div className="ml-auto text-sm text-base-content/70">
-                  搜索结果: "{searchTerm}"
-                </div>
-              )}
+            </div>
+          )}
+          
+          {/* 搜索结果显示 */}
+          {searchTerm && (
+            <div className="text-sm text-base-content/70">
+              搜索结果: "{searchTerm}"
             </div>
           )}
         </div>

@@ -85,6 +85,9 @@ export interface UseDataTableOptions<TData> {
   pageCount?: number;
   enableRowSelection?: boolean;
   enableColumnResizing?: boolean;
+  // Callbacks
+  onPaginationChange?: (pagination: PaginationState) => void;
+  onRowSelectionChange?: (selection: RowSelectionState) => void;
   // Initial states
   initialSorting?: SortingState;
   initialColumnFilters?: ColumnFiltersState;

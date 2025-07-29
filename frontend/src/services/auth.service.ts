@@ -171,26 +171,57 @@ export class AuthService {
   }
 
   /**
-   * Get user permissions
+   * Get user permissions - simplified version to avoid hanging
    */
   async getUserPermissions(): Promise<string[]> {
-    // Don't call getCurrentUser here to avoid circular dependency
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
+    try {
+      console.log('[AuthService] Getting user permissions...');
+      // Don't call getCurrentUser here to avoid circular dependency
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.log('[AuthService] No user found for permissions check');
+        return [];
+      }
 
-    // Get user role and map to permissions
-    const { data: roleData, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
+      console.log('[AuthService] Fetching user role from database...');
+      // Get user role with timeout to prevent hanging
+      const { data: roleData, error } = await Promise.race([
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .single(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Role query timeout')), 5000)
+        )
+      ]) as any;
 
-    if (error || !roleData) return [];
-    
-    // Import permission mappings from permission service
-    const { ROLE_PERMISSIONS } = await import('./permission.service');
-    return ROLE_PERMISSIONS[roleData.role] || [];
+      if (error || !roleData) {
+        console.warn('[AuthService] No role found or error:', error);
+        // Return default employee permissions if no role found
+        return [];
+      }
+      
+      console.log('[AuthService] User role found:', roleData.role);
+      
+      // Use inline role permissions to avoid dynamic import issues
+      const ROLE_PERMISSIONS: Record<string, string[]> = {
+        'super_admin': ['*'], // All permissions
+        'admin': ['employee.view', 'employee.create', 'payroll.view', 'system.settings'],
+        'hr_manager': ['employee.view', 'employee.create', 'department.view'],
+        'finance_admin': ['payroll.view', 'payroll.create', 'payroll.approve'],
+        'manager': ['employee.view', 'department.view', 'payroll.view'],
+        'employee': [] // Limited permissions
+      };
+      
+      const permissions = ROLE_PERMISSIONS[roleData.role] || [];
+      console.log('[AuthService] Permissions loaded:', permissions);
+      return permissions;
+    } catch (err) {
+      console.error('[AuthService] Error getting permissions:', err);
+      return []; // Return empty permissions on error
+    }
   }
 
   /**

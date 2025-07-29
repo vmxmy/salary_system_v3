@@ -573,7 +573,7 @@ function PayrollDetailContent({
               { value: PayrollStatus.PAID, label: t('payroll:status.paid') },
               { value: PayrollStatus.CANCELLED, label: t('payroll:status.cancelled') }
             ]}
-            renderValue={!isEditing ? () => <PayrollStatusBadge status={payroll.status} size="sm" /> : undefined}
+            renderValue={!isEditing ? () => <PayrollStatusBadge status={payroll.status} size="sm" showIcon={false} /> : undefined}
           />
           <DetailField 
             label={t('payroll:notes')} 

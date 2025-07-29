@@ -20,6 +20,8 @@ export function useDataTable<TData>({
   pageCount,
   enableRowSelection = false,
   enableColumnResizing = false,
+  onPaginationChange,
+  onRowSelectionChange,
   initialSorting = [],
   initialColumnFilters = [],
   initialColumnVisibility = {},
@@ -33,6 +35,30 @@ export function useDataTable<TData>({
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [pagination, setPagination] = useState<PaginationState>(initialPagination);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(initialColumnSizing);
+
+  // 自定义的分页设置函数，处理外部回调
+  const handlePaginationChange = useMemo(() => {
+    return (updater: any) => {
+      setPagination(prev => {
+        const newPagination = typeof updater === 'function' ? updater(prev) : updater;
+        // 调用外部回调
+        onPaginationChange?.(newPagination);
+        return newPagination;
+      });
+    };
+  }, [onPaginationChange]);
+
+  // 自定义的行选择设置函数，处理外部回调
+  const handleRowSelectionChange = useMemo(() => {
+    return (updater: any) => {
+      setRowSelection(prev => {
+        const newRowSelection = typeof updater === 'function' ? updater(prev) : updater;
+        // 调用外部回调
+        onRowSelectionChange?.(newRowSelection);
+        return newRowSelection;
+      });
+    };
+  }, [onRowSelectionChange]);
 
   // Stable references to prevent unnecessary re-renders
   const memoizedData = useMemo(() => data, [data]);
@@ -61,8 +87,8 @@ export function useDataTable<TData>({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
+    onRowSelectionChange: handleRowSelectionChange,
+    onPaginationChange: handlePaginationChange,
     onColumnSizingChange: setColumnSizing,
     // Options
     enableRowSelection,

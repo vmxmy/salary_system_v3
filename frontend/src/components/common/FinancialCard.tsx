@@ -11,6 +11,7 @@ export interface FinancialCardProps {
   loading?: boolean;
   className?: string;
   onClick?: () => void;
+  children?: React.ReactNode;
 }
 
 export function FinancialCard({
@@ -22,7 +23,8 @@ export function FinancialCard({
   size = 'md',
   loading = false,
   className,
-  onClick
+  onClick,
+  children
 }: FinancialCardProps) {
   const variantClasses = {
     primary: 'border-primary/20 bg-primary/5',
@@ -79,33 +81,42 @@ export function FinancialCard({
       onClick={onClick}
     >
       <div className="card-body">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <h3 className="text-sm font-medium text-base-content/70 mb-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-base-content/70 mb-2 truncate">
               {title}
             </h3>
             <div className={cn(
-              'text-2xl font-bold mb-1',
+              'text-2xl font-bold mb-1 truncate',
               amountColorClasses[variant]
             )}>
               {amount}
             </div>
             {subtitle && (
-              <p className="text-sm text-base-content/60">
+              <p className="text-sm text-base-content/60 truncate">
                 {subtitle}
               </p>
             )}
           </div>
           {icon && (
             <div className={cn(
-              'flex items-center justify-center w-12 h-12 rounded-lg',
+              'flex items-center justify-center w-12 h-12 rounded-lg flex-shrink-0',
               variantClasses[variant],
               amountColorClasses[variant]
             )}>
-              {icon}
+              {typeof icon === 'string' ? (
+                <span className="text-2xl">{icon}</span>
+              ) : (
+                icon
+              )}
             </div>
           )}
         </div>
+        {children && (
+          <div className="mt-4">
+            {children}
+          </div>
+        )}
       </div>
     </div>
   );

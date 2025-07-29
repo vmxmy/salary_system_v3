@@ -25,23 +25,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      if (session?.user) {
-        const authUser = await authService.getCurrentUser();
-        setUser(authUser);
-      } else {
+      console.log('[AuthContext] Getting initial session...');
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('[AuthContext] Session error:', error);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+        
+        setSession(session);
+        if (session?.user) {
+          console.log('[AuthContext] Session found, getting user details...');
+          const authUser = await authService.getCurrentUser();
+          setUser(authUser);
+        } else {
+          console.log('[AuthContext] No session found');
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('[AuthContext] Auth error:', error);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     getSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('[AuthContext] Auth state changed:', _event);
       setSession(session);
       if (session?.user) {
-        authService.getCurrentUser().then(setUser);
+        try {
+          const authUser = await authService.getCurrentUser();
+          setUser(authUser);
+        } catch (error) {
+          console.error('[AuthContext] Error getting user on auth change:', error);
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
