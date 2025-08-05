@@ -3,52 +3,71 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { usePayrolls, useCreateBatchPayrolls, useUpdateBatchPayrollStatus, useCalculatePayrolls, useLatestPayrollMonth } from '@/hooks/payroll';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
-import { PayrollList, PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
-import { DataTable } from '@/components/common/DataTable';
+import { useTableConfiguration } from '@/hooks/useTableConfiguration';
+import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
+import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
+import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
 import { MonthPicker } from '@/components/common/MonthPicker';
-import { FinancialCard } from '@/components/common/FinancialCard';
 import { ModernButton } from '@/components/common/ModernButton';
-import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { FieldSelector } from '@/components/common/FieldSelector';
-import { PayrollStatusBadge } from '@/components/payroll/PayrollStatusBadge';
-import { cn } from '@/lib/utils';
 import { PayrollStatus, type PayrollStatusType } from '@/services/payroll.service';
 import { useToast } from '@/contexts/ToastContext';
 import { getMonthDateRange, getCurrentYearMonth, formatMonth } from '@/lib/dateUtils';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatCurrency } from '@/lib/format';
+import { PayrollCreationService } from '@/services/payroll-creation.service';
+import { usePermission } from '@/hooks/usePermission';
 import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
-import { createColumnHelper } from '@tanstack/react-table';
-import type { PaginationState } from '@tanstack/react-table';
+import type { PaginationState, Table } from '@tanstack/react-table';
 
-// 定义薪资数据接口
+// 定义薪资数据接口 - 匹配 view_payroll_summary 结构
 interface PayrollData {
-  id: string;
-  employee?: {
-    id: string;
-    full_name: string;
-    id_number: string;
-  };
+  payroll_id: string;
+  id?: string; // 兼容字段
+  pay_date: string;
   pay_period_start: string;
   pay_period_end: string;
-  pay_date: string;
-  status: PayrollStatusType;
+  employee_id: string;
+  full_name: string;
+  department_name: string;
   gross_pay: number;
   total_deductions: number;
   net_pay: number;
-  created_at: string;
-  updated_at: string;
+  status: PayrollStatusType;
+  // 兼容旧结构
+  employee?: {
+    id: string;
+    full_name: string;
+    id_number?: string;
+  };
 }
-
-const columnHelper = createColumnHelper<PayrollData>();
 
 export default function PayrollListPage() {
   const { t } = useTranslation(['common', 'payroll']);
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
+  const { can } = usePermission();
+
+  // 表格配置管理
+  const {
+    metadata,
+    metadataLoading,
+    metadataError,
+    userConfig,
+    columns,
+    updateUserConfig,
+    resetToDefault,
+  } = useTableConfiguration('payroll', {
+    onViewDetail: (row) => {
+      const payrollId = row.payroll_id || row.id;
+      if (payrollId) {
+        setSelectedPayrollId(payrollId);
+        setIsDetailModalOpen(true);
+      }
+    },
+  });
 
   // 状态管理
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState(''); // 实际用于搜索的查询
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<PayrollStatusType | 'all'>('all');
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -59,9 +78,12 @@ export default function PayrollListPage() {
     pageIndex: 0,
     pageSize: 20
   });
+  const [tableInstance, setTableInstance] = useState<Table<any> | null>(null);
+  
   // 模态框状态
   const [selectedPayrollId, setSelectedPayrollId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
   const monthDateRange = getMonthDateRange(selectedMonth);
 
@@ -75,11 +97,31 @@ export default function PayrollListPage() {
     }
   }, [latestMonth, latestMonthLoading]);
 
+  // 搜索处理函数
+  const handleSearch = () => {
+    // 手动触发搜索
+    setActiveSearchTerm(searchQuery);
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    if (tableInstance) {
+      tableInstance.setPageIndex(0);
+    }
+  };
+
+  const handleSearchReset = () => {
+    setSearchQuery('');
+    setActiveSearchTerm('');
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    if (tableInstance) {
+      tableInstance.setPageIndex(0);
+    }
+  };
+
   // 查询薪资列表
   const { data, isLoading, refetch } = usePayrolls({
     status: statusFilter === 'all' ? undefined : statusFilter,
     startDate: monthDateRange.startDate,
     endDate: monthDateRange.endDate,
+    search: activeSearchTerm.trim() || undefined,
     page: pagination.pageIndex + 1,
     pageSize: pagination.pageSize
   });
@@ -92,30 +134,29 @@ export default function PayrollListPage() {
   const updateBatchStatus = useUpdateBatchPayrollStatus();
   const calculatePayrolls = useCalculatePayrolls();
 
-  // 数据处理流程 - 集成全局过滤
+  // 数据处理流程 - 转换数据格式以确保兼容
   const processedData = useMemo(() => {
-    let filteredData = data?.data || [];
+    const rawData = data?.data || [];
     
-    // 全局搜索
-    if (globalFilter.trim()) {
-      const query = globalFilter.toLowerCase().trim();
-      filteredData = filteredData.filter(payroll => {
-        return (
-          payroll.employee?.full_name?.toLowerCase().includes(query) ||
-          payroll.employee?.id_number?.toLowerCase().includes(query) ||
-          payroll.status?.toLowerCase().includes(query) ||
-          formatMonth(payroll.pay_period_start.substring(0, 7)).includes(query)
-        );
-      });
-    }
-    
-    return filteredData;
-  }, [data?.data, globalFilter]);
+    return rawData.map(item => ({
+      ...item,
+      id: item.id || item.payroll_id, // 确保有id字段用于选择
+      // 确保employee字段存在（用于兼容旧代码）
+      employee: item.employee || {
+        id: item.employee_id,
+        full_name: item.full_name,
+        id_number: null
+      }
+    }));
+  }, [data?.data]);
 
   // 处理行点击 - 使用模态框替代导航
   const handleRowClick = useCallback((payroll: PayrollData) => {
-    setSelectedPayrollId(payroll.id);
-    setIsDetailModalOpen(true);
+    const payrollId = payroll.id || payroll.payroll_id;
+    if (payrollId) {
+      setSelectedPayrollId(payrollId);
+      setIsDetailModalOpen(true);
+    }
   }, []);
 
   // 关闭模态框
@@ -135,99 +176,12 @@ export default function PayrollListPage() {
       .filter(key => rowSelection[key])
       .map(index => {
         const rowIndex = parseInt(index);
-        return processedDataRef.current[rowIndex]?.id;
+        const row = processedDataRef.current[rowIndex];
+        return row?.id || row?.payroll_id;
       })
       .filter(Boolean);
     setSelectedIds(selectedRows);
   }, []); // 空依赖数组，使用ref访问最新数据
-
-  // 表格列定义
-  const columns = useMemo(() => [
-    columnHelper.accessor('employee.full_name', {
-      header: t('payroll:employee'),
-      cell: ({ row }) => (
-        <div>
-          <p className="font-medium text-base-content">
-            {row.original.employee?.full_name || '-'}
-          </p>
-          <p className="text-xs text-base-content/60">
-            {row.original.employee?.id_number || '-'}
-          </p>
-        </div>
-      ),
-    }),
-    columnHelper.accessor(row => row.pay_period_start.substring(0, 7), {
-      id: 'payPeriod',
-      header: t('payroll:payPeriod'),
-      cell: ({ row }) => {
-        const yearMonth = row.original.pay_period_start.substring(0, 7);
-        return (
-          <div className="text-sm">
-            <p className="text-base-content font-medium">
-              {formatMonth(yearMonth)}
-            </p>
-            <p className="text-xs text-base-content/60">
-              {t('payroll:payDate')}: {formatDate(row.original.pay_date)}
-            </p>
-          </div>
-        );
-      },
-    }),
-    columnHelper.accessor('status', {
-      header: t('common:common.status'),
-      cell: ({ row }) => (
-        <PayrollStatusBadge status={row.original.status} size="sm" showIcon={false} />
-      ),
-    }),
-    columnHelper.accessor('gross_pay', {
-      header: t('payroll:grossPay'),
-      cell: ({ row }) => (
-        <span className="text-sm font-medium text-success tabular-nums">
-          {formatCurrency(row.original.gross_pay)}
-        </span>
-      ),
-    }),
-    columnHelper.accessor('total_deductions', {
-      header: t('payroll:deductions'),
-      cell: ({ row }) => (
-        <span className="text-sm font-medium text-error tabular-nums">
-          -{formatCurrency(row.original.total_deductions)}
-        </span>
-      ),
-    }),
-    columnHelper.accessor('net_pay', {
-      header: t('payroll:netPay'),
-      cell: ({ row }) => (
-        <span className="text-sm font-bold text-primary tabular-nums">
-          {formatCurrency(row.original.net_pay)}
-        </span>
-      ),
-    }),
-    columnHelper.display({
-      id: 'actions',
-      header: t('common:common.actions'),
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedPayrollId(row.original.id);
-              setIsDetailModalOpen(true);
-            }}
-            className="btn btn-ghost btn-xs"
-            title={t('common:common.view')}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </button>
-        </div>
-      ),
-    }),
-  ], [t, navigate]);
 
   // 批量操作处理
   const handleBatchCalculate = useCallback(async () => {
@@ -276,315 +230,215 @@ export default function PayrollListPage() {
 
   // 清空本月数据
   const handleClearCurrentMonth = useCallback(async () => {
-    const confirmMessage = `确定要清空 ${formatMonth(selectedMonth)} 的所有薪资数据吗？\n\n此操作将删除该月份的所有薪资记录和相关数据，且无法恢复。\n\n请输入 "确认清空" 来确认此操作：`;
-    
-    const userInput = prompt(confirmMessage);
-    
-    if (userInput !== '确认清空') {
-      if (userInput !== null) { // 用户点击了确定但输入错误
-        showError('输入不正确，操作已取消');
-      }
-      return;
-    }
-
     try {
-      // TODO: 实现清空薪资数据的服务调用
-      showSuccess(`${formatMonth(selectedMonth)} 的薪资数据已清空`);
-      refetch();
+      // 调用清空薪资数据服务
+      const monthDateRange = getMonthDateRange(selectedMonth);
+      const result = await PayrollCreationService.clearPayrollDataByPeriod(
+        monthDateRange.startDate,
+        monthDateRange.endDate,
+        'CLEAR_PAYROLL_CONFIRMED'
+      );
+
+      if (result.success) {
+        if (result.deleted_summary) {
+          const summary = result.deleted_summary;
+          showSuccess(
+            `${formatMonth(selectedMonth)} 的薪资数据已清空\n` +
+            `删除薪资记录: ${summary.deleted_payrolls} 条\n` +
+            `删除薪资项目: ${summary.deleted_items} 条\n` +
+            `涉及员工: ${summary.affected_employees} 人`
+          );
+        } else {
+          showSuccess(`${formatMonth(selectedMonth)} 的薪资数据已清空`);
+        }
+        refetch();
+      } else {
+        showError(`清空数据失败: ${result.error_message || '未知错误'}`);
+      }
     } catch (error) {
       showError(`清空数据失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setIsClearModalOpen(false);
     }
   }, [selectedMonth, showSuccess, showError, refetch]);
 
-  // 处理加载状态
-  const totalLoading = isLoading || statsLoading || latestMonthLoading;
+  // 准备统计卡片数据
+  const statCards: StatCardProps[] = useMemo(() => {
+    if (!statistics) return [];
 
-  if (totalLoading && !data) {
+    return [
+      {
+        title: t('payroll:statistics.totalPayroll'),
+        value: formatCurrency(statistics.totalGrossPay || 0),
+        description: formatMonth(selectedMonth),
+        icon: (
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        ),
+        colorClass: 'text-info'
+      },
+      {
+        title: t('payroll:statistics.totalDeductions'),
+        value: formatCurrency(statistics.totalDeductions || 0),
+        description: t('payroll:statistics.includingTaxAndInsurance'),
+        icon: (
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        ),
+        colorClass: 'text-warning'
+      },
+      {
+        title: t('payroll:netPay'),
+        value: formatCurrency(statistics.totalNetPay || 0),
+        description: `${statistics.employeeCount || 0} ${t('common:person')}`,
+        icon: (
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+        colorClass: 'text-success'
+      }
+    ];
+  }, [statistics, selectedMonth, t]);
+
+  // 处理加载状态
+  const totalLoading = isLoading || statsLoading || latestMonthLoading || metadataLoading;
+
+  // 错误处理
+  if (metadataError) {
+    return <div className="alert alert-error">表格配置加载错误: {metadataError}</div>;
+  }
+
+  if (!metadata || !userConfig) {
     return (
-      <LoadingScreen 
-        message={t('loading')} 
-        variant="page" 
-        size="lg" 
-      />
+      <div className="flex items-center justify-center min-h-96">
+        <div className="loading loading-spinner loading-lg"></div>
+        <span className="ml-3">正在加载表格配置...</span>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-50 to-base-100">
-      {/* 现代化页面标题区域 */}
-      <div className={cn(
-        'bg-gradient-to-r from-base-100 via-base-50/50 to-base-100',
-        'border-b border-base-200/60 mb-6',
-        'shadow-[0_1px_3px_0_rgba(0,0,0,0.05),0_1px_2px_-1px_rgba(0,0,0,0.04)]'
-      )}>
-        <div className="container mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className={cn("text-base", "text-base-content")}>
-                  {t('payroll:payrollManagement')}
-                </h1>
-                <p className={cn("text-base", "text-base-content/60 mt-1")}>
-                  {t('payroll:payrollManagementDesc')}
-                </p>
-              </div>
-            </div>
-            
-            {/* 现代化视图模式切换 */}
-            <div className="flex items-center gap-3">
-              <span className={cn("text-base", "text-base-content/50 font-medium")}>
-                {t('common:viewMode')}:
-              </span>
-              <div className="flex rounded-lg p-1 bg-base-200/50 border border-base-200/60">
-                <ModernButton
-                  variant={viewMode === 'table' ? 'primary' : 'ghost'}
+    <ManagementPageLayout
+      title={t('payroll:payrollManagement')}
+      subtitle={t('payroll:payrollManagementDesc')}
+      statCards={statCards}
+      searchValue={searchQuery}
+      onSearchChange={setSearchQuery}
+      onSearch={handleSearch}
+      onSearchReset={handleSearchReset}
+      searchPlaceholder="搜索员工姓名、薪资状态、薪资金额..."
+      searchLoading={totalLoading}
+      showFieldSelector={true}
+      fields={metadata.fields}
+      userConfig={userConfig}
+      onFieldConfigChange={updateUserConfig}
+      onFieldConfigReset={resetToDefault}
+      primaryActions={[
+        <ModernButton
+          key="create-batch"
+          onClick={handleCreateBatch}
+          variant="primary"
+          size="md"
+          icon={
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                d="M12 4v16m8-8H4" />
+            </svg>
+          }
+        >
+          {t('payroll:createBatch')}
+        </ModernButton>,
+        
+        ...(can('PAYROLL_CLEAR') ? [
+          <ModernButton
+            key="clear-month"
+            onClick={() => setIsClearModalOpen(true)}
+            variant="error"
+            size="md"
+            title="清空本月薪资数据（需要薪资清除权限）"
+            icon={
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            }
+          >
+            清空本月
+          </ModernButton>
+        ] : [])
+      ]}
+      data={processedData}
+      columns={columns}
+      loading={totalLoading}
+      tableInstance={tableInstance}
+      onTableReady={setTableInstance}
+      initialSorting={[{ id: 'pay_period_start', desc: true }]}
+      initialPagination={{ pageIndex: 0, pageSize: 20 }}
+      enableExport={false}
+      showGlobalFilter={false}
+      showColumnToggle={false}
+      enableRowSelection={true}
+      onRowSelectionChange={handleRowSelectionChange}
+      customContent={
+        <div className="space-y-4">
+          {/* 筛选控制 */}
+          <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                {/* 月份选择 */}
+                <MonthPicker
+                  value={selectedMonth}
+                  onChange={setSelectedMonth}
                   size="sm"
-                  onClick={() => setViewMode('table')}
-                  className="min-w-[90px]"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 6h18M3 14h18M3 18h18" />
-                  </svg>
-                  {t('common:tableView')}
-                </ModernButton>
-                <ModernButton
-                  variant={viewMode === 'cards' ? 'primary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('cards')}
-                  className="min-w-[90px]"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                  {t('common:cards')}
-                </ModernButton>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-6 space-y-6 pb-12">
-
-        {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FinancialCard
-            title={t('payroll:statistics.totalPayroll')}
-            amount={formatCurrency(statistics?.totalGrossPay || 0)}
-            variant="info"
-            icon="💰"
-            subtitle={formatMonth(selectedMonth)}
-          >
-            <div className="mt-3 pt-3 border-t border-base-300">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className={cn("text-base", "text-base-content/60")}>
-                    {t('payroll:statistics.averageSalary')}
-                  </span>
-                  <span className="font-semibold text-success">
-                    {formatCurrency(statistics?.averageNetPay || 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className={cn("text-base", "text-base-content/60")}>
-                    {t('payroll:statistics.employeeCount')}
-                  </span>
-                  <span className="font-semibold text-primary">
-                    {statistics?.employeeCount || 0} {t('common:person')}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </FinancialCard>
-          
-          <FinancialCard
-            title={t('payroll:statistics.totalDeductions')}
-            amount={formatCurrency(statistics?.totalDeductions || 0)}
-            variant="warning"
-            icon="📊"
-            subtitle={t('payroll:statistics.includingTaxAndInsurance')}
-          >
-            <div className="mt-3 pt-3 border-t border-base-300">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className={cn("text-base", "text-base-content/60")}>
-                    {t('payroll:statistics.personalTax')}
-                  </span>
-                  <span className="font-semibold text-error">
-                    {formatCurrency(statistics?.totalTax || 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className={cn("text-base", "text-base-content/60")}>
-                    {t('payroll:statistics.socialInsurance')}
-                  </span>
-                  <span className="font-semibold text-warning">
-                    {formatCurrency(statistics?.totalInsurance || 0)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </FinancialCard>
-          
-          <FinancialCard
-            title={t('payroll:netPay')}
-            amount={formatCurrency(statistics?.totalNetPay || 0)}
-            variant="success"
-            icon="💸"
-            subtitle={`${statistics?.employeeCount || 0} ${t('common:person')}`}
-          >
-            <div className="mt-3 pt-3 border-t border-base-300">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className={cn("text-base", "text-base-content/60")}>
-                    {t('payroll:statistics.averageSalary')}
-                  </span>
-                  <span className="font-semibold text-success">
-                    {formatCurrency(statistics?.averageNetPay || 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className={cn("text-base", "text-base-content/60")}>
-                    {t('payroll:statistics.totalPayroll')}
-                  </span>
-                  <span className="font-semibold text-primary">
-                    {formatCurrency(statistics?.totalGrossPay || 0)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </FinancialCard>
-        </div>
-
-        {/* 现代化控制面板 - 搜索、筛选、导出 */}
-        <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
-          <div className="flex items-center justify-between gap-4">
-            {/* 现代化搜索框 */}
-            <div className="flex-1 max-w-md">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="w-4 h-4 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  placeholder={t('common:placeholder.search')}
-                  value={globalFilter}
-                  onChange={(e) => setGlobalFilter(e.target.value)}
-                  className={cn(
-                    'pl-10 pr-4 py-2 w-full text-sm',
-                    'bg-gradient-to-r from-base-100 to-base-50/50',
-                    'border border-base-200/60 rounded-lg',
-                    'focus:ring-2 focus:ring-primary/20 focus:border-primary/50',
-                    'transition-all duration-200 placeholder:text-base-content/40'
-                  )}
+                  placeholder={t('payroll:selectMonth')}
+                  showDataIndicators={true}
                 />
+
+                {/* 状态筛选 */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as PayrollStatusType | 'all')}
+                  className="select select-bordered select-sm"
+                >
+                  <option value="all">{t('common:allStatus')}</option>
+                  <option value={PayrollStatus.DRAFT}>{t('payroll:status.draft')}</option>
+                  <option value={PayrollStatus.APPROVED}>{t('payroll:status.approved')}</option>
+                  <option value={PayrollStatus.PAID}>{t('payroll:status.paid')}</option>
+                  <option value={PayrollStatus.CANCELLED}>{t('payroll:status.cancelled')}</option>
+                </select>
               </div>
-            </div>
-
-            {/* 筛选器 */}
-            <div className="flex items-center gap-3">
-              {/* 月份选择 */}
-              <MonthPicker
-                value={selectedMonth}
-                onChange={setSelectedMonth}
-                size="sm"
-                placeholder={t('payroll:selectMonth')}
-              />
-
-              {/* 状态筛选 */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as PayrollStatusType | 'all')}
-                className="select select-bordered select-sm"
-              >
-                <option value="all">{t('common:allStatus')}</option>
-                <option value={PayrollStatus.DRAFT}>{t('payroll:status.draft')}</option>
-                <option value={PayrollStatus.CALCULATING}>{t('payroll:status.calculating')}</option>
-                <option value={PayrollStatus.CALCULATED}>{t('payroll:status.calculated')}</option>
-                <option value={PayrollStatus.APPROVED}>{t('payroll:status.approved')}</option>
-                <option value={PayrollStatus.PAID}>{t('payroll:status.paid')}</option>
-                <option value={PayrollStatus.CANCELLED}>{t('payroll:status.cancelled')}</option>
-              </select>
-            </div>
-            
-            {/* 现代化右侧控制按钮 */}
-            <div className="flex items-center gap-2">
-              {/* 批量操作 */}
-              <ModernButton
-                onClick={handleCreateBatch}
-                variant="primary"
-                size="sm"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                    d="M12 4v16m8-8H4" />
-                </svg>
-                <span className="hidden sm:inline">{t('payroll:createBatch')}</span>
-              </ModernButton>
-
-              {/* 清空本月数据按钮 */}
-              <ModernButton
-                onClick={handleClearCurrentMonth}
-                variant="error"
-                size="sm"
-                title="清空本月薪资数据"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                <span className="hidden sm:inline">清空本月</span>
-              </ModernButton>
               
-              {/* 现代化导出按钮 */}
+              {/* 导出按钮 */}
               <div className="dropdown dropdown-end">
                 <ModernButton
                   variant="secondary"
                   size="sm"
                   className="tabindex-0"
                   title={t('common:exportAction')}
+                  icon={
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  }
                 >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="hidden sm:inline">{t('exportAction')}</span>
+                  导出
                 </ModernButton>
-                <ul className={cn(
-                  'dropdown-content menu p-2 mt-2 w-52 z-50',
-                  'bg-gradient-to-br from-base-100 to-base-50/80',
-                  'border border-base-200/60 rounded-xl',
-                  'shadow-[0_8px_24px_-4px_rgba(0,0,0,0.08),0_4px_12px_-2px_rgba(0,0,0,0.1)]',
-                  'backdrop-blur-xl'
-                )}>
+                <ul className="dropdown-content menu p-2 mt-2 w-52 z-50 bg-base-100 border border-base-200 rounded-xl shadow-lg">
                   <li>
-                    <a 
-                      onClick={() => exportTableToCSV(processedData, 'payroll')}
-                      className="rounded-lg hover:bg-base-200/50 transition-colors duration-200"
-                    >
+                    <a onClick={() => exportTableToCSV(processedData, 'payroll')} className="rounded-lg">
                       CSV
                     </a>
                   </li>
                   <li>
-                    <a 
-                      onClick={() => exportTableToJSON(processedData, 'payroll')}
-                      className="rounded-lg hover:bg-base-200/50 transition-colors duration-200"
-                    >
+                    <a onClick={() => exportTableToJSON(processedData, 'payroll')} className="rounded-lg">
                       JSON
                     </a>
                   </li>
                   <li>
-                    <a 
-                      onClick={() => exportTableToExcel(processedData, 'payroll')}
-                      className="rounded-lg hover:bg-base-200/50 transition-colors duration-200"
-                    >
+                    <a onClick={() => exportTableToExcel(processedData, 'payroll')} className="rounded-lg">
                       Excel
                     </a>
                   </li>
@@ -592,139 +446,39 @@ export default function PayrollListPage() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* 批量操作栏 */}
-        {selectedIds.length > 0 && (
-          <PayrollBatchActions
-            selectedCount={selectedIds.length}
-            onCalculate={handleBatchCalculate}
-            onApprove={handleBatchApprove}
-            onMarkPaid={handleBatchMarkPaid}
-            onExport={() => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id)), 'payroll-selected')}
-            loading={
-              createBatchPayrolls.isPending ||
-              updateBatchStatus.isPending ||
-              calculatePayrolls.isPending
-            }
-          />
-        )}
-
-        {/* 现代化表格/卡片内容 */}
-        <div className="card bg-base-100 shadow-sm border border-base-200 overflow-hidden">
-          {viewMode === 'table' && (
-            <DataTable
-              columns={columns}
-              data={processedData}
-              loading={totalLoading}
-              enableRowSelection={true}
-              onRowSelectionChange={handleRowSelectionChange}
-              showToolbar={false}
-              showPagination={true}
-              showColumnToggle={false}
-              showGlobalFilter={false}
-              striped={true}
-              hover={true}
-              className="enhanced-data-table"
-              pageCount={data?.totalPages}
-              totalRows={data?.total}
-              currentPage={pagination.pageIndex + 1}
-              onPaginationChange={setPagination}
+          {/* 批量操作栏 */}
+          {selectedIds.length > 0 && (
+            <PayrollBatchActions
+              selectedCount={selectedIds.length}
+              onCalculate={handleBatchCalculate}
+              onApprove={handleBatchApprove}
+              onMarkPaid={handleBatchMarkPaid}
+              onExport={() => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id)), 'payroll-selected')}
+              loading={
+                createBatchPayrolls.isPending ||
+                updateBatchStatus.isPending ||
+                calculatePayrolls.isPending
+              }
             />
           )}
-
-          {viewMode === 'cards' && (
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {processedData.map((payroll) => (
-                  <div
-                    key={payroll.id}
-                    className={cn(
-                      'card bg-base-100 shadow-sm border border-base-200',
-                      'cursor-pointer group transition-all duration-300',
-                      'hover:scale-[1.02] hover:shadow-lg',
-                      selectedIds.includes(payroll.id) && 'ring-2 ring-primary/30'
-                    )}
-                    onClick={() => handleRowClick(payroll)}
-                  >
-                    <div className="p-4">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-base text-base-content truncate">
-                            {payroll.employee?.full_name || t('common:unknown')}
-                          </h3>
-                          <p className="text-xs text-base-content/60 truncate">
-                            {payroll.employee?.id_number || '-'}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3 text-sm">
-                        <div className="flex justify-between items-center">
-                          <span className="text-base-content/60 font-medium">{t('payPeriod')}:</span>
-                          <span className="font-medium">
-                            {formatMonth(payroll.pay_period_start.substring(0, 7))}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-base-content/60 font-medium">{t('common:common.status')}:</span>
-                          <PayrollStatusBadge status={payroll.status} size="xs" showIcon={false} />
-                        </div>
-                        <div className="pt-2 border-t border-base-200/50 space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-base-content/60 font-medium">{t('grossPay')}:</span>
-                            <span className="font-mono font-medium text-success">
-                              {formatCurrency(payroll.gross_pay)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-base-content/60 font-medium">{t('deductions')}:</span>
-                            <span className="font-mono font-medium text-error">
-                              -{formatCurrency(payroll.total_deductions)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center pt-2 border-t border-base-200/50">
-                            <span className="text-base-content/60 font-medium">{t('netPay')}:</span>
-                            <span className="font-mono font-bold text-primary">
-                              {formatCurrency(payroll.net_pay)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {processedData.length === 0 && !totalLoading && (
-                <div className="text-center py-16">
-                  <div className="text-base-content/30 mb-4">
-                    <svg className="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} 
-                        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
-                  </div>
-                  <p className="text-base-content/50 text-lg font-medium">{t('payroll:noPayrollRecords')}</p>
-                  <p className="text-base-content/40 text-sm mt-2">{t('dataTable.noDataDescription')}</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
-      </div>
-
-      {/* 薪资详情模态框 */}
-      <PayrollDetailModal
-        payrollId={selectedPayrollId}
-        open={isDetailModalOpen}
-        onClose={handleCloseModal}
-      />
-    </div>
+      }
+      modal={
+        <>
+          <PayrollDetailModal
+            payrollId={selectedPayrollId}
+            open={isDetailModalOpen}
+            onClose={handleCloseModal}
+          />
+          <ClearPayrollModal
+            isOpen={isClearModalOpen}
+            month={formatMonth(selectedMonth)}
+            onConfirm={handleClearCurrentMonth}
+            onCancel={() => setIsClearModalOpen(false)}
+          />
+        </>
+      }
+    />
   );
 }
