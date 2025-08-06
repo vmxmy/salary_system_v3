@@ -646,6 +646,7 @@ function PayrollDetailContent({
           groupedItems={groupedItems}
           categoryTotals={categoryTotals}
           isEditing={isEditing}
+          payroll={payroll}
         />
       </AccordionSection>
 
@@ -706,8 +707,9 @@ interface PayrollBreakdownSectionProps {
 function PayrollBreakdownSection({
   groupedItems,
   categoryTotals,
-  isEditing
-}: PayrollBreakdownSectionProps) {
+  isEditing,
+  payroll
+}: PayrollBreakdownSectionProps & { payroll: PayrollDetailData }) {
   const { t } = useTranslation(['payroll', 'common']);
 
   if (Object.keys(groupedItems).length === 0) {
@@ -837,14 +839,10 @@ function PayrollBreakdownSection({
     );
   };
 
-  // 计算总收入和总扣除
-  const totalIncome = categoryTotals
-    .filter(ct => !ct.isDeduction)
-    .reduce((sum, ct) => sum + ct.total, 0);
-  const totalDeduction = categoryTotals
-    .filter(ct => ct.isDeduction)
-    .reduce((sum, ct) => sum + Math.abs(ct.total), 0);
-  const netSalary = totalIncome - totalDeduction;
+  // 使用数据库预计算的汇总金额，确保与置顶显示一致
+  const totalIncome = payroll.gross_pay || 0;
+  const totalDeduction = payroll.total_deductions || 0;
+  const netSalary = payroll.net_pay || 0;
 
   return (
     <div className="space-y-6">
