@@ -6,6 +6,7 @@ import { DataTable } from '@/components/common/DataTable/DataTable';
 import { AccordionSection } from '@/components/common/AccordionSection';
 import { DetailField } from '@/components/common/DetailField';
 import { cn } from '@/lib/utils';
+import { cardEffects } from '@/styles/design-effects';
 
 // 模拟数据
 const sampleTableData = [
@@ -81,8 +82,8 @@ export function DesignSystemShowcase() {
       )}>
         <div className="container mx-auto px-6 py-8">
           <div className="flex items-center gap-4">
-            <div className={iconContainer.modern('primary', 'lg')}>
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12s0-12-12-12v12z" />
               </svg>
             </div>
@@ -101,7 +102,12 @@ export function DesignSystemShowcase() {
       <div className="container mx-auto px-6 space-y-12 pb-12">
         {/* 按钮展示 */}
         <section>
-          <AccordionSection title="按钮组件" defaultOpen>
+          <div className="collapse collapse-arrow bg-base-100 border border-base-200 rounded-lg shadow-sm">
+            <input type="checkbox" defaultChecked />
+            <div className="collapse-title text-xl font-medium">
+              按钮组件
+            </div>
+            <div className="collapse-content">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-4">
                 <h4 className="font-semibold text-base-content/80">主要按钮</h4>
@@ -139,13 +145,18 @@ export function DesignSystemShowcase() {
                 </div>
               </div>
             </div>
-          </AccordionSection>
+            </div>
+          </div>
         </section>
 
         {/* 徽章展示 */}
         <section>
-          <AccordionSection title="徽章组件" defaultOpen>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="collapse collapse-arrow bg-base-100 border border-base-200 rounded-lg shadow-sm">
+            <input type="checkbox" defaultChecked />
+            <div className="collapse-title text-xl font-medium">
+              徽章组件            </div>
+            <div className="collapse-content">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div className="space-y-4">
                 <h4 className="font-semibold text-base-content/80">员工状态</h4>
                 <div className="flex flex-wrap gap-2">
@@ -177,64 +188,70 @@ export function DesignSystemShowcase() {
                 </div>
               </div>
             </div>
-          </AccordionSection>
+            </div>
+          </div>
         </section>
 
         {/* 卡片展示 */}
         <section>
-          <AccordionSection title="卡片组件" defaultOpen>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <ProfitCard
+          <div className="collapse collapse-arrow bg-base-100 border border-base-200 rounded-lg shadow-sm">
+            <input type="checkbox" defaultChecked />
+            <div className="collapse-title text-xl font-medium">
+              卡片组件            </div>
+            <div className="collapse-content">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <FinancialCard
                 title="月度盈利"
-                value="¥126,840"
+                amount="¥126,840"
                 subtitle="较上月增长12%"
-                description="包含所有部门的综合收益"
                 icon="📈"
-                interactive="glow"
+                variant="success"
                 className={selectedCard === 'profit' ? 'ring-2 ring-success/30' : ''}
                 onClick={() => setSelectedCard(selectedCard === 'profit' ? null : 'profit')}
               />
               
-              <LossCard
+              <FinancialCard
                 title="月度支出"
-                value="¥89,320"
+                amount="¥89,320"
                 subtitle="较上月减少8%"
-                description="包含薪资和运营成本"
                 icon="📉"
-                interactive="glow"
+                variant="error"
                 className={selectedCard === 'loss' ? 'ring-2 ring-error/30' : ''}
                 onClick={() => setSelectedCard(selectedCard === 'loss' ? null : 'loss')}
               />
               
-              <WarningCard
+              <FinancialCard
                 title="待处理"
-                value="23"
+                amount="23"
                 subtitle="项审批"
-                description="需要管理层审批的项目"
                 icon="⚠️"
-                interactive="glow"
+                variant="warning"
                 className={selectedCard === 'warning' ? 'ring-2 ring-warning/30' : ''}
                 onClick={() => setSelectedCard(selectedCard === 'warning' ? null : 'warning')}
               />
               
-              <InfoCard
+              <FinancialCard
                 title="在线员工"
-                value="147"
+                amount="147"
                 subtitle="/ 180 人"
-                description="当前在线工作的员工数量"
                 icon="👥"
-                interactive="glow"
+                variant="info"
                 className={selectedCard === 'info' ? 'ring-2 ring-info/30' : ''}
                 onClick={() => setSelectedCard(selectedCard === 'info' ? null : 'info')}
               />
             </div>
-          </AccordionSection>
+            </div>
+          </div>
         </section>
 
         {/* 表格展示 */}
         <section>
-          <AccordionSection title="数据表格" defaultOpen>
-            <div className="space-y-6">
+          <div className="collapse collapse-arrow bg-base-100 border border-base-200 rounded-lg shadow-sm">
+            <input type="checkbox" defaultChecked />
+            <div className="collapse-title text-xl font-medium">
+              数据表格            </div>
+            <div className="collapse-content">
+              <div className="space-y-6">
               <div className="text-sm text-base-content/60">
                 现代化的数据表格，具有渐变背景、光环效果和流畅的交互动画
               </div>
@@ -249,32 +266,34 @@ export function DesignSystemShowcase() {
                 hover={true}
               />
             </div>
-          </AccordionSection>
+            </div>
+          </div>
         </section>
 
         {/* 表单字段展示 */}
         <section>
-          <AccordionSection title="表单字段" defaultOpen>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="collapse collapse-arrow bg-base-100 border border-base-200 rounded-lg shadow-sm">
+            <input type="checkbox" defaultChecked />
+            <div className="collapse-title text-xl font-medium">
+              表单字段            </div>
+            <div className="collapse-content">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <DetailField
                 label="文本字段"
                 value="示例文本内容"
                 type="text"
-                editable
               />
               
               <DetailField
                 label="日期字段"
                 value="2024-01-15"
                 type="date"
-                editable
               />
               
               <DetailField
                 label="邮箱字段"
                 value="user@example.com"
                 type="email"
-                editable
               />
               
               <DetailField
@@ -282,7 +301,6 @@ export function DesignSystemShowcase() {
                 value="138****5678"
                 type="phone"
                 sensitive
-                editable
               />
               
               <DetailField
@@ -294,26 +312,29 @@ export function DesignSystemShowcase() {
                   { label: '选项B', value: 'B' },
                   { label: '选项C', value: 'C' }
                 ]}
-                editable
               />
               
               <DetailField
                 label="状态字段"
                 value="active"
                 type="status"
-                editable
               />
             </div>
-          </AccordionSection>
+            </div>
+          </div>
         </section>
 
         {/* 视觉效果展示 */}
         <section>
-          <AccordionSection title="视觉效果" defaultOpen>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="collapse collapse-arrow bg-base-100 border border-base-200 rounded-lg shadow-sm">
+            <input type="checkbox" defaultChecked />
+            <div className="collapse-title text-xl font-medium">
+              视觉效果            </div>
+            <div className="collapse-content">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* 渐变效果 */}
               <div className={cn(
-                cardEffects.modern,
+                cardEffects.elevated,
                 'p-6 text-center'
               )}>
                 <h4 className="font-semibold mb-2">卡片阴影</h4>
@@ -338,7 +359,7 @@ export function DesignSystemShowcase() {
               
               {/* 动画效果 */}
               <div className={cn(
-                cardEffects.modern,
+                cardEffects.elevated,
                 'p-6 text-center group cursor-pointer',
                 'hover:scale-105 transition-all duration-300'
               )}>
@@ -348,13 +369,19 @@ export function DesignSystemShowcase() {
                 </p>
               </div>
             </div>
-          </AccordionSection>
+            </div>
+          </div>
         </section>
 
         {/* 颜色系统展示 */}
         <section>
-          <AccordionSection title="颜色系统">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="collapse collapse-arrow bg-base-100 border border-base-200 rounded-lg shadow-sm">
+            <input type="checkbox" defaultChecked />
+            <div className="collapse-title text-xl font-medium">
+              颜色系统
+            </div>
+            <div className="collapse-content">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {[
                 { name: 'Primary', class: 'bg-primary text-primary-content' },
                 { name: 'Secondary', class: 'bg-secondary text-secondary-content' },
@@ -375,7 +402,8 @@ export function DesignSystemShowcase() {
                 </div>
               ))}
             </div>
-          </AccordionSection>
+            </div>
+          </div>
         </section>
       </div>
     </div>

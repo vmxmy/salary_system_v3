@@ -41,6 +41,9 @@ export interface DepartmentNode extends Department {
   employee_count?: number;
   level?: number;
   full_path?: string;
+  code?: string;
+  manager?: string;
+  description?: string;
 }
 
 // Department with additional details
@@ -51,6 +54,8 @@ export interface DepartmentWithDetails extends Department {
   children_count?: number;
   full_path?: string;
   level?: number;
+  code?: string;
+  description?: string;
 }
 
 // Department employee basic info

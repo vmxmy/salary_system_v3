@@ -4,7 +4,6 @@ import {
   ArrowUpTrayIcon,
   DocumentIcon,
   CheckCircleIcon,
-  XCircleIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
@@ -31,7 +30,7 @@ export function DepartmentImportExport({
   departments = [],
   onImportComplete
 }: DepartmentImportExportProps) {
-  const { showSuccess, showError, showWarning, showInfo } = useToast();
+  const { showSuccess, showError, showWarning } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [importResult, setImportResult] = useState<ExcelImportResult | null>(null);
@@ -184,7 +183,7 @@ export function DepartmentImportExport({
                   </div>
                 </div>
                 <ModernButton
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={downloadTemplate}
                 >
@@ -350,7 +349,7 @@ export function DepartmentImportExport({
                 </div>
                 <div className="text-center p-4 bg-background-secondary rounded-lg">
                   <div className="text-2xl font-bold text-green-500">
-                    {departments.filter(d => !d.parent_id).length}
+                    {departments.filter(d => !(d as any).parent_id).length}
                   </div>
                   <div className="text-sm text-text-secondary">顶级部门</div>
                 </div>

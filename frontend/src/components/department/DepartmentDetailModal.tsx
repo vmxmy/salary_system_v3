@@ -2,11 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   BuildingOfficeIcon, 
   UsersIcon, 
-  CurrencyDollarIcon,
-  ChartBarIcon,
-  DocumentTextIcon,
-  ArrowUpIcon,
-  ArrowDownIcon
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 import { 
   useDepartment, 
@@ -15,20 +11,18 @@ import {
   useDepartmentPayrollStats,
   useUpdateDepartment,
   useCreateDepartment,
-  useDeleteDepartment,
-  DEPARTMENT_KEYS
+  useDeleteDepartment
 } from '@/hooks/useDepartments';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { AccordionSection, AccordionContent, AccordionFormGroup } from '@/components/common/AccordionSection';
+import { AccordionSection, AccordionContent } from '@/components/common/AccordionSection';
 import { DetailField, FieldGroup } from '@/components/common/DetailField';
 import { ModernButton } from '@/components/common/ModernButton';
-import { DepartmentSalaryChart } from './DepartmentSalaryChart';
+// import { DepartmentSalaryChart } from './DepartmentSalaryChart'; // 未使用，暂时注释
 import { DepartmentEmployeePanel } from './DepartmentEmployeePanel';
 import { DepartmentPayrollAnalysis } from './DepartmentPayrollAnalysis';
 import { useToast } from '@/contexts/ToastContext';
-import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
-import type { Department, DepartmentFormData, DepartmentPayrollStatistics, DepartmentEmployee, DepartmentWithDetails } from '@/types/department';
+import type { DepartmentFormData, DepartmentPayrollStatistics, DepartmentEmployee, DepartmentWithDetails } from '@/types/department';
 
 interface DepartmentDetailModalProps {
   departmentId?: string | null;
@@ -51,8 +45,7 @@ export function DepartmentDetailModal({
   });
   
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['basic']));
-  const { showSuccess, showError, showInfo } = useToast();
-  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
 
   // DaisyUI classes for styling
 
@@ -185,7 +178,7 @@ export function DepartmentDetailModal({
     .filter(dept => dept.id !== departmentId) // 排除自己
     .map(dept => ({
       value: dept.id,
-      label: dept.full_path || dept.name
+      label: (dept as any).full_path || dept.name
     }));
 
   // 获取最新薪资统计
@@ -313,6 +306,7 @@ export function DepartmentDetailModal({
                 openSections={openSections}
                 onToggleSection={toggleSection}
                 mode={initialMode}
+                initialMode={initialMode}
               />
             )}
           </div>
@@ -454,6 +448,7 @@ interface DepartmentDetailContentProps {
   openSections: Set<string>;
   onToggleSection: (sectionId: string) => void;
   initialMode: 'view' | 'edit' | 'create';
+  mode: 'view' | 'edit' | 'create';
 }
 
 function DepartmentDetailContent({ 
@@ -463,9 +458,9 @@ function DepartmentDetailContent({
   onEditDataChange,
   parentDepartmentOptions,
   employees,
-  payrollStats,
-  isLoadingEmployees,
-  isLoadingPayroll,
+  payrollStats: _payrollStats,
+  isLoadingEmployees: _isLoadingEmployees,
+  isLoadingPayroll: _isLoadingPayroll,
   openSections,
   onToggleSection,
   initialMode
@@ -534,7 +529,7 @@ function DepartmentDetailContent({
               />
               <DetailField 
                 label="完整路径" 
-                value={department.full_path || department.name}
+                value={(department as any).full_path || department.name}
                 type="text"
               />
             </FieldGroup>
@@ -572,7 +567,12 @@ function DepartmentDetailContent({
         >
           <AccordionContent>
             <DepartmentEmployeePanel
-              department={department}
+              department={{
+                ...department,
+                manager: typeof department.manager === 'object' && department.manager?.full_name 
+                  ? department.manager.full_name 
+                  : (department.manager as unknown as string) || undefined
+              }}
               className="border-0 shadow-none"
             />
           </AccordionContent>
@@ -590,7 +590,12 @@ function DepartmentDetailContent({
         >
           <AccordionContent>
             <DepartmentPayrollAnalysis
-              department={department}
+              department={{
+                ...department,
+                manager: typeof department.manager === 'object' && department.manager?.full_name 
+                  ? department.manager.full_name 
+                  : (department.manager as unknown as string) || undefined
+              }}
               className="border-0 shadow-none"
             />
           </AccordionContent>

@@ -163,7 +163,7 @@ export class DepartmentService extends BaseService<'departments'> {
         return true; // Circular reference detected
       }
 
-      const { data } = await supabase
+      const { data }: { data: { parent_department_id: string | null } | null } = await supabase
         .from('departments')
         .select('parent_department_id')
         .eq('id', currentId)

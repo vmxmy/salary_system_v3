@@ -34,7 +34,7 @@ export interface MonthlyPayrollTrend {
 class DashboardService {
   async getDashboardStats(): Promise<DashboardStats> {
     const { data, error } = await supabase
-      .from('v_dashboard_stats')
+      .from('view_dashboard_stats')
       .select('*')
       .single();
 
@@ -61,7 +61,7 @@ class DashboardService {
 
   async getRecentActivities(): Promise<RecentActivity[]> {
     const { data, error } = await supabase
-      .from('v_recent_activities')
+      .from('view_recent_activities')
       .select('*')
       .order('activity_date', { ascending: false })
       .limit(10);
@@ -81,7 +81,7 @@ class DashboardService {
 
   async getMonthlyPayrollTrend(): Promise<MonthlyPayrollTrend[]> {
     const { data, error } = await supabase
-      .from('v_monthly_payroll_trend')
+      .from('view_monthly_payroll_trend')
       .select('*')
       .order('month', { ascending: false })
       .limit(12);

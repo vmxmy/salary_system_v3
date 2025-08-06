@@ -8,8 +8,10 @@ interface AuthContextType {
   session: Session | null;
   user: AuthUser | null;
   loading: boolean;
+  isLoading: boolean;
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<AuthUser>;
+  signUp: (email: string, password: string, userData?: any) => Promise<AuthUser>;
   signOut: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
@@ -83,6 +85,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return authUser;
   };
 
+  const signUp = async (email: string, password: string, userData?: any) => {
+    // Basic signUp implementation - can be expanded as needed
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+    
+    if (data.user) {
+      const authUser = await authService.signIn(email, password);
+      setUser(authUser);
+      return authUser;
+    }
+    throw new Error('Registration failed');
+  };
+
   const signOut = async () => {
     await authService.signOut();
     setUser(null);
@@ -107,8 +122,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     session,
     user,
     loading,
+    isLoading: loading,
     isAuthenticated,
     signIn,
+    signUp,
     signOut,
     hasPermission,
     hasAnyPermission,

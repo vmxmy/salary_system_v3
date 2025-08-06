@@ -1,14 +1,15 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 
-// 类型定义
-type SalaryComponent = Database['public']['Tables']['salary_components']['Row'];
-type SalaryComponentInsert = Database['public']['Tables']['salary_components']['Insert'];
-type SalaryComponentUpdate = Database['public']['Tables']['salary_components']['Update'];
+// 类型定义 - TODO: 数据库表尚未实现
+type SalaryComponent = any; // Database['public']['Tables']['salary_components']['Row'];
+type SalaryComponentInsert = any; // Database['public']['Tables']['salary_components']['Insert'];
+type SalaryComponentUpdate = any; // Database['public']['Tables']['salary_components']['Update'];
 
-type EmployeePayrollConfig = Database['public']['Tables']['employee_payroll_configs']['Row'];
-type EmployeePayrollConfigInsert = Database['public']['Tables']['employee_payroll_configs']['Insert'];
-type EmployeePayrollConfigUpdate = Database['public']['Tables']['employee_payroll_configs']['Update'];
+// TODO: 这个表还未在数据库中实现，暂时使用 any 类型
+type EmployeePayrollConfig = any;
+type EmployeePayrollConfigInsert = any;
+type EmployeePayrollConfigUpdate = any;
 
 // 薪资分类枚举
 export const SalaryCategories = {
@@ -339,7 +340,7 @@ export class SalaryComponentsService {
     effectiveFrom: string
   ) {
     // TODO: 实现模板应用逻辑
-    console.log('Applying template:', templateId, 'to employees:', employeeIds);
+    console.log('Applying template:', templateId, 'to employees:', employeeIds, 'from date:', effectiveFrom);
     return true;
   }
 }

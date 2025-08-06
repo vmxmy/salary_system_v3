@@ -9,10 +9,6 @@ interface AdvancedSortProps<TData> {
   className?: string;
 }
 
-interface SortCondition {
-  column: string;
-  direction: 'asc' | 'desc';
-}
 
 export function AdvancedSort<TData>({
   table,
@@ -100,7 +96,7 @@ export function AdvancedSort<TData>({
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
         </svg>
-        {t('sort.advanced')}
+{String(t('sort.advanced'))}
         {currentSorting.length > 0 && (
           <span className="badge badge-primary badge-sm">{currentSorting.length}</span>
         )}
@@ -111,21 +107,21 @@ export function AdvancedSort<TData>({
         <div className="card bg-base-100 shadow-xl mt-2 w-full max-w-3xl">
           <div className="card-body p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="card-title text-base">{t('sort.advancedSorting')}</h3>
+              <h3 className="card-title text-base">{String(t('sort.advancedSorting'))}</h3>
               <div className="flex gap-2">
                 <button
                   onClick={addSort}
                   className="btn btn-primary btn-sm"
                   disabled={availableColumns.length === 0}
                 >
-                  {t('sort.addSort')}
+{String(t('sort.addSort'))}
                 </button>
                 {currentSorting.length > 0 && (
                   <button
                     onClick={clearAllSorting}
                     className="btn btn-ghost btn-sm"
                   >
-                    {t('sort.clearAll')}
+{String(t('sort.clearAll'))}
                   </button>
                 )}
               </div>
@@ -139,13 +135,13 @@ export function AdvancedSort<TData>({
                   <div key={sort.id} className="flex items-center gap-2 p-3 bg-base-200 rounded-lg">
                     {/* Sort Priority */}
                     <div className="flex flex-col gap-1">
-                      <span className="text-xs opacity-70">{t('sort.priority')}</span>
+                      <span className="text-xs opacity-70">{String(t('sort.priority'))}</span>
                       <span className="badge badge-neutral badge-sm">{index + 1}</span>
                     </div>
 
                     {/* Column Selection */}
                     <div className="flex-1">
-                      <label className="text-xs opacity-70">{t('sort.column')}</label>
+                      <label className="text-xs opacity-70">{String(t('sort.column'))}</label>
                       <select
                         value={sort.id}
                         onChange={(e) => updateSort(index, { column: e.target.value })}
@@ -168,7 +164,7 @@ export function AdvancedSort<TData>({
 
                     {/* Direction Selection */}
                     <div className="flex-1">
-                      <label className="text-xs opacity-70">{t('sort.direction')}</label>
+                      <label className="text-xs opacity-70">{String(t('sort.direction'))}</label>
                       <select
                         value={sort.desc ? 'desc' : 'asc'}
                         onChange={(e) => updateSort(index, { 
@@ -176,8 +172,8 @@ export function AdvancedSort<TData>({
                         })}
                         className="select select-bordered select-sm w-full"
                       >
-                        <option value="asc">{t('sort.ascending')}</option>
-                        <option value="desc">{t('sort.descending')}</option>
+                        <option value="asc">{String(t('sort.ascending'))}</option>
+                        <option value="desc">{String(t('sort.descending'))}</option>
                       </select>
                     </div>
 
@@ -187,7 +183,7 @@ export function AdvancedSort<TData>({
                         onClick={() => moveSort(index, 'up')}
                         disabled={index === 0}
                         className="btn btn-xs btn-ghost"
-                        title={t('sort.moveUp')}
+title={String(t('sort.moveUp'))}
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -197,7 +193,7 @@ export function AdvancedSort<TData>({
                         onClick={() => moveSort(index, 'down')}
                         disabled={index === currentSorting.length - 1}
                         className="btn btn-xs btn-ghost"
-                        title={t('sort.moveDown')}
+title={String(t('sort.moveDown'))}
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -209,7 +205,7 @@ export function AdvancedSort<TData>({
                     <button
                       onClick={() => removeSort(index)}
                       className="btn btn-ghost btn-sm btn-circle"
-                      title={t('sort.remove')}
+title={String(t('sort.remove'))}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -221,8 +217,8 @@ export function AdvancedSort<TData>({
 
               {currentSorting.length === 0 && (
                 <div className="text-center py-8 text-base-content/60">
-                  <p>{t('sort.noSortingApplied')}</p>
-                  <p className="text-sm mt-1">{t('sort.clickAddSortToStart')}</p>
+                  <p>{String(t('sort.noSortingApplied'))}</p>
+                  <p className="text-sm mt-1">{String(t('sort.clickAddSortToStart'))}</p>
                 </div>
               )}
             </div>
@@ -235,8 +231,8 @@ export function AdvancedSort<TData>({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div className="text-sm">
-                    <p className="font-medium text-info">{t('sort.multiSortInfo')}</p>
-                    <p className="text-base-content/70 mt-1">{t('sort.multiSortDescription')}</p>
+                    <p className="font-medium text-info">{String(t('sort.multiSortInfo'))}</p>
+                    <p className="text-base-content/70 mt-1">{String(t('sort.multiSortDescription'))}</p>
                   </div>
                 </div>
               </div>
@@ -248,7 +244,7 @@ export function AdvancedSort<TData>({
                   <svg className="w-4 h-4 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p className="text-sm text-warning">{t('sort.allColumnsSorted')}</p>
+                  <p className="text-sm text-warning">{String(t('sort.allColumnsSorted'))}</p>
                 </div>
               </div>
             )}

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { 
   UsersIcon, 
   MagnifyingGlassIcon,
@@ -32,7 +32,7 @@ export function DepartmentEmployeePanel({
   department, 
   className 
 }: DepartmentEmployeePanelProps) {
-  const { showSuccess, showError, showWarning, showInfo } = useToast();
+  const { showSuccess, showInfo } = useToast();
   const [searchFilters, setSearchFilters] = useState<EmployeeSearchFilters>({
     status: 'all'
   });
@@ -372,15 +372,6 @@ export function DepartmentEmployeePanel({
           data={filteredEmployees}
           columns={columns}
           loading={isLoading}
-          emptyStateProps={{
-            icon: UsersIcon,
-            title: '暂无员工',
-            description: employees.length === 0 
-              ? '该部门暂无员工，点击"添加员工"开始管理。'
-              : '没有符合筛选条件的员工，请调整搜索条件。'
-          }}
-          searchable={false} // 我们使用自定义搜索
-          sortable={true}
           className="border-none"
         />
       </div>

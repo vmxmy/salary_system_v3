@@ -44,10 +44,10 @@ export function DataExport<TData>({
   const downloadRef = useRef<HTMLAnchorElement>(null);
 
   const exportFormats = [
-    { value: 'csv', label: 'CSV', icon: '📄', description: t('export.csvDescription') },
-    { value: 'xlsx', label: 'Excel', icon: '📊', description: t('export.excelDescription') },
-    { value: 'json', label: 'JSON', icon: '🔧', description: t('export.jsonDescription') },
-    { value: 'pdf', label: 'PDF', icon: '📋', description: t('export.pdfDescription') },
+    { value: 'csv', label: 'CSV', icon: '📄', description: String(t('export.csvDescription')) },
+    { value: 'xlsx', label: 'Excel', icon: '📊', description: String(t('export.excelDescription')) },
+    { value: 'json', label: 'JSON', icon: '🔧', description: String(t('export.jsonDescription')) },
+    { value: 'pdf', label: 'PDF', icon: '📋', description: String(t('export.pdfDescription')) },
   ] as const;
 
   const getDataToExport = () => {
@@ -136,7 +136,7 @@ export function DataExport<TData>({
       const { data, columns } = getDataToExport();
       
       if (data.length === 0) {
-        alert(t('export.noDataToExport'));
+        alert(String(t('export.noDataToExport')));
         return;
       }
 
@@ -148,28 +148,23 @@ export function DataExport<TData>({
       }
 
       let blob: Blob;
-      let mimeType: string;
       let fileExtension: string;
 
       switch (config.format) {
         case 'csv':
           blob = new Blob([generateCSV(data, columns)], { type: 'text/csv' });
-          mimeType = 'text/csv';
           fileExtension = 'csv';
           break;
         case 'json':
           blob = new Blob([generateJSON(data)], { type: 'application/json' });
-          mimeType = 'application/json';
           fileExtension = 'json';
           break;
         case 'xlsx':
           blob = await generateExcel(data, columns);
-          mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
           fileExtension = 'xlsx';
           break;
         case 'pdf':
           blob = await generatePDF(data, columns);
-          mimeType = 'application/pdf';
           fileExtension = 'pdf';
           break;
         default:
@@ -192,7 +187,7 @@ export function DataExport<TData>({
       
     } catch (error) {
       console.error('Export failed:', error);
-      alert(t('export.exportFailed'));
+      alert(String(t('export.exportFailed')));
     } finally {
       setIsExporting(false);
     }
@@ -215,7 +210,7 @@ export function DataExport<TData>({
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
         </svg>
-        {t('export.export')}
+{String(t('export.export'))}
       </button>
 
       {/* Hidden download link */}
@@ -226,7 +221,7 @@ export function DataExport<TData>({
         <div className="card bg-base-100 shadow-xl mt-2 w-full max-w-lg">
           <div className="card-body p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="card-title text-lg">{t('export.exportData')}</h3>
+              <h3 className="card-title text-lg">{String(t('export.exportData'))}</h3>
               <button
                 onClick={() => setIsOpen(false)}
                 className="btn btn-ghost btn-sm btn-circle"
@@ -240,7 +235,7 @@ export function DataExport<TData>({
             {/* Export Format Selection */}
             <div className="form-control mb-4">
               <label className="label">
-                <span className="label-text font-medium">{t('export.format')}</span>
+                <span className="label-text font-medium">{String(t('export.format'))}</span>
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {exportFormats.map(format => (
@@ -277,14 +272,14 @@ export function DataExport<TData>({
             {/* File Name */}
             <div className="form-control mb-4">
               <label className="label">
-                <span className="label-text font-medium">{t('export.fileName')}</span>
+                <span className="label-text font-medium">{String(t('export.fileName'))}</span>
               </label>
               <input
                 type="text"
                 value={config.customFileName}
                 onChange={(e) => setConfig(prev => ({ ...prev, customFileName: e.target.value }))}
                 className="input input-bordered"
-                placeholder={t('export.enterFileName')}
+placeholder={String(t('export.enterFileName'))}
               />
             </div>
 
@@ -298,8 +293,8 @@ export function DataExport<TData>({
                   className="checkbox checkbox-sm"
                 />
                 <div>
-                  <span className="label-text font-medium">{t('export.includeHeaders')}</span>
-                  <div className="text-xs opacity-60">{t('export.includeHeadersDescription')}</div>
+                  <span className="label-text font-medium">{String(t('export.includeHeaders'))}</span>
+                  <div className="text-xs opacity-60">{String(t('export.includeHeadersDescription'))}</div>
                 </div>
               </label>
 
@@ -311,9 +306,9 @@ export function DataExport<TData>({
                   className="checkbox checkbox-sm"
                 />
                 <div>
-                  <span className="label-text font-medium">{t('export.visibleColumnsOnly')}</span>
+                  <span className="label-text font-medium">{String(t('export.visibleColumnsOnly'))}</span>
                   <div className="text-xs opacity-60">
-                    {t('export.columnsCount', { count: visibleColumnsCount })}
+                    {String(t('export.columnsCount', { count: visibleColumnsCount }))}
                   </div>
                 </div>
               </label>
@@ -327,9 +322,9 @@ export function DataExport<TData>({
                     className="checkbox checkbox-sm"
                   />
                   <div>
-                    <span className="label-text font-medium">{t('export.selectedRowsOnly')}</span>
+                    <span className="label-text font-medium">{String(t('export.selectedRowsOnly'))}</span>
                     <div className="text-xs opacity-60">
-                      {t('export.selectedRowsCount', { count: selectedRowsCount, total: totalRowsCount })}
+                      {String(t('export.selectedRowsCount', { count: selectedRowsCount, total: totalRowsCount }))}
                     </div>
                   </div>
                 </label>
@@ -338,11 +333,11 @@ export function DataExport<TData>({
 
             {/* Export Summary */}
             <div className="bg-base-200 rounded-lg p-4 mb-4">
-              <h4 className="font-medium text-sm mb-2">{t('export.summary')}</h4>
+              <h4 className="font-medium text-sm mb-2">{String(t('export.summary'))}</h4>
               <div className="text-sm space-y-1 opacity-80">
-                <div>{t('export.rowsToExport')}: {config.selectedRowsOnly ? selectedRowsCount : totalRowsCount}</div>
-                <div>{t('export.columnsToExport')}: {config.visibleColumnsOnly ? visibleColumnsCount : table.getAllLeafColumns().length - 2}</div>
-                <div>{t('export.fileFormat')}: {config.format.toUpperCase()}</div>
+                <div>{String(t('export.rowsToExport'))}: {config.selectedRowsOnly ? selectedRowsCount : totalRowsCount}</div>
+                <div>{String(t('export.columnsToExport'))}: {config.visibleColumnsOnly ? visibleColumnsCount : table.getAllLeafColumns().length - 2}</div>
+                <div>{String(t('export.fileFormat'))}: {config.format.toUpperCase()}</div>
               </div>
             </div>
 
@@ -355,21 +350,21 @@ export function DataExport<TData>({
               {isExporting ? (
                 <>
                   <span className="loading loading-spinner loading-sm"></span>
-                  {t('export.exporting')}
+{String(t('export.exporting'))}
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3" />
                   </svg>
-                  {t('export.startExport')}
+{String(t('export.startExport'))}
                 </>
               )}
             </button>
 
             {totalRowsCount === 0 && (
               <div className="text-center text-warning text-sm mt-2">
-                {t('export.noDataAvailable')}
+{String(t('export.noDataAvailable'))}
               </div>
             )}
           </div>

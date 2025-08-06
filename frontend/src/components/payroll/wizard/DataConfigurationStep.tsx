@@ -5,12 +5,14 @@ import { cn } from '@/lib/utils';
 import { getCurrentYearMonth, getMonthDateRange, formatMonth } from '@/lib/dateUtils';
 import { format } from 'date-fns';
 
-enum CreationMode {
-  COPY = 'copy',
-  IMPORT = 'import', 
-  MANUAL = 'manual',
-  TEMPLATE = 'template'
-}
+const CreationMode = {
+  COPY: 'copy',
+  IMPORT: 'import', 
+  MANUAL: 'manual',
+  TEMPLATE: 'template'
+} as const;
+
+type CreationMode = typeof CreationMode[keyof typeof CreationMode];
 
 interface DataConfigurationStepProps {
   mode: CreationMode;

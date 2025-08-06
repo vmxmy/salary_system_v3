@@ -8,6 +8,8 @@ import { DataTable } from '@/components/common/DataTable/DataTable';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { cn } from '@/lib/utils';
+import { cardEffects, buttonEffects, inputEffects } from '@/styles/design-effects';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { useToast } from '@/contexts/ToastContext';
 import { format } from 'date-fns';
 import { getMonthDateRange, getCurrentYearMonth } from '@/lib/dateUtils';
@@ -44,16 +46,16 @@ export default function CreateBatchPayrollPage() {
 
   // 过滤员工
   const filteredEmployees = departmentFilter === 'all' 
-    ? employeesData?.data || []
-    : (employeesData?.data || []).filter(emp => emp.department_name === departmentFilter);
+    ? employeesData || []
+    : (employeesData || []).filter(emp => emp.department_name === departmentFilter);
 
   // 获取部门列表
   const departments = Array.from(
-    new Set((employeesData?.data || []).map(emp => emp.department_name).filter(Boolean))
+    new Set((employeesData || []).map(emp => emp.department_name).filter(Boolean))
   );
 
   // 表格列定义
-  const columns: ColumnDef<EmployeeData>[] = [
+  const columns: ColumnDef<any>[] = [
     {
       accessorKey: 'full_name',
       header: t('employee:fullName'),
@@ -128,7 +130,7 @@ export default function CreateBatchPayrollPage() {
       />
 
       {/* 薪资信息设置 */}
-      <div className={cardEffects.modern}>
+      <div className={cardEffects.elevated}>
         <div className="p-6">
           <h3 className="text-lg font-semibold mb-4">{t('payroll:payrollInformation')}</h3>
           
@@ -141,7 +143,7 @@ export default function CreateBatchPayrollPage() {
               <MonthPicker
                 value={selectedMonth}
                 onChange={setSelectedMonth}
-                placeholder={t('payroll:selectMonth')}
+                placeholder={String(t('payroll:selectMonth'))}
                 showDataIndicators={true}
                 disableMonthsWithData={true}
               />
@@ -156,7 +158,7 @@ export default function CreateBatchPayrollPage() {
                 type="date"
                 value={payDate}
                 onChange={(e) => setPayDate(e.target.value)}
-                className={inputEffects.modern}
+                className="input input-bordered"
                 min={getMonthDateRange(selectedMonth).startDate}
               />
             </div>
@@ -165,7 +167,7 @@ export default function CreateBatchPayrollPage() {
       </div>
 
       {/* 员工选择 */}
-      <div className={cardEffects.modern}>
+      <div className={cardEffects.elevated}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">{t('payroll:selectEmployees')}</h3>

@@ -1,7 +1,4 @@
-import { useTranslation } from '@/hooks/useTranslation';
-
 export function Footer() {
-  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
 
   return (

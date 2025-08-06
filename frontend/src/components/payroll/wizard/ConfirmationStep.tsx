@@ -6,12 +6,14 @@ import { formatCurrency, formatMonth } from '@/lib/format';
 import { PayrollCreationService } from '@/services/payroll-creation.service';
 import { payrollStatisticsService } from '@/services/payroll-statistics.service';
 
-enum CreationMode {
-  COPY = 'copy',
-  IMPORT = 'import', 
-  MANUAL = 'manual',
-  TEMPLATE = 'template'
-}
+const CreationMode = {
+  COPY: 'copy',
+  IMPORT: 'import', 
+  MANUAL: 'manual',
+  TEMPLATE: 'template'
+} as const;
+
+type CreationMode = typeof CreationMode[keyof typeof CreationMode];
 
 interface ConfirmationStepProps {
   wizardState: any;

@@ -166,7 +166,10 @@ export const useEmployeeStatistics = (params?: StatisticsQueryParams) => {
         
         // 按状态统计
         if (employee.employment_status) {
-          statistics.byStatus[employee.employment_status]++;
+          const status = employee.employment_status as keyof typeof statistics.byStatus;
+          if (status in statistics.byStatus) {
+            statistics.byStatus[status]++;
+          }
         }
         
         // 按年龄段统计
@@ -285,22 +288,110 @@ export const useEmployeeTrends = (months: number = 12) => {
   });
 };
 
+// 内部服务函数：获取员工统计数据（不是Hook）
+const fetchEmployeeStatistics = async (params: StatisticsQueryParams = {}): Promise<EmployeeStatistics> => {
+  const { data: employees, error } = await supabase
+    .from('v_employees_with_details')
+    .select('*')
+    .eq('is_active', true);
+
+  if (error) {
+    throw new Error(`获取员工数据失败: ${error.message}`);
+  }
+
+  const filteredEmployees = employees?.filter((employee: any) => {
+    if (params.departmentId && employee.department_id !== params.departmentId) return false;
+    return true;
+  }) || [];
+
+  const statistics: EmployeeStatistics = {
+    total: filteredEmployees.length,
+    byStatus: { active: 0, inactive: 0, terminated: 0 },
+    byGender: { male: 0, female: 0, other: 0, unknown: 0 },
+    byEducation: {
+      doctorate: 0,
+      master: 0, 
+      bachelor: 0,
+      associate: 0,
+      highSchool: 0,
+      unknown: 0
+    },
+    byAgeGroup: {
+      under25: 0,
+      age25to35: 0,
+      age36to45: 0,
+      age46to55: 0,
+      above55: 0,
+      unknown: 0
+    },
+    byDepartment: [],
+    byCategory: {
+      regular: 0,
+      contract: 0,
+      other: 0
+    },
+    salary: {
+      total: 0,
+      average: 0,
+      median: 0,
+      min: 0,
+      max: 0
+    }
+  };
+
+  const departmentMap = new Map<string, { name: string; count: number }>();
+  const positionMap = new Map<string, { name: string; count: number }>();
+  const categoryMap = new Map<string, { name: string; count: number }>();
+
+  filteredEmployees.forEach((employee: any) => {
+    // 按部门统计
+    if (employee.department_name) {
+      const current = departmentMap.get(employee.department_name) || { 
+        name: employee.department_name, 
+        count: 0 
+      };
+      current.count++;
+      departmentMap.set(employee.department_name, current);
+    }
+    
+    // 按状态统计
+    if (employee.employment_status) {
+      const status = employee.employment_status as keyof typeof statistics.byStatus;
+      if (status in statistics.byStatus) {
+        statistics.byStatus[status]++;
+      }
+    }
+    
+    // 按年龄段统计
+    const ageGroup = getAgeGroup(employee.date_of_birth);
+    statistics.byAgeGroup[ageGroup]++;
+  });
+  
+  // 转换部门统计数据
+  statistics.byDepartment = Array.from(departmentMap.entries()).map(([name, data]) => ({
+    departmentId: name,
+    departmentName: name,
+    count: data.count
+  }));
+
+  return statistics;
+};
+
 // 获取部门统计信息
 export const useEmployeeStatisticsByDepartment = (departmentId: string) => {
   return useQuery({
     queryKey: ['department-statistics', departmentId],
     queryFn: async (): Promise<DepartmentStatistics> => {
-      // 使用通用统计函数，但添加部门过滤
       const params: StatisticsQueryParams = { departmentId };
-      const stats = await useEmployeeStatistics(params);
+      const stats = await fetchEmployeeStatistics(params);
       
       return {
         departmentId,
-        departmentName: stats.queryData?.byDepartment.find(d => d.departmentId === departmentId)?.departmentName || '',
-        statistics: {
-          ...stats.queryData!,
-          byDepartment: [] // 部门统计中不需要再包含部门分组
-        }
+        departmentName: stats.byDepartment.find(d => d.departmentId === departmentId)?.departmentName || '',
+        statistics: ((): Omit<EmployeeStatistics, 'byDepartment'> => {
+          const { byDepartment, ...rest } = stats;
+          return rest;
+        })()
       };
     },
     enabled: !!departmentId,

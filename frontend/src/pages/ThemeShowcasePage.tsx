@@ -175,7 +175,7 @@ export const ThemeShowcasePage: React.FC = () => {
               <FinancialBadge variant="profit" size="sm">SM</FinancialBadge>
               <FinancialBadge variant="profit" size="md">MD</FinancialBadge>
               <FinancialBadge variant="profit" size="lg">LG</FinancialBadge>
-              <FinancialBadge variant="profit" size="xl">XL</FinancialBadge>
+              <FinancialBadge variant="profit" size="lg">LG</FinancialBadge>
             </div>
           </div>
         </div>
@@ -185,37 +185,29 @@ export const ThemeShowcasePage: React.FC = () => {
           <h2 className="text-2xl font-semibold mb-6">财务卡片组件</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <ProfitCard
+            <FinancialCard
               title="总收入"
-              actions={<button className="btn btn-sm btn-primary">查看详情</button>}
-            >
-              <div className="text-2xl font-bold text-profit">¥125,000</div>
-              <div className="text-sm text-base-content/60">较上月增长 12%</div>
-            </ProfitCard>
+              amount={125000}
+              variant="primary"
+            />
             
-            <LossCard
+            <FinancialCard
               title="总支出"
-              actions={<button className="btn btn-sm btn-error">查看详情</button>}
-            >
-              <div className="text-2xl font-bold text-loss">¥89,000</div>
-              <div className="text-sm text-base-content/60">较上月减少 5%</div>
-            </LossCard>
+              amount={89000}
+              variant="error"
+            />
             
-            <WarningCard
+            <FinancialCard
               title="待处理项目"
-              actions={<button className="btn btn-sm btn-warning">处理</button>}
-            >
-              <div className="text-2xl font-bold text-pending">23</div>
-              <div className="text-sm text-base-content/60">需要审批</div>
-            </WarningCard>
+              amount={23}
+              variant="warning"
+            />
             
-            <InfoCard
+            <FinancialCard
               title="员工总数"
-              actions={<button className="btn btn-sm btn-info">管理</button>}
-            >
-              <div className="text-2xl font-bold text-info">156</div>
-              <div className="text-sm text-base-content/60">活跃员工</div>
-            </InfoCard>
+              amount={156}
+              variant="info"
+            />
           </div>
           
           {/* 不同尺寸的卡片 */}
@@ -223,26 +215,20 @@ export const ThemeShowcasePage: React.FC = () => {
             <FinancialCard 
               size="sm" 
               title="紧凑卡片"
-              description="适用于仪表板概览"
-            >
-              <div className="text-lg font-medium">小尺寸内容</div>
-            </FinancialCard>
+              amount={1000}
+            />
             
             <FinancialCard 
               size="md" 
               title="标准卡片"
-              description="最常用的卡片尺寸"
-            >
-              <div className="text-xl font-medium">标准尺寸内容</div>
-            </FinancialCard>
+              amount={5000}
+            />
             
             <FinancialCard 
               size="lg" 
               title="大型卡片"
-              description="适用于详细信息展示"
-            >
-              <div className="text-2xl font-medium">大尺寸内容</div>
-            </FinancialCard>
+              amount={10000}
+            />
           </div>
         </div>
 

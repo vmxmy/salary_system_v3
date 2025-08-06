@@ -244,10 +244,10 @@ export const EmployeeStatusBadge: React.FC<{
 }> = ({ status, size = 'sm', className }) => {
   const { t } = useTranslation(['employee']);
   const labels = {
-    active: t('employee:status.active'),
-    inactive: t('employee:status.inactive'),
-    probation: t('employee:status.probation'),
-    leave: t('employee:status.leave'),
+    active: String(t('employee:status.active')),
+    inactive: String(t('employee:status.inactive')),
+    probation: String(t('employee:status.probation')),
+    leave: String(t('employee:status.leave')),
   };
 
   return (
@@ -287,7 +287,7 @@ export const SalaryStatusBadge: React.FC<{
       showIcon
       className={className}
     >
-      {amount !== undefined ? `${labels[status]} ¥${amount.toLocaleString()}` : labels[status]}
+      {amount !== undefined ? `${labels[status]} ¥${amount.toLocaleString()}` : String(labels[status])}
     </FinancialBadge>
   );
 };
@@ -302,10 +302,10 @@ export const PriorityBadge: React.FC<{
 }> = ({ priority, size = 'xs', className }) => {
   const { t } = useTranslation(['common']);
   const labels = {
-    critical: t('common:priority.critical'),
-    high: t('common:priority.high'),
-    medium: t('common:priority.medium'),
-    low: t('common:priority.low'),
+    critical: String(t('common:priority.critical')),
+    high: String(t('common:priority.high')),
+    medium: String(t('common:priority.medium')),
+    low: String(t('common:priority.low')),
   };
 
   return (

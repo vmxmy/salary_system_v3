@@ -39,7 +39,7 @@ export function LoadingScreen({
         <div className="flex items-center gap-3">
           <span className={cn('loading loading-spinner', sizeClasses[size])}></span>
           <span className="text-base-content/70">
-            {message || t('common:loading')}
+{message || String(t('common:loading'))}
           </span>
         </div>
       </div>
@@ -52,7 +52,7 @@ export function LoadingScreen({
         <span className={cn('loading loading-spinner text-primary', sizeClasses[size])}></span>
         <div className="max-w-sm mx-auto">
           <p className="text-base-content">
-            {message || t('common:loading')}
+{message || String(t('common:loading'))}
           </p>
         </div>
       </div>

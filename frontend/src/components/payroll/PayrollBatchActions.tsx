@@ -1,6 +1,5 @@
 import { cn, cardEffects, buttonEffects } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
-import { PayrollStatus, type PayrollStatusType } from '@/services/payroll.service';
 
 interface PayrollBatchActionsProps {
   selectedCount: number;
@@ -41,7 +40,7 @@ export function PayrollBatchActions({
           <span className="text-sm font-semibold">{selectedCount}</span>
         </div>
         <span className="text-sm text-base-content/70">
-          {t('selectedItems', { count: selectedCount })}
+          {String(t('selectedItems', { count: selectedCount }))}
         </span>
       </div>
 
@@ -59,7 +58,7 @@ export function PayrollBatchActions({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                 d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
-            {t('calculate')}
+            {String(t('calculate'))}
           </button>
         )}
 
@@ -76,7 +75,7 @@ export function PayrollBatchActions({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            {t('approve')}
+            {String(t('approve'))}
           </button>
         )}
 
@@ -93,7 +92,7 @@ export function PayrollBatchActions({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                 d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            {t('markPaid')}
+            {String(t('markPaid'))}
           </button>
         )}
 
@@ -110,7 +109,7 @@ export function PayrollBatchActions({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            {t('exportAction')}
+            {String(t('exportAction'))}
           </button>
         )}
 
@@ -129,7 +128,7 @@ export function PayrollBatchActions({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                 d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
             </svg>
-            {t('cancel')}
+            {String(t('cancel'))}
           </button>
         )}
 
@@ -146,7 +145,7 @@ export function PayrollBatchActions({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-            {t('delete')}
+            {String(t('delete'))}
           </button>
         )}
       </div>

@@ -25,7 +25,7 @@ class PayrollStatisticsService {
    */
   async getPayrollEstimation(): Promise<PayrollEstimation> {
     const { data, error } = await supabase
-      .from('v_payroll_period_estimation')
+      .from('view_payroll_period_estimation')
       .select('*')
       .single();
 
@@ -78,7 +78,7 @@ class PayrollStatisticsService {
    */
   async getEmployeePayrollStatistics(employeeIds?: string[]): Promise<EmployeePayrollStatistics[]> {
     let query = supabase
-      .from('v_employee_payroll_statistics')
+      .from('view_employee_payroll_statistics')
       .select('*');
 
     if (employeeIds && employeeIds.length > 0) {
@@ -109,7 +109,7 @@ class PayrollStatisticsService {
    */
   async getPayrollHistoryTrend() {
     const { data, error } = await supabase
-      .from('v_payroll_history_trend')
+      .from('view_payroll_history_trend')
       .select('*')
       .order('pay_month', { ascending: false });
 
@@ -126,7 +126,7 @@ class PayrollStatisticsService {
    */
   async getDepartmentPayrollStatistics() {
     const { data, error } = await supabase
-      .from('v_department_payroll_statistics')
+      .from('view_department_payroll_statistics')
       .select('*')
       .order('department_name');
 

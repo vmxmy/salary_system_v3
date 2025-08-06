@@ -2,14 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useToast } from '@/contexts/ToastContext';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { AccordionSection, AccordionContent, AccordionFormGroup } from '@/components/common/AccordionSection';
-import { DetailField, FieldGroup } from '@/components/common/DetailField';
+import { AccordionSection, AccordionContent } from '@/components/common/AccordionSection';
+import { DetailField } from '@/components/common/DetailField';
 import { ModernButton } from '@/components/common/ModernButton';
 import { PayrollStatusBadge } from './PayrollStatusBadge';
 import { payrollService, PayrollStatus, type PayrollStatusType } from '@/services/payroll.service';
-import { cn, cardEffects, iconContainer } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/format';
-import type { Database } from '@/types/supabase';
 
 // 薪资详情数据类型
 interface PayrollDetailData {
@@ -37,13 +36,16 @@ interface PayrollItemDetail {
   payroll_id: string;
   component_id: string;
   component_name: string;
-  component_type: 'earnings' | 'deductions';
+  component_type: 'earning' | 'deduction';
+  component_category: 'basic_salary' | 'benefits' | 'personal_insurance' | 'employer_insurance' | 'personal_tax';
   category: string;
-  category_display_name: string;
+  category_display_name?: string;
+  category_name: string;
   category_sort_order: number;
   amount: number;
   calculation_method?: string;
   notes?: string;
+  item_notes?: string;
 }
 
 // 五险一金详情数据类型
@@ -87,6 +89,17 @@ interface ContributionBase {
   effective_end_date?: string;
 }
 
+// 个人扣缴类分类定义
+const PERSONAL_DEDUCTION_CATEGORIES = ['personal_insurance', 'personal_tax'];
+
+// 薪资类别显示名称映射
+const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+  'personal_insurance': '个人五险一金',
+  'personal_tax': '个人所得税',
+  'basic_salary': '基本工资',
+  'benefits': '津贴福利'
+};
+
 interface PayrollDetailModalProps {
   payrollId: string | null;
   open: boolean;
@@ -128,11 +141,11 @@ export function PayrollDetailModal({
       
       const payroll = payrolls.find(p => p.id === payrollId);
       if (payroll) {
-        setPayrollData(payroll as PayrollDetailData);
+        setPayrollData(payroll as unknown as PayrollDetailData);
 
         // 获取五险一金详情
         const insurance = await payrollService.getEmployeeInsuranceDetails(payrollId);
-        setInsuranceDetails(insurance as InsuranceDetail[]);
+        setInsuranceDetails(insurance as unknown as InsuranceDetail[]);
 
         // 获取缴费基数信息（基于薪资期间）
         if (payroll.employee_id) {
@@ -146,8 +159,29 @@ export function PayrollDetailModal({
       }
 
       // 获取薪资明细项
-      const items = await payrollService.getPayrollDetails(payrollId);
-      setPayrollItems(items as PayrollItemDetail[]);
+      try {
+        console.log('开始获取薪资明细，payrollId:', payrollId);
+        const items = await payrollService.getPayrollDetails(payrollId);
+        console.log('原始获取的薪资明细数据:', {
+          totalCount: items?.length || 0,
+          rawData: items,
+          dataStructure: items?.length > 0 ? {
+            firstItem: items[0],
+            fieldNames: Object.keys(items[0] || {}),
+            sampleValues: {
+              component_type: items[0]?.component_type,
+              category: items[0]?.category,
+              category_display_name: items[0]?.category_display_name,
+              component_name: items[0]?.component_name,
+              amount: items[0]?.amount
+            }
+          } : null
+        });
+        setPayrollItems(items as PayrollItemDetail[]);
+      } catch (itemError) {
+        console.error('获取薪资明细失败:', itemError);
+        setPayrollItems([]);
+      }
     } catch (err) {
       setIsError(true);
       setError(err as Error);
@@ -224,19 +258,19 @@ export function PayrollDetailModal({
       // 如果有更新，执行保存
       if (Object.keys(updates).length > 0) {
         await payrollService.updatePayroll(payrollData.id, updates);
-        showSuccess(t('payroll:message.updateSuccess'));
+        showSuccess(String(t('payroll:message.updateSuccess')));
         // 重新获取数据
         await fetchPayrollData();
       } else {
-        showInfo(t('payroll:message.noChangesDetected'));
+        showInfo(String(t('payroll:message.noChangesDetected')));
       }
       
       // 退出编辑模式
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to save payroll data:', error);
-      const errorMessage = error instanceof Error ? error.message : t('common:message.operationFailed');
-      showError(`${t('payroll:message.saveFailed')}: ${errorMessage}`);
+      const errorMessage = error instanceof Error ? error.message : String(t('common:message.operationFailed'));
+      showError(`${String(t('payroll:message.saveFailed'))}: ${errorMessage}`);
     }
   }, [payrollData, editDataRef, showSuccess, showInfo, showError, t, fetchPayrollData]);
 
@@ -275,7 +309,7 @@ export function PayrollDetailModal({
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <h1 className="text-xl font-bold text-base-content">
-                  {payrollData?.employee?.full_name || t('payroll:payrollDetails')}
+                  {payrollData?.employee?.full_name || String(t('payroll:payrollDetails'))}
                 </h1>
                 <div className="flex items-center gap-4 text-sm text-base-content/60">
                   {payrollData && (
@@ -297,7 +331,7 @@ export function PayrollDetailModal({
                 size="sm"
                 onClick={handleClose}
                 className="flex-shrink-0"
-                aria-label={t('common:close')}
+                aria-label={String(t('common:close'))}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
@@ -319,7 +353,7 @@ export function PayrollDetailModal({
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-base-content/60">{t('payroll:grossPay')}</p>
+                      <p className="text-sm text-base-content/60">{String(t('payroll:grossPay'))}</p>
                       <p className="text-lg font-semibold text-success font-mono">
                         {formatCurrency(payrollData.gross_pay)}
                       </p>
@@ -336,7 +370,7 @@ export function PayrollDetailModal({
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-base-content/60">{t('payroll:totalDeductions')}</p>
+                      <p className="text-sm text-base-content/60">{String(t('payroll:totalDeductions'))}</p>
                       <p className="text-lg font-semibold text-error font-mono">
                         -{formatCurrency(payrollData.total_deductions)}
                       </p>
@@ -353,7 +387,7 @@ export function PayrollDetailModal({
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-primary/80 font-medium">{t('payroll:netPay')}</p>
+                      <p className="text-sm text-primary/80 font-medium">{String(t('payroll:netPay'))}</p>
                       <p className="text-xl font-bold text-primary font-mono">
                         {formatCurrency(payrollData.net_pay)}
                       </p>
@@ -373,7 +407,7 @@ export function PayrollDetailModal({
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>{t('common:error.loadFailed')}: {error?.message}</span>
+                <span>{String(t('common:error.loadFailed'))}: {error?.message}</span>
               </div>
             )}
 
@@ -407,16 +441,16 @@ export function PayrollDetailModal({
               {/* 右侧：操作按钮 */}
               <div className="flex items-center gap-3">
                 <ModernButton variant="ghost" onClick={handleClose}>
-                  {t('common:close')}
+                  {String(t('common:close'))}
                 </ModernButton>
                 
                 {isEditing ? (
                   <>
                     <ModernButton 
-                      variant="outline" 
+                      variant="secondary" 
                       onClick={() => setIsEditing(false)}
                     >
-                      {t('common:cancel')}
+                      {String(t('common:cancel'))}
                     </ModernButton>
                     <ModernButton
                       variant="primary"
@@ -426,7 +460,7 @@ export function PayrollDetailModal({
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      {t('common:save')}
+                      {String(t('common:save'))}
                     </ModernButton>
                   </>
                 ) : (
@@ -438,7 +472,7 @@ export function PayrollDetailModal({
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
-                    {t('common:edit')}
+                    {String(t('common:edit'))}
                   </ModernButton>
                 )}
               </div>
@@ -503,9 +537,9 @@ function PayrollDetailContent({
     });
   };
 
-  // 按分类分组薪资项目
+  // 按 component_category 分组薪资项目
   const groupedItems = payrollItems.reduce((acc, item) => {
-    const category = item.category_display_name || item.category;
+    const category = item.component_category || item.category;
     if (!acc[category]) {
       acc[category] = [];
     }
@@ -513,11 +547,39 @@ function PayrollDetailContent({
     return acc;
   }, {} as Record<string, PayrollItemDetail[]>);
 
+
+  // 增强调试信息
+  console.log('PayrollDetailContent 详细调试信息:', {
+    payrollId: payroll.id,
+    payrollItemsLength: payrollItems.length,
+    payrollItemsRaw: payrollItems,
+    groupedItemsKeys: Object.keys(groupedItems),
+    groupedItemsDetail: groupedItems,
+    // 检查 component_type 的值分布
+    componentTypes: payrollItems.map(item => item.component_type),
+    uniqueComponentTypes: [...new Set(payrollItems.map(item => item.component_type))],
+    // 检查分类的值
+    componentCategories: payrollItems.map(item => item.component_category),
+    uniqueComponentCategories: [...new Set(payrollItems.map(item => item.component_category))],
+    categoryNames: payrollItems.map(item => item.category_name),
+    uniqueCategoryNames: [...new Set(payrollItems.map(item => item.category_name))],
+    // 检查是否有earning和deduction项目
+    earningItems: payrollItems.filter(item => item.component_type === 'earning'),
+    allDeductionItems: payrollItems.filter(item => item.component_type === 'deduction'),
+    personalDeductionItems: payrollItems.filter(item => 
+      item.component_type === 'deduction' && 
+      PERSONAL_DEDUCTION_CATEGORIES.includes(item.component_category)
+    ),
+    filteredDeductionCategories: [...new Set(payrollItems
+      .filter(item => item.component_type === 'deduction' && PERSONAL_DEDUCTION_CATEGORIES.includes(item.component_category))
+      .map(item => item.component_category))]
+  });
+
   // 计算各类别小计
   const categoryTotals = Object.entries(groupedItems).map(([category, items]) => ({
     category,
     total: items.reduce((sum, item) => sum + (item.amount || 0), 0),
-    isDeduction: items[0]?.component_type === 'deductions'
+    isDeduction: items[0]?.component_type === 'deduction'
   }));
 
   return (
@@ -530,7 +592,7 @@ function PayrollDetailContent({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         }
-        title={t('payroll:sections.basicInfo')}
+        title={String(t('payroll:sections.basicInfo'))}
         isOpen={openSections.has('basic')}
         onToggle={toggleSection}
         isEditing={isEditing}
@@ -546,7 +608,7 @@ function PayrollDetailContent({
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-primary">
-                  {payroll.employee?.full_name || t('common:unknown')}
+                  {payroll.employee?.full_name || String(t('common:unknown'))}
                 </h3>
                 <p className="text-sm text-base-content/60">
                   {payroll.employee?.id_number && `身份证：${payroll.employee.id_number}`}
@@ -565,21 +627,21 @@ function PayrollDetailContent({
             </h4>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <DetailField 
-                label={t('payroll:periodStart')} 
+                label={String(t('payroll:periodStart'))} 
                 value={isEditing ? editData.pay_period_start : payroll.pay_period_start}
                 type="date"
                 isEditing={isEditing}
                 onChange={(value) => updateEditData('pay_period_start', value)}
               />
               <DetailField 
-                label={t('payroll:periodEnd')} 
+                label={String(t('payroll:periodEnd'))} 
                 value={isEditing ? editData.pay_period_end : payroll.pay_period_end}
                 type="date"
                 isEditing={isEditing}
                 onChange={(value) => updateEditData('pay_period_end', value)}
               />
               <DetailField 
-                label={t('payroll:payDate')} 
+                label={String(t('payroll:payDate'))} 
                 value={isEditing ? editData.pay_date : payroll.pay_date}
                 type="date"
                 isEditing={isEditing}
@@ -598,28 +660,28 @@ function PayrollDetailContent({
             </h4>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DetailField 
-                label={t('common:common.status')} 
+                label={String(t('common:common.status'))} 
                 value={isEditing ? editData.status : payroll.status}
                 type={isEditing ? 'select' : 'status'}
                 isEditing={isEditing}
                 onChange={(value) => updateEditData('status', value as PayrollStatusType)}
                 options={[
-                  { value: PayrollStatus.DRAFT, label: t('payroll:status.draft') },
-                  { value: PayrollStatus.CALCULATING, label: t('payroll:status.calculating') },
-                  { value: PayrollStatus.CALCULATED, label: t('payroll:status.calculated') },
-                  { value: PayrollStatus.APPROVED, label: t('payroll:status.approved') },
-                  { value: PayrollStatus.PAID, label: t('payroll:status.paid') },
-                  { value: PayrollStatus.CANCELLED, label: t('payroll:status.cancelled') }
+                  { value: PayrollStatus.DRAFT, label: String(t('payroll:status.draft')) },
+                  { value: 'calculating', label: String(t('payroll:status.calculating')) },
+                  { value: 'calculated', label: String(t('payroll:status.calculated')) },
+                  { value: PayrollStatus.APPROVED, label: String(t('payroll:status.approved')) },
+                  { value: PayrollStatus.PAID, label: String(t('payroll:status.paid')) },
+                  { value: PayrollStatus.CANCELLED, label: String(t('payroll:status.cancelled')) }
                 ]}
                 renderValue={!isEditing ? () => <PayrollStatusBadge status={payroll.status} size="sm" showIcon={false} /> : undefined}
               />
               <DetailField 
-                label={t('payroll:notes')} 
+                label={String(t('payroll:notes'))} 
                 value={isEditing ? (editData.notes || '') : (payroll.notes || '')}
                 type="textarea"
                 isEditing={isEditing}
                 onChange={(value) => updateEditData('notes', value)}
-                placeholder={t('payroll:notesPlaceholder')}
+                placeholder={String(t('payroll:notesPlaceholder'))}
                 rows={3}
               />
             </div>
@@ -636,7 +698,7 @@ function PayrollDetailContent({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
           </svg>
         }
-        title={t('payroll:payrollBreakdown')}
+        title={String(t('payroll:payrollBreakdown'))}
         isOpen={openSections.has('breakdown')}
         onToggle={toggleSection}
         isEditing={isEditing}
@@ -658,7 +720,7 @@ function PayrollDetailContent({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
         }
-        title={t('payroll:sections.insurance')}
+        title={String(t('payroll:sections.insurance'))}
         isOpen={openSections.has('insurance')}
         onToggle={toggleSection}
         isEditing={isEditing}
@@ -678,7 +740,7 @@ function PayrollDetailContent({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         }
-        title={t('payroll:sections.contributionBase')}
+        title={String(t('payroll:sections.contributionBase'))}
         isOpen={openSections.has('contribution')}
         onToggle={toggleSection}
         isEditing={isEditing}
@@ -706,11 +768,8 @@ interface PayrollBreakdownSectionProps {
 
 function PayrollBreakdownSection({
   groupedItems,
-  categoryTotals,
-  isEditing,
-  payroll
+  categoryTotals
 }: PayrollBreakdownSectionProps & { payroll: PayrollDetailData }) {
-  const { t } = useTranslation(['payroll', 'common']);
 
   if (Object.keys(groupedItems).length === 0) {
     return (
@@ -720,18 +779,47 @@ function PayrollBreakdownSection({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
         </div>
-        <p className="text-base-content/60 text-sm">{t('payroll:noPayrollItems')}</p>
+        <p className="text-base-content/60 text-sm">暂无薪资明细数据</p>
+        <p className="text-base-content/40 text-xs mt-2">
+          请检查该薪资记录是否包含明细项目数据
+        </p>
       </div>
     );
   }
 
-  // 分离收入项和扣除项
+  // 分离收入项和个人扣缴项 - 只显示个人扣缴类
   const incomeCategories = Object.entries(groupedItems).filter(([, items]) => 
-    items[0]?.component_type === 'earnings'
+    items[0]?.component_type === 'earning'
   );
-  const deductionCategories = Object.entries(groupedItems).filter(([, items]) => 
-    items[0]?.component_type === 'deductions'
+  const deductionCategories = Object.entries(groupedItems).filter(([category, items]) => 
+    items[0]?.component_type === 'deduction' && 
+    PERSONAL_DEDUCTION_CATEGORIES.includes(category)
   );
+
+  // 详细的过滤调试信息
+  console.log('分类过滤调试:', {
+    originalGroupedKeys: Object.keys(groupedItems),
+    incomeCategories: incomeCategories.map(([cat, items]) => ({ 
+      category: cat, 
+      count: items.length, 
+      type: items[0]?.component_type,
+      sampleItem: items[0]?.component_name 
+    })),
+    deductionCategories: deductionCategories.map(([cat, items]) => ({ 
+      category: cat, 
+      count: items.length, 
+      type: items[0]?.component_type,
+      sampleItem: items[0]?.component_name 
+    })),
+    allDeductionGroups: Object.entries(groupedItems)
+      .filter(([, items]) => items[0]?.component_type === 'deduction')
+      .map(([cat, items]) => ({ 
+        category: cat, 
+        count: items.length, 
+        isPersonal: PERSONAL_DEDUCTION_CATEGORIES.includes(cat),
+        sampleItem: items[0]?.component_name 
+      }))
+  });
 
   const renderCategorySection = (categories: [string, PayrollItemDetail[]][], sectionType: 'income' | 'deduction') => {
     if (categories.length === 0) return null;
@@ -742,8 +830,8 @@ function PayrollBreakdownSection({
           <div className={cn(
             "w-8 h-8 rounded-lg flex items-center justify-center",
             sectionType === 'income' 
-              ? "bg-success/10 text-success" 
-              : "bg-error/10 text-error"
+              ? "bg-green-100 text-green-600" 
+              : "bg-red-100 text-red-600"
           )}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -754,26 +842,30 @@ function PayrollBreakdownSection({
               />
             </svg>
           </div>
-          <h3 className="text-base font-semibold text-base-content">
-            {sectionType === 'income' ? '收入项目' : '扣除项目'}
+          <h3 className={cn(
+            "text-base font-semibold",
+            sectionType === 'income' ? 'text-green-700' : 'text-red-700'
+          )}>
+            {sectionType === 'income' ? '收入项目' : '个人扣缴项目'}
           </h3>
         </div>
 
         {categories.map(([category, items]) => {
-          const categoryTotal = categoryTotals.find(ct => ct.category === category);
           const isDeduction = sectionType === 'deduction';
           
           return (
             <div key={category} className={cn(
               "rounded-xl border transition-all duration-200",
               isDeduction 
-                ? "bg-error/2 border-error/10 hover:bg-error/5" 
-                : "bg-success/2 border-success/10 hover:bg-success/5"
+                ? "bg-red-50/50 border-red-200/50 hover:bg-red-50/80" 
+                : "bg-green-50/50 border-green-200/50 hover:bg-green-50/80"
             )}>
               {/* 分类头部 - 简化，不显示金额汇总 */}
               <div className="p-4 border-b border-current/10">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-base-content/90">{category}</h4>
+                  <h4 className="font-medium text-base-content/90">
+                    {items[0]?.category_name || CATEGORY_DISPLAY_NAMES[category] || category}
+                  </h4>
                   <div className="text-xs text-base-content/60">
                     {items.length} 个项目
                   </div>
@@ -790,9 +882,12 @@ function PayrollBreakdownSection({
                           <h5 className="font-medium text-base-content">{item.component_name}</h5>
                           <div className={cn(
                             "text-base font-semibold font-mono",
-                            isDeduction ? "text-error" : "text-success"
+                            isDeduction ? "text-red-600" : "text-green-600"
                           )}>
-                            {isDeduction ? "-" : "+"}{formatCurrency(Math.abs(item.amount))}
+                            {isDeduction 
+                              ? `-${formatCurrency(Math.abs(item.amount))}`
+                              : `+${formatCurrency(Math.abs(item.amount))}`
+                            }
                           </div>
                         </div>
                         
@@ -841,8 +936,7 @@ interface InsuranceDetailsSectionProps {
 }
 
 function InsuranceDetailsSection({
-  insuranceDetails,
-  isEditing
+  insuranceDetails
 }: InsuranceDetailsSectionProps) {
   const { t } = useTranslation(['payroll', 'common']);
 
@@ -854,7 +948,7 @@ function InsuranceDetailsSection({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
         </div>
-        <p className="text-base-content/60 text-sm">{t('payroll:noInsuranceDetails')}</p>
+        <p className="text-base-content/60 text-sm">{String(t('payroll:noInsuranceDetails'))}</p>
       </div>
     );
   }
@@ -1051,8 +1145,7 @@ interface ContributionBaseSectionProps {
 }
 
 function ContributionBaseSection({
-  contributionBases,
-  isEditing
+  contributionBases
 }: ContributionBaseSectionProps) {
   const { t } = useTranslation(['payroll', 'common']);
 
@@ -1064,7 +1157,7 @@ function ContributionBaseSection({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <p className="text-base-content/60 text-sm">{t('payroll:noContributionBase')}</p>
+        <p className="text-base-content/60 text-sm">{String(t('payroll:noContributionBase'))}</p>
       </div>
     );
   }

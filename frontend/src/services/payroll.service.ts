@@ -10,6 +10,8 @@ type PayrollUpdate = Database['public']['Tables']['payrolls']['Update'];
 // 薪资状态枚举
 export const PayrollStatus = {
   DRAFT: 'draft',
+  CALCULATING: 'calculating',
+  CALCULATED: 'calculated',
   APPROVED: 'approved', 
   PAID: 'paid',
   CANCELLED: 'cancelled'

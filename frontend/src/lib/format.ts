@@ -44,29 +44,31 @@ export function formatDate(
 ): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
-  const options: Intl.DateTimeFormatOptions = {
+  const formatOptions: Record<string, Intl.DateTimeFormatOptions> = {
     full: { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+      weekday: 'long' as const, 
+      year: 'numeric' as const, 
+      month: 'long' as const, 
+      day: 'numeric' as const
     },
     long: { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+      year: 'numeric' as const, 
+      month: 'long' as const, 
+      day: 'numeric' as const
     },
     medium: { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+      year: 'numeric' as const, 
+      month: 'short' as const, 
+      day: 'numeric' as const
     },
     short: { 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit' 
+      year: 'numeric' as const, 
+      month: '2-digit' as const, 
+      day: '2-digit' as const
     }
-  }[format];
+  };
+  
+  const options = formatOptions[format];
 
   return new Intl.DateTimeFormat('zh-CN', options).format(dateObj);
 }

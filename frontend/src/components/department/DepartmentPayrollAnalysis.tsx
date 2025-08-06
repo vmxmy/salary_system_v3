@@ -3,8 +3,6 @@ import {
   CurrencyDollarIcon,
   ChartBarIcon,
   CalendarIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
   ArrowUpIcon,
   ArrowDownIcon,
   UsersIcon,
@@ -17,7 +15,7 @@ import { MonthPicker } from '@/components/common/MonthPicker';
 import { useDepartmentPayrollStats } from '@/hooks/useDepartments';
 import { DepartmentSalaryChart, DepartmentSalaryComparison } from './DepartmentSalaryChart';
 import { cn } from '@/lib/utils';
-import type { DepartmentNode, DepartmentPayrollStatistics } from '@/types/department';
+import type { DepartmentNode } from '@/types/department';
 
 interface DepartmentPayrollAnalysisProps {
   department: DepartmentNode;
@@ -58,17 +56,17 @@ export function DepartmentPayrollAnalysis({
   });
 
   // 获取趋势数据（过去几个月）
-  const trendQueries = useMemo(() => {
-    const months = [];
-    for (let i = 0; i < filters.trendMonths; i++) {
-      const date = new Date(filters.year, filters.month - 1 - i, 1);
-      months.push({
-        year: date.getFullYear(),
-        month: date.getMonth() + 1
-      });
-    }
-    return months.reverse();
-  }, [filters.year, filters.month, filters.trendMonths]);
+  // const _trendQueries = useMemo(() => {
+  //   const months = [];
+  //   for (let i = 0; i < filters.trendMonths; i++) {
+  //     const date = new Date(filters.year, filters.month - 1 - i, 1);
+  //     months.push({
+  //       year: date.getFullYear(),
+  //       month: date.getMonth() + 1
+  //     });
+  //   }
+  //   return months.reverse();
+  // }, [filters.year, filters.month, filters.trendMonths]);
 
   // 获取对比数据
   const { 
@@ -339,9 +337,9 @@ export function DepartmentPayrollAnalysis({
                             : 'bg-base-200 text-base-content/70'
                       )}>
                         {growthRate > 0 ? (
-                          <TrendingUpIcon className="w-5 h-5" />
+                          <ArrowUpIcon className="w-5 h-5" />
                         ) : growthRate < 0 ? (
-                          <TrendingDownIcon className="w-5 h-5" />
+                          <ArrowDownIcon className="w-5 h-5" />
                         ) : (
                           <ArrowsUpDownIcon className="w-5 h-5" />
                         )}

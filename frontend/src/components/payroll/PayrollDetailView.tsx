@@ -20,7 +20,7 @@ interface PayrollDetailViewProps {
     id: string;
     employee?: {
       full_name: string;
-      id_number: string;
+      id_number: string | null;
     };
     pay_period_start: string;
     pay_period_end: string;

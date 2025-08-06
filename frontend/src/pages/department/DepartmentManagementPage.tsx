@@ -160,7 +160,7 @@ export default function DepartmentManagementPage() {
     const csvData = flatData.map(dept => ({
       '部门名称': dept.name,
       '员工数量': dept.employee_count || 0,
-      '父级部门': dept.parent_department_name || '无',
+      '父级部门': '无', // DepartmentNode没有parent_department_name属性
       '创建时间': dept.created_at ? new Date(dept.created_at).toLocaleDateString() : '',
       '更新时间': dept.updated_at ? new Date(dept.updated_at).toLocaleDateString() : ''
     }));
@@ -170,11 +170,12 @@ export default function DepartmentManagementPage() {
     const csvContent = [
       headers.join(','),
       ...csvData.map(row => 
-        headers.map(header => 
-          typeof row[header] === 'string' && row[header].includes(',') 
-            ? `"${row[header]}"` 
-            : row[header]
-        ).join(',')
+        headers.map(header => {
+          const value = (row as any)[header];
+          return typeof value === 'string' && value.includes(',') 
+            ? `"${value}"` 
+            : value;
+        }).join(',')
       )
     ].join('\n');
 
@@ -405,7 +406,7 @@ export default function DepartmentManagementPage() {
 
         {/* 导出按钮 */}
         <ModernButton
-          variant="outline"
+          variant="ghost"
           size="md"
           onClick={handleExport}
           disabled={filteredDepartments.length === 0}

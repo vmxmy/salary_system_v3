@@ -119,7 +119,7 @@ export function VirtualizedTable<TData>({
         <div style={{ height }} className="flex items-center justify-center">
           <div className="flex items-center gap-3">
             <span className="loading loading-spinner loading-md"></span>
-            <span className="text-base-content/60">{t('table.loading')}</span>
+            <span className="text-base-content/60">{String(t('table.loading'))}</span>
           </div>
         </div>
       </div>
@@ -159,8 +159,8 @@ export function VirtualizedTable<TData>({
             <svg className="w-12 h-12 mx-auto text-base-content/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
-            <p className="text-base-content/60 mb-2">{t('table.noData')}</p>
-            <p className="text-sm text-base-content/40">{t('table.noDataDescription')}</p>
+            <p className="text-base-content/60 mb-2">{String(t('table.noData'))}</p>
+            <p className="text-sm text-base-content/40">{String(t('table.noDataDescription'))}</p>
           </div>
         </div>
       </div>
@@ -232,11 +232,11 @@ export function VirtualizedTable<TData>({
 
       {/* Table Footer with Row Count */}
       <div className="bg-base-200 px-4 py-2 text-xs text-base-content/60 border-t border-base-300">
-        {t('table.showingRows', { 
+        {String(t('table.showingRows', { 
           from: 1, 
           to: rows.length, 
           total: rows.length 
-        })}
+        }))}
       </div>
     </div>
   );

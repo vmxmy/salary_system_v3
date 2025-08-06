@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import type { Table } from '@tanstack/react-table';
-import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 
@@ -25,7 +24,6 @@ export function EmployeeExport<TData>({
   fileName = 'employees',
   className,
 }: EmployeeExportProps<TData>) {
-  const { t } = useTranslation(['common', 'employee']);
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [config, setConfig] = useState<ExportConfig>({

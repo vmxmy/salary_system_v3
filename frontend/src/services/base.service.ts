@@ -146,7 +146,7 @@ export class BaseService<T extends TableName> {
           event,
           schema: 'public',
           table: this.tableName as string
-        },
+        } as any,
         callback
       )
       .subscribe();

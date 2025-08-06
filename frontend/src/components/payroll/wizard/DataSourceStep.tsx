@@ -8,12 +8,14 @@ import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate, formatMonth } from '@/lib/format';
 import { getMonthDateRange, getPreviousMonth } from '@/lib/dateUtils';
 
-enum CreationMode {
-  COPY = 'copy',
-  IMPORT = 'import', 
-  MANUAL = 'manual',
-  TEMPLATE = 'template'
-}
+const CreationMode = {
+  COPY: 'copy',
+  IMPORT: 'import', 
+  MANUAL: 'manual',
+  TEMPLATE: 'template'
+} as const;
+
+type CreationMode = typeof CreationMode[keyof typeof CreationMode];
 
 interface DataSourceStepProps {
   mode: CreationMode;

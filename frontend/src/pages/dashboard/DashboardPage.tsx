@@ -204,7 +204,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-base-content/60">上次发薪日期</p>
-              <p className="text-lg font-semibold">{formatDate(stats?.lastPayrollDate)}</p>
+              <p className="text-lg font-semibold">{formatDate(stats?.lastPayrollDate || null)}</p>
             </div>
             <div>
               <p className="text-sm text-base-content/60">上次发薪人数</p>

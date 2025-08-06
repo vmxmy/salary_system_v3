@@ -104,7 +104,7 @@ export function useAdjustmentImpact(
  */
 export function useValidateBaseData() {
   return useMutation({
-    mutationFn: (employeeBaseData: EmployeeBaseData[]) => {
+    mutationFn: async (employeeBaseData: EmployeeBaseData[]) => {
       const errors = InsuranceBaseService.validateBaseData(employeeBaseData);
       if (errors.length > 0) {
         throw new Error(errors.join('; '));

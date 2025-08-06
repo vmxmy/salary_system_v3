@@ -12,47 +12,33 @@ export function useRealtimeConnection() {
   useEffect(() => {
     console.log('[Realtime] Initializing connection monitor...');
 
-    // 监听连接状态变化
-    const subscription = supabase.realtime.onConnect(() => {
-      console.log('[Realtime] Connected successfully');
-      setConnectionStatus('OPEN');
-      setIsConnected(true);
-    });
+    // 使用现代 Supabase realtime API
+    const channel = supabase
+      .channel('connection-monitor')
+      .on('system', { event: 'connect' }, () => {
+        console.log('[Realtime] Connected successfully');
+        setConnectionStatus('OPEN');
+        setIsConnected(true);
+      })
+      .on('system', { event: 'disconnect' }, () => {
+        console.log('[Realtime] Disconnected');
+        setConnectionStatus('CLOSED');
+        setIsConnected(false);
+      })
+      .on('system', { event: 'error' }, (error: any) => {
+        console.error('[Realtime] Connection error:', error);
+        setConnectionStatus('ERROR');
+        setIsConnected(false);
+      });
 
-    const disconnectListener = supabase.realtime.onDisconnect(() => {
-      console.log('[Realtime] Disconnected');
-      setConnectionStatus('CLOSED');
-      setIsConnected(false);
-    });
-
-    const errorListener = supabase.realtime.onError((error: any) => {
-      console.error('[Realtime] Connection error:', error);
-      setConnectionStatus('ERROR');
-      setIsConnected(false);
-    });
+    // 订阅频道
+    channel.subscribe();
 
     // 检查初始连接状态
     const checkInitialStatus = () => {
-      const status = supabase.realtime.getStatus();
-      console.log('[Realtime] Initial status:', status);
-      
-      switch (status) {
-        case 'connected':
-          setConnectionStatus('OPEN');
-          setIsConnected(true);
-          break;
-        case 'connecting':
-          setConnectionStatus('CONNECTING');
-          setIsConnected(false);
-          break;
-        case 'disconnected':
-          setConnectionStatus('CLOSED');
-          setIsConnected(false);
-          break;
-        default:
-          setConnectionStatus('ERROR');
-          setIsConnected(false);
-      }
+      // 设置初始状态为连接中
+      setConnectionStatus('CONNECTING');
+      setIsConnected(false);
     };
 
     checkInitialStatus();
@@ -60,9 +46,7 @@ export function useRealtimeConnection() {
     // 清理监听器
     return () => {
       console.log('[Realtime] Cleaning up connection monitor...');
-      if (subscription) subscription.unsubscribe();
-      if (disconnectListener) disconnectListener.unsubscribe();
-      if (errorListener) errorListener.unsubscribe();
+      channel.unsubscribe();
     };
   }, []);
 
