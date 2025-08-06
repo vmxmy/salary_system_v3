@@ -10,6 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<AuthUser>;
   signOut: () => Promise<void>;
+  hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
   hasAllPermissions: (permissions: string[]) => boolean;
 }
@@ -44,6 +45,11 @@ export const DevAuthProvider = ({ children }: { children: ReactNode }) => {
     // In real implementation, would clear user state
   };
 
+  const hasPermission = (permission: string): boolean => {
+    // Super admin has all permissions
+    return true;
+  };
+
   const hasAnyPermission = (permissions: string[]): boolean => {
     // Super admin has all permissions
     return true;
@@ -61,6 +67,7 @@ export const DevAuthProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated,
     signIn,
     signOut,
+    hasPermission,
     hasAnyPermission,
     hasAllPermissions,
   };

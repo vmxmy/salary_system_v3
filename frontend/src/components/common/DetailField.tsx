@@ -5,6 +5,7 @@ export interface DetailFieldProps {
   label: string;
   value: string | undefined | null;
   type?: 'text' | 'date' | 'email' | 'phone' | 'status' | 'select' | 'textarea';
+  variant?: 'text' | 'amount' | 'status';
   sensitive?: boolean;
   className?: string;
   isEditing?: boolean;
@@ -14,6 +15,7 @@ export interface DetailFieldProps {
   placeholder?: string;
   rows?: number;
   disabled?: boolean;
+  renderValue?: () => React.ReactNode;
 }
 
 /**
@@ -23,7 +25,8 @@ export interface DetailFieldProps {
 export function DetailField({ 
   label, 
   value, 
-  type = 'text', 
+  type = 'text',
+  variant = 'text',
   sensitive = false, 
   className = '',
   isEditing = false,
@@ -32,13 +35,17 @@ export function DetailField({
   required = false,
   placeholder,
   rows = 3,
-  disabled = false
+  disabled = false,
+  renderValue
 }: DetailFieldProps) {
   const [showSensitive, setShowSensitive] = useState(false);
 
   // 格式化值
-  const formatValue = (val: string | undefined | null, fieldType: string): React.ReactNode => {
+  const formatValue = (val: string | undefined | null, fieldType: string, fieldVariant: string): React.ReactNode => {
     if (!val) return <span className={cn("text-base", "text-base-content/40 italic")}>-</span>;
+    
+    // 如果提供了自定义渲染函数，优先使用
+    if (renderValue && !isEditing) return renderValue();
     
     switch (fieldType) {
       case 'date':
@@ -67,7 +74,24 @@ export function DetailField({
           </a>
         );
       default:
-        return <span className={cn("text-base", "text-base-content")}>{val}</span>;
+        // 根据variant进行格式化
+        switch (fieldVariant) {
+          case 'amount':
+            return <span className={cn("text-base", "font-mono", "text-base-content")}>{val}</span>;
+          case 'status':
+            return (
+              <span className={cn(
+                "badge badge-sm",
+                val === 'active' ? 'badge-success' : 
+                val === 'inactive' ? 'badge-error' : 
+                'badge-warning'
+              )}>
+                {val}
+              </span>
+            );
+          default:
+            return <span className={cn("text-base", "text-base-content")}>{val}</span>;
+        }
     }
   };
 
@@ -133,7 +157,7 @@ export function DetailField({
 
   const displayValue = sensitive && !showSensitive && !isEditing
     ? '••••••••' 
-    : formatValue(value, type);
+    : formatValue(value, type, variant);
 
   return (
     <div className={cn("form-control space-y-2", className)}>

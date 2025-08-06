@@ -51,7 +51,8 @@
       "Bash(curl:*)",
       "mcp__zen__chat",
       "Bash(npx tsc:*)",
-      "mcp__zen__chat"
+      "mcp__zen__chat",
+      "Bash(node:*)"
     ],
     "deny": []
   },

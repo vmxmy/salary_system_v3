@@ -1,0 +1,112 @@
+{
+  "timestamp": "2025-07-29T12:00:00.000Z",
+  "description": "聘用人员工资字段与新系统salary_components的映射关系",
+  "version": "1.0",
+  "contract_earnings_mapping": {
+    "基本工资": {
+      "component_id": "7bb4870f-bff7-4b76-935d-ced117577eed",
+      "component_name": "基本工资",
+      "category": "basic_salary",
+      "priority": 1,
+      "description": "聘用人员基本工资"
+    },
+    "岗位工资": {
+      "component_id": "11eadd68-3f70-4b5b-889e-a96fc9887991",
+      "component_name": "岗位工资",
+      "category": "basic_salary",
+      "priority": 2,
+      "description": "聘用人员岗位工资"
+    },
+    "绩效工资": {
+      "component_id": "52504268-a545-4501-a3fc-82087e98857e",
+      "component_name": "绩效工资",
+      "category": "benefits",
+      "priority": 3,
+      "description": "聘用人员绩效工资"
+    },
+    "补助": {
+      "component_id": "573f48cf-87f7-47f1-b7f7-71d22f489405",
+      "component_name": "补助",
+      "category": "benefits",
+      "priority": 4,
+      "description": "聘用人员补助"
+    },
+    "信访岗位津贴": {
+      "component_id": "7536fc2a-fac7-4dbc-b89d-63387a520383",
+      "component_name": "信访工作人员岗位工作津贴",
+      "category": "benefits",
+      "priority": 5,
+      "description": "信访工作人员岗位津贴"
+    },
+    "基础绩效": {
+      "component_id": "f9d50d82-7842-40f3-91eb-9f1cecb1248d",
+      "component_name": "基础绩效",
+      "category": "benefits",
+      "priority": 6,
+      "description": "聘用人员基础绩效"
+    },
+    "津贴": {
+      "component_id": "1bf0ee79-09d8-4649-bae3-6a0be1706689",
+      "component_name": "津贴",
+      "category": "benefits",
+      "priority": 7,
+      "description": "聘用人员津贴"
+    },
+    "季度绩效考核薪酬": {
+      "component_id": "37bba5fa-c026-40f2-be35-758b29ecee27",
+      "component_name": "季度绩效考核薪酬",
+      "category": "benefits",
+      "priority": 8,
+      "description": "聘用人员季度绩效考核薪酬"
+    }
+  },
+  "component_lookup": {
+    "基本工资": {
+      "id": "7bb4870f-bff7-4b76-935d-ced117577eed",
+      "category": "basic_salary"
+    },
+    "岗位工资": {
+      "id": "11eadd68-3f70-4b5b-889e-a96fc9887991",
+      "category": "basic_salary"
+    },
+    "绩效工资": {
+      "id": "52504268-a545-4501-a3fc-82087e98857e",
+      "category": "benefits"
+    },
+    "补助": {
+      "id": "573f48cf-87f7-47f1-b7f7-71d22f489405",
+      "category": "benefits"
+    },
+    "信访工作人员岗位工作津贴": {
+      "id": "7536fc2a-fac7-4dbc-b89d-63387a520383",
+      "category": "benefits"
+    },
+    "基础绩效": {
+      "id": "f9d50d82-7842-40f3-91eb-9f1cecb1248d",
+      "category": "benefits"
+    },
+    "津贴": {
+      "id": "1bf0ee79-09d8-4649-bae3-6a0be1706689",
+      "category": "benefits"
+    },
+    "季度绩效考核薪酬": {
+      "id": "37bba5fa-c026-40f2-be35-758b29ecee27",
+      "category": "benefits"
+    }
+  },
+  "statistics": {
+    "total_csv_fields": 8,
+    "total_new_components": 23,
+    "mapped_fields": 8,
+    "coverage_rate": "100.0%",
+    "unmapped_fields": 0,
+    "basic_salary_mappings": 2,
+    "benefits_mappings": 6
+  },
+  "usage_notes": [
+    "此映射关系基于聘用人员2025-01期间CSV文件的收入字段分析",
+    "映射覆盖率达到100%，所有聘用人员收入字段都有对应的新系统组件",
+    "注意：部分聘用人员可能无应发工资（如执业类专技人员），只需导入有金额的收入项",
+    "在使用此映射进行数据导入时，请确保新系统中对应的salary_components存在"
+  ]
+}

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { SalaryComponentCard } from '@/components/common/SalaryComponentCard';
+import { PayrollCreationSuccessModal } from '@/components/payroll/PayrollCreationSuccessModal';
 import { useTranslation } from '@/hooks/useTranslation';
 import { usePayrolls } from '@/hooks/payroll';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
@@ -66,6 +67,10 @@ export default function PayrollCycleWizardPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [canProceed, setCanProceed] = useState(false);
+  
+  // 成功模态框状态
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [createdPeriodId, setCreatedPeriodId] = useState<string | undefined>();
 
   // Memoize computed values to prevent unnecessary re-renders
   const selectedEmployeesCount = useMemo(() => wizardState.selectedEmployees.length, [wizardState.selectedEmployees]);
@@ -147,8 +152,8 @@ export default function PayrollCycleWizardPage() {
       
       if (result?.success) {
         console.log('薪资周期创建成功，周期ID:', result.periodId);
-        alert('薪资周期创建成功');
-        navigate('/payroll');
+        setCreatedPeriodId(result.periodId);
+        setIsSuccessModalOpen(true);
       } else {
         console.error('薪资周期创建失败:', result?.error);
         alert(`薪资周期创建失败: ${result?.error || '未知错误'}`);
@@ -159,6 +164,17 @@ export default function PayrollCycleWizardPage() {
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  // 处理成功模态框关闭
+  const handleSuccessModalClose = useCallback(() => {
+    setIsSuccessModalOpen(false);
+    setCreatedPeriodId(undefined);
+  }, []);
+
+  // 处理查看薪资列表
+  const handleViewPayrolls = useCallback(() => {
+    navigate('/payroll');
   }, [navigate]);
 
   // 渲染步骤内容
@@ -186,6 +202,10 @@ export default function PayrollCycleWizardPage() {
           <ValidationStep 
             wizardState={wizardState}
             onValidationComplete={(selectedEmployees) => {
+              console.log('🔄 主向导页面接收到选中员工:', {
+                selectedEmployees,
+                length: selectedEmployees?.length
+              });
               updateWizardState({ selectedEmployees });
             }}
           />
@@ -302,6 +322,14 @@ export default function PayrollCycleWizardPage() {
           </div>
         </div>
       </div>
+
+      {/* 成功创建模态框 */}
+      <PayrollCreationSuccessModal
+        isOpen={isSuccessModalOpen}
+        periodId={createdPeriodId}
+        onClose={handleSuccessModalClose}
+        onViewPayrolls={handleViewPayrolls}
+      />
     </div>
   );
 }
@@ -503,6 +531,16 @@ function CopyModeStepInline({ sourceData, onSourceDataChange }: { sourceData: an
           : 0
       };
       
+      const selectedEmployeeIds = payrollData.data.map(item => item.employee_id).filter(Boolean);
+      
+      console.log('📊 复制模式设置源数据:', {
+        sourceMonth: selectedMonth,
+        totalRecords: payrollData.total,
+        payrollDataLength: payrollData.data.length,
+        selectedEmployeeIdsLength: selectedEmployeeIds.length,
+        statistics
+      });
+      
       onSourceDataChange({
         type: 'copy',
         sourceMonth: selectedMonth,
@@ -512,7 +550,7 @@ function CopyModeStepInline({ sourceData, onSourceDataChange }: { sourceData: an
         baseStrategy, // 包含基数策略
         selectedCategories, // 包含选中的薪资组件分类
         categories, // 包含所有可用分类及其字段数据
-        selectedEmployeeIds: payrollData.data.map(item => item.employee_id).filter(Boolean) // 添加选中的员工ID
+        selectedEmployeeIds // 添加选中的员工ID
       });
     } else if (!isLoading) {
       onSourceDataChange(null);

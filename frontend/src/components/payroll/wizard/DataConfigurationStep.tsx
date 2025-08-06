@@ -99,6 +99,8 @@ export function DataConfigurationStep({
                 onChange={onPayrollPeriodChange}
                 placeholder="选择薪资月份"
                 size="md"
+                showDataIndicators={true}
+                disableMonthsWithData={true}
               />
               <label className="label">
                 <span className="label-text-alt text-base-content/60">

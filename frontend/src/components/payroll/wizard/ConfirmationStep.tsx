@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { ModernButton } from '@/components/common/ModernButton';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatMonth } from '@/lib/format';
 import { PayrollCreationService } from '@/services/payroll-creation.service';
+import { payrollStatisticsService } from '@/services/payroll-statistics.service';
 
 enum CreationMode {
   COPY = 'copy',
@@ -22,6 +23,12 @@ export function ConfirmationStep({ wizardState, onConfirm }: ConfirmationStepPro
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [creationError, setCreationError] = useState<string | null>(null);
+  const [statistics, setStatistics] = useState({
+    employeeCount: 0,
+    totalAmount: 0,
+    avgAmount: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   // 处理最终确认
   const handleConfirm = useCallback(async () => {
@@ -156,30 +163,92 @@ export function ConfirmationStep({ wizardState, onConfirm }: ConfirmationStepPro
     }
   }, [wizardState, onConfirm, isCreating]);
 
-  // 计算统计信息
-  const getStatistics = () => {
-    if (wizardState.mode === CreationMode.COPY && wizardState.sourceData) {
-      const selectedData = wizardState.sourceData.payrollData?.filter((emp: any) => 
-        wizardState.selectedEmployees.includes(emp.id)
-      ) || [];
+  // 加载统计信息
+  useEffect(() => {
+    const loadStatistics = async () => {
+      console.log('🔍 ConfirmationStep 加载统计信息，wizardState:', {
+        mode: wizardState.mode,
+        selectedEmployees: wizardState.selectedEmployees,
+        selectedEmployeesLength: wizardState.selectedEmployees?.length,
+        sourceDataSelectedEmployeeIds: wizardState.sourceData?.selectedEmployeeIds,
+        sourceDataSelectedLength: wizardState.sourceData?.selectedEmployeeIds?.length,
+        sourceDataStatistics: wizardState.sourceData?.statistics
+      });
       
-      return {
-        employeeCount: selectedData.length,
-        totalAmount: selectedData.reduce((sum: number, emp: any) => sum + emp.net_pay, 0),
-        avgAmount: selectedData.length > 0 
-          ? selectedData.reduce((sum: number, emp: any) => sum + emp.net_pay, 0) / selectedData.length 
-          : 0
-      };
-    }
-    
-    return {
-      employeeCount: wizardState.selectedEmployees.length,
-      totalAmount: 0,
-      avgAmount: 0
+      setLoadingStats(true);
+      try {
+        // 如果是复制模式且有源数据，使用源数据计算
+        if (wizardState.mode === CreationMode.COPY && wizardState.sourceData) {
+          // 获取选中的员工ID列表
+          const selectedEmployeeIds = wizardState.selectedEmployees?.length > 0 
+            ? wizardState.selectedEmployees 
+            : wizardState.sourceData.selectedEmployeeIds || [];
+          
+          console.log('📋 复制模式统计计算:', {
+            wizardStateSelectedEmployees: wizardState.selectedEmployees,
+            sourceDataSelectedEmployeeIds: wizardState.sourceData.selectedEmployeeIds,
+            finalSelectedEmployeeIds: selectedEmployeeIds,
+            payrollDataLength: wizardState.sourceData.payrollData?.length
+          });
+          
+          // 注意：payrollData中的字段是employee_id，不是id
+          const selectedData = wizardState.sourceData.payrollData?.filter((emp: any) => 
+            selectedEmployeeIds.includes(emp.employee_id)
+          ) || [];
+          
+          console.log('📊 过滤后的选中数据:', {
+            selectedDataLength: selectedData.length,
+            sampleData: selectedData.slice(0, 2)
+          });
+          
+          setStatistics({
+            employeeCount: selectedData.length,
+            totalAmount: selectedData.reduce((sum: number, emp: any) => sum + (emp.net_pay || 0), 0),
+            avgAmount: selectedData.length > 0 
+              ? selectedData.reduce((sum: number, emp: any) => sum + (emp.net_pay || 0), 0) / selectedData.length 
+              : 0
+          });
+        } else {
+          // 其他模式，从数据库获取预估数据
+          // 首先检查是否有选中的员工
+          const employeeIds = wizardState.selectedEmployees?.length > 0 
+            ? wizardState.selectedEmployees 
+            : wizardState.sourceData?.selectedEmployeeIds;
+            
+          if (employeeIds && employeeIds.length > 0) {
+            const estimation = await payrollStatisticsService.getEmployeesPayrollEstimation(
+              employeeIds
+            );
+            setStatistics({
+              employeeCount: estimation.totalEmployees,
+              totalAmount: estimation.totalEstimatedAmount,
+              avgAmount: estimation.avgEstimatedAmount
+            });
+          } else {
+            // 获取所有员工的预估
+            const estimation = await payrollStatisticsService.getPayrollEstimation();
+            setStatistics({
+              employeeCount: estimation.totalEmployees,
+              totalAmount: estimation.totalEstimatedAmount,
+              avgAmount: estimation.avgEstimatedAmount
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load statistics:', error);
+        // 如果加载失败，使用基础数据
+        setStatistics({
+          employeeCount: wizardState.selectedEmployees?.length || 0,
+          totalAmount: 0,
+          avgAmount: 0
+        });
+      } finally {
+        setLoadingStats(false);
+      }
     };
-  };
 
-  const statistics = getStatistics();
+    loadStatistics();
+  }, [wizardState]);
 
   return (
     <div className="space-y-6">
@@ -237,24 +306,43 @@ export function ConfirmationStep({ wizardState, onConfirm }: ConfirmationStepPro
             {/* 统计信息 */}
             <div className="space-y-4">
               <h4 className="font-bold text-base-content">统计信息</h4>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-base-content/60">员工数量:</span>
-                  <span className="font-medium text-primary">{statistics.employeeCount} 人</span>
+              {loadingStats ? (
+                <div className="flex items-center justify-center py-4">
+                  <span className="loading loading-spinner loading-sm"></span>
+                  <span className="ml-2 text-sm text-base-content/60">加载统计数据...</span>
                 </div>
-                {statistics.totalAmount > 0 && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-base-content/60">预估总额:</span>
-                      <span className="font-medium text-success">{formatCurrency(statistics.totalAmount)}</span>
+              ) : (
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-base-content/60">员工数量:</span>
+                    <span className="font-medium text-primary">
+                      {statistics.employeeCount} 人
+                      {process.env.NODE_ENV === 'development' && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          (调试: {statistics.employeeCount})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-base-content/60">预估总额:</span>
+                    <span className="font-medium text-success">
+                      {statistics.totalAmount > 0 ? formatCurrency(statistics.totalAmount) : '待计算'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-base-content/60">平均工资:</span>
+                    <span className="font-medium text-info">
+                      {statistics.avgAmount > 0 ? formatCurrency(statistics.avgAmount) : '待计算'}
+                    </span>
+                  </div>
+                  {statistics.totalAmount === 0 && (
+                    <div className="text-xs text-warning">
+                      * 预估金额基于员工最近一次的薪资记录
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-base-content/60">平均工资:</span>
-                      <span className="font-medium text-info">{formatCurrency(statistics.avgAmount)}</span>
-                    </div>
-                  </>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -291,7 +379,11 @@ export function ConfirmationStep({ wizardState, onConfirm }: ConfirmationStepPro
                 <div>
                   <p className="font-medium text-base-content">复制员工薪资数据</p>
                   <p className="text-sm text-base-content/60">
-                    从 {formatMonth(wizardState.sourceData?.sourceMonth)} 复制 {statistics.employeeCount} 名员工的薪资结构
+                    从 {formatMonth(wizardState.sourceData?.sourceMonth)} 复制 {
+                      wizardState.selectedEmployees?.length || 
+                      wizardState.sourceData?.selectedEmployeeIds?.length || 
+                      0
+                    } 名员工的薪资结构
                   </p>
                 </div>
               </div>

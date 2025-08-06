@@ -345,6 +345,7 @@ class ColumnConfigService {
  * 动态单元格组件
  */
 function DynamicCell<T = any>({ value, row, field }: DynamicCellProps<T>) {
+  
   if (value === null || value === undefined) {
     return <span className="text-base-content/50">-</span>;
   }
