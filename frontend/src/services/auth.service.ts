@@ -37,14 +37,15 @@ export class AuthService {
     userCache = null;
     cacheExpiry = 0;
     
-    // Fetch user permissions
+    // Fetch user role and permissions
     const permissions = await this.getUserPermissions();
+    const userRole = await this.getUserRole(data.user.id);
 
     // Return user data with permissions
     return {
       id: data.user.id,
       email: data.user.email!,
-      role: 'employee', // This should also be fetched, but for now, we focus on permissions
+      role: userRole,
       permissions,
     };
   }
@@ -105,28 +106,77 @@ export class AuthService {
   async getCurrentUser(): Promise<AuthUser | null> {
     try {
       console.log('[AuthService] Getting current user from Supabase...');
-      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      // Add timeout protection for the getUser call
+      const getUserWithTimeout = async () => {
+        return Promise.race([
+          supabase.auth.getUser(),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('getUser timeout after 5 seconds')), 5000)
+          )
+        ]);
+      };
+      
+      const { data: { user }, error } = await getUserWithTimeout();
       
       if (error || !user) {
         console.log('[AuthService] No current user found');
         return null;
       }
       
-      // Fetch user permissions
-      const permissions = await this.getUserPermissions();
+      console.log('[AuthService] User found, fetching role and permissions...', user.email);
+      
+      // Fetch user role and permissions with timeout to prevent hanging
+      let permissions: string[] = [];
+      let userRole = 'employee';
+      
+      try {
+        const [fetchedPermissions, fetchedRole] = await Promise.race([
+          Promise.all([
+            this.getUserPermissions(),
+            this.getUserRole(user.id)
+          ]),
+          new Promise<[string[], string]>((resolve) => 
+            setTimeout(() => {
+              console.warn('[AuthService] Role/permission fetch timeout, using defaults');
+              resolve([this.getDefaultPermissions(), 'employee']);
+            }, 3000)
+          )
+        ]);
+        
+        permissions = fetchedPermissions;
+        userRole = fetchedRole;
+      } catch (err) {
+        console.error('[AuthService] Error fetching role/permissions, using defaults:', err);
+        permissions = this.getDefaultPermissions();
+        userRole = 'employee';
+      }
 
       // Return user data with permissions
       const authUser: AuthUser = {
         id: user.id,
         email: user.email!,
-        role: 'employee', // Default role
+        role: userRole,
         permissions,
       };
       
-      console.log('[AuthService] Returning user data with permissions:', user.email);
+      console.log('[AuthService] Returning user data with permissions:', user.email, permissions);
       return authUser;
     } catch (err) {
       console.error('[AuthService] getCurrentUser: Error:', err);
+      
+      // If it's a timeout error, try clearing corrupted auth state
+      if (err instanceof Error && err.message.includes('timeout')) {
+        console.warn('[AuthService] Timeout detected, clearing corrupted auth state and retrying...');
+        this.clearCorruptedAuthState();
+        
+        // Trigger page reload to restart auth flow with clean state
+        setTimeout(() => {
+          console.log('[AuthService] Reloading page to reset auth state...');
+          window.location.reload();
+        }, 1000);
+      }
+      
       return null;
     }
   }
@@ -176,52 +226,132 @@ export class AuthService {
   async getUserPermissions(): Promise<string[]> {
     try {
       console.log('[AuthService] Getting user permissions...');
-      // Don't call getCurrentUser here to avoid circular dependency
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        console.log('[AuthService] No user found for permissions check');
+      
+      // First check session and user state
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('[AuthService] Session state:', {
+        hasSession: !!session,
+        sessionError: sessionError?.message,
+        userEmail: session?.user?.email
+      });
+      
+      if (sessionError || !session?.user) {
+        console.log('[AuthService] No active session found for permissions check');
         return [];
       }
 
-      console.log('[AuthService] Fetching user role from database...');
-      // Get user role with timeout to prevent hanging
-      const { data: roleData, error } = await Promise.race([
-        supabase
+      const user = session.user;
+      console.log('[AuthService] Fetching user role from database for user:', user.email);
+      
+      // Get user role with better error handling
+      try {
+        console.log('[AuthService] Querying user_roles for user_id:', user.id);
+        
+        const roleQuery = supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
-          .eq('is_active', true)
-          .single(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Role query timeout')), 5000)
-        )
-      ]) as any;
-
-      if (error || !roleData) {
-        console.warn('[AuthService] No role found or error:', error);
-        // Return default employee permissions if no role found
-        return [];
+          .eq('is_active', true);
+        
+        const result = await Promise.race([
+          roleQuery.maybeSingle(), // Use maybeSingle() instead of single() to avoid 406 errors
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Role query timeout after 5s')), 5000)
+          )
+        ]);
+        
+        const { data: roleData, error } = result as any;
+        
+        if (error) {
+          console.error('[AuthService] Database error fetching role:', error);
+          // Try a simple fallback query without filtering by is_active
+          console.log('[AuthService] Attempting fallback query without is_active filter');
+          try {
+            const fallbackResult = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', user.id)
+              .limit(1)
+              .single();
+            
+            if (fallbackResult.data) {
+              console.log('[AuthService] Fallback query successful, role:', fallbackResult.data.role);
+              const permissions = this.getRolePermissions(fallbackResult.data.role);
+              console.log('[AuthService] Permissions loaded via fallback:', permissions);
+              return permissions;
+            }
+          } catch (fallbackError) {
+            console.error('[AuthService] Fallback query also failed:', fallbackError);
+          }
+          return this.getDefaultPermissions();
+        }
+        
+        if (!roleData) {
+          console.warn('[AuthService] No role found for user, using defaults');
+          return this.getDefaultPermissions();
+        }
+        
+        console.log('[AuthService] User role found:', roleData.role);
+        
+        const permissions = this.getRolePermissions(roleData.role);
+        console.log('[AuthService] Permissions loaded:', permissions);
+        return permissions;
+        
+      } catch (timeoutOrError) {
+        console.error('[AuthService] Role query failed:', timeoutOrError);
+        return this.getDefaultPermissions();
       }
-      
-      console.log('[AuthService] User role found:', roleData.role);
-      
-      // Use inline role permissions to avoid dynamic import issues
-      const ROLE_PERMISSIONS: Record<string, string[]> = {
-        'super_admin': ['*'], // All permissions
-        'admin': ['employee.view', 'employee.create', 'payroll.view', 'system.settings'],
-        'hr_manager': ['employee.view', 'employee.create', 'department.view'],
-        'finance_admin': ['payroll.view', 'payroll.create', 'payroll.approve'],
-        'manager': ['employee.view', 'department.view', 'payroll.view'],
-        'employee': [] // Limited permissions
-      };
-      
-      const permissions = ROLE_PERMISSIONS[roleData.role] || [];
-      console.log('[AuthService] Permissions loaded:', permissions);
-      return permissions;
     } catch (err) {
       console.error('[AuthService] Error getting permissions:', err);
-      return []; // Return empty permissions on error
+      return this.getDefaultPermissions();
     }
+  }
+
+  /**
+   * Get user role from database
+   */
+  private async getUserRole(userId: string): Promise<string> {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (error || !data) {
+        console.warn('[AuthService] Could not fetch user role, defaulting to employee');
+        return 'employee';
+      }
+      
+      return data.role;
+    } catch (err) {
+      console.error('[AuthService] Error fetching user role:', err);
+      return 'employee';
+    }
+  }
+
+  /**
+   * Get permissions for a specific role
+   */
+  private getRolePermissions(role: string): string[] {
+    const ROLE_PERMISSIONS: Record<string, string[]> = {
+      'super_admin': ['*'], // All permissions
+      'admin': ['employee.view', 'employee.create', 'payroll.view', 'system.settings'],
+      'hr_manager': ['employee.view', 'employee.create', 'department.view'],
+      'finance_admin': ['payroll.view', 'payroll.create', 'payroll.approve'],
+      'manager': ['employee.view', 'department.view', 'payroll.view'],
+      'employee': ['employee.view'] // Limited permissions
+    };
+    
+    return ROLE_PERMISSIONS[role] || this.getDefaultPermissions();
+  }
+
+  /**
+   * Get default permissions for users without specific roles
+   */
+  private getDefaultPermissions(): string[] {
+    return ['employee.view']; // Basic view permissions
   }
 
   /**
@@ -254,6 +384,46 @@ export class AuthService {
   clearCache(): void {
     userCache = null;
     cacheExpiry = 0;
+  }
+
+  /**
+   * Clear corrupted auth state from localStorage
+   */
+  clearCorruptedAuthState(): void {
+    console.log('[AuthService] Clearing potentially corrupted auth state...');
+    try {
+      // Clear Supabase-related localStorage entries
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('supabase') || key.includes('sb-'))) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        console.log('[AuthService] Removed localStorage key:', key);
+      });
+      
+      // Clear sessionStorage as well
+      const sessionKeysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (key.includes('supabase') || key.includes('sb-'))) {
+          sessionKeysToRemove.push(key);
+        }
+      }
+      
+      sessionKeysToRemove.forEach(key => {
+        sessionStorage.removeItem(key);
+        console.log('[AuthService] Removed sessionStorage key:', key);
+      });
+      
+      console.log('[AuthService] Auth state cleared successfully');
+    } catch (error) {
+      console.error('[AuthService] Error clearing auth state:', error);
+    }
   }
 }
 
