@@ -1,11 +1,8 @@
 /**
- * Unified useAuth hook that selects the appropriate auth context
- * based on the environment
+ * Unified useAuth hook that uses real Supabase authentication
  */
 
 import { useAuth as useRealAuth } from '@/contexts/AuthContext';
-import { useDevAuth } from '@/contexts/DevAuthContext';
 
-const isDevelopment = import.meta.env.DEV;
-
-export const useAuth = isDevelopment ? useDevAuth : useRealAuth;
+// 强制使用真正的 Supabase 认证
+export const useAuth = useRealAuth;
