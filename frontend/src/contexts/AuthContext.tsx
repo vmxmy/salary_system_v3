@@ -11,6 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<AuthUser>;
   signOut: () => Promise<void>;
+  hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
   hasAllPermissions: (permissions: string[]) => boolean;
 }
@@ -87,14 +88,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
 
+  const hasPermission = (permission: string) => {
+    if (!user?.permissions) return false;
+    return user.permissions.includes(permission) || user.permissions.includes('*');
+  };
+
   const hasAnyPermission = (permissions: string[]) => {
     if (!user?.permissions) return false;
-    return permissions.some(p => user.permissions!.includes(p));
+    return permissions.some(p => user.permissions!.includes(p)) || user.permissions.includes('*');
   };
 
   const hasAllPermissions = (permissions: string[]) => {
     if (!user?.permissions) return false;
-    return permissions.every(p => user.permissions!.includes(p));
+    return permissions.every(p => user.permissions!.includes(p)) || user.permissions.includes('*');
   };
 
   const value = {
@@ -104,6 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated,
     signIn,
     signOut,
+    hasPermission,
     hasAnyPermission,
     hasAllPermissions,
   };

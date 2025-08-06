@@ -72,6 +72,12 @@ export function ValidationStep({ wizardState, onValidationComplete }: Validation
           .filter(emp => emp.validation_status !== 'error')
           .map(emp => emp.id);
         
+        console.log('🎯 ValidationStep 选择员工:', {
+          totalEmployees: validationResult.employees.length,
+          validEmployeeIds: validEmployeeIds.length,
+          validEmployeeIdsList: validEmployeeIds
+        });
+        
         setSelectedEmployees(validEmployeeIds);
         onValidationComplete(validEmployeeIds);
         

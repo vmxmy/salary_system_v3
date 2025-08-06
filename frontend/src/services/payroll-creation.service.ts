@@ -61,6 +61,23 @@ export interface PayrollPeriodSummary {
   };
 }
 
+export interface PayrollClearSummary {
+  deleted_payrolls: number;
+  deleted_items: number;
+  affected_employees: number;
+  total_amount: number;
+  period_start: string;
+  period_end: string;
+  execution_time: number;
+}
+
+export interface PayrollClearResult {
+  success: boolean;
+  error_code?: string;
+  error_message?: string;
+  deleted_summary?: PayrollClearSummary;
+}
+
 /**
  * 薪资周期创建服务类
  */
@@ -459,6 +476,51 @@ export class PayrollCreationService {
    * @param payPeriodEnd 薪资期间结束日期
    * @param payDate 薪资发放日期
    */
+  /**
+   * 验证薪资期间日期（用于清空等不涉及发放日期的操作）
+   */
+  static validatePayrollPeriod(
+    payPeriodStart: string,
+    payPeriodEnd: string
+  ): {
+    isValid: boolean;
+    message?: string;
+  } {
+    const startDate = new Date(payPeriodStart);
+    const endDate = new Date(payPeriodEnd);
+
+    // 检查期间日期顺序
+    if (startDate >= endDate) {
+      return {
+        isValid: false,
+        message: '薪资期间开始日期必须早于结束日期'
+      };
+    }
+
+    // 检查日期不能太远的过去或未来
+    const now = new Date();
+    const twoYearsAgo = new Date(now);
+    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+    const oneYearLater = new Date(now);
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
+    if (startDate < twoYearsAgo) {
+      return {
+        isValid: false,
+        message: '薪资期间不能早于两年前'
+      };
+    }
+
+    if (endDate > oneYearLater) {
+      return {
+        isValid: false,
+        message: '薪资期间不能晚于一年后'
+      };
+    }
+
+    return { isValid: true };
+  }
+
   static validatePayrollDates(
     payPeriodStart: string,
     payPeriodEnd: string,
@@ -519,6 +581,139 @@ export class PayrollCreationService {
     }
 
     return { isValid: true };
+  }
+
+  /**
+   * 清空指定期间的薪资数据
+   * @param payPeriodStart 薪资期间开始日期
+   * @param payPeriodEnd 薪资期间结束日期
+   * @param confirmToken 确认令牌
+   */
+  static async clearPayrollDataByPeriod(
+    payPeriodStart: string,
+    payPeriodEnd: string,
+    confirmToken: string = 'CLEAR_PAYROLL_CONFIRMED'
+  ): Promise<PayrollClearResult> {
+    const debugId = `payroll_clear_${Date.now()}`;
+    
+    try {
+      console.group(`🗑️ [${debugId}] 开始清空薪资数据`);
+      console.log('📋 清空参数详情:', {
+        payPeriodStart,
+        payPeriodEnd,
+        confirmToken: confirmToken ? '已提供' : '未提供',
+        dateRange: this.generatePeriodDescription(payPeriodStart, payPeriodEnd)
+      });
+
+      // 步骤1: 客户端预验证
+      console.log('⚡ 步骤1: 客户端预验证');
+      const dateValidation = this.validatePayrollPeriod(payPeriodStart, payPeriodEnd);
+      if (!dateValidation.isValid) {
+        console.warn('❌ 客户端预验证失败:', dateValidation.message);
+        console.groupEnd();
+        return {
+          success: false,
+          error_code: 'CLIENT_VALIDATION_ERROR',
+          error_message: dateValidation.message || '日期验证失败'
+        };
+      }
+      console.log('✅ 客户端预验证通过');
+
+      // 步骤2: 调用数据库清空函数
+      console.log('⚡ 步骤2: 调用数据库清空函数');
+      const rpcParams = {
+        p_pay_period_start: payPeriodStart,
+        p_pay_period_end: payPeriodEnd,
+        p_confirm_token: confirmToken
+      };
+      console.log('📤 RPC清空参数:', rpcParams);
+
+      const startTime = Date.now();
+      const { data, error } = await supabase.rpc('clear_payroll_data_by_period', rpcParams);
+      const executionTime = Date.now() - startTime;
+
+      console.log(`⏱️ 清空执行耗时: ${executionTime}ms`);
+
+      // 步骤3: 检查RPC错误
+      if (error) {
+        console.error('❌ 步骤3: 数据库清空失败');
+        console.error('🔍 清空错误详情:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+        console.groupEnd();
+        return {
+          success: false,
+          error_code: 'RPC_ERROR',
+          error_message: `清空操作失败: ${error.message}`
+        };
+      }
+
+      console.log('✅ 步骤3: 数据库清空调用成功');
+
+      // 步骤4: 检查返回数据
+      console.log('🔍 步骤4: 解析清空结果');
+      console.log('📥 清空返回数据:', data);
+
+      if (!data || data.length === 0) {
+        console.error('❌ 清空函数未返回结果');
+        console.groupEnd();
+        return {
+          success: false,
+          error_code: 'NO_RESULT',
+          error_message: '清空函数未返回结果'
+        };
+      }
+
+      // 步骤5: 解析清空结果
+      const result = data[0] as PayrollClearResult;
+      console.log('📊 步骤5: 解析清空结果');
+      console.log('✨ 清空结果详情:', {
+        success: result.success,
+        error_code: result.error_code,
+        error_message: result.error_message,
+        deleted_summary: result.deleted_summary
+      });
+
+      if (result.deleted_summary) {
+        console.log('📈 清空摘要统计:', {
+          period: `${result.deleted_summary.period_start} 至 ${result.deleted_summary.period_end}`,
+          deleted_payrolls: result.deleted_summary.deleted_payrolls,
+          deleted_items: result.deleted_summary.deleted_items,
+          affected_employees: result.deleted_summary.affected_employees,
+          total_amount: result.deleted_summary.total_amount,
+          execution_time: `${result.deleted_summary.execution_time}秒`
+        });
+      }
+
+      if (result.success) {
+        console.log('🎉 薪资数据清空成功!');
+      } else {
+        console.warn('⚠️ 薪资数据清空失败:', {
+          error_code: result.error_code,
+          error_message: result.error_message
+        });
+      }
+
+      console.groupEnd();
+      return result;
+    } catch (error) {
+      console.error(`💥 [${debugId}] 清空薪资数据发生异常:`);
+      console.error('🔍 异常详情:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      console.groupEnd();
+      
+      return {
+        success: false,
+        error_code: 'NETWORK_ERROR',
+        error_message: `网络错误: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
   }
 }
 

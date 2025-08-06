@@ -132,6 +132,7 @@ function CopyModeStep({ sourceData, onSourceDataChange }: { sourceData: any; onS
               onChange={handleMonthChange}
               placeholder="选择要复制的月份"
               size="md"
+              showDataIndicators={true}
             />
             <label className="label">
               <span className="label-text-alt text-base-content/60">

@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 import { employeeService } from '@/services/employee.service';
+import { supabase } from '@/lib/supabase';
 import type { EmployeeListItem, EmployeeQueryParams } from '@/types/employee';
 
 // Query Keys
@@ -14,13 +16,115 @@ export const employeeQueryKeys = {
 
 /**
  * 获取所有员工数据 - 用于客户端排序和筛选
+ * 支持 Supabase Realtime 实时更新
  */
 export function useAllEmployees() {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const subscriptionRef = useRef<any>(null);
+  
+  const query = useQuery({
     queryKey: employeeQueryKeys.list(),
     queryFn: () => employeeService.getAllEmployeesRaw(),
     staleTime: 5 * 60 * 1000, // 5分钟内认为数据是新鲜的
   });
+
+  useEffect(() => {
+    // 只有在查询成功且有数据时才设置订阅
+    if (query.isSuccess && query.data) {
+      console.log('[Realtime] Setting up employees subscription...');
+      
+      // 订阅员工表的变更
+      subscriptionRef.current = supabase
+        .channel('public:employees')
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'employees' 
+          },
+          (payload) => {
+            console.log('[Realtime] Employee change detected:', payload);
+            
+            // 实时更新缓存数据
+            queryClient.setQueryData(employeeQueryKeys.list(), (oldData: EmployeeListItem[] | undefined) => {
+              if (!oldData) return oldData;
+              
+              const { eventType, new: newRecord, old: oldRecord } = payload;
+              
+              switch (eventType) {
+                case 'INSERT':
+                  // 新增员工 - 需要重新获取数据以获取完整的关联信息
+                  queryClient.invalidateQueries({ queryKey: employeeQueryKeys.list() });
+                  return oldData;
+                  
+                case 'UPDATE':
+                  // 更新员工
+                  if (newRecord && oldRecord) {
+                    const updatedData = oldData.map(employee => 
+                      employee.employee_id === newRecord.id ? {
+                        ...employee,
+                        full_name: newRecord.full_name || employee.full_name,
+                        email: newRecord.email || employee.email,
+                        mobile_phone: newRecord.mobile_phone || employee.mobile_phone,
+                        employment_status: newRecord.employment_status || employee.employment_status,
+                        hire_date: newRecord.hire_date || employee.hire_date,
+                        // 注意：关联字段可能需要重新获取
+                      } : employee
+                    );
+                    return updatedData;
+                  }
+                  // 如果数据结构复杂，重新获取
+                  queryClient.invalidateQueries({ queryKey: employeeQueryKeys.list() });
+                  return oldData;
+                  
+                case 'DELETE':
+                  // 删除员工
+                  if (oldRecord) {
+                    return oldData.filter(employee => employee.employee_id !== oldRecord.id);
+                  }
+                  return oldData;
+                  
+                default:
+                  return oldData;
+              }
+            });
+          }
+        )
+        .subscribe((status) => {
+          console.log('[Realtime] Employees subscription status:', status);
+        });
+
+      // 订阅员工分配表的变更（影响部门、职位等关联信息）
+      const assignmentSubscription = supabase
+        .channel('public:employee_assignments')
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'employee_assignments' 
+          },
+          (payload) => {
+            console.log('[Realtime] Employee assignment change detected:', payload);
+            // 分配信息变更时，需要重新获取员工列表以更新关联信息
+            queryClient.invalidateQueries({ queryKey: employeeQueryKeys.list() });
+          }
+        )
+        .subscribe();
+    }
+
+    // 清理订阅
+    return () => {
+      if (subscriptionRef.current) {
+        console.log('[Realtime] Cleaning up employees subscription...');
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+    };
+  }, [query.isSuccess, query.data, queryClient]);
+
+  return query;
 }
 
 /**
@@ -69,13 +173,75 @@ export function usePositions() {
 
 /**
  * 获取单个员工详情
+ * 支持 Supabase Realtime 实时更新
  */
 export function useEmployee(employeeId: string) {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const subscriptionRef = useRef<any>(null);
+  
+  const query = useQuery({
     queryKey: employeeQueryKeys.detail(employeeId),
     queryFn: () => employeeService.getEmployeeWithDetails(employeeId),
     enabled: !!employeeId,
   });
+
+  useEffect(() => {
+    // 只有在有员工ID且查询成功时才设置订阅
+    if (employeeId && query.isSuccess && query.data) {
+      console.log(`[Realtime] Setting up employee detail subscription for ID: ${employeeId}`);
+      
+      // 订阅员工表的变更
+      subscriptionRef.current = supabase
+        .channel(`employee_detail:${employeeId}`)
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'employees',
+            filter: `id=eq.${employeeId}`
+          },
+          (payload) => {
+            console.log(`[Realtime] Employee ${employeeId} change detected:`, payload);
+            
+            // 员工基本信息变更时，重新获取详细信息
+            queryClient.invalidateQueries({ queryKey: employeeQueryKeys.detail(employeeId) });
+            // 同时更新员工列表缓存
+            queryClient.invalidateQueries({ queryKey: employeeQueryKeys.list() });
+          }
+        )
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'employee_assignments',
+            filter: `employee_id=eq.${employeeId}`
+          },
+          (payload) => {
+            console.log(`[Realtime] Employee ${employeeId} assignment change detected:`, payload);
+            
+            // 员工分配信息变更时，重新获取详细信息
+            queryClient.invalidateQueries({ queryKey: employeeQueryKeys.detail(employeeId) });
+            queryClient.invalidateQueries({ queryKey: employeeQueryKeys.list() });
+          }
+        )
+        .subscribe((status) => {
+          console.log(`[Realtime] Employee ${employeeId} detail subscription status:`, status);
+        });
+    }
+
+    // 清理订阅
+    return () => {
+      if (subscriptionRef.current) {
+        console.log(`[Realtime] Cleaning up employee ${employeeId} detail subscription...`);
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+    };
+  }, [employeeId, query.isSuccess, query.data, queryClient]);
+
+  return query;
 }
 
 /**

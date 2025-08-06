@@ -83,6 +83,75 @@ class MetadataService {
   }
 
   /**
+   * 获取薪资视图的字段元数据
+   */
+  async getPayrollViewMetadata(): Promise<TableMetadata> {
+    const cacheKey = 'payroll_view_metadata';
+    
+    // 检查缓存
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const cacheTime = isDevelopment ? 30 * 1000 : this.CACHE_DURATION;
+    
+    if (this.cache.has(cacheKey) && Date.now() < (this.cacheExpiry.get(cacheKey) || 0)) {
+      console.log('Using cached payroll metadata');
+      return this.cache.get(cacheKey)!;
+    }
+
+    try {
+      console.log('Getting payroll view metadata...');
+      const columns = await this.getTableStructure('view_payroll_summary');
+      console.log('Retrieved payroll columns:', columns.length);
+      
+      const fields: FieldMetadata[] = columns.map((col: any) => {
+        const fieldType = this.mapPostgresTypeToFieldType(col.data_type, col.column_name);
+        return {
+          name: col.column_name,
+          type: fieldType,
+          label: this.generatePayrollFieldLabel(col.column_name),
+          description: this.generatePayrollFieldDescription(col.column_name),
+          required: col.is_nullable === 'NO',
+          searchable: this.isPayrollSearchableField(col.column_name),
+          sortable: this.isPayrollSortableField(col.column_name),
+          filterable: this.isPayrollFilterableField(col.column_name),
+          width: this.getPayrollDefaultWidth(col.column_name),
+          alignment: this.getDefaultAlignment(col.data_type),
+          visible: this.isPayrollDefaultVisible(col.column_name),
+          order: this.getPayrollDefaultOrder(col.column_name),
+          options: this.getPayrollFieldOptions(col.column_name, fieldType),
+        };
+      });
+
+      const metadata: TableMetadata = {
+        tableName: 'view_payroll_summary',
+        displayName: '薪资列表',
+        description: '薪资记录和员工信息',
+        fields: fields.sort((a, b) => (a.order || 999) - (b.order || 999)),
+        primaryKey: 'payroll_id',
+        defaultSort: { field: 'pay_date', direction: 'desc' },
+        defaultFields: [
+          'full_name',        // 员工姓名
+          'department_name',  // 部门
+          'pay_date',         // 发薪日期
+          'status',           // 状态
+          'gross_pay',        // 应发工资
+          'total_deductions', // 扣除合计
+          'net_pay'           // 实发工资
+        ],
+      };
+
+      // 缓存结果
+      this.cache.set(cacheKey, metadata);
+      this.cacheExpiry.set(cacheKey, Date.now() + cacheTime);
+      console.log('Payroll metadata cached successfully');
+
+      return metadata;
+    } catch (error) {
+      console.error('Failed to get payroll metadata, using fallback:', error);
+      return this.getFallbackPayrollMetadata();
+    }
+  }
+
+  /**
    * 获取员工视图的字段元数据
    */
   async getEmployeeViewMetadata(): Promise<TableMetadata> {
@@ -396,6 +465,312 @@ class MetadataService {
     };
 
     return orderMap[fieldName] || 999;
+  }
+
+  /**
+   * 生成薪资字段显示标签
+   */
+  private generatePayrollFieldLabel(fieldName: string): string {
+    const labelMap: Record<string, string> = {
+      'payroll_id': '薪资ID',
+      'pay_date': '发薪日期',
+      'pay_period_start': '计薪开始',
+      'pay_period_end': '计薪结束',
+      'employee_id': '员工ID',
+      'full_name': '员工姓名',
+      'department_name': '部门',
+      'position_name': '职位',
+      'category_name': '人员类别',
+      'gross_pay': '应发工资',
+      'total_deductions': '扣除合计',
+      'net_pay': '实发工资',
+      'status': '薪资状态',
+      'primary_bank_account': '银行账号',
+      'bank_name': '银行名称',
+      'branch_name': '支行名称',
+      'created_at': '创建时间',
+      'updated_at': '更新时间',
+    };
+
+    return labelMap[fieldName] || fieldName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  /**
+   * 生成薪资字段描述
+   */
+  private generatePayrollFieldDescription(fieldName: string): string {
+    const descMap: Record<string, string> = {
+      'payroll_id': '薪资记录唯一标识符',
+      'full_name': '员工完整姓名',
+      'department_name': '员工所属部门',
+      'pay_date': '薪资发放日期',
+      'status': '薪资记录当前状态',
+      'gross_pay': '税前应发工资总额',
+      'total_deductions': '各项扣除总额',
+      'net_pay': '实际发放金额',
+    };
+
+    return descMap[fieldName];
+  }
+
+  /**
+   * 判断薪资字段是否可搜索
+   */
+  private isPayrollSearchableField(fieldName: string): boolean {
+    const searchableFields = [
+      'full_name', 'department_name', 'position_name', 'category_name', 
+      'status', 'primary_bank_account', 'bank_name'
+    ];
+    return searchableFields.includes(fieldName);
+  }
+
+  /**
+   * 判断薪资字段是否可排序
+   */
+  private isPayrollSortableField(fieldName: string): boolean {
+    // 薪资字段基本都可排序
+    return true;
+  }
+
+  /**
+   * 判断薪资字段是否可筛选
+   */
+  private isPayrollFilterableField(fieldName: string): boolean {
+    const filterableFields = [
+      'status', 'department_name', 'position_name', 'category_name'
+    ];
+    return filterableFields.includes(fieldName);
+  }
+
+  /**
+   * 获取薪资字段默认宽度
+   */
+  private getPayrollDefaultWidth(fieldName: string): number {
+    const widthMap: Record<string, number> = {
+      'payroll_id': 120,
+      'full_name': 120,
+      'department_name': 120,
+      'position_name': 120,
+      'category_name': 120,
+      'pay_date': 120,
+      'pay_period_start': 120,
+      'pay_period_end': 120,
+      'status': 100,
+      'gross_pay': 120,
+      'total_deductions': 120,
+      'net_pay': 120,
+      'primary_bank_account': 150,
+      'bank_name': 150,
+      'branch_name': 150,
+      'created_at': 150,
+      'updated_at': 150,
+    };
+
+    return widthMap[fieldName] || 100;
+  }
+
+  /**
+   * 判断薪资字段是否默认可见
+   */
+  private isPayrollDefaultVisible(fieldName: string): boolean {
+    const defaultVisibleFields = [
+      'full_name',        // 员工姓名
+      'department_name',  // 部门
+      'pay_date',         // 发薪日期
+      'status',           // 状态
+      'gross_pay',        // 应发工资
+      'total_deductions', // 扣除合计
+      'net_pay'           // 实发工资
+    ];
+    return defaultVisibleFields.includes(fieldName);
+  }
+
+  /**
+   * 获取薪资字段选项（用于select类型字段）
+   */
+  private getPayrollFieldOptions(fieldName: string, fieldType: FieldMetadata['type']): { value: string; label: string }[] | undefined {
+    if (fieldType !== 'select') return undefined;
+
+    const optionsMap: Record<string, { value: string; label: string }[]> = {
+      'status': [
+        { value: 'draft', label: '草稿' },
+        { value: 'approved', label: '已批准' },
+        { value: 'paid', label: '已发放' },
+        { value: 'cancelled', label: '已取消' },
+      ],
+    };
+
+    return optionsMap[fieldName];
+  }
+
+  /**
+   * 获取薪资字段默认排序
+   */
+  private getPayrollDefaultOrder(fieldName: string): number {
+    const orderMap: Record<string, number> = {
+      'full_name': 1,         // 员工姓名
+      'department_name': 2,   // 部门
+      'pay_date': 3,          // 发薪日期
+      'status': 4,            // 状态
+      'gross_pay': 5,         // 应发工资
+      'total_deductions': 6,  // 扣除合计
+      'net_pay': 7,           // 实发工资
+      'payroll_id': 8,
+      'employee_id': 9,
+      'position_name': 10,
+      'category_name': 11,
+      'pay_period_start': 12,
+      'pay_period_end': 13,
+      'primary_bank_account': 14,
+      'bank_name': 15,
+      'branch_name': 16,
+      'created_at': 17,
+      'updated_at': 18,
+    };
+
+    return orderMap[fieldName] || 999;
+  }
+
+  /**
+   * 备选薪资元数据（当API失败时使用）
+   */
+  private getFallbackPayrollMetadata(): TableMetadata {
+    return {
+      tableName: 'view_payroll_summary',
+      displayName: '薪资列表',
+      description: '薪资记录和员工信息',
+      primaryKey: 'payroll_id',
+      defaultSort: { field: 'pay_date', direction: 'desc' },
+      defaultFields: [
+        'full_name',        // 员工姓名
+        'department_name',  // 部门
+        'pay_date',         // 发薪日期
+        'status',           // 状态
+        'gross_pay',        // 应发工资
+        'total_deductions', // 扣除合计
+        'net_pay'           // 实发工资
+      ],
+      fields: [
+        {
+          name: 'payroll_id',
+          type: 'text',
+          label: '薪资ID',
+          description: '薪资记录唯一标识符',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: false,
+          width: 120,
+          alignment: 'left',
+          visible: false,
+          order: 8,
+        },
+        {
+          name: 'full_name',
+          type: 'text',
+          label: '员工姓名',
+          description: '员工完整姓名',
+          required: false,
+          searchable: true,
+          sortable: true,
+          filterable: false,
+          width: 120,
+          alignment: 'left',
+          visible: true,
+          order: 1,
+        },
+        {
+          name: 'department_name',
+          type: 'text',
+          label: '部门',
+          description: '员工所属部门',
+          required: false,
+          searchable: true,
+          sortable: true,
+          filterable: true,
+          width: 120,
+          alignment: 'left',
+          visible: true,
+          order: 2,
+        },
+        {
+          name: 'pay_date',
+          type: 'date',
+          label: '发薪日期',
+          description: '薪资发放日期',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: false,
+          width: 120,
+          alignment: 'center',
+          visible: true,
+          order: 3,
+        },
+        {
+          name: 'status',
+          type: 'select',
+          label: '薪资状态',
+          description: '薪资记录当前状态',
+          required: false,
+          searchable: true,
+          sortable: true,
+          filterable: true,
+          width: 100,
+          alignment: 'center',
+          visible: true,
+          order: 4,
+          options: [
+            { value: 'draft', label: '草稿' },
+            { value: 'approved', label: '已批准' },
+            { value: 'paid', label: '已发放' },
+            { value: 'cancelled', label: '已取消' },
+          ],
+        },
+        {
+          name: 'gross_pay',
+          type: 'number',
+          label: '应发工资',
+          description: '税前应发工资总额',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: false,
+          width: 120,
+          alignment: 'right',
+          visible: true,
+          order: 5,
+        },
+        {
+          name: 'total_deductions',
+          type: 'number',
+          label: '扣除合计',
+          description: '各项扣除总额',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: false,
+          width: 120,
+          alignment: 'right',
+          visible: true,
+          order: 6,
+        },
+        {
+          name: 'net_pay',
+          type: 'number',
+          label: '实发工资',
+          description: '实际发放金额',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: false,
+          width: 120,
+          alignment: 'right',
+          visible: true,
+          order: 7,
+        },
+      ],
+    };
   }
 
   /**

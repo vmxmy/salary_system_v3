@@ -13,5 +13,7 @@ export type {
   PayrollValidation,
   PayrollBatchResult,
   PayrollBatchSummary,
-  PayrollPeriodSummary
+  PayrollPeriodSummary,
+  PayrollClearResult,
+  PayrollClearSummary
 } from './payroll-creation.service';

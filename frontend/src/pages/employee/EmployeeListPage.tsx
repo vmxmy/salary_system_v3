@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAllEmployees } from '@/hooks/useEmployees';
 import { useTableConfiguration } from '@/hooks/useTableConfiguration';
@@ -6,6 +6,7 @@ import { ManagementPageLayout, type StatCardProps } from '@/components/layout/Ma
 import { ModernButton } from '@/components/common/ModernButton';
 import { EmployeeModal } from '@/components/employee/EmployeeDetailModal';
 import { EmployeeExport } from '@/components/employee/EmployeeExport';
+import { RealtimeIndicator } from '@/components/common/RealtimeIndicator';
 import type { Table } from '@tanstack/react-table';
 
 export default function EmployeeListPage() {
@@ -13,6 +14,22 @@ export default function EmployeeListPage() {
   
   // 数据获取
   const { data: allEmployees = [], isLoading, isError, error } = useAllEmployees();
+  
+  // 调试: 输出前几条数据查看结构
+  console.log('=== Employee Data Debug ===');
+  console.log('Total employees:', allEmployees.length);
+  console.log('First 3 employees:', allEmployees.slice(0, 3));
+  console.log('Sample employee structure:', allEmployees[0]);
+  
+  // 临时调试：清除表格配置缓存
+  if (typeof window !== 'undefined' && allEmployees.length > 0) {
+    const hasDebugFlag = localStorage.getItem('debug_clear_table_config');
+    if (!hasDebugFlag) {
+      console.log('Clearing table config cache for debugging...');
+      localStorage.removeItem('table_config_view_employee_basic_info');
+      localStorage.setItem('debug_clear_table_config', 'true');
+    }
+  }
 
   // 表格配置管理
   const {
@@ -33,6 +50,7 @@ export default function EmployeeListPage() {
 
   // 状态管理
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeSearchQuery, setActiveSearchQuery] = useState(''); // 实际用于搜索的查询
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'view' | 'edit' | 'create'>('view');
@@ -42,13 +60,14 @@ export default function EmployeeListPage() {
   const processedData = useMemo(() => {
     let data = [...allEmployees];
     
-    // 全局模糊搜索
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
+    // 全局模糊搜索 - 使用手动触发的搜索查询
+    if (activeSearchQuery.trim()) {
+      const query = activeSearchQuery.toLowerCase().trim();
       data = data.filter(employee => {
         // 搜索所有可能的字段
         const searchableFields = [
           employee.full_name,           // 姓名
+          employee.id_number,           // 身份证号
           employee.department_name,     // 部门
           employee.position_name,       // 职位
           employee.category_name,       // 人员类别
@@ -67,23 +86,25 @@ export default function EmployeeListPage() {
     }
     
     return data;
-  }, [allEmployees, searchQuery]);
+  }, [allEmployees, activeSearchQuery]);
 
-  // 搜索处理函数
-  const handleSearch = () => {
+  // 搜索处理函数 - 手动触发搜索
+  const handleSearch = useCallback(() => {
+    setActiveSearchQuery(searchQuery);
     // TanStack Table 会自动重置分页到第一页
     if (tableInstance) {
       tableInstance.setPageIndex(0);
     }
-  };
+  }, [searchQuery, tableInstance]);
 
-  const handleResetSearch = () => {
+  const handleResetSearch = useCallback(() => {
     setSearchQuery('');
+    setActiveSearchQuery('');
     // TanStack Table 会自动重置分页到第一页
     if (tableInstance) {
       tableInstance.setPageIndex(0);
     }
-  };
+  }, [tableInstance]);
 
   // 处理新增员工
   const handleAddEmployee = () => {
@@ -196,7 +217,7 @@ export default function EmployeeListPage() {
       onSearchChange={setSearchQuery}
       onSearch={handleSearch}
       onSearchReset={handleResetSearch}
-      searchPlaceholder="搜索员工姓名、部门、职位、手机号、邮箱..."
+      searchPlaceholder="搜索员工姓名、身份证号、部门、职位、手机号、邮箱..."
       searchLoading={totalLoading}
       showFieldSelector={true}
       fields={metadata.fields}
@@ -240,6 +261,9 @@ export default function EmployeeListPage() {
         >
           添加员工
         </ModernButton>
+      ]}
+      additionalActions={[
+        <RealtimeIndicator key="realtime-indicator" className="mr-2" showText={true} size="sm" />
       ]}
       data={processedData}
       columns={columns}
