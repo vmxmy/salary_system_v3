@@ -11,8 +11,11 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<AuthUser>;
+  signInWithMagicLink: (email: string) => Promise<void>;
   signUp: (email: string, password: string, userData?: any) => Promise<AuthUser>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
   hasAllPermissions: (permissions: string[]) => boolean;
@@ -85,6 +88,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return authUser;
   };
 
+  const signInWithMagicLink = async (email: string) => {
+    const redirectTo = `${import.meta.env.VITE_APP_URL || window.location.origin}/auth/callback`;
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
+    });
+    if (error) throw error;
+  };
+
   const signUp = async (email: string, password: string, userData?: any) => {
     // Basic signUp implementation - can be expanded as needed
     const { data, error } = await supabase.auth.signUp({ email, password });
@@ -99,8 +113,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    console.log('[AuthContext] Signing out user...');
     await authService.signOut();
     setUser(null);
+    setSession(null);
+    
+    // Redirect to login page after logout
+    window.location.href = '/auth/login';
+  };
+
+  const resetPassword = async (email: string) => {
+    const redirectTo = `${import.meta.env.VITE_APP_URL || window.location.origin}/auth/reset-password`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+    if (error) throw error;
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) throw error;
   };
 
   const hasPermission = (permission: string) => {
@@ -125,8 +159,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoading: loading,
     isAuthenticated,
     signIn,
+    signInWithMagicLink,
     signUp,
     signOut,
+    resetPassword,
+    updatePassword,
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,

@@ -10,6 +10,7 @@ const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'));
+const AuthCallbackPage = lazy(() => import('@/pages/auth/AuthCallbackPage'));
 
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const EmployeeListPage = lazy(() => import('@/pages/employee/EmployeeListPage'));
@@ -70,6 +71,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingScreen />}>
             <ResetPasswordPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'callback',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <AuthCallbackPage />
           </Suspense>
         ),
       },
