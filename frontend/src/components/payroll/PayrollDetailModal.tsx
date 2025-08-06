@@ -770,65 +770,49 @@ function PayrollBreakdownSection({
                 ? "bg-error/2 border-error/10 hover:bg-error/5" 
                 : "bg-success/2 border-success/10 hover:bg-success/5"
             )}>
-              {/* 分类头部 */}
+              {/* 分类头部 - 简化，不显示金额汇总 */}
               <div className="p-4 border-b border-current/10">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium text-base-content/90">{category}</h4>
-                  <div className="text-right">
-                    <div className={cn(
-                      "text-lg font-bold font-mono",
-                      isDeduction ? "text-error" : "text-success"
-                    )}>
-                      {isDeduction ? "-" : "+"}{formatCurrency(Math.abs(categoryTotal?.total || 0))}
-                    </div>
-                    <div className="text-xs text-base-content/60">
-                      {items.length} 个项目
-                    </div>
+                  <div className="text-xs text-base-content/60">
+                    {items.length} 个项目
                   </div>
                 </div>
               </div>
 
-              {/* 项目详情 */}
-              <div className="p-4 space-y-3">
+              {/* 项目详情 - 优化明细展示 */}
+              <div className="p-4 space-y-4">
                 {items.map((item, index) => (
                   <div key={`${item.component_id}-${index}`} className="group">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-base-50/30 hover:bg-base-50/50 transition-colors">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                          <p className="font-medium text-base-content truncate">
-                            {item.component_name}
-                          </p>
-                          {item.amount > 0 && (
-                            <div className={cn(
-                              "px-2 py-0.5 rounded text-xs font-medium",
-                              isDeduction 
-                                ? "bg-error/10 text-error" 
-                                : "bg-success/10 text-success"
-                            )}>
-                              {formatCurrency(Math.abs(item.amount))}
-                            </div>
-                          )}
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="font-medium text-base-content">{item.component_name}</h5>
+                          <div className={cn(
+                            "text-base font-semibold font-mono",
+                            isDeduction ? "text-error" : "text-success"
+                          )}>
+                            {isDeduction ? "-" : "+"}{formatCurrency(Math.abs(item.amount))}
+                          </div>
                         </div>
                         
-                        {item.calculation_method && (
-                          <p className="text-xs text-base-content/60 mb-1">
-                            <span className="font-medium">计算方式：</span>
-                            {item.calculation_method}
-                          </p>
-                        )}
-                        
-                        {item.notes && (
-                          <p className="text-xs text-base-content/50">
-                            <span className="font-medium">备注：</span>
-                            {item.notes}
-                          </p>
-                        )}
+                        <div className="space-y-1">
+                          {item.calculation_method && (
+                            <p className="text-xs text-base-content/60">
+                              <span className="inline-block w-16 font-medium">计算方式</span>
+                              <span>{item.calculation_method}</span>
+                            </p>
+                          )}
+                          
+                          {item.notes && (
+                            <p className="text-xs text-base-content/50">
+                              <span className="inline-block w-16 font-medium">备注</span>
+                              <span>{item.notes}</span>
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    
-                    {index < items.length - 1 && (
-                      <div className="border-b border-base-200/30 mt-3"></div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -839,36 +823,13 @@ function PayrollBreakdownSection({
     );
   };
 
-  // 使用数据库预计算的汇总金额，确保与置顶显示一致
-  const totalIncome = payroll.gross_pay || 0;
-  const totalDeduction = payroll.total_deductions || 0;
-  const netSalary = payroll.net_pay || 0;
-
   return (
-    <div className="space-y-6">
-      {/* 薪资概览卡片 - 放在顶部突出显示 */}
-      <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent rounded-xl p-6 border border-primary/10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <p className="text-sm text-base-content/60 mb-1">应发工资</p>
-            <p className="text-2xl font-bold text-success">{formatCurrency(totalIncome)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-base-content/60 mb-1">应扣金额</p>
-            <p className="text-2xl font-bold text-error">-{formatCurrency(totalDeduction)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-base-content/60 mb-1">实发工资</p>
-            <p className="text-2xl font-bold text-primary">{formatCurrency(netSalary)}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* 收入和扣除项目详情 */}
-      <div className="space-y-8">
-        {renderCategorySection(incomeCategories, 'income')}
-        {renderCategorySection(deductionCategories, 'deduction')}
-      </div>
+    <div className="space-y-8">
+      {/* 收入项目明细 */}
+      {renderCategorySection(incomeCategories, 'income')}
+      
+      {/* 扣除项目明细 */}
+      {renderCategorySection(deductionCategories, 'deduction')}
     </div>
   );
 }
