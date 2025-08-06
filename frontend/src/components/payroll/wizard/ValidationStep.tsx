@@ -11,12 +11,14 @@ import {
   type ValidationIssue 
 } from '@/services/payroll-validation.service';
 
-enum CreationMode {
-  COPY = 'copy',
-  IMPORT = 'import', 
-  MANUAL = 'manual',
-  TEMPLATE = 'template'
-}
+const CreationMode = {
+  COPY: 'copy',
+  IMPORT: 'import', 
+  MANUAL: 'manual',
+  TEMPLATE: 'template'
+} as const;
+
+type CreationMode = typeof CreationMode[keyof typeof CreationMode];
 
 interface ValidationStepProps {
   wizardState: any;

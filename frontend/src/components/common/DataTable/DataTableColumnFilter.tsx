@@ -57,7 +57,7 @@ export function DataTableColumnFilter<TData, TValue>({
           'btn btn-ghost btn-xs p-1 h-6 w-6',
           isFiltered && 'text-primary'
         )}
-        title={t('filter')}
+        title={String(t('filter'))}
       >
         <FilterIcon className="h-3 w-3" />
       </button>
@@ -67,13 +67,13 @@ export function DataTableColumnFilter<TData, TValue>({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">
-                {t('filter')}
+                {String(t('filter'))}
               </span>
               {isFiltered && (
                 <button
                   onClick={handleClearFilter}
                   className="btn btn-ghost btn-xs p-1"
-                  title={t('clear')}
+                  title={String(t('clear'))}
                 >
                   <XIcon className="h-3 w-3" />
                 </button>
@@ -84,14 +84,14 @@ export function DataTableColumnFilter<TData, TValue>({
               type="text"
               value={filterValue}
               onChange={(e) => handleFilterChange(e.target.value)}
-              placeholder={t('placeholder.filterColumn')}
+              placeholder={String(t('placeholder.filterColumn'))}
               className="input input-sm w-full"
               autoFocus
             />
 
             {/* For future enhancement: Add dropdown for specific filter types */}
             <div className="text-xs text-base-content/60">
-              {t('filterHelp')}
+              {String(t('filterHelp'))}
             </div>
           </div>
         </div>

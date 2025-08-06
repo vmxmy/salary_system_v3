@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useEmployee, useDepartments, usePositions, usePersonnelCategories, usePersonnelCategoryNames, useUpdateEmployee, useCreateEmployee, useDeleteEmployee } from '@/hooks/useEmployees';
+import { useEmployee, useDepartments, usePositions, usePersonnelCategories, useUpdateEmployee, useCreateEmployee, useDeleteEmployee } from '@/hooks/useEmployees';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { AccordionSection, AccordionContent, AccordionFormGroup } from '@/components/common/AccordionSection';
 import { NativeTreeSelect } from '@/components/common/NativeTreeSelect';
@@ -71,7 +71,6 @@ export function EmployeeModal({
   onSuccess
 }: EmployeeModalProps) {
   const { t } = useTranslation(['employee', 'common']);
-  const [isClosing, setIsClosing] = useState(false);
   const [isEditing, setIsEditing] = useState(mode === 'create' || mode === 'edit');
   const [editDataRef, setEditDataRef] = useState<EmployeeData | null>(null);
   const updateEmployeeMutation = useUpdateEmployee();
@@ -88,9 +87,7 @@ export function EmployeeModal({
     isLoading, 
     isError, 
     error 
-  } = useEmployee(employeeId || '', {
-    enabled: (mode === 'view' || mode === 'edit') && !!employeeId
-  });
+  } = useEmployee(employeeId || '');
 
   // 当进入编辑模式时，初始化编辑数据；退出编辑模式时清理数据
   useEffect(() => {
@@ -106,11 +103,7 @@ export function EmployeeModal({
 
   // 处理关闭动画
   const handleClose = useCallback(() => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
-      onClose();
-    }, 200); // 动画持续时间
+    onClose();
   }, [onClose]);
 
   // 同步 isEditing 状态到模式变化
@@ -238,10 +231,10 @@ export function EmployeeModal({
             employeeId: employee.employee_id,
             updates
           });
-          showSuccess(t('employee:message.updateSuccess'));
+          showSuccess(String(t('employee:message.updateSuccess')));
           onSuccess?.();
         } else {
-          showInfo(t('employee:message.noChangesDetected'));
+          showInfo(String(t('employee:message.noChangesDetected')));
         }
         
         // 退出编辑模式
@@ -249,11 +242,11 @@ export function EmployeeModal({
       }
     } catch (error) {
       console.error('Failed to save employee data:', error);
-      const errorMessage = error instanceof Error ? error.message : t('common:message.operationFailed');
+      const errorMessage = error instanceof Error ? error.message : String(t('common:message.operationFailed'));
       if (mode === 'create') {
         showError(`员工创建失败: ${errorMessage}`);
       } else {
-        showError(`${t('employee:message.saveFailed')}: ${errorMessage}`);
+        showError(`${String(t('employee:message.saveFailed'))}: ${errorMessage}`);
       }
     }
   }, [mode, editDataRef, employee, validateData, createEmployeeMutation, updateEmployeeMutation, showSuccess, showError, showInfo, onSuccess, handleClose, t]);
@@ -354,7 +347,7 @@ export function EmployeeModal({
           <button 
             className="btn btn-sm btn-circle btn-ghost" 
             onClick={handleClose}
-            aria-label={t('common:close')}
+            aria-label={String(t('common:close'))}
           >
             ✕
           </button>
@@ -370,14 +363,14 @@ export function EmployeeModal({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>
-                  {t('common:error.loadFailed')}: {(error as Error)?.message}
+                  {String(t('common:error.loadFailed'))}: {(error as Error)?.message}
                 </span>
               </div>
             )}
 
             {(employee || mode === 'create') && (
               <EmployeeDetailContent 
-                employee={employee || displayData} 
+                employee={(employee || displayData) as EmployeeData} 
                 isEditing={isEditing || mode === 'create'}
                 onEditDataChange={setEditDataRef}
               />
@@ -553,6 +546,9 @@ export function EmployeeModal({
   );
 }
 
+// Also export as EmployeeDetailModal for proper naming
+export { EmployeeModal as EmployeeDetailModal };
+
 // 员工详情内容组件接口
 interface EmployeeDetailContentProps {
   employee: EmployeeData;
@@ -569,17 +565,14 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
   const { showSuccess, showError } = useToast();
   
   // 从API获取选项数据
-  const { data: departments = [], isLoading: departmentsLoading } = useDepartments();
-  const { data: positions = [], isLoading: positionsLoading } = usePositions(); 
+  const { data: departments = [] } = useDepartments();
+  const { data: positions = [] } = usePositions(); 
   const { data: categoryTree = [], isLoading: categoriesLoading } = usePersonnelCategories();
 
 
   // 转换为下拉选项格式
   const departmentOptions = departments.map(name => ({ value: name, label: name }));
   const positionOptions = positions.map(name => ({ value: name, label: name }));
-
-  // 检查选项数据是否加载完成
-  const optionsLoading = departmentsLoading || positionsLoading || categoriesLoading;
 
   // 当员工数据更新时，同步编辑数据和加载教育信息
   useEffect(() => {
@@ -597,7 +590,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
       setEducationRecords(records);
     } catch (error) {
       console.error('Failed to load education records:', error);
-      showError(t('employee:education.loadFailed'));
+      showError(String(t('employee:education.loadFailed')));
     } finally {
       setIsLoadingEducation(false);
     }
@@ -613,10 +606,10 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         employee_id: employee.employee_id
       });
       setEducationRecords(prev => [...prev, newRecord]);
-      showSuccess(t('employee:education.createSuccess'));
+      showSuccess(String(t('employee:education.createSuccess')));
     } catch (error) {
       console.error('Failed to create education record:', error);
-      showError(t('employee:education.createFailed'));
+      showError(String(t('employee:education.createFailed')));
     }
   };
 
@@ -627,10 +620,10 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
       setEducationRecords(prev => prev.map(record => 
         record.id === id ? updatedRecord : record
       ));
-      showSuccess(t('employee:education.updateSuccess'));
+      showSuccess(String(t('employee:education.updateSuccess')));
     } catch (error) {
       console.error('Failed to update education record:', error);
-      showError(t('employee:education.updateFailed'));
+      showError(String(t('employee:education.updateFailed')));
     }
   };
 
@@ -639,10 +632,10 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
     try {
       await employeeService.deleteEmployeeEducation(id);
       setEducationRecords(prev => prev.filter(record => record.id !== id));
-      showSuccess(t('employee:education.deleteSuccess'));
+      showSuccess(String(t('employee:education.deleteSuccess')));
     } catch (error) {
       console.error('Failed to delete education record:', error);
-      showError(t('employee:education.deleteFailed'));
+      showError(String(t('employee:education.deleteFailed')));
     }
   };
 
@@ -682,20 +675,20 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
         }
-        title={t('employee:sections.basicInfo')}
+        title={String(t('employee:sections.basicInfo'))}
         isOpen={openSections.has('basic')}
         onToggle={toggleSection}
         isEditing={isEditing}
       >
         <AccordionContent>
           <DetailField 
-            label={t('employee:fields.fullName')} 
+            label={String(t('employee:fields.fullName'))} 
             value={isEditing ? editData.full_name : employee.full_name}
             isEditing={isEditing}
             onChange={(value) => updateEditData('full_name', value)}
           />
           <DetailField 
-            label={t('employee:fields.gender')} 
+            label={String(t('employee:fields.gender'))} 
             value={isEditing ? editData.gender : employee.gender}
             isEditing={isEditing}
             onChange={(value) => updateEditData('gender', value)}
@@ -706,26 +699,26 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
             ]}
           />
           <DetailField 
-            label={t('employee:fields.birthDate')} 
+            label={String(t('employee:fields.birthDate'))} 
             value={isEditing ? editData.date_of_birth : employee.date_of_birth}
             type="date"
             isEditing={isEditing}
             onChange={(value) => updateEditData('date_of_birth', value)}
           />
           <DetailField 
-            label={t('employee:fields.idNumber')} 
+            label={String(t('employee:fields.idNumber'))} 
             value={isEditing ? editData.id_number : employee.id_number}
             sensitive
             isEditing={isEditing}
             onChange={(value) => updateEditData('id_number', value)}
           />
           <DetailField 
-            label={t('employee:fields.employeeId')} 
+            label={String(t('employee:fields.employeeId'))} 
             value={isEditing ? editData.employee_id : employee.employee_id}
             isEditing={false} // 员工编号不允许编辑
           />
           <DetailField 
-            label={t('employee:fields.hireDate')} 
+            label={String(t('employee:fields.hireDate'))} 
             value={isEditing ? editData.hire_date : employee.hire_date}
             type="date"
             isEditing={isEditing}
@@ -742,14 +735,14 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
         }
-        title={t('employee:sections.jobInfo')}
+        title={String(t('employee:sections.jobInfo'))}
         isOpen={openSections.has('job')}
         onToggle={toggleSection}
         isEditing={isEditing}
       >
         <AccordionContent>
           <DetailField 
-            label={t('employee:fields.department')} 
+            label={String(t('employee:fields.department'))} 
             value={isEditing ? editData.department_name : employee.department_name}
             type={isEditing ? 'select' : 'text'}
             isEditing={isEditing}
@@ -757,7 +750,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
             options={departmentOptions}
           />
           <DetailField 
-            label={t('employee:fields.position')} 
+            label={String(t('employee:fields.position'))} 
             value={isEditing ? editData.position_name : employee.position_name}
             type={isEditing ? 'select' : 'text'}
             isEditing={isEditing}
@@ -767,7 +760,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
           {isEditing ? (
             <div className="form-control">
               <label className="label">
-                <span className="label-text">{t('employee:fields.category')}</span>
+                <span className="label-text">{String(t('employee:fields.category'))}</span>
               </label>
               <NativeTreeSelect
                 data={categoryTree}
@@ -779,22 +772,22 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
             </div>
           ) : (
             <DetailField 
-              label={t('employee:fields.category')} 
+              label={String(t('employee:fields.category'))} 
               value={employee.category_name}
               type="text"
               isEditing={false}
             />
           )}
           <DetailField 
-            label={t('employee:fields.employmentStatus')} 
+            label={String(t('employee:fields.employmentStatus'))} 
             value={isEditing ? editData.employment_status : employee.employment_status}
             type={isEditing ? 'select' : 'status'}
             isEditing={isEditing}
             onChange={(value) => updateEditData('employment_status', value)}
             options={[
-              { value: 'active', label: t('employee:status.active') },
-              { value: 'inactive', label: t('employee:status.inactive') },
-              { value: 'on_leave', label: t('employee:status.onLeave') }
+              { value: 'active', label: String(t('employee:status.active')) },
+              { value: 'inactive', label: String(t('employee:status.inactive')) },
+              { value: 'on_leave', label: String(t('employee:status.onLeave')) }
             ]}
           />
           {/* 工作信息变更生效日期 */}
@@ -818,21 +811,21 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         }
-        title={t('employee:sections.contactInfo')}
+        title={String(t('employee:sections.contactInfo'))}
         isOpen={openSections.has('contact')}
         onToggle={toggleSection}
         isEditing={isEditing}
       >
         <AccordionContent>
           <DetailField 
-            label={t('employee:fields.mobilePhone')} 
+            label={String(t('employee:fields.mobilePhone'))} 
             value={isEditing ? editData.mobile_phone : employee.mobile_phone}
             type="phone"
             isEditing={isEditing}
             onChange={(value) => updateEditData('mobile_phone', value)}
           />
           <DetailField 
-            label={t('employee:fields.email')} 
+            label={String(t('employee:fields.email'))} 
             value={isEditing ? (editData.work_email || editData.personal_email) : (employee.work_email || employee.personal_email || employee.email)}
             type="email"
             isEditing={isEditing}
@@ -850,28 +843,28 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
             </svg>
           }
-          title={t('employee:sections.bankInfo')}
+          title={String(t('employee:sections.bankInfo'))}
           isOpen={openSections.has('bank')}
           onToggle={toggleSection}
           isEditing={isEditing}
         >
           <AccordionContent>
             <DetailField 
-              label={t('employee:fields.bankAccount')} 
+              label={String(t('employee:fields.bankAccount'))} 
               value={isEditing ? editData.primary_bank_account : employee.primary_bank_account}
               sensitive
               isEditing={isEditing}
               onChange={(value) => updateEditData('primary_bank_account', value)}
             />
             <DetailField 
-              label={t('employee:fields.bankName')} 
+              label={String(t('employee:fields.bankName'))} 
               value={isEditing ? editData.bank_name : employee.bank_name}
               isEditing={isEditing}
               onChange={(value) => updateEditData('bank_name', value)}
             />
             {(employee.branch_name || isEditing) && (
               <DetailField 
-                label={t('employee:fields.branchName')} 
+                label={String(t('employee:fields.branchName'))} 
                 value={isEditing ? editData.branch_name : employee.branch_name}
                 isEditing={isEditing}
                 onChange={(value) => updateEditData('branch_name', value)}
@@ -889,7 +882,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z M12 14l9-5-9-5-9 5 9 5zm0 0v6.756" />
           </svg>
         }
-        title={t('employee:sections.educationInfo')}
+        title={String(t('employee:sections.educationInfo'))}
         isOpen={openSections.has('education')}
         onToggle={toggleSection}
         isEditing={isEditing}
@@ -929,7 +922,6 @@ function EducationSection({
 }: EducationSectionProps) {
   const { t } = useTranslation(['employee', 'common']);
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [newEducation, setNewEducation] = useState({
     institution_name: '',
     degree: '',
@@ -980,7 +972,7 @@ function EducationSection({
       {/* 现有教育记录 */}
       {educationRecords.length === 0 && !isAddingNew && !isEditing && (
         <div className="text-base text-center py-8 text-base-content/60">
-          {t('employee:education.noData')}
+          {String(t('employee:education.noData'))}
         </div>
       )}
 
@@ -989,8 +981,6 @@ function EducationSection({
           key={record.id}
           record={record}
           isEditing={isEditing}
-          onEdit={() => setEditingId(record.id)}
-          onCancelEdit={() => setEditingId(null)}
           onUpdate={onUpdateEducation}
           onDelete={onDeleteEducation}
           degreeOptions={degreeOptions}
@@ -1007,7 +997,7 @@ function EducationSection({
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
             </svg>
-            {t('employee:education.add')}
+            {String(t('employee:education.add'))}
           </button>
         </div>
       )}
@@ -1022,7 +1012,7 @@ function EducationSection({
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
             </svg>
-            {t('employee:education.add')}
+            {String(t('employee:education.add'))}
           </button>
         </div>
       )}
@@ -1030,7 +1020,7 @@ function EducationSection({
       {/* 新增教育记录表单 */}
       {isAddingNew && isEditing && (
         <AccordionFormGroup
-          title={t('employee:education.add')}
+          title={String(t('employee:education.add'))}
           icon={
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -1039,33 +1029,33 @@ function EducationSection({
         >
           <FieldGroup>
             <DetailField
-              label={t('employee:education.institution')}
+              label={String(t('employee:education.institution'))}
               value={newEducation.institution_name}
               isEditing={true}
               onChange={(value) => setNewEducation(prev => ({ ...prev, institution_name: value }))}
-              placeholder={t('employee:education.unknownInstitution')}
+              placeholder={String(t('employee:education.unknownInstitution'))}
               required
             />
             <DetailField
-              label={t('employee:education.degree')}
+              label={String(t('employee:education.degree'))}
               value={newEducation.degree}
               type="select"
               isEditing={true}
               onChange={(value) => setNewEducation(prev => ({ ...prev, degree: value }))}
               options={degreeOptions}
-              placeholder={t('employee:education.highSchoolOrBelow')}
+              placeholder={String(t('employee:education.highSchoolOrBelow'))}
               required
             />
             <DetailField
-              label={t('employee:education.major')}
+              label={String(t('employee:education.major'))}
               value={newEducation.field_of_study}
               isEditing={true}
               onChange={(value) => setNewEducation(prev => ({ ...prev, field_of_study: value }))}
-              placeholder={t('employee:education.unspecifiedMajor')}
+              placeholder={String(t('employee:education.unspecifiedMajor'))}
               required
             />
             <DetailField
-              label={t('employee:education.graduationDate')}
+              label={String(t('employee:education.graduationDate'))}
               value={newEducation.graduation_date}
               type="date"
               isEditing={true}
@@ -1075,12 +1065,12 @@ function EducationSection({
           </FieldGroup>
           <FieldGroup columns={1}>
             <DetailField
-              label={t('employee:education.notes')}
+              label={String(t('employee:education.notes'))}
               value={newEducation.notes}
               type="textarea"
               isEditing={true}
               onChange={(value) => setNewEducation(prev => ({ ...prev, notes: value }))}
-              placeholder={t('employee:education.notesPlaceholder')}
+              placeholder={String(t('employee:education.notesPlaceholder'))}
               rows={3}
             />
           </FieldGroup>
@@ -1125,8 +1115,6 @@ function EducationSection({
 interface EducationCardProps {
   record: EmployeeEducation;
   isEditing: boolean;
-  onEdit: () => void;
-  onCancelEdit: () => void;
   onUpdate: (id: string, updates: Partial<EmployeeEducation>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   degreeOptions: Array<{ value: string; label: string }>;
@@ -1135,8 +1123,6 @@ interface EducationCardProps {
 function EducationCard({
   record,
   isEditing,
-  onEdit,
-  onCancelEdit,
   onUpdate,
   onDelete,
   degreeOptions
@@ -1158,7 +1144,7 @@ function EducationCard({
   };
 
   const handleDelete = async () => {
-    if (confirm(t('employee:education.confirmDelete'))) {
+    if (confirm(String(t('employee:education.confirmDelete')))) {
       setIsDeleting(true);
       await onDelete(record.id);
       setIsDeleting(false);
@@ -1168,7 +1154,7 @@ function EducationCard({
   if (isEditing) {
     return (
       <AccordionFormGroup
-        title={t('employee:education.edit')}
+        title={String(t('employee:education.edit'))}
         icon={
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -1177,13 +1163,13 @@ function EducationCard({
       >
         <FieldGroup>
           <DetailField
-            label={t('employee:education.institution')}
+            label={String(t('employee:education.institution'))}
             value={editData.institution_name}
             isEditing={true}
             onChange={(value) => handleUpdate('institution_name', value)}
           />
           <DetailField
-            label={t('employee:education.degree')}
+            label={String(t('employee:education.degree'))}
             value={editData.degree}
             type="select"
             isEditing={true}
@@ -1191,13 +1177,13 @@ function EducationCard({
             options={degreeOptions}
           />
           <DetailField
-            label={t('employee:education.major')}
+            label={String(t('employee:education.major'))}
             value={editData.field_of_study}
             isEditing={true}
             onChange={(value) => handleUpdate('field_of_study', value)}
           />
           <DetailField
-            label={t('employee:education.graduationDate')}
+            label={String(t('employee:education.graduationDate'))}
             value={editData.graduation_date}
             type="date"
             isEditing={true}
@@ -1206,7 +1192,7 @@ function EducationCard({
         </FieldGroup>
         <FieldGroup columns={1}>
           <DetailField
-            label={t('employee:education.notes')}
+            label={String(t('employee:education.notes'))}
             value={editData.notes || ''}
             type="textarea"
             isEditing={true}
@@ -1223,14 +1209,14 @@ function EducationCard({
             {isDeleting ? (
               <>
                 <span className="loading loading-spinner loading-sm"></span>
-                {t('common:deleting')}
+                {String(t('common:deleting'))}
               </>
             ) : (
               <>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                {t('common:delete')}
+                {String(t('common:delete'))}
               </>
             )}
           </button>
@@ -1241,7 +1227,7 @@ function EducationCard({
 
   return (
     <AccordionFormGroup
-      title={t('employee:education.title')}
+      title={String(t('employee:education.title'))}
       icon={
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
@@ -1250,19 +1236,19 @@ function EducationCard({
     >
       <FieldGroup>
         <DetailField
-          label={t('employee:education.institution')}
+          label={String(t('employee:education.institution'))}
           value={record.institution_name}
         />
         <DetailField
-          label={t('employee:education.degree')}
+          label={String(t('employee:education.degree'))}
           value={record.degree}
         />
         <DetailField
-          label={t('employee:education.major')}
+          label={String(t('employee:education.major'))}
           value={record.field_of_study}
         />
         <DetailField
-          label={t('employee:education.graduationDate')}
+          label={String(t('employee:education.graduationDate'))}
           value={record.graduation_date}
           type="date"
         />
@@ -1270,7 +1256,7 @@ function EducationCard({
       {record.notes && (
         <FieldGroup columns={1}>
           <DetailField
-            label={t('employee:education.notes')}
+            label={String(t('employee:education.notes'))}
             value={record.notes}
             type="textarea"
           />

@@ -15,7 +15,7 @@ export function PayrollStatusBadge({
   showIcon = true,
   className
 }: PayrollStatusBadgeProps) {
-  const { t, translateStatus } = useTranslation('payroll');
+  const { t } = useTranslation('payroll');
   
   // 确保 status 是有效的状态值
   const validStatuses = Object.values(PayrollStatus);

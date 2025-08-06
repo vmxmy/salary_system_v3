@@ -5,6 +5,7 @@ import { PayrollDetailView } from '@/components/payroll';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { cn } from '@/lib/utils';
+import { buttonEffects } from '@/styles/design-effects';
 import { PayrollStatus, type PayrollStatusType } from '@/services/payroll.service';
 import { useToast } from '@/contexts/ToastContext';
 import { useState } from 'react';
@@ -137,7 +138,7 @@ export default function PayrollDetailPage() {
       {/* 页面标题和操作 */}
       <PageHeader
         title={t('payroll:payrollDetails')}
-        description={`${payroll.employee?.full_name} - ${payroll.employee?.id_number}`}
+        description={`${payroll.employee?.full_name} - ${payroll.employee?.id_number || '未知'}`}
         actions={
           <div className="flex items-center gap-3">
             <button

@@ -51,17 +51,17 @@ export function ColumnVisibility<TData>({
   const createPreset = () => {
     // This would typically save to localStorage or user preferences
     const currentVisibility = table.getState().columnVisibility;
-    const presetName = prompt(t('columns.enterPresetName'));
+    const presetName = prompt(String(t('columns.enterPresetName')));
     
     if (presetName) {
       const presets = JSON.parse(localStorage.getItem('columnPresets') || '{}');
       presets[presetName] = currentVisibility;
       localStorage.setItem('columnPresets', JSON.stringify(presets));
-      alert(t('columns.presetSaved', { name: presetName }));
+      alert(String(t('columns.presetSaved', { name: presetName })));
     }
   };
 
-  const loadPreset = (presetName: string, preset: VisibilityState) => {
+  const loadPreset = (_presetName: string, preset: VisibilityState) => {
     table.setColumnVisibility(preset);
     onVisibilityChange?.(preset);
     setIsOpen(false);
@@ -80,7 +80,7 @@ export function ColumnVisibility<TData>({
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v3m2 4h10M7 7h3m0 0v3m0-3h3m-3 3h3" />
         </svg>
-        {t('columns.columns')}
+{String(t('columns.columns'))}
         <span className="badge badge-sm">
           {visibleCount}/{toggleableColumns.length}
         </span>
@@ -91,7 +91,7 @@ export function ColumnVisibility<TData>({
         <div className="dropdown-content card bg-base-100 shadow-xl mt-2 w-80">
           <div className="card-body p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="card-title text-base">{t('columns.columnVisibility')}</h3>
+              <h3 className="card-title text-base">{String(t('columns.columnVisibility'))}</h3>
               <button
                 onClick={() => setIsOpen(false)}
                 className="btn btn-ghost btn-sm btn-circle"
@@ -106,7 +106,7 @@ export function ColumnVisibility<TData>({
             <div className="form-control mb-4">
               <input
                 type="text"
-                placeholder={t('columns.searchColumns')}
+placeholder={String(t('columns.searchColumns'))}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="input input-bordered input-sm"
@@ -119,18 +119,18 @@ export function ColumnVisibility<TData>({
                 onClick={() => toggleAll(true)}
                 className="btn btn-sm btn-outline flex-1"
               >
-                {t('columns.showAll')}
+{String(t('columns.showAll'))}
               </button>
               <button
                 onClick={() => toggleAll(false)}
                 className="btn btn-sm btn-outline flex-1"
               >
-                {t('columns.hideAll')}
+{String(t('columns.hideAll'))}
               </button>
               <button
                 onClick={resetVisibility}
                 className="btn btn-sm btn-ghost"
-                title={t('columns.reset')}
+title={String(t('columns.reset'))}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -165,7 +165,7 @@ export function ColumnVisibility<TData>({
                     </span>
                     {!isVisible && (
                       <span className="badge badge-ghost badge-xs">
-                        {t('columns.hidden')}
+{String(t('columns.hidden'))}
                       </span>
                     )}
                   </label>
@@ -174,7 +174,7 @@ export function ColumnVisibility<TData>({
 
               {filteredColumns.length === 0 && (
                 <div className="text-center py-4 text-base-content/60">
-                  <p className="text-sm">{t('columns.noColumnsFound')}</p>
+                  <p className="text-sm">{String(t('columns.noColumnsFound'))}</p>
                 </div>
               )}
             </div>
@@ -182,7 +182,7 @@ export function ColumnVisibility<TData>({
             {/* Presets Section */}
             {Object.keys(savedPresets).length > 0 && (
               <>
-                <div className="divider text-xs">{t('columns.presets')}</div>
+                <div className="divider text-xs">{String(t('columns.presets'))}</div>
                 <div className="space-y-2">
                   {Object.entries(savedPresets).map(([name, preset]) => (
                     <div key={name} className="flex items-center gap-2">
@@ -205,7 +205,7 @@ export function ColumnVisibility<TData>({
                           setTimeout(() => setIsOpen(true), 0);
                         }}
                         className="btn btn-ghost btn-xs btn-circle"
-                        title={t('columns.deletePreset')}
+title={String(t('columns.deletePreset'))}
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -218,7 +218,7 @@ export function ColumnVisibility<TData>({
             )}
 
             {/* Save Preset */}
-            <div className="divider text-xs">{t('columns.actions')}</div>
+            <div className="divider text-xs">{String(t('columns.actions'))}</div>
             <button
               onClick={createPreset}
               className="btn btn-sm btn-outline w-full gap-2"
@@ -226,7 +226,7 @@ export function ColumnVisibility<TData>({
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
               </svg>
-              {t('columns.saveAsPreset')}
+{String(t('columns.saveAsPreset'))}
             </button>
 
             {/* Info */}
@@ -236,8 +236,8 @@ export function ColumnVisibility<TData>({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div className="text-xs">
-                  <p className="font-medium text-info">{t('columns.tip')}</p>
-                  <p className="text-base-content/70 mt-1">{t('columns.tipDescription')}</p>
+                  <p className="font-medium text-info">{String(t('columns.tip'))}</p>
+                  <p className="text-base-content/70 mt-1">{String(t('columns.tipDescription'))}</p>
                 </div>
               </div>
             </div>

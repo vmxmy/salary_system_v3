@@ -1,7 +1,6 @@
 import { type Table } from '@tanstack/react-table';
 import { useTranslation } from '@/hooks/useTranslation';
 import { DataExport } from './components/DataExport';
-import { cn } from '@/lib/utils';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -29,7 +28,7 @@ export function DataTableToolbar<TData>({
         <div className="flex items-center">
           <input
             type="text"
-            placeholder={t('table.search') || '搜索...'}
+            placeholder={String(t('table.search')) || '搜索...'}
             value={globalFilter}
             onChange={(e) => onGlobalFilterChange(e.target.value)}
             className="input input-bordered w-full max-w-xs"
@@ -46,7 +45,7 @@ export function DataTableToolbar<TData>({
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
-              {t('table.columns') || '列'}
+              {String(t('table.columns')) || '列'}
             </label>
             <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
               {table
@@ -73,7 +72,7 @@ export function DataTableToolbar<TData>({
         {enableExport && (
           <DataExport
             table={table}
-            filename={exportFileName}
+            fileName={exportFileName}
           />
         )}
       </div>

@@ -16,7 +16,7 @@ export function RealtimeIndicator({
   showText = true,
   size = 'sm'
 }: RealtimeIndicatorProps) {
-  const { connectionStatus, isConnected, reconnect, indicator } = useRealtimeIndicator();
+  const { connectionStatus: _connectionStatus, isConnected, reconnect, indicator } = useRealtimeIndicator();
 
   const getSizeClasses = () => {
     switch (size) {

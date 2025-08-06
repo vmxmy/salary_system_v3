@@ -7,8 +7,10 @@ interface AuthContextType {
   session: Session | null;
   user: AuthUser | null;
   loading: boolean;
+  isLoading: boolean;
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<AuthUser>;
+  signUp: (email: string, password: string, userData?: any) => Promise<AuthUser>;
   signOut: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
@@ -40,6 +42,11 @@ export const DevAuthProvider = ({ children }: { children: ReactNode }) => {
     return user;
   };
 
+  const signUp = async (email: string, password: string, userData?: any): Promise<AuthUser> => {
+    console.log(`[DevAuth] Mock sign-up for ${email}`);
+    return user;
+  };
+
   const signOut = async (): Promise<void> => {
     console.log('[DevAuth] Mock sign-out');
     // In real implementation, would clear user state
@@ -64,8 +71,10 @@ export const DevAuthProvider = ({ children }: { children: ReactNode }) => {
     session,
     user,
     loading,
+    isLoading: loading,
     isAuthenticated,
     signIn,
+    signUp,
     signOut,
     hasPermission,
     hasAnyPermission,

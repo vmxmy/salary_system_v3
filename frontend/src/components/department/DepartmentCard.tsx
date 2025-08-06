@@ -67,20 +67,21 @@ export function DepartmentCard({
 
   // 根据薪资统计确定卡片变体
   const getCardVariant = () => {
-    if (!showPayrollStats || !payrollStats) return 'neutral';
+    if (!showPayrollStats || !payrollStats) return 'secondary';
     
     const avgSalary = payrollStats.avg_gross_pay || 0;
     if (avgSalary >= 15000) return 'success';
     if (avgSalary >= 10000) return 'info';
     if (avgSalary >= 8000) return 'warning';
-    return 'neutral';
+    return 'secondary';
   };
 
   return (
     <FinancialCard
+      title={department.name}
+      amount={department.employee_count || 0}
       variant={getCardVariant()}
       size="md"
-      interactive="glow"
       className={cn(
         'relative cursor-pointer transition-all duration-300',
         'hover:shadow-lg hover:scale-[1.02]',

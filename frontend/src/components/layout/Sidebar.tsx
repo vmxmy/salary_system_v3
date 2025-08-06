@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
@@ -54,7 +52,6 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const { t } = useTranslation(['common']);
-  const { user } = useAuth();
 
   // 简化的权限检查
   const hasPermission = (permissions: string[]) => {
@@ -93,7 +90,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                     onClick={onClose}
                   >
                     {item.icon}
-                    <span>{t(`common:nav.${item.key}`)}</span>
+                    <span>{String(t(`common:nav.${item.key}`))}</span>
                   </NavLink>
                 </li>
               );

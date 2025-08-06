@@ -229,6 +229,7 @@ export interface EmployeeQueryParams {
   pageSize?: number;
   search?: string;
   department?: string;
+  department_id?: string;
   employment_status?: string;
   category?: string;
   sortBy?: string;

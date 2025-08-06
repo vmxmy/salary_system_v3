@@ -1,4 +1,4 @@
-import { useState, ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 interface SalaryFieldData {
@@ -214,7 +214,7 @@ export function SalaryComponentCard({
               {/* 正常数据展示 */}
               {!loading && !error && hasFields && (
                 <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
-                {fieldsData.map((field, index) => (
+                {fieldsData.map((field, _index) => (
                   <div 
                     key={field.name}
                     className="flex justify-between items-center p-2 bg-base-100/50 rounded border border-base-200/30 hover:bg-base-100/80 transition-colors"

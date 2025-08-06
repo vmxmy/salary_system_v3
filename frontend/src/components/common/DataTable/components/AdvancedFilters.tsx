@@ -107,7 +107,7 @@ export function AdvancedFilters<TData>({
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
         </svg>
-        {t('filter.advanced')}
+{String(t('filter.advanced'))}
         {filters.length > 0 && (
           <span className="badge badge-primary badge-sm">{filters.length}</span>
         )}
@@ -118,21 +118,21 @@ export function AdvancedFilters<TData>({
         <div className="card bg-base-100 shadow-xl mt-2 w-full max-w-4xl">
           <div className="card-body p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="card-title text-base">{t('filter.advancedFilters')}</h3>
+              <h3 className="card-title text-base">{String(t('filter.advancedFilters'))}</h3>
               <div className="flex gap-2">
                 <button
                   onClick={addFilter}
                   className="btn btn-primary btn-sm"
                   disabled={filterableColumns.length === 0}
                 >
-                  {t('filter.addFilter')}
+{String(t('filter.addFilter'))}
                 </button>
                 {filters.length > 0 && (
                   <button
                     onClick={clearAllFilters}
                     className="btn btn-ghost btn-sm"
                   >
-                    {t('filter.clearAll')}
+{String(t('filter.clearAll'))}
                   </button>
                 )}
               </div>
@@ -167,7 +167,7 @@ export function AdvancedFilters<TData>({
                   >
                     {operators.map(op => (
                       <option key={op.value} value={op.value}>
-                        {op.label}
+{String(op.label)}
                       </option>
                     ))}
                   </select>
@@ -177,19 +177,19 @@ export function AdvancedFilters<TData>({
                     type="text"
                     value={filter.value}
                     onChange={(e) => updateFilter(index, { value: e.target.value })}
-                    placeholder={t('filter.enterValue')}
+placeholder={String(t('filter.enterValue'))}
                     className="input input-bordered input-sm flex-1"
                   />
 
                   {/* Second Value for Between */}
                   {filter.operator === 'between' && (
                     <>
-                      <span className="text-sm opacity-70">{t('filter.and')}</span>
+                      <span className="text-sm opacity-70">{String(t('filter.and'))}</span>
                       <input
                         type="text"
                         value={filter.secondValue || ''}
                         onChange={(e) => updateFilter(index, { secondValue: e.target.value })}
-                        placeholder={t('filter.enterSecondValue')}
+placeholder={String(t('filter.enterSecondValue'))}
                         className="input input-bordered input-sm flex-1"
                       />
                     </>
@@ -209,8 +209,8 @@ export function AdvancedFilters<TData>({
 
               {filters.length === 0 && (
                 <div className="text-center py-8 text-base-content/60">
-                  <p>{t('filter.noFiltersAdded')}</p>
-                  <p className="text-sm mt-1">{t('filter.clickAddFilterToStart')}</p>
+                  <p>{String(t('filter.noFiltersAdded'))}</p>
+                  <p className="text-sm mt-1">{String(t('filter.clickAddFilterToStart'))}</p>
                 </div>
               )}
             </div>

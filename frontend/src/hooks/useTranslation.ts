@@ -6,7 +6,7 @@ export function useTranslation(namespace?: string | string[]) {
   const { t: originalT, i18n, ready } = useI18nTranslation(namespace);
   
   // Enhanced translation function with better error handling
-  const t = (key: string, options?: any) => {
+  const t = (key: string, options?: any): string => {
     try {
       const result = originalT(key, options);
       
@@ -31,7 +31,8 @@ export function useTranslation(namespace?: string | string[]) {
         }
       }
       
-      return result;
+      // Ensure we always return a string
+      return String(result);
     } catch (error) {
       console.error(`Translation error for key ${key}:`, error);
       return key;
