@@ -8,6 +8,24 @@ export function Header() {
   const { user, signOut } = useAuth();
   const { t } = useTranslation();
 
+  const handleSignOut = async () => {
+    try {
+      // Add confirmation dialog
+      const confirmed = window.confirm(String(t('auth:logout.confirm')));
+      if (!confirmed) return;
+      
+      console.log('[Header] User confirmed logout, proceeding...');
+      console.log('[Header] Current user:', user);
+      
+      await signOut();
+      
+      console.log('[Header] Logout completed');
+    } catch (error) {
+      console.error('[Header] Logout error:', error);
+      alert('退出登录失败，请重试');
+    }
+  };
+
   return (
     <header className="navbar bg-base-100 border-b border-base-200 sticky top-0 z-30">
       <div className="navbar-start">
@@ -44,8 +62,8 @@ export function Header() {
               </li>
               <li><hr className="my-1" /></li>
               <li>
-                <button onClick={() => signOut()} className="text-error">
-                  {String(t('auth:signOut'))}
+                <button onClick={handleSignOut} className="text-error">
+                  {String(t('common:logout'))}
                 </button>
               </li>
             </ul>
