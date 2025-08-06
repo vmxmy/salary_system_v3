@@ -107,7 +107,7 @@ export class SalaryComponentFieldsService {
       console.log('✅ Successfully fetched salary fields statistics:', data?.length || 0, 'records');
       
       // 转换数据格式，使用 positive_record_count 作为显示的人数
-      const formattedData = (data || []).map(item => ({
+      const formattedData = (data || []).map((item: any) => ({
         component_category: item.component_category,
         field_name: item.field_name,
         field_display_name: item.field_display_name,
@@ -194,7 +194,7 @@ export class SalaryComponentFieldsService {
       }
 
       // 转换数据格式，使用 positive_record_count 作为显示的人数
-      const formattedData = (data || []).map(item => ({
+      const formattedData = (data || []).map((item: any) => ({
         component_category: item.component_category,
         field_name: item.field_name,
         field_display_name: item.field_display_name,

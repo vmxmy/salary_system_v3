@@ -80,7 +80,13 @@ export function DepartmentTree({
           
           // 自动展开匹配的节点的父节点
           if (matchesSearch || filteredChildren.length > 0) {
-            setExpandedNodes(prev => new Set([...prev, node.id]));
+            if (onExpandedNodesChange) {
+              // External handler expects direct Set
+              onExpandedNodesChange(new Set([...expandedNodes, node.id]));
+            } else {
+              // Internal state setter can handle function
+              setInternalExpandedNodes((prev: Set<string>) => new Set([...prev, node.id]));
+            }
           }
         }
         
@@ -89,7 +95,7 @@ export function DepartmentTree({
     };
 
     return filterTree(departmentTree);
-  }, [departmentTree, searchTerm]);
+  }, [departmentTree, searchTerm, onExpandedNodesChange, expandedNodes]);
 
   // 处理节点展开/折叠
   const handleToggleNode = useCallback((departmentId: string) => {

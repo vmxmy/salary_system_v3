@@ -137,7 +137,7 @@ export class ExcelService {
     try {
       // 获取现有部门代码
       const existingCodes = new Set(
-        existingDepartments.map(dept => dept.code).filter(Boolean)
+        existingDepartments.map(dept => dept.code).filter(Boolean) as string[]
       );
 
       return new Promise((resolve) => {

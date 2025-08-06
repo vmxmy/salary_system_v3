@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { PageToolbar } from '@/components/common/PageToolbar';
 import { DataTable } from '@/components/common/DataTable';
 import { SimpleSearchBox } from '@/components/common/AdvancedSearchBox';
@@ -43,16 +43,21 @@ export interface ManagementPageLayoutProps {
   // 主要操作按钮
   primaryActions?: ReactNode[];
   
+  // 额外操作组件
+  actions?: ReactNode[];
+  
   // 表格数据
   data?: any[];
   columns?: any[];
   loading?: boolean;
-  tableInstance?: Table<any> | null;
   onTableReady?: (table: Table<any>) => void;
+  tableInstance?: Table<any>;
   
   // 表格配置
   initialSorting?: any[];
   initialPagination?: any;
+  enableRowSelection?: boolean;
+  onRowSelectionChange?: (selection: any) => void;
   enableExport?: boolean;
   showGlobalFilter?: boolean;
   showColumnToggle?: boolean;
@@ -87,7 +92,6 @@ export function ManagementPageLayout({
   data = [],
   columns = [],
   loading = false,
-  tableInstance,
   onTableReady,
   initialSorting,
   initialPagination,
@@ -131,8 +135,8 @@ export function ManagementPageLayout({
       <SimpleSearchBox
         value={searchValue}
         onChange={onSearchChange}
-        onSearch={onSearch}
-        onReset={onSearchReset}
+        onSearch={onSearch || (() => {})}
+        onReset={onSearchReset || (() => {})}
         loading={searchLoading}
         placeholder={searchPlaceholder}
         className="w-full"
@@ -148,8 +152,8 @@ export function ManagementPageLayout({
       <FieldSelector
         fields={fields}
         userConfig={userConfig}
-        onChange={onFieldConfigChange}
-        onReset={onFieldConfigReset}
+        onChange={onFieldConfigChange || (() => {})}
+        onReset={onFieldConfigReset || (() => {})}
       />
     );
   };

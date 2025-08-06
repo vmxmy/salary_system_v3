@@ -1,10 +1,10 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 
-// 类型定义
-type EmployeeContributionBase = Database['public']['Tables']['employee_contribution_bases']['Row'];
-type EmployeeContributionBaseInsert = Database['public']['Tables']['employee_contribution_bases']['Insert'];
-type EmployeeContributionBaseUpdate = Database['public']['Tables']['employee_contribution_bases']['Update'];
+// 类型定义 - TODO: 数据库表尚未实现
+type EmployeeContributionBase = any; // Database['public']['Tables']['employee_contribution_bases']['Row'];
+type EmployeeContributionBaseInsert = any; // Database['public']['Tables']['employee_contribution_bases']['Insert'];
+type EmployeeContributionBaseUpdate = any; // Database['public']['Tables']['employee_contribution_bases']['Update'];
 
 // 基数复制策略枚举
 export const BaseStrategy = {

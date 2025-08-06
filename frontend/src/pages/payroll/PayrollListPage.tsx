@@ -356,7 +356,7 @@ export default function PayrollListPage() {
           <ModernButton
             key="clear-month"
             onClick={() => setIsClearModalOpen(true)}
-            variant="error"
+            variant="danger"
             size="md"
             title="清空本月薪资数据（需要薪资清除权限）"
             icon={
@@ -373,7 +373,7 @@ export default function PayrollListPage() {
       data={processedData}
       columns={columns}
       loading={totalLoading}
-      tableInstance={tableInstance}
+      tableInstance={tableInstance || undefined}
       onTableReady={setTableInstance}
       initialSorting={[{ id: 'pay_period_start', desc: true }]}
       initialPagination={{ pageIndex: 0, pageSize: 20 }}
@@ -393,7 +393,7 @@ export default function PayrollListPage() {
                   value={selectedMonth}
                   onChange={setSelectedMonth}
                   size="sm"
-                  placeholder={t('payroll:selectMonth')}
+                  placeholder={String(t('payroll:selectMonth'))}
                   showDataIndicators={true}
                 />
 

@@ -527,7 +527,7 @@ class MetadataService {
   /**
    * 判断薪资字段是否可排序
    */
-  private isPayrollSortableField(fieldName: string): boolean {
+  private isPayrollSortableField(_fieldName: string): boolean {
     // 薪资字段基本都可排序
     return true;
   }

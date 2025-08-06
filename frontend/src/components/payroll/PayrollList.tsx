@@ -3,8 +3,7 @@ import { DataTable } from '@/components/common/DataTable/DataTable';
 import { PayrollStatusBadge } from './PayrollStatusBadge';
 import { formatCurrency, formatDate, formatMonth } from '@/lib/format';
 import { useTranslation } from '@/hooks/useTranslation';
-import { cn } from '@/lib/utils';
-import type { ColumnDef, SortingState, ColumnFiltersState } from '@tanstack/react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import type { PayrollStatusType } from '@/services/payroll.service';
 
 interface PayrollData {
@@ -52,14 +51,11 @@ export function PayrollList({
   currentPage,
   onPaginationChange,
   onRowClick,
-  selectedIds = [],
   onSelectionChange,
   enableSelection = false,
   actions
 }: PayrollListProps) {
   const { t } = useTranslation(['payroll', 'common']);
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
 
   const columns = useMemo<ColumnDef<PayrollData>[]>(() => {
@@ -218,8 +214,6 @@ export function PayrollList({
       totalRows={totalRows}
       currentPage={currentPage}
       onPaginationChange={onPaginationChange}
-      onSortingChange={setSorting}
-      onColumnFiltersChange={setColumnFilters}
       globalFilter={globalFilter}
       onGlobalFilterChange={setGlobalFilter}
       enableRowSelection={enableSelection}

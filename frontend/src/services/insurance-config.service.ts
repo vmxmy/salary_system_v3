@@ -1,18 +1,19 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 
-// 类型定义
-type InsuranceType = Database['public']['Tables']['insurance_types']['Row'];
-type InsuranceTypeInsert = Database['public']['Tables']['insurance_types']['Insert'];
-type InsuranceTypeUpdate = Database['public']['Tables']['insurance_types']['Update'];
+// 类型定义 - TODO: 数据库表尚未实现
+type InsuranceType = any; // Database['public']['Tables']['insurance_types']['Row'];
+type InsuranceTypeInsert = any; // Database['public']['Tables']['insurance_types']['Insert'];
+type InsuranceTypeUpdate = any; // Database['public']['Tables']['insurance_types']['Update'];
 
-type EmployeeContributionBase = Database['public']['Tables']['employee_contribution_bases']['Row'];
-type EmployeeContributionBaseInsert = Database['public']['Tables']['employee_contribution_bases']['Insert'];
-type EmployeeContributionBaseUpdate = Database['public']['Tables']['employee_contribution_bases']['Update'];
+// TODO: 这些表还未在数据库中实现，暂时使用 any 类型
+type EmployeeContributionBase = any;
+type EmployeeContributionBaseInsert = any;
+type EmployeeContributionBaseUpdate = any;
 
-type SocialInsurancePolicy = Database['public']['Tables']['social_insurance_policies']['Row'];
-type SocialInsurancePolicyInsert = Database['public']['Tables']['social_insurance_policies']['Insert'];
-type SocialInsurancePolicyUpdate = Database['public']['Tables']['social_insurance_policies']['Update'];
+type SocialInsurancePolicy = any;
+type SocialInsurancePolicyInsert = any;
+type SocialInsurancePolicyUpdate = any;
 
 // 保险配置服务类
 export class InsuranceConfigService {

@@ -6,7 +6,6 @@ import {
   FunnelIcon,
   ArrowDownTrayIcon,
   DocumentChartBarIcon,
-  TrendingUpIcon,
   CalendarIcon
 } from '@heroicons/react/24/outline';
 import { PageHeader, PageContent } from '@/components/layout/PageLayout';
@@ -79,7 +78,7 @@ export default function DepartmentPayrollStatsPage() {
     const flatten = (nodes: typeof departmentTree): Array<{ id: string; name: string; full_path?: string }> => {
       const result: Array<{ id: string; name: string; full_path?: string }> = [];
       nodes.forEach(node => {
-        result.push({ id: node.id, name: node.name, full_path: node.full_path });
+        result.push({ id: node.id, name: node.name, full_path: node.name });
         if (node.children) {
           result.push(...flatten(node.children));
         }
@@ -305,7 +304,7 @@ export default function DepartmentPayrollStatsPage() {
             <OverviewStatCard
               title="员工总数"
               value={overallStats.totalEmployees}
-              icon={svg => <svg className={svg} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
+              icon={(className: string) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
               color="blue"
               trend={overallStats.employeeGrowth !== 0 ? {
                 value: `${overallStats.employeeGrowth > 0 ? '+' : ''}${overallStats.employeeGrowth.toFixed(1)}%`,
@@ -498,7 +497,7 @@ function OverviewStatCard({ title, value, icon, color, trend }: OverviewStatCard
                 trend.isPositive ? 'text-success' : 'text-error'
               )}>
                 {trend.isPositive ? (
-                  <TrendingUpIcon className="w-3 h-3" />
+                  <ChartBarIcon className="w-3 h-3" />
                 ) : (
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
@@ -516,7 +515,7 @@ function OverviewStatCard({ title, value, icon, color, trend }: OverviewStatCard
             {IconComponent ? (
               <IconComponent className="w-6 h-6" />
             ) : (
-              typeof icon === 'function' ? icon('w-6 h-6') : null
+              typeof icon === 'function' ? (icon as any)('w-6 h-6') : icon
             )}
           </div>
         </div>

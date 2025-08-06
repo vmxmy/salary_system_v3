@@ -45,7 +45,7 @@ export function Header() {
               <li><hr className="my-1" /></li>
               <li>
                 <button onClick={() => signOut()} className="text-error">
-                  {t('auth:signOut')}
+                  {String(t('auth:signOut'))}
                 </button>
               </li>
             </ul>

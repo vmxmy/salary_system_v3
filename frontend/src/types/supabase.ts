@@ -360,7 +360,7 @@ export interface Database {
           gross_pay: number
           total_deductions: number
           net_pay: number
-          status: 'draft' | 'approved' | 'paid' | 'cancelled'
+          status: 'draft' | 'calculating' | 'calculated' | 'approved' | 'paid' | 'cancelled'
           notes: string | null
           created_at: string
           updated_at: string
@@ -374,7 +374,7 @@ export interface Database {
           gross_pay?: number
           total_deductions?: number
           net_pay?: number
-          status?: 'draft' | 'approved' | 'paid' | 'cancelled'
+          status?: 'draft' | 'calculating' | 'calculated' | 'approved' | 'paid' | 'cancelled'
           notes?: string | null
           created_at?: string
           updated_at?: string
@@ -388,13 +388,70 @@ export interface Database {
           gross_pay?: number
           total_deductions?: number
           net_pay?: number
-          status?: 'draft' | 'approved' | 'paid' | 'cancelled'
+          status?: 'draft' | 'calculating' | 'calculated' | 'approved' | 'paid' | 'cancelled'
           notes?: string | null
           created_at?: string
           updated_at?: string
         }
       }
       
+      payroll_periods: {
+        Row: {
+          id: string
+          year: number
+          month: number
+          start_date: string
+          end_date: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          year: number
+          month: number
+          start_date: string
+          end_date: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          year?: number
+          month?: number
+          start_date?: string
+          end_date?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+
+      payroll_results: {
+        Row: {
+          id: string
+          payroll_id: string
+          component_id: string
+          amount: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          payroll_id: string
+          component_id: string
+          amount: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          payroll_id?: string
+          component_id?: string
+          amount?: number
+          created_at?: string
+        }
+      }
+
       payroll_items: {
         Row: {
           id: string

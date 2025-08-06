@@ -78,7 +78,7 @@ export function NativeTreeSelect({
   };
 
   // 递归渲染树节点 - 使用原生details/summary
-  const renderTreeNode = (node: TreeNode & { children: TreeNode[] }) => {
+  const renderTreeNode = (node: TreeNode & { children: TreeNode[] }): React.JSX.Element => {
     const hasChildren = node.children.length > 0;
     const isSelected = value === node.name;
 
@@ -95,7 +95,7 @@ export function NativeTreeSelect({
           </summary>
           <div className="collapse-content p-0">
             <div className="ml-4 border-l border-base-300">
-              {node.children.map(child => renderTreeNode(child))}
+              {node.children.map(child => renderTreeNode(child as TreeNode & { children: TreeNode[] }))}
             </div>
           </div>
         </details>

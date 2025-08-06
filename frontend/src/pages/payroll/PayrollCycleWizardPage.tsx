@@ -14,26 +14,26 @@ import { ValidationStep } from '@/components/payroll/wizard/ValidationStep';
 import { ConfirmationStep as EnhancedConfirmationStep } from '@/components/payroll/wizard/ConfirmationStep';
 
 // 向导步骤枚举
-enum WizardStep {
-  MODE_SELECTION = 1,
-  DATA_SOURCE = 2,
-  DATA_CONFIGURATION = 3,
-  VALIDATION = 4,
-  CONFIRMATION = 5
-}
+const WizardStep = {
+  MODE_SELECTION: 1,
+  DATA_SOURCE: 2,
+  DATA_CONFIGURATION: 3,
+  VALIDATION: 4,
+  CONFIRMATION: 5
+} as const;
 
 // 创建模式枚举
-enum CreationMode {
-  COPY = 'copy',
-  IMPORT = 'import', 
-  MANUAL = 'manual',
-  TEMPLATE = 'template'
-}
+const CreationMode = {
+  COPY: 'copy',
+  IMPORT: 'import', 
+  MANUAL: 'manual',
+  TEMPLATE: 'template'
+} as const;
 
 // 向导状态接口
 interface WizardState {
-  currentStep: WizardStep;
-  mode: CreationMode | null;
+  currentStep: number;
+  mode: string | null;
   payrollPeriod: string;
   payDate: string;
   selectedEmployees: string[];
@@ -116,7 +116,7 @@ export default function PayrollCycleWizardPage() {
   }, [updateWizardState]);
 
   // 专门为模式选择创建的回调
-  const handleModeSelect = useCallback((mode: CreationMode) => {
+  const handleModeSelect = useCallback((mode: string) => {
     updateWizardState({ mode });
   }, [updateWizardState]);
 
@@ -336,8 +336,8 @@ export default function PayrollCycleWizardPage() {
 
 // 步骤1：选择创建方式
 interface ModeSelectionStepProps {
-  selectedMode: CreationMode | null;
-  onModeSelect: (mode: CreationMode) => void;
+  selectedMode: string | null;
+  onModeSelect: (mode: string) => void;
 }
 
 function ModeSelectionStep({ selectedMode, onModeSelect }: ModeSelectionStepProps) {
@@ -432,7 +432,7 @@ function ModeSelectionStep({ selectedMode, onModeSelect }: ModeSelectionStepProp
 
 // 步骤2：数据源配置内联组件
 interface DataSourceStepInlineProps {
-  mode: CreationMode;
+  mode: string;
   sourceData: any;
   onSourceDataChange: (sourceData: any) => void;
 }

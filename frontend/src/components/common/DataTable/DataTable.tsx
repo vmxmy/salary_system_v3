@@ -30,8 +30,8 @@ export function DataTable<TData, TValue>({
   showToolbar = true,
   showPagination = true,
   showColumnToggle = true,
-  showGlobalFilter = true,
-  actions,
+  showGlobalFilter: _showGlobalFilter = true,
+  actions: _actions,
   enableExport = false,
   exportFileName = 'data',
   className,
@@ -46,10 +46,10 @@ export function DataTable<TData, TValue>({
     sorting,
     columnFilters,
     columnVisibility,
-    rowSelection,
-    pagination: tablePagination,
-    columnSizing,
-    setPagination,
+    rowSelection: _rowSelection,
+    pagination: _tablePagination,
+    columnSizing: _columnSizing,
+    setPagination: _setPagination,
   } = useDataTable({
     data,
     columns,
@@ -183,7 +183,7 @@ export function DataTable<TData, TValue>({
                 <tr>
                   <td colSpan={columns.length} className="text-center py-8">
                     <div className="text-base-content/60">
-                      {emptyMessage || t('table.noData')}
+                      {emptyMessage || String(t('table.noData'))}
                     </div>
                   </td>
                 </tr>

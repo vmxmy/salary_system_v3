@@ -262,13 +262,13 @@ export default function EmployeeListPage() {
           添加员工
         </ModernButton>
       ]}
-      additionalActions={[
+      actions={[
         <RealtimeIndicator key="realtime-indicator" className="mr-2" showText={true} size="sm" />
       ]}
       data={processedData}
       columns={columns}
       loading={totalLoading}
-      tableInstance={tableInstance}
+      tableInstance={tableInstance || undefined}
       onTableReady={setTableInstance}
       initialSorting={[{ id: 'full_name', desc: false }]}
       initialPagination={{ pageIndex: 0, pageSize: 50 }}

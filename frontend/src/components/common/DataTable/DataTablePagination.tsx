@@ -1,6 +1,5 @@
 import { type Table } from '@tanstack/react-table';
 import { useTranslation } from '@/hooks/useTranslation';
-import { cn } from '@/lib/utils';
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
@@ -15,7 +14,7 @@ export function DataTablePagination<TData>({
   currentPage,
   totalPages,
 }: DataTablePaginationProps<TData>) {
-  const { t } = useTranslation('common');
+  const { t: _t } = useTranslation('common');
 
   const pageIndex = table.getState().pagination.pageIndex;
   const pageSize = table.getState().pagination.pageSize;
