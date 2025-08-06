@@ -261,187 +261,189 @@ export function PayrollDetailModal({
         <div 
           className={cn(
             'relative w-full max-w-5xl mx-auto',
-            cardEffects.modern,
-            'overflow-hidden transition-all duration-300 ease-out',
-            'border border-base-200/60',
+            'bg-white rounded-lg shadow-xl overflow-hidden',
+            'border border-base-200 transition-all duration-300 ease-out',
             isClosing 
               ? 'opacity-0 scale-95 translate-y-8' 
               : 'opacity-100 scale-100 translate-y-0'
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 现代化模态框背景光效 */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:animate-[shimmer_2s_ease-in-out] pointer-events-none" />
           
-          {/* 现代化模态框头部 */}
-          <div className={cn(
-            'relative z-10 flex items-center justify-between p-6',
-            'bg-gradient-to-r from-base-50/50 via-base-100/80 to-base-50/50',
-            'border-b border-base-200/60'
-          )}>
-            <div className="flex items-center gap-4">
-              <div className={cn(
-                iconContainer.modern('primary', 'xl'),
-                'flex-shrink-0'
-              )}>
-                <svg 
-                  className="w-7 h-7" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={1.5} 
-                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" 
-                  />
-                </svg>
+          {/* 优化后的模态框头部 */}
+          <header className="px-6 py-4 border-b border-base-200">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h1 className="text-xl font-bold text-base-content">
+                  {payrollData?.employee?.full_name || t('payroll:payrollDetails')}
+                </h1>
+                <div className="flex items-center gap-4 text-sm text-base-content/60">
+                  {payrollData && (
+                    <>
+                      <span>{formatDate(payrollData.pay_date)}</span>
+                      <PayrollStatusBadge status={payrollData.status} size="sm" />
+                      <span className="font-mono">ID: {payrollData.id}</span>
+                      {payrollData.employee?.id_number && (
+                        <span>{payrollData.employee.id_number}</span>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <h2 className={cn("text-base", "text-base-content")}>
-                  {payrollData?.employee?.full_name ? 
-                    `${payrollData.employee.full_name} - ${t('payroll:payrollDetails')}` : 
-                    t('payroll:payrollDetails')
-                  }
-                </h2>
-                <p className={cn("text-base", "text-base-content/60 mt-1")}>
-                  {payrollData?.id && `${t('payroll:payrollId')}: ${payrollData.id}`}
-                  {payrollData?.employee?.id_number && ` • ${payrollData.employee.id_number}`}
-                  {payrollData && ` • ${formatDate(payrollData.pay_date)}`}
-                </p>
-              </div>
-            </div>
-            
-            {/* 现代化关闭按钮 */}
-            <ModernButton
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              className="flex-shrink-0"
-              aria-label={t('common:close')}
-            >
-              <svg 
-                className="w-5 h-5" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
+              
+              {/* 简化的关闭按钮 */}
+              <ModernButton
+                variant="ghost"
+                size="sm"
+                onClick={handleClose}
+                className="flex-shrink-0"
+                aria-label={t('common:close')}
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={1.5} 
-                  d="M6 18L18 6M6 6l12 12" 
-                />
-              </svg>
-            </ModernButton>
-          </div>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </ModernButton>
+            </div>
+          </header>
 
-          {/* 现代化模态框内容 */}
-          <div className={cn(
-            'relative z-10 p-6 max-h-[70vh] overflow-y-auto',
-            'bg-gradient-to-b from-base-50/20 to-base-100/60'
-          )}>
+          {/* 薪资汇总固定区域 */}
+          {payrollData && (
+            <section className="px-6 py-4 bg-base-50/50 border-b border-base-200">
+              <div className="grid grid-cols-3 gap-4">
+                {/* 应发工资 */}
+                <div className="bg-white rounded-lg p-4 border border-base-200 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12s-1.536-.219-2.121-.659c-1.172-.879-1.172-2.303 0-3.182C10.464 7.781 11.232 7.5 12 7.5s1.536.219 2.121.659" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-base-content/60">{t('payroll:grossPay')}</p>
+                      <p className="text-lg font-semibold text-success font-mono">
+                        {formatCurrency(payrollData.gross_pay)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 扣除合计 */}
+                <div className="bg-white rounded-lg p-4 border border-base-200 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-error/10 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-base-content/60">{t('payroll:totalDeductions')}</p>
+                      <p className="text-lg font-semibold text-error font-mono">
+                        -{formatCurrency(payrollData.total_deductions)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 实发工资 - 突出显示 */}
+                <div className="bg-primary/5 rounded-lg p-4 border-2 border-primary/20 shadow-md">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-primary/80 font-medium">{t('payroll:netPay')}</p>
+                      <p className="text-xl font-bold text-primary font-mono">
+                        {formatCurrency(payrollData.net_pay)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* 模态框详细内容 */}
+          <div className="max-h-[60vh] overflow-y-auto">
             {isLoading && <LoadingScreen />}
             
             {isError && (
-              <div className={cn(
-                'alert border-0 rounded-xl',
-                'bg-gradient-to-r from-error/10 to-error/5',
-                'border border-error/20',
-                'shadow-[0_4px_12px_-2px_rgba(239,68,68,0.15)]'
-              )}>
-                <div className={iconContainer.modern('error', 'md')}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <span className="text-error font-medium">
-                  {t('common:error.loadFailed')}: {error?.message}
-                </span>
+              <div className="mx-6 mt-6 alert alert-error">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{t('common:error.loadFailed')}: {error?.message}</span>
               </div>
             )}
 
             {payrollData && (
-              <PayrollDetailContent 
-                payroll={payrollData}
-                payrollItems={payrollItems}
-                insuranceDetails={insuranceDetails}
-                contributionBases={contributionBases}
-                isEditing={isEditing}
-                onEditDataChange={setEditDataRef}
-              />
+              <div className="px-6 py-4">
+                <PayrollDetailContent 
+                  payroll={payrollData}
+                  payrollItems={payrollItems}
+                  insuranceDetails={insuranceDetails}
+                  contributionBases={contributionBases}
+                  isEditing={isEditing}
+                  onEditDataChange={setEditDataRef}
+                />
+              </div>
             )}
           </div>
 
-          {/* 现代化模态框底部 */}
-          <div className={cn(
-            'relative z-10 flex items-center justify-end gap-3 p-6',
-            'bg-gradient-to-r from-base-50/50 via-base-100/80 to-base-50/50',
-            'border-t border-base-200/60'
-          )}>
-            <ModernButton
-              variant="ghost"
-              size="md"
-              onClick={handleClose}
-            >
-              {t('common:close')}
-            </ModernButton>
-            {isEditing && (
-              <ModernButton
-                variant="primary"
-                size="md"
-                onClick={handleSave}
-                disabled={!payrollData}
-                className="min-w-[120px]"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={1.5} 
-                    d="M5 13l4 4L19 7" 
-                  />
-                </svg>
-                {t('common:save')}
-              </ModernButton>
-            )}
-            <ModernButton
-              variant={isEditing ? "secondary" : "primary"}
-              size="md"
-              onClick={() => {
-                setIsEditing(!isEditing);
-              }}
-              disabled={!payrollData}
-              className="min-w-[120px]"
-            >
-              {isEditing ? (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={1.5} 
-                      d="M6 18L18 6M6 6l12 12" 
-                    />
-                  </svg>
-                  {t('payroll:cancelEdit')}
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={1.5} 
-                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" 
-                    />
-                  </svg>
-                  {t('common:edit')}
-                </>
-              )}
-            </ModernButton>
-          </div>
+          {/* 优化后的底部操作区 */}
+          <footer className="px-6 py-4 border-t border-base-200 bg-base-50/30">
+            <div className="flex items-center justify-between">
+              {/* 左侧：状态信息 */}
+              <div className="flex items-center gap-2 text-sm text-base-content/60">
+                {isEditing && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
+                    <span>编辑模式</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* 右侧：操作按钮 */}
+              <div className="flex items-center gap-3">
+                <ModernButton variant="ghost" onClick={handleClose}>
+                  {t('common:close')}
+                </ModernButton>
+                
+                {isEditing ? (
+                  <>
+                    <ModernButton 
+                      variant="outline" 
+                      onClick={() => setIsEditing(false)}
+                    >
+                      {t('common:cancel')}
+                    </ModernButton>
+                    <ModernButton
+                      variant="primary"
+                      onClick={handleSave}
+                      disabled={!payrollData}
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {t('common:save')}
+                    </ModernButton>
+                  </>
+                ) : (
+                  <ModernButton
+                    variant="primary"
+                    onClick={() => setIsEditing(true)}
+                    disabled={!payrollData}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    {t('common:edit')}
+                  </ModernButton>
+                )}
+              </div>
+            </div>
+          </footer>
         </div>
       </div>
     </div>
@@ -467,7 +469,8 @@ function PayrollDetailContent({
   onEditDataChange 
 }: PayrollDetailContentProps) {
   const { t } = useTranslation(['payroll', 'common']);
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['basic', 'summary', 'insurance', 'contribution']));
+  // 优化默认展开状态：只展开基本信息，其他按需展开
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['basic']));
   const [editData, setEditData] = useState<PayrollDetailData>(payroll);
 
   // 当薪资数据更新时，同步编辑数据
@@ -532,147 +535,98 @@ function PayrollDetailContent({
         onToggle={toggleSection}
         isEditing={isEditing}
       >
-        <AccordionContent>
-          <DetailField 
-            label={t('payroll:employee')} 
-            value={payroll.employee?.full_name || t('common:unknown')}
-            isEditing={false} // 员工信息不允许编辑
-          />
-          <DetailField 
-            label={t('payroll:periodStart')} 
-            value={isEditing ? editData.pay_period_start : payroll.pay_period_start}
-            type="date"
-            isEditing={isEditing}
-            onChange={(value) => updateEditData('pay_period_start', value)}
-          />
-          <DetailField 
-            label={t('payroll:periodEnd')} 
-            value={isEditing ? editData.pay_period_end : payroll.pay_period_end}
-            type="date"
-            isEditing={isEditing}
-            onChange={(value) => updateEditData('pay_period_end', value)}
-          />
-          <DetailField 
-            label={t('payroll:payDate')} 
-            value={isEditing ? editData.pay_date : payroll.pay_date}
-            type="date"
-            isEditing={isEditing}
-            onChange={(value) => updateEditData('pay_date', value)}
-          />
-          <DetailField 
-            label={t('common:common.status')} 
-            value={isEditing ? editData.status : payroll.status}
-            type={isEditing ? 'select' : 'status'}
-            isEditing={isEditing}
-            onChange={(value) => updateEditData('status', value as PayrollStatusType)}
-            options={[
-              { value: PayrollStatus.DRAFT, label: t('payroll:status.draft') },
-              { value: PayrollStatus.CALCULATING, label: t('payroll:status.calculating') },
-              { value: PayrollStatus.CALCULATED, label: t('payroll:status.calculated') },
-              { value: PayrollStatus.APPROVED, label: t('payroll:status.approved') },
-              { value: PayrollStatus.PAID, label: t('payroll:status.paid') },
-              { value: PayrollStatus.CANCELLED, label: t('payroll:status.cancelled') }
-            ]}
-            renderValue={!isEditing ? () => <PayrollStatusBadge status={payroll.status} size="sm" showIcon={false} /> : undefined}
-          />
-          <DetailField 
-            label={t('payroll:notes')} 
-            value={isEditing ? (editData.notes || '') : (payroll.notes || '')}
-            type="textarea"
-            isEditing={isEditing}
-            onChange={(value) => updateEditData('notes', value)}
-            placeholder={t('payroll:notesPlaceholder')}
-            rows={3}
-          />
-        </AccordionContent>
-      </AccordionSection>
-
-      {/* 薪资汇总手风琴 */}
-      <AccordionSection
-        id="summary"
-        icon={
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-        }
-        title={t('payroll:sections.summary')}
-        isOpen={openSections.has('summary')}
-        onToggle={toggleSection}
-        isEditing={isEditing}
-      >
-        <AccordionContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 应发工资卡片 */}
-            <div className={cn(
-              cardEffects.modern,
-              'p-4 bg-gradient-to-br from-success/5 to-success/10',
-              'border border-success/20'
-            )}>
-              <div className="flex items-center gap-3">
-                <div className={iconContainer.modern('success', 'md')}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12s-1.536-.219-2.121-.659c-1.172-.879-1.172-2.303 0-3.182C10.464 7.781 11.232 7.5 12 7.5s1.536.219 2.121.659" />
-                  </svg>
-                </div>
-                <div>
-                  <p className={cn("text-base", "text-base-content/60")}>
-                    {t('payroll:grossPay')}
-                  </p>
-                  <p className={cn("text-base", "text-success font-mono")}>
-                    {formatCurrency(payroll.gross_pay)}
-                  </p>
-                </div>
+        <AccordionContent variant="custom">
+          {/* 员工信息卡片 - 突出显示 */}
+          <div className="mb-6 p-4 bg-gradient-to-r from-primary/5 to-primary/2 rounded-lg border border-primary/10">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-primary">
+                  {payroll.employee?.full_name || t('common:unknown')}
+                </h3>
+                <p className="text-sm text-base-content/60">
+                  {payroll.employee?.id_number && `身份证：${payroll.employee.id_number}`}
+                </p>
               </div>
             </div>
+          </div>
 
-            {/* 扣除合计卡片 */}
-            <div className={cn(
-              cardEffects.modern,
-              'p-4 bg-gradient-to-br from-warning/5 to-warning/10',
-              'border border-warning/20'
-            )}>
-              <div className="flex items-center gap-3">
-                <div className={iconContainer.modern('warning', 'md')}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
-                  </svg>
-                </div>
-                <div>
-                  <p className={cn("text-base", "text-base-content/60")}>
-                    {t('payroll:totalDeductions')}
-                  </p>
-                  <p className={cn("text-base", "text-warning font-mono")}>
-                    -{formatCurrency(payroll.total_deductions)}
-                  </p>
-                </div>
-              </div>
+          {/* 薪资期间信息组 */}
+          <div className="mb-6">
+            <h4 className="text-base font-medium text-base-content/90 mb-3 flex items-center gap-2">
+              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              薪资期间
+            </h4>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <DetailField 
+                label={t('payroll:periodStart')} 
+                value={isEditing ? editData.pay_period_start : payroll.pay_period_start}
+                type="date"
+                isEditing={isEditing}
+                onChange={(value) => updateEditData('pay_period_start', value)}
+              />
+              <DetailField 
+                label={t('payroll:periodEnd')} 
+                value={isEditing ? editData.pay_period_end : payroll.pay_period_end}
+                type="date"
+                isEditing={isEditing}
+                onChange={(value) => updateEditData('pay_period_end', value)}
+              />
+              <DetailField 
+                label={t('payroll:payDate')} 
+                value={isEditing ? editData.pay_date : payroll.pay_date}
+                type="date"
+                isEditing={isEditing}
+                onChange={(value) => updateEditData('pay_date', value)}
+              />
             </div>
+          </div>
 
-            {/* 实发工资卡片 */}
-            <div className={cn(
-              cardEffects.modern,
-              'p-4 bg-gradient-to-br from-primary/5 to-primary/10',
-              'border border-primary/20'
-            )}>
-              <div className="flex items-center gap-3">
-                <div className={iconContainer.modern('primary', 'md')}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H3.75m15.75 0h.375c.621 0 1.125.504 1.125 1.125v.375m-1.5 0H18A.75.75 0 0118 4.5v.75m3.75 0v.75c0 .414-.336.75-.75.75H21v.75c0 .414-.336.75-.75.75H20.25v-1.5m1.5 0H21v-1.125c0-.621-.504-1.125-1.125-1.125H18.75" />
-                  </svg>
-                </div>
-                <div>
-                  <p className={cn("text-base", "text-base-content/60")}>
-                    {t('payroll:netPay')}
-                  </p>
-                  <p className={cn("text-base", "text-primary font-mono")}>
-                    {formatCurrency(payroll.net_pay)}
-                  </p>
-                </div>
-              </div>
+          {/* 状态和备注组 */}
+          <div className="space-y-4">
+            <h4 className="text-base font-medium text-base-content/90 mb-3 flex items-center gap-2">
+              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              状态信息
+            </h4>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DetailField 
+                label={t('common:common.status')} 
+                value={isEditing ? editData.status : payroll.status}
+                type={isEditing ? 'select' : 'status'}
+                isEditing={isEditing}
+                onChange={(value) => updateEditData('status', value as PayrollStatusType)}
+                options={[
+                  { value: PayrollStatus.DRAFT, label: t('payroll:status.draft') },
+                  { value: PayrollStatus.CALCULATING, label: t('payroll:status.calculating') },
+                  { value: PayrollStatus.CALCULATED, label: t('payroll:status.calculated') },
+                  { value: PayrollStatus.APPROVED, label: t('payroll:status.approved') },
+                  { value: PayrollStatus.PAID, label: t('payroll:status.paid') },
+                  { value: PayrollStatus.CANCELLED, label: t('payroll:status.cancelled') }
+                ]}
+                renderValue={!isEditing ? () => <PayrollStatusBadge status={payroll.status} size="sm" showIcon={false} /> : undefined}
+              />
+              <DetailField 
+                label={t('payroll:notes')} 
+                value={isEditing ? (editData.notes || '') : (payroll.notes || '')}
+                type="textarea"
+                isEditing={isEditing}
+                onChange={(value) => updateEditData('notes', value)}
+                placeholder={t('payroll:notesPlaceholder')}
+                rows={3}
+              />
             </div>
           </div>
         </AccordionContent>
       </AccordionSection>
+
 
       {/* 薪资明细手风琴 */}
       <AccordionSection
@@ -758,78 +712,165 @@ function PayrollBreakdownSection({
 
   if (Object.keys(groupedItems).length === 0) {
     return (
-      <div className={cn("text-base", "text-center py-8 text-base-content/60")}>
-        {t('payroll:noPayrollItems')}
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-16 h-16 rounded-full bg-base-200/50 flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </div>
+        <p className="text-base-content/60 text-sm">{t('payroll:noPayrollItems')}</p>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {Object.entries(groupedItems).map(([category, items]) => {
-        const categoryTotal = categoryTotals.find(ct => ct.category === category);
-        const isDeduction = categoryTotal?.isDeduction || false;
-        
-        return (
-          <AccordionFormGroup
-            key={category}
-            title={category}
-            icon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                  d={isDeduction 
-                    ? "M20 12H4M12 4v16" // 减号图标用于扣除项
-                    : "M12 6v6m0 0v6m0-6h6m-6 0H6" // 加号图标用于收入项
-                  } 
-                />
-              </svg>
-            }
-          >
-            <div className="space-y-3">
-              {items.map((item, index) => (
-                <div key={`${item.component_id}-${index}`} className="flex justify-between items-center py-2 border-b border-base-200/40 last:border-b-0">
-                  <div className="flex-1">
-                    <p className="font-medium text-base-content">
-                      {item.component_name}
-                    </p>
-                    {item.calculation_method && (
-                      <p className="text-xs text-base-content/60 mt-1">
-                        {item.calculation_method}
-                      </p>
-                    )}
-                    {item.notes && (
-                      <p className="text-xs text-base-content/50 mt-1">
-                        {item.notes}
-                      </p>
-                    )}
-                  </div>
+  // 分离收入项和扣除项
+  const incomeCategories = Object.entries(groupedItems).filter(([, items]) => 
+    items[0]?.component_type === 'earnings'
+  );
+  const deductionCategories = Object.entries(groupedItems).filter(([, items]) => 
+    items[0]?.component_type === 'deductions'
+  );
+
+  const renderCategorySection = (categories: [string, PayrollItemDetail[]][], sectionType: 'income' | 'deduction') => {
+    if (categories.length === 0) return null;
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className={cn(
+            "w-8 h-8 rounded-lg flex items-center justify-center",
+            sectionType === 'income' 
+              ? "bg-success/10 text-success" 
+              : "bg-error/10 text-error"
+          )}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                d={sectionType === 'income' 
+                  ? "M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12s-1.536-.219-2.121-.659c-1.172-.879-1.172-2.303 0-3.182C10.464 7.781 11.232 7.5 12 7.5s1.536.219 2.121.659" 
+                  : "M20 12H4"
+                } 
+              />
+            </svg>
+          </div>
+          <h3 className="text-base font-semibold text-base-content">
+            {sectionType === 'income' ? '收入项目' : '扣除项目'}
+          </h3>
+        </div>
+
+        {categories.map(([category, items]) => {
+          const categoryTotal = categoryTotals.find(ct => ct.category === category);
+          const isDeduction = sectionType === 'deduction';
+          
+          return (
+            <div key={category} className={cn(
+              "rounded-xl border transition-all duration-200",
+              isDeduction 
+                ? "bg-error/2 border-error/10 hover:bg-error/5" 
+                : "bg-success/2 border-success/10 hover:bg-success/5"
+            )}>
+              {/* 分类头部 */}
+              <div className="p-4 border-b border-current/10">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-base-content/90">{category}</h4>
                   <div className="text-right">
-                    <span className={cn(
-                      "font-mono font-medium",
+                    <div className={cn(
+                      "text-lg font-bold font-mono",
                       isDeduction ? "text-error" : "text-success"
                     )}>
-                      {isDeduction && "-"}{formatCurrency(Math.abs(item.amount))}
-                    </span>
+                      {isDeduction ? "-" : "+"}{formatCurrency(Math.abs(categoryTotal?.total || 0))}
+                    </div>
+                    <div className="text-xs text-base-content/60">
+                      {items.length} 个项目
+                    </div>
                   </div>
                 </div>
-              ))}
-              
-              {/* 分类小计 */}
-              <div className="flex justify-between items-center pt-3 border-t border-base-300/60 font-semibold">
-                <span className="text-base-content">
-                  {category} {t('payroll:subtotal')}
-                </span>
-                <span className={cn(
-                  "font-mono text-lg",
-                  isDeduction ? "text-error" : "text-success"
-                )}>
-                  {isDeduction && "-"}{formatCurrency(Math.abs(categoryTotal?.total || 0))}
-                </span>
+              </div>
+
+              {/* 项目详情 */}
+              <div className="p-4 space-y-3">
+                {items.map((item, index) => (
+                  <div key={`${item.component_id}-${index}`} className="group">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-1">
+                          <p className="font-medium text-base-content truncate">
+                            {item.component_name}
+                          </p>
+                          {item.amount > 0 && (
+                            <div className={cn(
+                              "px-2 py-0.5 rounded text-xs font-medium",
+                              isDeduction 
+                                ? "bg-error/10 text-error" 
+                                : "bg-success/10 text-success"
+                            )}>
+                              {formatCurrency(Math.abs(item.amount))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {item.calculation_method && (
+                          <p className="text-xs text-base-content/60 mb-1">
+                            <span className="font-medium">计算方式：</span>
+                            {item.calculation_method}
+                          </p>
+                        )}
+                        
+                        {item.notes && (
+                          <p className="text-xs text-base-content/50">
+                            <span className="font-medium">备注：</span>
+                            {item.notes}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {index < items.length - 1 && (
+                      <div className="border-b border-base-200/30 mt-3"></div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-          </AccordionFormGroup>
-        );
-      })}
+          );
+        })}
+      </div>
+    );
+  };
+
+  // 计算总收入和总扣除
+  const totalIncome = categoryTotals
+    .filter(ct => !ct.isDeduction)
+    .reduce((sum, ct) => sum + ct.total, 0);
+  const totalDeduction = categoryTotals
+    .filter(ct => ct.isDeduction)
+    .reduce((sum, ct) => sum + Math.abs(ct.total), 0);
+  const netSalary = totalIncome - totalDeduction;
+
+  return (
+    <div className="space-y-6">
+      {/* 薪资概览卡片 - 放在顶部突出显示 */}
+      <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent rounded-xl p-6 border border-primary/10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center">
+            <p className="text-sm text-base-content/60 mb-1">应发工资</p>
+            <p className="text-2xl font-bold text-success">{formatCurrency(totalIncome)}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-base-content/60 mb-1">应扣金额</p>
+            <p className="text-2xl font-bold text-error">-{formatCurrency(totalDeduction)}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-base-content/60 mb-1">实发工资</p>
+            <p className="text-2xl font-bold text-primary">{formatCurrency(netSalary)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 收入和扣除项目详情 */}
+      <div className="space-y-8">
+        {renderCategorySection(incomeCategories, 'income')}
+        {renderCategorySection(deductionCategories, 'deduction')}
+      </div>
     </div>
   );
 }
@@ -848,13 +889,18 @@ function InsuranceDetailsSection({
 
   if (insuranceDetails.length === 0) {
     return (
-      <div className={cn("text-base", "text-center py-8 text-base-content/60")}>
-        {t('payroll:noInsuranceDetails')}
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-16 h-16 rounded-full bg-base-200/50 flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <p className="text-base-content/60 text-sm">{t('payroll:noInsuranceDetails')}</p>
       </div>
     );
   }
 
-  // 按保险类型分组
+  // 按保险类型分组并计算总金额
   const groupedInsurance = insuranceDetails.reduce((acc, detail) => {
     const key = detail.insurance_type?.name || detail.insurance_type?.system_key || 'unknown';
     if (!acc[key]) {
@@ -864,122 +910,177 @@ function InsuranceDetailsSection({
     return acc;
   }, {} as Record<string, InsuranceDetail[]>);
 
+  // 计算总的个人和企业缴费
+  const totalEmployeeContribution = insuranceDetails.reduce((sum, detail) => 
+    sum + (detail.is_applicable ? detail.employee_amount : 0), 0
+  );
+  const totalEmployerContribution = insuranceDetails.reduce((sum, detail) => 
+    sum + (detail.is_applicable ? detail.employer_amount : 0), 0
+  );
+
   return (
-    <div className="space-y-4">
-      {Object.entries(groupedInsurance).map(([insuranceType, details]) => (
-        <AccordionFormGroup
-          key={insuranceType}
-          title={insuranceType}
-          icon={
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-          }
-        >
-          {details.map((detail, index) => (
-            <div key={`${detail.id}-${index}`} className="space-y-3">
-              {/* 是否适用状态 */}
-              <div className="flex items-center justify-between p-3 bg-base-50/50 rounded-lg border border-base-200/40">
-                <span className="text-sm font-medium text-base-content/80">
-                  {t('payroll:insurance.applicableStatus')}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className={cn(
-                    "text-xs px-2 py-1 rounded-full font-medium",
-                    detail.is_applicable 
-                      ? "bg-success/10 text-success border border-success/20"
-                      : "bg-warning/10 text-warning border border-warning/20"
-                  )}>
-                    {detail.is_applicable ? t('common:applicable') : t('common:notApplicable')}
-                  </span>
-                  {!detail.is_applicable && detail.skip_reason && (
-                    <span className="text-xs text-base-content/60">
-                      ({detail.skip_reason})
-                    </span>
-                  )}
+    <div className="space-y-6">
+      {/* 缴费汇总卡片 */}
+      <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent rounded-xl p-6 border border-primary/10">
+        <h3 className="text-base font-semibold text-base-content mb-4 flex items-center gap-2">
+          <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          缴费汇总
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center">
+            <p className="text-sm text-base-content/60 mb-1">个人缴费合计</p>
+            <p className="text-2xl font-bold text-error font-mono">
+              {formatCurrency(totalEmployeeContribution)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-base-content/60 mb-1">企业缴费合计</p>
+            <p className="text-2xl font-bold text-info font-mono">
+              {formatCurrency(totalEmployerContribution)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-base-content/60 mb-1">总缴费金额</p>
+            <p className="text-2xl font-bold text-primary font-mono">
+              {formatCurrency(totalEmployeeContribution + totalEmployerContribution)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 各项保险明细 */}
+      <div className="space-y-6">
+        {Object.entries(groupedInsurance).map(([insuranceType, details]) => {
+        // 计算该保险类型的总额
+        const totalEmployeeAmount = details.reduce((sum, detail) => 
+          sum + (detail.is_applicable ? detail.employee_amount : 0), 0
+        );
+        const totalEmployerAmount = details.reduce((sum, detail) => 
+          sum + (detail.is_applicable ? detail.employer_amount : 0), 0
+        );
+
+        return (
+          <div key={insuranceType} className="rounded-xl border border-primary/10 bg-gradient-to-r from-primary/2 to-transparent overflow-hidden">
+            {/* 保险类型头部 */}
+            <div className="p-6 bg-gradient-to-r from-primary/5 to-primary/2 border-b border-primary/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-primary">{insuranceType}</h3>
+                    <p className="text-sm text-base-content/60">
+                      个人缴费：<span className="font-mono text-error">{formatCurrency(totalEmployeeAmount)}</span>
+                      <span className="mx-2">•</span>
+                      企业缴费：<span className="font-mono text-info">{formatCurrency(totalEmployerAmount)}</span>
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              {detail.is_applicable && (
-                <>
-                  {/* 缴费基数信息 */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FieldGroup>
-                      <DetailField
-                        label={t('payroll:insurance.contributionBase')}
-                        value={formatCurrency(detail.contribution_base)}
-                        variant="amount"
-                        isEditing={false}
-                      />
-                    </FieldGroup>
-                    <FieldGroup>
-                      <DetailField
-                        label={t('payroll:insurance.adjustedBase')}
-                        value={formatCurrency(detail.adjusted_base)}
-                        variant="amount"
-                        isEditing={false}
-                      />
-                    </FieldGroup>
-                  </div>
-
-                  {/* 费率信息 */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FieldGroup>
-                      <DetailField
-                        label={t('payroll:insurance.employeeRate')}
-                        value={`${(detail.employee_rate * 100).toFixed(2)}%`}
-                        variant="text"
-                        isEditing={false}
-                      />
-                    </FieldGroup>
-                    <FieldGroup>
-                      <DetailField
-                        label={t('payroll:insurance.employerRate')}
-                        value={`${(detail.employer_rate * 100).toFixed(2)}%`}
-                        variant="text"
-                        isEditing={false}
-                      />
-                    </FieldGroup>
-                  </div>
-
-                  {/* 缴费金额 */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FieldGroup>
-                      <DetailField
-                        label={t('payroll:insurance.employeeAmount')}
-                        value={formatCurrency(detail.employee_amount)}
-                        variant="amount"
-                        className="text-error font-semibold"
-                        isEditing={false}
-                      />
-                    </FieldGroup>
-                    <FieldGroup>
-                      <DetailField
-                        label={t('payroll:insurance.employerAmount')}
-                        value={formatCurrency(detail.employer_amount)}
-                        variant="amount"
-                        className="text-info font-semibold"
-                        isEditing={false}
-                      />
-                    </FieldGroup>
-                  </div>
-
-                  {/* 计算日期 */}
-                  <FieldGroup>
-                    <DetailField
-                      label={t('payroll:insurance.calculationDate')}
-                      value={formatDate(detail.calculation_date)}
-                      variant="text"
-                      isEditing={false}
-                    />
-                  </FieldGroup>
-                </>
-              )}
             </div>
-          ))}
-        </AccordionFormGroup>
-      ))}
+
+            {details.map((detail, index) => (
+              <div key={`${detail.id}-${index}`} className="p-6 space-y-6">
+                {/* 适用状态 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-base-content/70">适用状态</span>
+                  <div className="flex items-center gap-3">
+                    <span className={cn(
+                      "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium",
+                      detail.is_applicable 
+                        ? "bg-success/10 text-success border border-success/20"
+                        : "bg-warning/10 text-warning border border-warning/20"
+                    )}>
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        detail.is_applicable ? "bg-success" : "bg-warning"
+                      )} />
+                      {detail.is_applicable ? '适用' : '不适用'}
+                    </span>
+                    {!detail.is_applicable && detail.skip_reason && (
+                      <span className="text-xs text-base-content/60 bg-base-100 px-2 py-1 rounded">
+                        {detail.skip_reason}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {detail.is_applicable && (
+                  <>
+                    {/* 缴费基数信息卡片 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-base-50/50 rounded-lg border border-base-200/50">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-primary font-mono mb-1">
+                            {formatCurrency(detail.contribution_base)}
+                          </div>
+                          <div className="text-sm text-base-content/60">缴费基数</div>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-base-50/50 rounded-lg border border-base-200/50">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-primary font-mono mb-1">
+                            {formatCurrency(detail.adjusted_base)}
+                          </div>
+                          <div className="text-sm text-base-content/60">调整基数</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 费率对比 */}
+                    <div className="bg-base-50/30 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-base-content/80 mb-3 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        费率明细
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* 个人承担 */}
+                        <div className="text-center p-3 bg-error/5 rounded-lg border border-error/10">
+                          <div className="text-lg font-bold text-error font-mono mb-1">
+                            {(detail.employee_rate * 100).toFixed(2)}%
+                          </div>
+                          <div className="text-sm text-base-content/60 mb-2">个人费率</div>
+                          <div className="text-xl font-bold text-error font-mono">
+                            {formatCurrency(detail.employee_amount)}
+                          </div>
+                        </div>
+
+                        {/* 企业承担 */}
+                        <div className="text-center p-3 bg-info/5 rounded-lg border border-info/10">
+                          <div className="text-lg font-bold text-info font-mono mb-1">
+                            {(detail.employer_rate * 100).toFixed(2)}%
+                          </div>
+                          <div className="text-sm text-base-content/60 mb-2">企业费率</div>
+                          <div className="text-xl font-bold text-info font-mono">
+                            {formatCurrency(detail.employer_amount)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 计算日期 */}
+                    <div className="text-center text-xs text-base-content/50">
+                      计算日期：{formatDate(detail.calculation_date)}
+                    </div>
+                  </>
+                )}
+
+                {index < details.length - 1 && (
+                  <div className="border-b border-base-200/40"></div>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      })}
+      </div>
     </div>
   );
 }
@@ -998,79 +1099,175 @@ function ContributionBaseSection({
 
   if (contributionBases.length === 0) {
     return (
-      <div className={cn("text-base", "text-center py-8 text-base-content/60")}>
-        {t('payroll:noContributionBase')}
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-16 h-16 rounded-full bg-base-200/50 flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <p className="text-base-content/60 text-sm">{t('payroll:noContributionBase')}</p>
       </div>
     );
   }
 
+  // 按保险类型分组并按时间排序
+  const groupedBases = contributionBases.reduce((acc, base) => {
+    const key = base.insurance_type_name;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(base);
+    return acc;
+  }, {} as Record<string, ContributionBase[]>);
+
+  // 对每个保险类型的基数按时间排序（最新在前）
+  Object.keys(groupedBases).forEach(key => {
+    groupedBases[key].sort((a, b) => 
+      new Date(b.effective_start_date).getTime() - new Date(a.effective_start_date).getTime()
+    );
+  });
+
+  // 获取当前有效的基数（用于汇总展示）
+  const currentBases = Object.entries(groupedBases).map(([type, bases]) => ({
+    type,
+    base: bases.find(b => !b.effective_end_date)?.contribution_base || 0
+  }));
+
+  // 计算基数平均值
+  const averageBase = currentBases.length > 0 
+    ? currentBases.reduce((sum, item) => sum + item.base, 0) / currentBases.length 
+    : 0;
+
   return (
-    <div className="space-y-4">
-      {contributionBases.map((base, index) => (
-        <AccordionFormGroup
-          key={`${base.insurance_type_id}-${index}`}
-          title={base.insurance_type_name}
-          icon={
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
-        >
-          <div className="space-y-4">
-            {/* 基本信息 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FieldGroup>
-                <DetailField
-                  label={t('payroll:contributionBase.month')}
-                  value={base.month_string}
-                  variant="text"
-                  isEditing={false}
-                />
-              </FieldGroup>
-              <FieldGroup>
-                <DetailField
-                  label={t('payroll:contributionBase.employmentStatus')}
-                  value={base.employment_status}
-                  variant="text"
-                  isEditing={false}
-                />
-              </FieldGroup>
-            </div>
+    <div className="space-y-6">
+      {/* 基数概览卡片 */}
+      <div className="bg-gradient-to-r from-info/5 via-info/3 to-transparent rounded-xl p-6 border border-info/10">
+        <h3 className="text-base font-semibold text-base-content mb-4 flex items-center gap-2">
+          <svg className="w-5 h-5 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          基数概览
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="text-center">
+            <p className="text-sm text-base-content/60 mb-1">平均缴费基数</p>
+            <p className="text-2xl font-bold text-info font-mono">
+              {formatCurrency(averageBase)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-base-content/60 mb-1">基数项目数</p>
+            <p className="text-2xl font-bold text-primary">
+              {Object.keys(groupedBases).length}
+            </p>
+          </div>
+        </div>
+      </div>
 
-            {/* 缴费基数 */}
-            <FieldGroup>
-              <DetailField
-                label={t('payroll:contributionBase.amount')}
-                value={formatCurrency(base.contribution_base)}
-                variant="amount"
-                className="text-primary font-bold text-lg"
-                isEditing={false}
-              />
-            </FieldGroup>
-
-            {/* 有效期 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FieldGroup>
-                <DetailField
-                  label={t('payroll:contributionBase.effectiveStartDate')}
-                  value={formatDate(base.effective_start_date)}
-                  variant="text"
-                  isEditing={false}
-                />
-              </FieldGroup>
-              <FieldGroup>
-                <DetailField
-                  label={t('payroll:contributionBase.effectiveEndDate')}
-                  value={base.effective_end_date ? formatDate(base.effective_end_date) : t('common:ongoing')}
-                  variant="text"
-                  isEditing={false}
-                />
-              </FieldGroup>
+      {/* 各保险类型基数明细 */}
+      <div className="space-y-6">
+        {Object.entries(groupedBases).map(([insuranceType, bases]) => (
+        <div key={insuranceType} className="rounded-xl border border-info/10 bg-gradient-to-r from-info/2 to-transparent overflow-hidden">
+          {/* 保险类型头部 */}
+          <div className="p-5 bg-gradient-to-r from-info/5 to-info/2 border-b border-info/10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-info">{insuranceType}</h3>
+                <p className="text-sm text-base-content/60">
+                  {bases.length} 个缴费基数记录
+                </p>
+              </div>
             </div>
           </div>
-        </AccordionFormGroup>
+
+          {/* 时间线展示 */}
+          <div className="p-5">
+            <div className="space-y-4">
+              {bases.map((base, index) => {
+                const isActive = !base.effective_end_date;
+                const isLatest = index === 0;
+                
+                return (
+                  <div key={`${base.insurance_type_id}-${index}`} className="relative">
+                    {/* 时间线连接线 */}
+                    {index < bases.length - 1 && (
+                      <div className="absolute left-6 top-12 bottom-0 w-px bg-gradient-to-b from-base-300/60 to-transparent"></div>
+                    )}
+                    
+                    <div className="flex gap-4">
+                      {/* 时间线节点 */}
+                      <div className="flex flex-col items-center">
+                        <div className={cn(
+                          "w-3 h-3 rounded-full border-2 z-10",
+                          isActive 
+                            ? "bg-success border-success shadow-[0_0_12px_4px] shadow-success/30"
+                            : isLatest
+                            ? "bg-primary border-primary"
+                            : "bg-base-300 border-base-300"
+                        )} />
+                        {isActive && (
+                          <div className="mt-1 px-2 py-0.5 rounded-full bg-success/10 text-success text-xs font-medium">
+                            当前
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 基数信息卡片 */}
+                      <div className={cn(
+                        "flex-1 p-4 rounded-lg border transition-all duration-200",
+                        isActive
+                          ? "bg-success/5 border-success/20 ring-1 ring-success/10"
+                          : "bg-base-50/30 border-base-200/50 hover:bg-base-50/50"
+                      )}>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <div className="text-sm font-medium text-base-content/80">
+                                {base.month_string}
+                              </div>
+                              <div className="text-xs text-base-content/60">
+                                {base.employment_status}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <div className={cn(
+                              "text-2xl font-bold font-mono",
+                              isActive ? "text-success" : "text-primary"
+                            )}>
+                              {formatCurrency(base.contribution_base)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 有效期信息 */}
+                        <div className="flex items-center justify-between text-xs text-base-content/60">
+                          <span>
+                            有效期：{formatDate(base.effective_start_date)}
+                          </span>
+                          <span>
+                            {base.effective_end_date 
+                              ? `至 ${formatDate(base.effective_end_date)}` 
+                              : '持续有效'
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       ))}
+      </div>
     </div>
   );
 }

@@ -30,6 +30,7 @@ export const usePayrolls = (filters?: {
   employeeId?: string;
   startDate?: string;
   endDate?: string;
+  search?: string;
   page?: number;
   pageSize?: number;
 }) => {

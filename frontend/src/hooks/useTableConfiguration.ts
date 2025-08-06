@@ -51,6 +51,11 @@ export function useTableConfiguration(tableName: string, actions?: ActionColumn)
         case 'v_employee_current_status':
           tableMetadata = await metadataService.getEmployeeViewMetadata();
           break;
+        case 'payroll':
+        case 'payrolls':
+        case 'view_payroll_summary':
+          tableMetadata = await metadataService.getPayrollViewMetadata();
+          break;
         default:
           throw new Error(`Unsupported table: ${tableName}`);
       }
@@ -84,7 +89,16 @@ export function useTableConfiguration(tableName: string, actions?: ActionColumn)
   // 生成动态列定义
   const columns = useMemo(() => {
     if (!metadata || !userConfig) return [];
-    return columnConfigService.generateColumns(metadata, userConfig, actions);
+    
+    // 调试: 检查表格元数据和列配置
+    console.log('=== Table Configuration Debug ===');
+    console.log('Metadata fields:', metadata?.fields?.map(f => ({ name: f.name, label: f.label, visible: f.visible })));
+    console.log('User config columns:', userConfig?.columns?.filter(c => c.visible).map(c => ({ field: c.field, visible: c.visible, label: c.label })));
+    
+    const generatedColumns = columnConfigService.generateColumns(metadata, userConfig, actions);
+    console.log('Generated columns:', generatedColumns.map(c => ({ id: c.id, header: typeof c.header })));
+    
+    return generatedColumns;
   }, [metadata, userConfig, actions]);
 
   // 更新用户配置

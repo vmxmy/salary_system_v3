@@ -169,22 +169,39 @@ export interface EmployeeListItem {
   id: string;
   employee_id: string;
   full_name: string;
+  id_number?: string; // 身份证号
+  hire_date?: string;
+  termination_date?: string; // 离职日期
   gender?: string; // 性别
+  date_of_birth?: string; // 出生日期
   employment_status: string;
   current_status: 'active' | 'inactive' | 'terminated'; // 添加当前状态字段
+  manager_id?: string; // 上级主管ID
+  department_id?: string; // 部门ID
   department_name?: string;
+  position_id?: string; // 职位ID
   position_name?: string;
+  rank_id?: string; // 职级ID
+  rank_name?: string; // 职级名称
+  job_start_date?: string; // 任职开始日期
+  category_id?: string; // 人员类别ID
   category_name?: string;
-  hire_date?: string;
-  base_salary?: number; // 添加基本工资字段
+  category_start_date?: string; // 类别开始日期
+  has_occupational_pension?: string; // 是否有职业年金
   mobile_phone?: string;
   email?: string;
+  work_email?: string; // 工作邮箱
+  personal_email?: string; // 个人邮箱
   primary_bank_account?: string; // 主要银行账户号码
   bank_name?: string; // 银行名称
+  branch_name?: string; // 支行名称
   latest_institution?: string; // 最新教育机构
   latest_degree?: string; // 最新学位
   latest_field_of_study?: string; // 最新专业
   latest_graduation_date?: string; // 最新毕业日期
+  created_at?: string; // 创建时间
+  updated_at?: string; // 更新时间
+  base_salary?: number; // 添加基本工资字段
 }
 
 // 员工创建/更新请求类型

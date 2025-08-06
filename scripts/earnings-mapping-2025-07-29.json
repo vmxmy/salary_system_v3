@@ -1,0 +1,156 @@
+{
+  "timestamp": "2025-07-29T10:09:19.000Z",
+  "description": "老系统earnings_details字段与新系统salary_components的映射关系",
+  "version": "1.0",
+  "earnings_mapping": {
+    "BASIC_SALARY": {
+      "component_id": "7bb4870f-bff7-4b76-935d-ced117577eed",
+      "component_name": "基本工资",
+      "category": "basic_salary",
+      "priority": 1,
+      "description": "基本工资"
+    },
+    "POSITION_SALARY_GENERAL": {
+      "component_id": "11eadd68-3f70-4b5b-889e-a96fc9887991",
+      "component_name": "岗位工资",
+      "category": "basic_salary",
+      "priority": 2,
+      "description": "岗位工资"
+    },
+    "SALARY_GRADE": {
+      "component_id": "7f2574c1-b245-422f-817d-239e569c49ae",
+      "component_name": "薪级工资",
+      "category": "basic_salary",
+      "priority": 3,
+      "description": "薪级工资"
+    },
+    "PROBATION_SALARY": {
+      "component_id": "362bf78b-e87e-4ed0-81f2-14e9c6f5a425",
+      "component_name": "试用期工资",
+      "category": "basic_salary",
+      "priority": 4,
+      "description": "试用期工资"
+    },
+    "GENERAL_ALLOWANCE": {
+      "component_id": "1bf0ee79-09d8-4649-bae3-6a0be1706689",
+      "component_name": "津贴",
+      "category": "benefits",
+      "priority": 5,
+      "description": "津贴"
+    },
+    "BASIC_PERFORMANCE": {
+      "component_id": "f9d50d82-7842-40f3-91eb-9f1cecb1248d",
+      "component_name": "基础绩效",
+      "category": "benefits",
+      "priority": 6,
+      "description": "基础绩效"
+    },
+    "BASIC_PERFORMANCE_AWARD": {
+      "component_id": "e1682ad9-c465-4311-b1e3-9ca0ffba385f",
+      "component_name": "基础绩效奖",
+      "category": "benefits",
+      "priority": 7,
+      "description": "基础绩效奖"
+    },
+    "MONTHLY_PERFORMANCE_BONUS": {
+      "component_id": "79c16e32-b3d1-4a5a-b4ad-1ff1dd16905d",
+      "component_name": "月奖励绩效",
+      "category": "benefits",
+      "priority": 8,
+      "description": "月奖励绩效"
+    },
+    "PERFORMANCE_SALARY": {
+      "component_id": "52504268-a545-4501-a3fc-82087e98857e",
+      "component_name": "绩效工资",
+      "category": "benefits",
+      "priority": 9,
+      "description": "绩效工资"
+    },
+    "ALLOWANCE_GENERAL": {
+      "component_id": "573f48cf-87f7-47f1-b7f7-71d22f489405",
+      "component_name": "补助",
+      "category": "benefits",
+      "priority": 10,
+      "description": "补助"
+    },
+    "REFORM_ALLOWANCE_1993": {
+      "component_id": "9b003051-7e05-469a-a4a9-2d271023bc9f",
+      "component_name": "九三年工改保留津补贴",
+      "category": "benefits",
+      "priority": 11,
+      "description": "九三年工改保留津补贴"
+    },
+    "ONLY_CHILD_PARENT_BONUS": {
+      "component_id": "37595a96-8994-48b9-931a-a025ff207c51",
+      "component_name": "独生子女父母奖励金",
+      "category": "benefits",
+      "priority": 12,
+      "description": "独生子女父母奖励金"
+    }
+  },
+  "component_lookup": {
+    "基本工资": {
+      "id": "7bb4870f-bff7-4b76-935d-ced117577eed",
+      "category": "basic_salary"
+    },
+    "岗位工资": {
+      "id": "11eadd68-3f70-4b5b-889e-a96fc9887991",
+      "category": "basic_salary"
+    },
+    "薪级工资": {
+      "id": "7f2574c1-b245-422f-817d-239e569c49ae",
+      "category": "basic_salary"
+    },
+    "试用期工资": {
+      "id": "362bf78b-e87e-4ed0-81f2-14e9c6f5a425",
+      "category": "basic_salary"
+    },
+    "津贴": {
+      "id": "1bf0ee79-09d8-4649-bae3-6a0be1706689",
+      "category": "benefits"
+    },
+    "基础绩效": {
+      "id": "f9d50d82-7842-40f3-91eb-9f1cecb1248d",
+      "category": "benefits"
+    },
+    "基础绩效奖": {
+      "id": "e1682ad9-c465-4311-b1e3-9ca0ffba385f",
+      "category": "benefits"
+    },
+    "月奖励绩效": {
+      "id": "79c16e32-b3d1-4a5a-b4ad-1ff1dd16905d",
+      "category": "benefits"
+    },
+    "绩效工资": {
+      "id": "52504268-a545-4501-a3fc-82087e98857e",
+      "category": "benefits"
+    },
+    "补助": {
+      "id": "573f48cf-87f7-47f1-b7f7-71d22f489405",
+      "category": "benefits"
+    },
+    "九三年工改保留津补贴": {
+      "id": "9b003051-7e05-469a-a4a9-2d271023bc9f",
+      "category": "benefits"
+    },
+    "独生子女父母奖励金": {
+      "id": "37595a96-8994-48b9-931a-a025ff207c51",
+      "category": "benefits"
+    }
+  },
+  "statistics": {
+    "total_old_fields": 12,
+    "total_new_components": 23,
+    "mapped_fields": 12,
+    "coverage_rate": "100.0%",
+    "unmapped_fields": 0,
+    "basic_salary_mappings": 4,
+    "benefits_mappings": 8
+  },
+  "usage_notes": [
+    "此映射关系基于2025-01期间老系统实际使用的earnings_details字段分析",
+    "映射覆盖率达到100%，所有老系统字段都有对应的新系统组件",
+    "优先级用于确定导入顺序，基本工资类组件优先级较高",
+    "在使用此映射进行数据导入时，请确保新系统中对应的salary_components存在"
+  ]
+}

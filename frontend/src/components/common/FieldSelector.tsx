@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { EyeIcon, EyeOffIcon, ArrowUpIcon, ArrowDownIcon, SettingsIcon, RefreshCcwIcon } from 'lucide-react';
+import { EyeIcon, EyeOffIcon, ArrowUpIcon, ArrowDownIcon, SettingsIcon, RefreshCcwIcon, CheckSquareIcon } from 'lucide-react';
 import type { FieldMetadata } from '@/services/metadata.service';
 import type { UserTableConfig } from '@/services/column-config.service';
 import { cn } from '@/lib/utils';
@@ -148,9 +148,44 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
     }
   }, [sortedColumns, userConfig, onChange, fields]);
 
+  // 全选/全不选功能
+  const toggleSelectAll = useCallback(() => {
+    const allVisible = sortedColumns.every(col => col.visible);
+    const newColumns = [...userConfig.columns];
+    
+    // 遍历所有字段，确保每个字段都有配置项
+    fields.forEach(field => {
+      const existingIndex = newColumns.findIndex(col => col.field === field.name);
+      const shouldBeVisible = !allVisible; // 如果当前全选中，则全不选；否则全选
+      
+      if (existingIndex >= 0) {
+        // 更新现有配置
+        newColumns[existingIndex] = {
+          ...newColumns[existingIndex],
+          visible: shouldBeVisible
+        };
+      } else {
+        // 添加新配置
+        newColumns.push({
+          field: field.name,
+          visible: shouldBeVisible,
+          width: field.width,
+          order: field.order ?? newColumns.length,
+          label: field.label,
+        });
+      }
+    });
+
+    onChange({
+      ...userConfig,
+      columns: newColumns,
+    });
+  }, [fields, userConfig, onChange, sortedColumns]);
+
   // 统计信息
   const visibleCount = sortedColumns.filter(col => col.visible).length;
   const totalCount = sortedColumns.length;
+  const allSelected = visibleCount === totalCount;
 
   return (
     <div className={cn('relative', className)}>
@@ -183,6 +218,14 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium text-base-content">字段设置</h3>
                 <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className="btn btn-ghost btn-xs"
+                    title={allSelected ? "全不选" : "全选"}
+                  >
+                    <CheckSquareIcon className={cn("w-3 h-3", allSelected && "text-primary")} />
+                  </button>
                   <button
                     type="button"
                     onClick={onReset}

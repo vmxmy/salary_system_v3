@@ -10,9 +10,7 @@ type PayrollUpdate = Database['public']['Tables']['payrolls']['Update'];
 // 薪资状态枚举
 export const PayrollStatus = {
   DRAFT: 'draft',
-  CALCULATING: 'calculating',
-  CALCULATED: 'calculated',
-  APPROVED: 'approved',
+  APPROVED: 'approved', 
   PAID: 'paid',
   CANCELLED: 'cancelled'
 } as const;
@@ -31,16 +29,16 @@ export class PayrollService {
   // 获取最近有薪资记录的月份
   static async getLatestPayrollMonth(): Promise<string | null> {
     const { data, error } = await supabase
-      .from('payrolls')
-      .select('pay_date')
-      .order('pay_date', { ascending: false })
+      .from('view_payroll_summary')
+      .select('pay_period_start')
+      .order('pay_period_start', { ascending: false })
       .limit(1);
 
     if (error) throw error;
     
     if (data && data.length > 0) {
-      // 从pay_date中提取年月 (YYYY-MM-DD -> YYYY-MM)
-      return data[0].pay_date.substring(0, 7);
+      // 从pay_period_start中提取年月 (YYYY-MM-DD -> YYYY-MM)
+      return data[0].pay_period_start.substring(0, 7);
     }
     
     return null;
@@ -52,18 +50,32 @@ export class PayrollService {
     employeeId?: string;
     startDate?: string;
     endDate?: string;
+    search?: string;
     page?: number;
     pageSize?: number;
   }) {
+    // 如果有搜索条件，我们需要使用不同的查询策略
+    if (filters?.search && filters.search.trim()) {
+      return this.getPayrollsWithSearch({
+        ...filters,
+        search: filters.search
+      });
+    }
+
     let query = supabase
-      .from('payrolls')
+      .from('view_payroll_summary')
       .select(`
-        *,
-        employee:employees(
-          id,
-          full_name,
-          id_number
-        )
+        payroll_id,
+        pay_date,
+        pay_period_start,
+        pay_period_end,
+        employee_id,
+        full_name,
+        department_name,
+        gross_pay,
+        total_deductions,
+        net_pay,
+        status
       `, { count: 'exact' });
 
     // 应用过滤条件
@@ -74,10 +86,10 @@ export class PayrollService {
       query = query.eq('employee_id', filters.employeeId);
     }
     if (filters?.startDate) {
-      query = query.gte('pay_date', filters.startDate);
+      query = query.gte('pay_period_start', filters.startDate);
     }
     if (filters?.endDate) {
-      query = query.lte('pay_date', filters.endDate);
+      query = query.lte('pay_period_start', filters.endDate);
     }
 
     // 分页
@@ -87,16 +99,128 @@ export class PayrollService {
     const to = from + pageSize - 1;
 
     query = query
-      .order('pay_date', { ascending: false })
-      .order('created_at', { ascending: false })
+      .order('pay_period_start', { ascending: false })
+      .order('payroll_id', { ascending: false })
       .range(from, to);
 
     const { data, error, count } = await query;
 
     if (error) throw error;
 
+    // 转换数据格式以匹配原来的结构
+    const transformedData = (data || []).map(item => ({
+      id: item.payroll_id,
+      payroll_id: item.payroll_id,
+      pay_date: item.pay_date,
+      pay_period_start: item.pay_period_start,
+      pay_period_end: item.pay_period_end,
+      employee_id: item.employee_id,
+      full_name: item.full_name, // 添加直接的 full_name 字段
+      gross_pay: item.gross_pay,
+      total_deductions: item.total_deductions,
+      net_pay: item.net_pay,
+      status: item.status,
+      employee: {
+        id: item.employee_id,
+        full_name: item.full_name,
+        id_number: null // 视图中没有id_number字段
+      },
+      department_name: item.department_name
+    }));
+
     return {
-      data: data || [],
+      data: transformedData,
+      total: count || 0,
+      page,
+      pageSize,
+      totalPages: Math.ceil((count || 0) / pageSize)
+    };
+  }
+
+  // 带搜索功能的薪资列表查询
+  static async getPayrollsWithSearch(filters: {
+    status?: PayrollStatusType;
+    employeeId?: string;
+    startDate?: string;
+    endDate?: string;
+    search: string;
+    page?: number;
+    pageSize?: number;
+  }) {
+    const searchTerm = `%${filters.search.trim()}%`;
+
+    // 直接在视图上进行搜索
+    let query = supabase
+      .from('view_payroll_summary')
+      .select(`
+        payroll_id,
+        pay_date,
+        pay_period_start,
+        pay_period_end,
+        employee_id,
+        full_name,
+        department_name,
+        gross_pay,
+        total_deductions,
+        net_pay,
+        status
+      `, { count: 'exact' });
+
+    // 搜索条件：员工姓名、部门名称或状态匹配
+    query = query.or(`full_name.ilike.${searchTerm},department_name.ilike.${searchTerm},status.ilike.${searchTerm}`);
+
+    // 应用其他过滤条件
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters.employeeId) {
+      query = query.eq('employee_id', filters.employeeId);
+    }
+    if (filters.startDate) {
+      query = query.gte('pay_period_start', filters.startDate);
+    }
+    if (filters.endDate) {
+      query = query.lte('pay_period_start', filters.endDate);
+    }
+
+    // 分页
+    const page = filters.page || 1;
+    const pageSize = filters.pageSize || 20;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    query = query
+      .order('pay_period_start', { ascending: false })
+      .order('payroll_id', { ascending: false })
+      .range(from, to);
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+
+    // 转换数据格式以匹配原来的结构
+    const transformedData = (data || []).map(item => ({
+      id: item.payroll_id,
+      payroll_id: item.payroll_id,
+      pay_date: item.pay_date,
+      pay_period_start: item.pay_period_start,
+      pay_period_end: item.pay_period_end,
+      employee_id: item.employee_id,
+      full_name: item.full_name, // 添加直接的 full_name 字段
+      gross_pay: item.gross_pay,
+      total_deductions: item.total_deductions,
+      net_pay: item.net_pay,
+      status: item.status,
+      employee: {
+        id: item.employee_id,
+        full_name: item.full_name,
+        id_number: null // 视图中没有id_number字段
+      },
+      department_name: item.department_name
+    }));
+
+    return {
+      data: transformedData,
       total: count || 0,
       page,
       pageSize,

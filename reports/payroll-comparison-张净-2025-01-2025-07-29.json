@@ -1,0 +1,344 @@
+{
+  "metadata": {
+    "employee_name": "张净",
+    "pay_period": "2025-01",
+    "comparison_date": "2025-07-29T08:39:43.850Z",
+    "report_version": "1.0"
+  },
+  "old_system": {
+    "full_name": "张净",
+    "id_number": "511302198809010737",
+    "gross_pay": 12800,
+    "total_deductions": 5615.45,
+    "net_pay": 7184.55,
+    "period_name": "2025年01月",
+    "calculated_at": "2025-06-16T19:47:50.743Z",
+    "earnings_details": {
+      "BASIC_SALARY": {
+        "name": "基本工资",
+        "amount": 2500
+      },
+      "GENERAL_ALLOWANCE": {
+        "name": "津贴",
+        "amount": 8500
+      },
+      "POSITION_SALARY_GENERAL": {
+        "name": "岗位工资",
+        "amount": 1800
+      }
+    },
+    "deductions_details": {
+      "PERSONAL_INCOME_TAX": {
+        "name": "个人所得税",
+        "amount": 242.73
+      },
+      "HOUSING_FUND_EMPLOYER": {
+        "name": "住房公积金单位应缴费额",
+        "rate": 0.12,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 3027
+      },
+      "HOUSING_FUND_PERSONAL": {
+        "name": "住房公积金个人应缴费额",
+        "rate": 0.12,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 3027
+      },
+      "INJURY_EMPLOYER_AMOUNT": {
+        "name": "工伤保险单位应缴费额",
+        "rate": 0.002,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 45.11
+      },
+      "INJURY_PERSONAL_AMOUNT": {
+        "name": "工伤保险个人应缴费额",
+        "rate": 0,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 0
+      },
+      "MEDICAL_EMPLOYER_AMOUNT": {
+        "name": "医疗保险单位应缴费额",
+        "rate": 0.08,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 1804.4
+      },
+      "MEDICAL_PERSONAL_AMOUNT": {
+        "name": "医疗保险个人应缴费额",
+        "rate": 0.02,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 451.1
+      },
+      "PENSION_EMPLOYER_AMOUNT": {
+        "name": "养老保险单位应缴费额",
+        "rate": 0.16,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 3608.8
+      },
+      "PENSION_PERSONAL_AMOUNT": {
+        "name": "养老保险个人应缴费额",
+        "rate": 0.08,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 1804.4
+      },
+      "UNEMPLOYMENT_EMPLOYER_AMOUNT": {
+        "name": "失业保险单位应缴费额",
+        "rate": 0.006,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 135.33
+      },
+      "UNEMPLOYMENT_PERSONAL_AMOUNT": {
+        "name": "失业保险个人应缴费额",
+        "rate": 0.004,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 90.22
+      },
+      "SERIOUS_ILLNESS_EMPLOYER_AMOUNT": {
+        "name": "大病医疗单位应缴费额",
+        "rate": 0.0075,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 169.16
+      },
+      "SERIOUS_ILLNESS_PERSONAL_AMOUNT": {
+        "name": "大病医疗个人应缴费额",
+        "rate": 0,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 0
+      }
+    }
+  },
+  "new_system": {
+    "full_name": "张净",
+    "id_number": "511302198809010737",
+    "gross_pay": 12800,
+    "total_deductions": 5615.45,
+    "net_pay": 7184.55,
+    "pay_period_start": "2025-01-01",
+    "pay_period_end": "2025-01-31",
+    "status": "draft",
+    "created_at": "2025-07-25T16:37:08.358306+00:00",
+    "updated_at": "2025-07-29T07:00:38.335473+00:00",
+    "insurance_details": {
+      "MATERNITY_PERSONAL": {
+        "name": "生育保险个人应缴费额",
+        "amount": 0,
+        "type": "PERSONAL_DEDUCTION",
+        "contribution_base": 22555
+      },
+      "MATERNITY_EMPLOYER": {
+        "name": "生育保险单位应缴费额",
+        "amount": 0,
+        "type": "EMPLOYER_DEDUCTION",
+        "contribution_base": 22555
+      },
+      "HOUSING_FUND_PERSONAL": {
+        "name": "住房公积金个人应缴费额",
+        "amount": 3027,
+        "type": "PERSONAL_DEDUCTION",
+        "contribution_base": 25225
+      },
+      "HOUSING_FUND_EMPLOYER": {
+        "name": "住房公积金单位应缴费额",
+        "amount": 3027,
+        "type": "EMPLOYER_DEDUCTION",
+        "contribution_base": 25225
+      },
+      "SERIOUS_ILLNESS_PERSONAL": {
+        "name": "大病医疗个人应缴费额",
+        "amount": 0,
+        "type": "PERSONAL_DEDUCTION",
+        "contribution_base": 22555
+      },
+      "SERIOUS_ILLNESS_EMPLOYER": {
+        "name": "大病医疗单位应缴费额",
+        "amount": 169.16,
+        "type": "EMPLOYER_DEDUCTION",
+        "contribution_base": 22555
+      },
+      "PENSION_PERSONAL": {
+        "name": "养老保险个人应缴费额",
+        "amount": 1804.4,
+        "type": "PERSONAL_DEDUCTION",
+        "contribution_base": 22555
+      },
+      "PENSION_EMPLOYER": {
+        "name": "养老保险单位应缴费额",
+        "amount": 3608.8,
+        "type": "EMPLOYER_DEDUCTION",
+        "contribution_base": 22555
+      },
+      "MEDICAL_PERSONAL": {
+        "name": "医疗保险个人应缴费额",
+        "amount": 451.1,
+        "type": "PERSONAL_DEDUCTION",
+        "contribution_base": 22555
+      },
+      "MEDICAL_EMPLOYER": {
+        "name": "医疗保险单位应缴费额",
+        "amount": 1804.4,
+        "type": "EMPLOYER_DEDUCTION",
+        "contribution_base": 22555
+      },
+      "UNEMPLOYMENT_PERSONAL": {
+        "name": "失业保险个人应缴费额",
+        "amount": 90.22,
+        "type": "PERSONAL_DEDUCTION",
+        "contribution_base": 22555
+      },
+      "UNEMPLOYMENT_EMPLOYER": {
+        "name": "失业保险单位应缴费额",
+        "amount": 135.33,
+        "type": "EMPLOYER_DEDUCTION",
+        "contribution_base": 22555
+      },
+      "OCCUPATIONAL_PENSION_PERSONAL": {
+        "name": "职业年金个人应缴费额",
+        "amount": 0,
+        "type": "PERSONAL_DEDUCTION",
+        "contribution_base": 0
+      },
+      "OCCUPATIONAL_PENSION_EMPLOYER": {
+        "name": "职业年金单位应缴费额",
+        "amount": 0,
+        "type": "EMPLOYER_DEDUCTION",
+        "contribution_base": 0
+      }
+    },
+    "personal_income_tax": {
+      "name": "个人所得税",
+      "amount": 242.73,
+      "type": "PERSONAL_DEDUCTION",
+      "taxable_income": 7800,
+      "effective_tax_rate": 0.0311
+    }
+  },
+  "comparison": {
+    "gross_pay": {
+      "old_value": 12800,
+      "new_value": 12800,
+      "difference": 0,
+      "match": true,
+      "percentage_diff": "0.00"
+    },
+    "total_deductions": {
+      "old_value": 5615.45,
+      "new_value": 5615.45,
+      "difference": 0,
+      "match": true,
+      "percentage_diff": "0.00"
+    },
+    "net_pay": {
+      "old_value": 7184.55,
+      "new_value": 7184.55,
+      "difference": 0,
+      "match": true,
+      "percentage_diff": "0.00"
+    },
+    "insurance_details": {
+      "PENSION": {
+        "name": "养老保险个人",
+        "old_value": 1804.4,
+        "new_value": 1804.4,
+        "difference": 0,
+        "match": true,
+        "percentage_diff": "0.00",
+        "contribution_base": {
+          "old": 0,
+          "new": 22555
+        }
+      },
+      "MEDICAL": {
+        "name": "医疗保险个人",
+        "old_value": 451.1,
+        "new_value": 451.1,
+        "difference": 0,
+        "match": true,
+        "percentage_diff": "0.00",
+        "contribution_base": {
+          "old": 0,
+          "new": 22555
+        }
+      },
+      "UNEMPLOYMENT": {
+        "name": "失业保险个人",
+        "old_value": 90.22,
+        "new_value": 90.22,
+        "difference": 0,
+        "match": true,
+        "percentage_diff": "0.00",
+        "contribution_base": {
+          "old": 0,
+          "new": 22555
+        }
+      },
+      "WORK_INJURY": {
+        "name": "工伤保险个人",
+        "old_value": 0,
+        "new_value": 0,
+        "difference": 0,
+        "match": true,
+        "percentage_diff": 0,
+        "contribution_base": {
+          "old": 0,
+          "new": 0
+        }
+      },
+      "MATERNITY": {
+        "name": "生育保险个人",
+        "old_value": 0,
+        "new_value": 0,
+        "difference": 0,
+        "match": true,
+        "percentage_diff": 0,
+        "contribution_base": {
+          "old": 0,
+          "new": 22555
+        }
+      },
+      "HOUSING_FUND": {
+        "name": "住房公积金个人",
+        "old_value": 3027,
+        "new_value": 3027,
+        "difference": 0,
+        "match": true,
+        "percentage_diff": "0.00",
+        "contribution_base": {
+          "old": 0,
+          "new": 25225
+        }
+      },
+      "OCCUPATIONAL_PENSION": {
+        "name": "职业年金个人",
+        "old_value": 0,
+        "new_value": 0,
+        "difference": 0,
+        "match": true,
+        "percentage_diff": 0,
+        "contribution_base": {
+          "old": 0,
+          "new": 0
+        }
+      },
+      "SERIOUS_ILLNESS": {
+        "name": "大病医疗个人",
+        "old_value": 0,
+        "new_value": 0,
+        "difference": 0,
+        "match": true,
+        "percentage_diff": 0,
+        "contribution_base": {
+          "old": 0,
+          "new": 22555
+        }
+      }
+    },
+    "personal_income_tax": {
+      "name": "个人所得税",
+      "old_value": 242.73,
+      "new_value": 242.73,
+      "difference": 0,
+      "match": true,
+      "percentage_diff": "0.00"
+    },
+    "overall_match": true
+  }
+}

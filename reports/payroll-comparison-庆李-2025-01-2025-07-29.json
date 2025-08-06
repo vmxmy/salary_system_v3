@@ -1,0 +1,139 @@
+{
+  "metadata": {
+    "employee_name": "庆李",
+    "pay_period": "2025-01",
+    "comparison_date": "2025-07-29T07:47:09.924Z",
+    "report_version": "1.0"
+  },
+  "old_system": {
+    "full_name": "庆李",
+    "id_number": "510107197706032170",
+    "gross_pay": 18819,
+    "total_deductions": 6696.32,
+    "net_pay": 12122.68,
+    "period_name": "2025年01月",
+    "calculated_at": "2025-06-16T19:23:47.379Z",
+    "earnings_details": {
+      "SALARY_GRADE": {
+        "name": "薪级工资",
+        "amount": 2040
+      },
+      "BASIC_PERFORMANCE": {
+        "name": "基础绩效",
+        "amount": 3742
+      },
+      "REFORM_ALLOWANCE_1993": {
+        "name": "九三年工改保留津补贴",
+        "amount": 116
+      },
+      "BASIC_PERFORMANCE_AWARD": {
+        "name": "基础绩效奖",
+        "amount": 6920
+      },
+      "ONLY_CHILD_PARENT_BONUS": {
+        "name": "独生子女父母奖励金",
+        "amount": 5
+      },
+      "POSITION_SALARY_GENERAL": {
+        "name": "岗位工资",
+        "amount": 3120
+      },
+      "MONTHLY_PERFORMANCE_BONUS": {
+        "name": "月奖励绩效",
+        "amount": 2876
+      }
+    },
+    "deductions_details": {
+      "PERSONAL_INCOME_TAX": {
+        "name": "个人所得税",
+        "amount": 611.3
+      },
+      "HOUSING_FUND_EMPLOYER": {
+        "name": "住房公积金单位应缴费额",
+        "rate": 0.12,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 3329
+      },
+      "HOUSING_FUND_PERSONAL": {
+        "name": "住房公积金个人应缴费额",
+        "rate": 0.12,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 3329
+      },
+      "INJURY_EMPLOYER_AMOUNT": {
+        "name": "工伤保险单位应缴费额",
+        "rate": 0.002,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 38.28
+      },
+      "INJURY_PERSONAL_AMOUNT": {
+        "name": "工伤保险个人应缴费额",
+        "rate": 0,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 0
+      },
+      "MEDICAL_EMPLOYER_AMOUNT": {
+        "name": "医疗保险单位应缴费额",
+        "rate": 0.0755,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 1444.99
+      },
+      "MEDICAL_PERSONAL_AMOUNT": {
+        "name": "医疗保险个人应缴费额",
+        "rate": 0.02,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 382.78
+      },
+      "PENSION_EMPLOYER_AMOUNT": {
+        "name": "养老保险单位应缴费额",
+        "rate": 0.16,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 3062.24
+      },
+      "PENSION_PERSONAL_AMOUNT": {
+        "name": "养老保险个人应缴费额",
+        "rate": 0.08,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 1531.12
+      },
+      "UNEMPLOYMENT_EMPLOYER_AMOUNT": {
+        "name": "失业保险单位应缴费额",
+        "rate": 0.006,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 114.83
+      },
+      "UNEMPLOYMENT_PERSONAL_AMOUNT": {
+        "name": "失业保险个人应缴费额",
+        "rate": 0.004,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 76.56
+      },
+      "SERIOUS_ILLNESS_EMPLOYER_AMOUNT": {
+        "name": "大病医疗单位应缴费额",
+        "rate": 0.0075,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 143.54
+      },
+      "SERIOUS_ILLNESS_PERSONAL_AMOUNT": {
+        "name": "大病医疗个人应缴费额",
+        "rate": 0,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 0
+      },
+      "OCCUPATIONAL_PENSION_EMPLOYER_AMOUNT": {
+        "name": "职业年金单位应缴费额",
+        "rate": 0.08,
+        "type": "EMPLOYER_DEDUCTION",
+        "amount": 1531.12
+      },
+      "OCCUPATIONAL_PENSION_PERSONAL_AMOUNT": {
+        "name": "职业年金个人应缴费额",
+        "rate": 0.04,
+        "type": "PERSONAL_DEDUCTION",
+        "amount": 765.56
+      }
+    }
+  },
+  "new_system": null,
+  "comparison": {}
+}

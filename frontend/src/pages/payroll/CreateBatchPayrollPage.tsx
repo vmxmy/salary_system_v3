@@ -142,6 +142,8 @@ export default function CreateBatchPayrollPage() {
                 value={selectedMonth}
                 onChange={setSelectedMonth}
                 placeholder={t('payroll:selectMonth')}
+                showDataIndicators={true}
+                disableMonthsWithData={true}
               />
             </div>
 

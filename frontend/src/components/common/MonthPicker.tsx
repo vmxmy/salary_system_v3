@@ -216,6 +216,7 @@ export function MonthPicker({
             {/* 年份选择 */}
             <div className="flex items-center justify-between mb-4">
               <motion.button
+                type="button"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setDisplayYear(displayYear - 1)}
@@ -234,6 +235,7 @@ export function MonthPicker({
               </div>
               
               <motion.button
+                type="button"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setDisplayYear(displayYear + 1)}
@@ -248,6 +250,7 @@ export function MonthPicker({
             {/* 快捷选择 */}
             <div className="flex gap-2 mb-4">
               <motion.button
+                type="button"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleQuickSelect('currentMonth')}
@@ -256,6 +259,7 @@ export function MonthPicker({
                 本月
               </motion.button>
               <motion.button
+                type="button"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleQuickSelect('lastMonth')}
@@ -264,6 +268,7 @@ export function MonthPicker({
                 上月
               </motion.button>
               <motion.button
+                type="button"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleQuickSelect('currentYear')}
@@ -290,6 +295,7 @@ export function MonthPicker({
                 
                 return (
                   <motion.button
+                    type="button"
                     key={month}
                     whileHover={{ scale: isDisabled ? 1 : 1.05 }}
                     whileTap={{ scale: isDisabled ? 1 : 0.95 }}
@@ -329,10 +335,10 @@ export function MonthPicker({
                           className={cn(
                             'absolute -top-1 -right-1',
                             'flex items-center justify-center',
-                            'w-4 h-4 text-[9px] font-bold rounded-full',
+                            'w-4 h-4 text-xs font-bold rounded-full',
                             'border border-base-100',
                             isSelected 
-                              ? 'bg-primary-content text-primary' 
+                              ? 'bg-accent text-accent-content' 
                               : isDisabled && disableMonthsWithData
                               ? 'bg-error text-error-content'
                               : 'bg-success text-success-content'

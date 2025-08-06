@@ -203,6 +203,7 @@ export function DepartmentPayrollAnalysis({
                   });
                 }}
                 className="w-full"
+                showDataIndicators={true}
               />
             </div>
             

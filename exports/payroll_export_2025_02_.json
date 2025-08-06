@@ -1,0 +1,4289 @@
+{
+  "status": "success",
+  "export_info": {
+    "period": "2025年02月",
+    "employee_count": 53,
+    "export_timestamp": "2025-07-29T13:44:02.596Z",
+    "source_system": "old_postgresql_system",
+    "summary": {
+      "total_gross_pay": 951025,
+      "total_net_pay": 713384.22,
+      "total_deductions": 237640.78,
+      "avg_gross_pay": 17943.87
+    }
+  },
+  "data": [
+    {
+      "employee_id": "316",
+      "employee_name": "何婷",
+      "employee_code": "",
+      "id_number": "510102197110271064",
+      "department_name": "财政监督和绩效管理处",
+      "position_name": "一级主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1780,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 3439,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5529,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 650,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 5847,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 22416,
+        "tax_amount": 163.65,
+        "deduction_amount": 4712.98,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 15657,
+        "housing_fund_base": 21008,
+        "occupational_pension_base": 15657
+      },
+      "payroll_summary": {
+        "gross_pay": 22416,
+        "total_deductions": 4874.49,
+        "net_pay": 17541.51
+      },
+      "deduction_details": {
+        "personal_income_tax": 163.65,
+        "pension_personal": 1252.56,
+        "medical_personal": 313.14,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 626.28,
+        "housing_fund_personal": 2521
+      }
+    },
+    {
+      "employee_id": "309",
+      "employee_name": "冉光俊",
+      "employee_code": "",
+      "id_number": "510103197309155710",
+      "department_name": "局领导",
+      "position_name": "管委会办公室主任",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2940,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 3653,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 1690,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 8260,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 9617,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 7342,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 33823,
+        "tax_amount": 256.59,
+        "deduction_amount": 6921.7,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 22555,
+        "housing_fund_base": 31367,
+        "occupational_pension_base": 22555
+      },
+      "payroll_summary": {
+        "gross_pay": 33823,
+        "total_deductions": 7390.61,
+        "net_pay": 26432.39
+      },
+      "deduction_details": {
+        "personal_income_tax": 256.59,
+        "pension_personal": 1804.4,
+        "medical_personal": 451.1,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 902.2,
+        "housing_fund_personal": 3764
+      }
+    },
+    {
+      "employee_id": "320",
+      "employee_name": "刘丹",
+      "employee_code": "",
+      "id_number": "513101198306270320",
+      "department_name": "综合处",
+      "position_name": "副处长",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2160,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 2739,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5864,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 1040,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 5467,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 23351,
+        "tax_amount": 104.67,
+        "deduction_amount": 5101.9400000000005,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 16621,
+        "housing_fund_base": 23125,
+        "occupational_pension_base": 16621
+      },
+      "payroll_summary": {
+        "gross_pay": 23351,
+        "total_deductions": 5642.51,
+        "net_pay": 17708.49
+      },
+      "deduction_details": {
+        "personal_income_tax": 104.67,
+        "pension_personal": 1329.68,
+        "medical_personal": 332.42,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 664.84,
+        "housing_fund_personal": 2775
+      }
+    },
+    {
+      "employee_id": "339",
+      "employee_name": "刘嘉",
+      "employee_code": "",
+      "id_number": "51010419790927236X",
+      "department_name": "国库处",
+      "position_name": "技术工二级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1940,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 1383,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 4450,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 2337,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 3114,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 3678,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 17023,
+        "tax_amount": 19.56,
+        "deduction_amount": 4152.6900000000005,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 13227,
+        "housing_fund_base": 18733,
+        "occupational_pension_base": 13227
+      },
+      "payroll_summary": {
+        "gross_pay": 17023,
+        "total_deductions": 4107.9,
+        "net_pay": 12915.1
+      },
+      "deduction_details": {
+        "personal_income_tax": 19.56,
+        "pension_personal": 1058.16,
+        "medical_personal": 264.54,
+        "unemployment_personal": 52.91,
+        "occupational_pension_personal": 529.08,
+        "housing_fund_personal": 2248
+      }
+    },
+    {
+      "employee_id": "318",
+      "employee_name": "包晓静",
+      "employee_code": "",
+      "id_number": "51010719800901262X",
+      "department_name": "国库处",
+      "position_name": "一级主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1780,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 2685,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5529,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 650,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 4996,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 20806,
+        "tax_amount": 60.5,
+        "deduction_amount": 4486.58,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 14947,
+        "housing_fund_base": 19950,
+        "occupational_pension_base": 14947
+      },
+      "payroll_summary": {
+        "gross_pay": 20806,
+        "total_deductions": 4537.3,
+        "net_pay": 16268.7
+      },
+      "deduction_details": {
+        "personal_income_tax": 60.5,
+        "pension_personal": 1195.76,
+        "medical_personal": 298.94,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 597.88,
+        "housing_fund_personal": 2394
+      }
+    },
+    {
+      "employee_id": "364",
+      "employee_name": "卢妍如",
+      "employee_code": "",
+      "id_number": "51162219951030004X",
+      "department_name": "综合处",
+      "position_name": "协办一级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2142,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 900,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 375,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 3045,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 6462,
+        "tax_amount": 0,
+        "deduction_amount": 1448.0500000000002,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 6462,
+        "housing_fund_base": 6467,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 6462,
+        "total_deductions": 1448.05,
+        "net_pay": 5013.95
+      },
+      "deduction_details": {
+        "personal_income_tax": 0,
+        "pension_personal": 516.96,
+        "medical_personal": 129.24,
+        "unemployment_personal": 25.85,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 776
+      }
+    },
+    {
+      "employee_id": "307",
+      "employee_name": "吕果",
+      "employee_code": "",
+      "id_number": "510107197509030897",
+      "department_name": "行政政法和社会保障处",
+      "position_name": "高级工",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1200,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 2298,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 500,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 4450,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 5451,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 3899,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 17919,
+        "tax_amount": 71.04,
+        "deduction_amount": 4074.8199999999997,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 13363,
+        "housing_fund_base": 18367,
+        "occupational_pension_base": 13363
+      },
+      "payroll_summary": {
+        "gross_pay": 17919,
+        "total_deductions": 4090.84,
+        "net_pay": 13828.16
+      },
+      "deduction_details": {
+        "personal_income_tax": 71.04,
+        "pension_personal": 1069.04,
+        "medical_personal": 267.26,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 534.52,
+        "housing_fund_personal": 2204
+      }
+    },
+    {
+      "employee_id": "323",
+      "employee_name": "周宏伟",
+      "employee_code": "",
+      "id_number": "429006198705292113",
+      "department_name": "综合处",
+      "position_name": "二级主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1570,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 1945,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5444,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 650,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 3915,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 18470,
+        "tax_amount": 131.99,
+        "deduction_amount": 4227.9,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 13635,
+        "housing_fund_base": 19325,
+        "occupational_pension_base": 13635
+      },
+      "payroll_summary": {
+        "gross_pay": 18470,
+        "total_deductions": 4598.61,
+        "net_pay": 13871.39
+      },
+      "deduction_details": {
+        "personal_income_tax": 131.99,
+        "pension_personal": 1090.8,
+        "medical_personal": 272.7,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 545.4,
+        "housing_fund_personal": 2319
+      }
+    },
+    {
+      "employee_id": "360",
+      "employee_name": "周湜杰",
+      "employee_code": "",
+      "id_number": "510104198001113478",
+      "department_name": "预算处",
+      "position_name": "初级主办",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2352,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1400,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 483,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 4350,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 1600,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 10185,
+        "tax_amount": 0,
+        "deduction_amount": 3145.16,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 14040,
+        "housing_fund_base": 14042,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 10185,
+        "total_deductions": 3145.16,
+        "net_pay": 7039.84
+      },
+      "deduction_details": {
+        "personal_income_tax": 0,
+        "pension_personal": 1123.2,
+        "medical_personal": 280.8,
+        "unemployment_personal": 56.16,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 1685
+      }
+    },
+    {
+      "employee_id": "324",
+      "employee_name": "周雪莲",
+      "employee_code": "",
+      "id_number": "511323198111206326",
+      "department_name": "国库处",
+      "position_name": "国库处副处长",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2160,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 3045,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5864,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 1040,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 5813,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 23998,
+        "tax_amount": 34.24,
+        "deduction_amount": 5279.26,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 16909,
+        "housing_fund_base": 24267,
+        "occupational_pension_base": 16909
+      },
+      "payroll_summary": {
+        "gross_pay": 23998,
+        "total_deductions": 5313.12,
+        "net_pay": 18684.88
+      },
+      "deduction_details": {
+        "personal_income_tax": 34.24,
+        "pension_personal": 1352.72,
+        "medical_personal": 338.18,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 676.36,
+        "housing_fund_personal": 2912
+      }
+    },
+    {
+      "employee_id": "343",
+      "employee_name": "唐国晋",
+      "employee_code": "",
+      "id_number": "511381199708288596",
+      "department_name": "综合处",
+      "position_name": "八级管理岗位",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2200,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 934,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 4450,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 2332,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 3099,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 3486,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 16617,
+        "tax_amount": 50.91,
+        "deduction_amount": 4184.26,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 12981,
+        "housing_fund_base": 19292,
+        "occupational_pension_base": 12981
+      },
+      "payroll_summary": {
+        "gross_pay": 16617,
+        "total_deductions": 4453.55,
+        "net_pay": 12163.45
+      },
+      "deduction_details": {
+        "personal_income_tax": 50.91,
+        "pension_personal": 1038.48,
+        "medical_personal": 259.62,
+        "unemployment_personal": 51.92,
+        "occupational_pension_personal": 519.24,
+        "housing_fund_personal": 2315
+      }
+    },
+    {
+      "employee_id": "361",
+      "employee_name": "宋方圆",
+      "employee_code": "",
+      "id_number": "510321198809260048",
+      "department_name": "行政政法和社会保障处",
+      "position_name": "协办三级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2352,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1400,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 483,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 3045,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 1600,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 8880,
+        "tax_amount": 0,
+        "deduction_amount": 2633.42,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 11754,
+        "housing_fund_base": 11758,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 8880,
+        "total_deductions": 2646.35,
+        "net_pay": 6233.65
+      },
+      "deduction_details": {
+        "personal_income_tax": 0,
+        "pension_personal": 940.32,
+        "medical_personal": 235.08,
+        "unemployment_personal": 47.02,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 1411
+      }
+    },
+    {
+      "employee_id": "317",
+      "employee_name": "廖希",
+      "employee_code": "",
+      "id_number": "510113198101150029",
+      "department_name": "综合处",
+      "position_name": "主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1780,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 2685,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5529,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 650,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 4996,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 20806,
+        "tax_amount": 61.76,
+        "deduction_amount": 4528.58,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 14947,
+        "housing_fund_base": 20300,
+        "occupational_pension_base": 14947
+      },
+      "payroll_summary": {
+        "gross_pay": 20806,
+        "total_deductions": 4664.56,
+        "net_pay": 16141.44
+      },
+      "deduction_details": {
+        "personal_income_tax": 61.76,
+        "pension_personal": 1195.76,
+        "medical_personal": 298.94,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 597.88,
+        "housing_fund_personal": 2436
+      }
+    },
+    {
+      "employee_id": "382",
+      "employee_name": "张净",
+      "employee_code": "",
+      "id_number": "511302198809010737",
+      "department_name": "财政监督和绩效管理处",
+      "position_name": "中级二级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2500,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1800,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "SUBSIDY",
+          "component_name": "津贴",
+          "amount": 8500,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 11
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 12800,
+        "tax_amount": 72.82,
+        "deduction_amount": 4574.780000000001,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 20421,
+        "housing_fund_base": 20425,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 12800,
+        "total_deductions": 3849.66,
+        "net_pay": 8950.34
+      },
+      "deduction_details": {
+        "personal_income_tax": 72.82,
+        "pension_personal": 1633.68,
+        "medical_personal": 408.42,
+        "unemployment_personal": 81.68,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 2451
+      }
+    },
+    {
+      "employee_id": "377",
+      "employee_name": "张玲",
+      "employee_code": "",
+      "id_number": "510124197803210027",
+      "department_name": "投资和经济建设处",
+      "position_name": "高级主办",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2240,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1680,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 2320,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 5050,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 3240,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 14530,
+        "tax_amount": 54.05,
+        "deduction_amount": 4713.16,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 21040,
+        "housing_fund_base": 21042,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 14530,
+        "total_deductions": 4752.14,
+        "net_pay": 9777.86
+      },
+      "deduction_details": {
+        "personal_income_tax": 54.05,
+        "pension_personal": 1683.2,
+        "medical_personal": 420.8,
+        "unemployment_personal": 84.16,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 2525
+      }
+    },
+    {
+      "employee_id": "340",
+      "employee_name": "张磊",
+      "employee_code": "",
+      "id_number": "511111198901171715",
+      "department_name": "预算处",
+      "position_name": "六级管理岗位",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2880,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 1603,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5960,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 2555,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 3309,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 5009,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 21432,
+        "tax_amount": 181.02,
+        "deduction_amount": 5159.82,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 16221,
+        "housing_fund_base": 23533,
+        "occupational_pension_base": 16221
+      },
+      "payroll_summary": {
+        "gross_pay": 21432,
+        "total_deductions": 5753.5,
+        "net_pay": 15678.5
+      },
+      "deduction_details": {
+        "personal_income_tax": 181.02,
+        "pension_personal": 1297.68,
+        "medical_personal": 324.42,
+        "unemployment_personal": 64.88,
+        "occupational_pension_personal": 648.84,
+        "housing_fund_personal": 2824
+      }
+    },
+    {
+      "employee_id": "344",
+      "employee_name": "张福祥",
+      "employee_code": "",
+      "id_number": "230621199504160058",
+      "department_name": "财政监督和绩效管理处",
+      "position_name": "八级管理岗位",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2200,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 863,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 4400,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 2332,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 3099,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 3401,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 16411,
+        "tax_amount": 107.65,
+        "deduction_amount": 3125.1499999999996,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 11008,
+        "housing_fund_base": 12833,
+        "occupational_pension_base": 11008
+      },
+      "payroll_summary": {
+        "gross_pay": 16411,
+        "total_deductions": 3890.41,
+        "net_pay": 12520.59
+      },
+      "deduction_details": {
+        "personal_income_tax": 107.65,
+        "pension_personal": 880.64,
+        "medical_personal": 220.16,
+        "unemployment_personal": 44.03,
+        "occupational_pension_personal": 440.32,
+        "housing_fund_personal": 1540
+      }
+    },
+    {
+      "employee_id": "380",
+      "employee_name": "张练",
+      "employee_code": "",
+      "id_number": "511527198411210024",
+      "department_name": "财政监督和绩效管理处",
+      "position_name": "中级四级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2600,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 2000,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "SUBSIDY",
+          "component_name": "津贴",
+          "amount": 10500,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 11
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 15100,
+        "tax_amount": 0,
+        "deduction_amount": 5417.719999999999,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 22555,
+        "housing_fund_base": 25600,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 15100,
+        "total_deductions": 5471.72,
+        "net_pay": 9628.28
+      },
+      "deduction_details": {
+        "personal_income_tax": 0,
+        "pension_personal": 1804.4,
+        "medical_personal": 451.1,
+        "unemployment_personal": 90.22,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 3072
+      }
+    },
+    {
+      "employee_id": "357",
+      "employee_name": "徐云祥",
+      "employee_code": "",
+      "id_number": "510122197604122873",
+      "department_name": "国库处",
+      "position_name": "协办三级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2352,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1400,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 483,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 3045,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 1600,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 8880,
+        "tax_amount": 0,
+        "deduction_amount": 2586.7799999999997,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 11546,
+        "housing_fund_base": 11550,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 8880,
+        "total_deductions": 2073.2,
+        "net_pay": 6806.8
+      },
+      "deduction_details": {
+        "personal_income_tax": 0,
+        "pension_personal": 923.68,
+        "medical_personal": 230.92,
+        "unemployment_personal": 46.18,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 1386
+      }
+    },
+    {
+      "employee_id": "355",
+      "employee_name": "徐颖",
+      "employee_code": "",
+      "id_number": "510322198312070042",
+      "department_name": "行政政法和社会保障处",
+      "position_name": "初级主办",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2352,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1400,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 483,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 4350,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 1600,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 10185,
+        "tax_amount": 0,
+        "deduction_amount": 2781.26,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 12416,
+        "housing_fund_base": 12417,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 10185,
+        "total_deductions": 2942.03,
+        "net_pay": 7242.97
+      },
+      "deduction_details": {
+        "personal_income_tax": 0,
+        "pension_personal": 993.28,
+        "medical_personal": 248.32,
+        "unemployment_personal": 49.66,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 1490
+      }
+    },
+    {
+      "employee_id": "312",
+      "employee_name": "方敬玉",
+      "employee_code": "",
+      "id_number": "510102196903083202",
+      "department_name": "行政政法和社会保障处",
+      "position_name": "副调研员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2160,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 3868,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5614,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 1040,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 6740,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 25018,
+        "tax_amount": 98.85,
+        "deduction_amount": 5182.66,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 16969,
+        "housing_fund_base": 23392,
+        "occupational_pension_base": 16969
+      },
+      "payroll_summary": {
+        "gross_pay": 25018,
+        "total_deductions": 5349.33,
+        "net_pay": 19668.67
+      },
+      "deduction_details": {
+        "personal_income_tax": 98.85,
+        "pension_personal": 1357.52,
+        "medical_personal": 339.38,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 678.76,
+        "housing_fund_personal": 2807
+      }
+    },
+    {
+      "employee_id": "363",
+      "employee_name": "李佳",
+      "employee_code": "",
+      "id_number": "511381199005110265",
+      "department_name": "行政政法和社会保障处",
+      "position_name": "协办一级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2268,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1100,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 425,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 3045,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 1200,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 8038,
+        "tax_amount": 51.17,
+        "deduction_amount": 1566.17,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 6992,
+        "housing_fund_base": 6992,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 8038,
+        "total_deductions": 1851.13,
+        "net_pay": 6186.87
+      },
+      "deduction_details": {
+        "personal_income_tax": 51.17,
+        "pension_personal": 559.36,
+        "medical_personal": 139.84,
+        "unemployment_personal": 27.97,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 839
+      }
+    },
+    {
+      "employee_id": "342",
+      "employee_name": "李庆",
+      "employee_code": "",
+      "id_number": "510107197706032170",
+      "department_name": "综合处",
+      "position_name": "五级管理岗位",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 3455,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 2375,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 6920,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 2876,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 3742,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 6500,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 25989,
+        "tax_amount": 138.39,
+        "deduction_amount": 6146.13,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 19237,
+        "housing_fund_base": 28133,
+        "occupational_pension_base": 19237
+      },
+      "payroll_summary": {
+        "gross_pay": 25989,
+        "total_deductions": 6345.63,
+        "net_pay": 19643.37
+      },
+      "deduction_details": {
+        "personal_income_tax": 138.39,
+        "pension_personal": 1538.96,
+        "medical_personal": 384.74,
+        "unemployment_personal": 76.95,
+        "occupational_pension_personal": 769.48,
+        "housing_fund_personal": 3376
+      }
+    },
+    {
+      "employee_id": "319",
+      "employee_name": "李文媛",
+      "employee_code": "",
+      "id_number": "370902197908020026",
+      "department_name": "预算处",
+      "position_name": "副处长",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2160,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 2947,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5864,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 1040,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 5702,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 23789,
+        "tax_amount": 108.06,
+        "deduction_amount": 5288.82,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 16813,
+        "housing_fund_base": 24458,
+        "occupational_pension_base": 16813
+      },
+      "payroll_summary": {
+        "gross_pay": 23789,
+        "total_deductions": 5451.84,
+        "net_pay": 18337.16
+      },
+      "deduction_details": {
+        "personal_income_tax": 108.06,
+        "pension_personal": 1345.04,
+        "medical_personal": 336.26,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 672.52,
+        "housing_fund_personal": 2935
+      }
+    },
+    {
+      "employee_id": "346",
+      "employee_name": "李汶卿",
+      "employee_code": "",
+      "id_number": "620503199907198039",
+      "department_name": "投资和经济建设处",
+      "position_name": "试用期",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 4350,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 1016,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 1502,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 290,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 9924,
+        "tax_amount": 52.81,
+        "deduction_amount": 2467.54,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 9344,
+        "housing_fund_base": 9350,
+        "occupational_pension_base": 9344
+      },
+      "payroll_summary": {
+        "gross_pay": 9924,
+        "total_deductions": 2520.35,
+        "net_pay": 7403.65
+      },
+      "deduction_details": {
+        "personal_income_tax": 52.81,
+        "pension_personal": 747.52,
+        "medical_personal": 186.88,
+        "unemployment_personal": 37.38,
+        "occupational_pension_personal": 373.76,
+        "housing_fund_personal": 1122
+      }
+    },
+    {
+      "employee_id": "305",
+      "employee_name": "李薇",
+      "employee_code": "",
+      "id_number": "510212197210121627",
+      "department_name": "投资和经济建设处",
+      "position_name": "一级主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1780,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 3439,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 650,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 5050,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 5529,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 5847,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 22411,
+        "tax_amount": 119.88,
+        "deduction_amount": 4712.98,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 15657,
+        "housing_fund_base": 21008,
+        "occupational_pension_base": 15657
+      },
+      "payroll_summary": {
+        "gross_pay": 22411,
+        "total_deductions": 4871.72,
+        "net_pay": 17539.28
+      },
+      "deduction_details": {
+        "personal_income_tax": 119.88,
+        "pension_personal": 1252.56,
+        "medical_personal": 313.14,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 626.28,
+        "housing_fund_personal": 2521
+      }
+    },
+    {
+      "employee_id": "376",
+      "employee_name": "杜疆",
+      "employee_code": "",
+      "id_number": "510105197804032526",
+      "department_name": "预算处",
+      "position_name": "高级主办",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2240,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1680,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 2320,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 5050,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 3240,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 14530,
+        "tax_amount": 0,
+        "deduction_amount": 4713.16,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 21040,
+        "housing_fund_base": 21042,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 14530,
+        "total_deductions": 4698.09,
+        "net_pay": 9831.91
+      },
+      "deduction_details": {
+        "personal_income_tax": 0,
+        "pension_personal": 1683.2,
+        "medical_personal": 420.8,
+        "unemployment_personal": 84.16,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 2525
+      }
+    },
+    {
+      "employee_id": "375",
+      "employee_name": "杨勤文",
+      "employee_code": "",
+      "id_number": "510104198207264060",
+      "department_name": "财政监督和绩效管理处",
+      "position_name": "高级主办",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2240,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1598,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 2332,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 4700,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 3215,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 14085,
+        "tax_amount": 45.13,
+        "deduction_amount": 4612.15,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 20588,
+        "housing_fund_base": 20592,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 14085,
+        "total_deductions": 4688.84,
+        "net_pay": 9396.16
+      },
+      "deduction_details": {
+        "personal_income_tax": 45.13,
+        "pension_personal": 1647.04,
+        "medical_personal": 411.76,
+        "unemployment_personal": 82.35,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 2471
+      }
+    },
+    {
+      "employee_id": "383",
+      "employee_name": "杨圣",
+      "employee_code": "",
+      "id_number": "51032119921205801X",
+      "department_name": "投资和经济建设处",
+      "position_name": "中级四级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2100,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1600,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "SUBSIDY",
+          "component_name": "津贴",
+          "amount": 8600,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 11
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 12300,
+        "tax_amount": 92.63,
+        "deduction_amount": 4713.37,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 21042,
+        "housing_fund_base": 21042,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 12300,
+        "total_deductions": 5306.96,
+        "net_pay": 6993.04
+      },
+      "deduction_details": {
+        "personal_income_tax": 92.63,
+        "pension_personal": 1683.36,
+        "medical_personal": 420.84,
+        "unemployment_personal": 84.17,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 2525
+      }
+    },
+    {
+      "employee_id": "315",
+      "employee_name": "杨洋",
+      "employee_code": "",
+      "id_number": "510106197512164128",
+      "department_name": "预算处",
+      "position_name": "一级主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1780,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 3198,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5529,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 650,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 5576,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 21899,
+        "tax_amount": 160.19,
+        "deduction_amount": 4654.0599999999995,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 15429,
+        "housing_fund_base": 20783,
+        "occupational_pension_base": 15429
+      },
+      "payroll_summary": {
+        "gross_pay": 21899,
+        "total_deductions": 4848.87,
+        "net_pay": 17050.13
+      },
+      "deduction_details": {
+        "personal_income_tax": 160.19,
+        "pension_personal": 1234.32,
+        "medical_personal": 308.58,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 617.16,
+        "housing_fund_personal": 2494
+      }
+    },
+    {
+      "employee_id": "345",
+      "employee_name": "杨钰婕",
+      "employee_code": "",
+      "id_number": "511102199707145925",
+      "department_name": "预算处",
+      "position_name": "八级管理岗位",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2200,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 863,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 4400,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 2332,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 3099,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 3401,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 16411,
+        "tax_amount": 107.65,
+        "deduction_amount": 3125.1499999999996,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 11008,
+        "housing_fund_base": 12833,
+        "occupational_pension_base": 11008
+      },
+      "payroll_summary": {
+        "gross_pay": 16411,
+        "total_deductions": 3890.41,
+        "net_pay": 12520.59
+      },
+      "deduction_details": {
+        "personal_income_tax": 107.65,
+        "pension_personal": 880.64,
+        "medical_personal": 220.16,
+        "unemployment_personal": 44.03,
+        "occupational_pension_personal": 440.32,
+        "housing_fund_personal": 1540
+      }
+    },
+    {
+      "employee_id": "358",
+      "employee_name": "江慧",
+      "employee_code": "",
+      "id_number": "513823198406075828",
+      "department_name": "预算处",
+      "position_name": "协办二级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2268,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1100,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 425,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 3045,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 1200,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 8038,
+        "tax_amount": 0,
+        "deduction_amount": 2431.92,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 10855,
+        "housing_fund_base": 10858,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 8038,
+        "total_deductions": 1905.42,
+        "net_pay": 6132.58
+      },
+      "deduction_details": {
+        "personal_income_tax": 0,
+        "pension_personal": 868.4,
+        "medical_personal": 217.1,
+        "unemployment_personal": 43.42,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 1303
+      }
+    },
+    {
+      "employee_id": "303",
+      "employee_name": "汪琳",
+      "employee_code": "",
+      "id_number": "510103197108310040",
+      "department_name": "行政政法和社会保障处",
+      "position_name": "处长",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2770,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 4049,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 1040,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 6920,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 6618,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 7608,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 29121,
+        "tax_amount": 163.5,
+        "deduction_amount": 6127.08,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 20172,
+        "housing_fund_base": 27525,
+        "occupational_pension_base": 20172
+      },
+      "payroll_summary": {
+        "gross_pay": 29121,
+        "total_deductions": 6299.8,
+        "net_pay": 22821.2
+      },
+      "deduction_details": {
+        "personal_income_tax": 163.5,
+        "pension_personal": 1613.76,
+        "medical_personal": 403.44,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 806.88,
+        "housing_fund_personal": 3303
+      }
+    },
+    {
+      "employee_id": "372",
+      "employee_name": "沈丽萍",
+      "employee_code": "",
+      "id_number": "512501197304092141",
+      "department_name": "综合处",
+      "position_name": "高级主办",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2650,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 2510,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 800,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 5050,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 3000,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        },
+        {
+          "component_code": "QUARTERLY_PERFORMANCE_SALARY",
+          "component_name": "季度绩效考核薪酬",
+          "amount": 2400,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 35
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 16410,
+        "tax_amount": 59.39,
+        "deduction_amount": 4573.0599999999995,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 20414,
+        "housing_fund_base": 20417,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 16410,
+        "total_deductions": 4675.01,
+        "net_pay": 11734.99
+      },
+      "deduction_details": {
+        "personal_income_tax": 59.39,
+        "pension_personal": 1633.12,
+        "medical_personal": 408.28,
+        "unemployment_personal": 81.66,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 2450
+      }
+    },
+    {
+      "employee_id": "311",
+      "employee_name": "熊静",
+      "employee_code": "",
+      "id_number": "510102197005034083",
+      "department_name": "局领导",
+      "position_name": "二级调研员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2770,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 4247,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 7626,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 1040,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 7831,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 30070,
+        "tax_amount": 273.69,
+        "deduction_amount": 6229.82,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 20413,
+        "housing_fund_base": 28100,
+        "occupational_pension_base": 20413
+      },
+      "payroll_summary": {
+        "gross_pay": 30070,
+        "total_deductions": 6587.35,
+        "net_pay": 23482.65
+      },
+      "deduction_details": {
+        "personal_income_tax": 273.69,
+        "pension_personal": 1633.04,
+        "medical_personal": 408.26,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 816.52,
+        "housing_fund_personal": 3372
+      }
+    },
+    {
+      "employee_id": "327",
+      "employee_name": "田原",
+      "employee_code": "",
+      "id_number": "513030199904070047",
+      "department_name": "综合处",
+      "position_name": "四级主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1270,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 1676,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5431,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 650,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 750,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 4017,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 18310,
+        "tax_amount": 120.78,
+        "deduction_amount": 3038.12,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 10958,
+        "housing_fund_base": 12533,
+        "occupational_pension_base": 10958
+      },
+      "payroll_summary": {
+        "gross_pay": 18310,
+        "total_deductions": 3766.86,
+        "net_pay": 14543.14
+      },
+      "deduction_details": {
+        "personal_income_tax": 120.78,
+        "pension_personal": 876.64,
+        "medical_personal": 219.16,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 438.32,
+        "housing_fund_personal": 1504
+      }
+    },
+    {
+      "employee_id": "314",
+      "employee_name": "罗蓉",
+      "employee_code": "",
+      "id_number": "510106197511143528",
+      "department_name": "预算处",
+      "position_name": "一级主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1780,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 3045,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5529,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 650,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 5403,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 21578,
+        "tax_amount": 52.31,
+        "deduction_amount": 4656.9,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 15285,
+        "housing_fund_base": 20975,
+        "occupational_pension_base": 15285
+      },
+      "payroll_summary": {
+        "gross_pay": 21578,
+        "total_deductions": 4783.83,
+        "net_pay": 16794.17
+      },
+      "deduction_details": {
+        "personal_income_tax": 52.31,
+        "pension_personal": 1222.8,
+        "medical_personal": 305.7,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 611.4,
+        "housing_fund_personal": 2517
+      }
+    },
+    {
+      "employee_id": "326",
+      "employee_name": "胡潇",
+      "employee_code": "",
+      "id_number": "511113199412223323",
+      "department_name": "国库处",
+      "position_name": "三级主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1410,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 1806,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5438,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 650,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 3577,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 17447,
+        "tax_amount": 116.9,
+        "deduction_amount": 3971.24,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 12966,
+        "housing_fund_base": 17967,
+        "occupational_pension_base": 12966
+      },
+      "payroll_summary": {
+        "gross_pay": 17447,
+        "total_deductions": 4213.02,
+        "net_pay": 13233.98
+      },
+      "deduction_details": {
+        "personal_income_tax": 116.9,
+        "pension_personal": 1037.28,
+        "medical_personal": 259.32,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 518.64,
+        "housing_fund_personal": 2156
+      }
+    },
+    {
+      "employee_id": "341",
+      "employee_name": "胡艺山",
+      "employee_code": "",
+      "id_number": "510522198903201295",
+      "department_name": "投资和经济建设处",
+      "position_name": "七级管理岗位",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2520,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 1427,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5050,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 2320,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 3124,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 4445,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 19002,
+        "tax_amount": 132.6,
+        "deduction_amount": 4542.96,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 14340,
+        "housing_fund_base": 20650,
+        "occupational_pension_base": 14340
+      },
+      "payroll_summary": {
+        "gross_pay": 19002,
+        "total_deductions": 4695.65,
+        "net_pay": 14306.35
+      },
+      "deduction_details": {
+        "personal_income_tax": 132.6,
+        "pension_personal": 1147.2,
+        "medical_personal": 286.8,
+        "unemployment_personal": 57.36,
+        "occupational_pension_personal": 573.6,
+        "housing_fund_personal": 2478
+      }
+    },
+    {
+      "employee_id": "306",
+      "employee_name": "蒲薇",
+      "employee_code": "",
+      "id_number": "510104198105140665",
+      "department_name": "国库处",
+      "position_name": "一级主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1780,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 2685,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 650,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 5050,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 5529,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 4996,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 20806,
+        "tax_amount": 60.5,
+        "deduction_amount": 4366.58,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 14947,
+        "housing_fund_base": 18950,
+        "occupational_pension_base": 14947
+      },
+      "payroll_summary": {
+        "gross_pay": 20806,
+        "total_deductions": 4297.3,
+        "net_pay": 16508.7
+      },
+      "deduction_details": {
+        "personal_income_tax": 60.5,
+        "pension_personal": 1195.76,
+        "medical_personal": 298.94,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 597.88,
+        "housing_fund_personal": 2274
+      }
+    },
+    {
+      "employee_id": "359",
+      "employee_name": "谢欣然",
+      "employee_code": "",
+      "id_number": "510902198205169343",
+      "department_name": "财政监督和绩效管理处",
+      "position_name": "协办三级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2352,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1400,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 483,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 3045,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 1600,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 8880,
+        "tax_amount": 0,
+        "deduction_amount": 2620.49,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 11697,
+        "housing_fund_base": 11700,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 8880,
+        "total_deductions": 2095.82,
+        "net_pay": 6784.18
+      },
+      "deduction_details": {
+        "personal_income_tax": 0,
+        "pension_personal": 935.76,
+        "medical_personal": 233.94,
+        "unemployment_personal": 46.79,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 1404
+      }
+    },
+    {
+      "employee_id": "325",
+      "employee_name": "谷颖",
+      "employee_code": "",
+      "id_number": "512528197506224093",
+      "department_name": "局领导",
+      "position_name": "副局长",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2770,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 3401,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 7951,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 1040,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 6874,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 29337,
+        "tax_amount": 289.12,
+        "deduction_amount": 6191.92,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 20228,
+        "housing_fund_base": 28000,
+        "occupational_pension_base": 20228
+      },
+      "payroll_summary": {
+        "gross_pay": 29337,
+        "total_deductions": 6711.24,
+        "net_pay": 22625.76
+      },
+      "deduction_details": {
+        "personal_income_tax": 289.12,
+        "pension_personal": 1618.24,
+        "medical_personal": 404.56,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 809.12,
+        "housing_fund_personal": 3360
+      }
+    },
+    {
+      "employee_id": "378",
+      "employee_name": "赖梅",
+      "employee_code": "",
+      "id_number": "510103197305160707",
+      "department_name": "国库处",
+      "position_name": "初级主办",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 1680,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1384,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 2347,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 4350,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 3201,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 12962,
+        "tax_amount": 80.14,
+        "deduction_amount": 3731.4300000000003,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 16658,
+        "housing_fund_base": 16658,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 12962,
+        "total_deductions": 3752.32,
+        "net_pay": 9209.68
+      },
+      "deduction_details": {
+        "personal_income_tax": 80.14,
+        "pension_personal": 1332.64,
+        "medical_personal": 333.16,
+        "unemployment_personal": 66.63,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 1999
+      }
+    },
+    {
+      "employee_id": "322",
+      "employee_name": "邱高长青",
+      "employee_code": "",
+      "id_number": "511524199204180024",
+      "department_name": "国库处",
+      "position_name": "一级主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1780,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 2227,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5529,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 650,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 4476,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 19828,
+        "tax_amount": 144.53,
+        "deduction_amount": 4377.92,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 14528,
+        "housing_fund_base": 19533,
+        "occupational_pension_base": 14528
+      },
+      "payroll_summary": {
+        "gross_pay": 19828,
+        "total_deductions": 4600.99,
+        "net_pay": 15227.01
+      },
+      "deduction_details": {
+        "personal_income_tax": 144.53,
+        "pension_personal": 1162.24,
+        "medical_personal": 290.56,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 581.12,
+        "housing_fund_personal": 2344
+      }
+    },
+    {
+      "employee_id": "381",
+      "employee_name": "郑偲",
+      "employee_code": "",
+      "id_number": "510108198811022127",
+      "department_name": "财政监督和绩效管理处",
+      "position_name": "中级四级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2600,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 2000,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "SUBSIDY",
+          "component_name": "津贴",
+          "amount": 10500,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 11
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 15100,
+        "tax_amount": 52.09,
+        "deduction_amount": 5417.719999999999,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 22555,
+        "housing_fund_base": 25600,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 15100,
+        "total_deductions": 5523.81,
+        "net_pay": 9576.19
+      },
+      "deduction_details": {
+        "personal_income_tax": 52.09,
+        "pension_personal": 1804.4,
+        "medical_personal": 451.1,
+        "unemployment_personal": 90.22,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 3072
+      }
+    },
+    {
+      "employee_id": "354",
+      "employee_name": "阮永强",
+      "employee_code": "",
+      "id_number": "510103197106306216",
+      "department_name": "行政政法和社会保障处",
+      "position_name": "初级主办",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2408,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1600,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 483,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 4350,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 1800,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 10641,
+        "tax_amount": 73.2,
+        "deduction_amount": 3154.5299999999997,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 14082,
+        "housing_fund_base": 14083,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 10641,
+        "total_deductions": 3181.31,
+        "net_pay": 7459.69
+      },
+      "deduction_details": {
+        "personal_income_tax": 73.2,
+        "pension_personal": 1126.56,
+        "medical_personal": 281.64,
+        "unemployment_personal": 56.33,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 1690
+      }
+    },
+    {
+      "employee_id": "379",
+      "employee_name": "阴琪",
+      "employee_code": "",
+      "id_number": "650300197206205423",
+      "department_name": "财政监督和绩效管理处",
+      "position_name": "高级三级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2900,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 2300,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "SUBSIDY",
+          "component_name": "津贴",
+          "amount": 12300,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 11
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 17500,
+        "tax_amount": 200.14,
+        "deduction_amount": 5838.719999999999,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 22555,
+        "housing_fund_base": 29108,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 17500,
+        "total_deductions": 6048.86,
+        "net_pay": 11451.14
+      },
+      "deduction_details": {
+        "personal_income_tax": 200.14,
+        "pension_personal": 1804.4,
+        "medical_personal": 451.1,
+        "unemployment_personal": 90.22,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 3493
+      }
+    },
+    {
+      "employee_id": "356",
+      "employee_name": "陈敏",
+      "employee_code": "",
+      "id_number": "510104198109290281",
+      "department_name": "行政政法和社会保障处",
+      "position_name": "初级主办",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 2352,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 1400,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 483,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 4350,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 1600,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 10185,
+        "tax_amount": 0,
+        "deduction_amount": 3053.1,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 13626,
+        "housing_fund_base": 13633,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 10185,
+        "total_deductions": 3007.67,
+        "net_pay": 7177.33
+      },
+      "deduction_details": {
+        "personal_income_tax": 0,
+        "pension_personal": 1090.08,
+        "medical_personal": 272.52,
+        "unemployment_personal": 54.5,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 1636
+      }
+    },
+    {
+      "employee_id": "304",
+      "employee_name": "韩霜",
+      "employee_code": "",
+      "id_number": "511002197402181525",
+      "department_name": "财政监督和绩效管理处",
+      "position_name": "预算处正处长",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2770,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 3773,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 1040,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 6920,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 6618,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 7292,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 28529,
+        "tax_amount": 157.9,
+        "deduction_amount": 6111.379999999999,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 19917,
+        "housing_fund_base": 27692,
+        "occupational_pension_base": 19917
+      },
+      "payroll_summary": {
+        "gross_pay": 28529,
+        "total_deductions": 6312.1,
+        "net_pay": 22216.9
+      },
+      "deduction_details": {
+        "personal_income_tax": 157.9,
+        "pension_personal": 1593.36,
+        "medical_personal": 398.34,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 796.68,
+        "housing_fund_personal": 3323
+      }
+    },
+    {
+      "employee_id": "321",
+      "employee_name": "马霜",
+      "employee_code": "",
+      "id_number": "511302198612070349",
+      "department_name": "预算处",
+      "position_name": "一级主任科员",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 1780,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 2358,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5529,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 650,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 4625,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 20108,
+        "tax_amount": 0,
+        "deduction_amount": 4451,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 14650,
+        "housing_fund_base": 20000,
+        "occupational_pension_base": 14650
+      },
+      "payroll_summary": {
+        "gross_pay": 20108,
+        "total_deductions": 4577.88,
+        "net_pay": 15530.12
+      },
+      "deduction_details": {
+        "personal_income_tax": 0,
+        "pension_personal": 1172,
+        "medical_personal": 293,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 586,
+        "housing_fund_personal": 2400
+      }
+    },
+    {
+      "employee_id": "313",
+      "employee_name": "高洪艳",
+      "employee_code": "",
+      "id_number": "510103197106094225",
+      "department_name": "投资和经济建设处",
+      "position_name": "副处长",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2160,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 3518,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 5864,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 1040,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 6346,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 25004,
+        "tax_amount": 192.86,
+        "deduction_amount": 5445.7,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 17355,
+        "housing_fund_base": 25133,
+        "occupational_pension_base": 17355
+      },
+      "payroll_summary": {
+        "gross_pay": 25004,
+        "total_deductions": 5678.98,
+        "net_pay": 19325.02
+      },
+      "deduction_details": {
+        "personal_income_tax": 192.86,
+        "pension_personal": 1388.4,
+        "medical_personal": 347.1,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 694.2,
+        "housing_fund_personal": 3016
+      }
+    },
+    {
+      "employee_id": "362",
+      "employee_name": "黄卓尔",
+      "employee_code": "",
+      "id_number": "513101199605060045",
+      "department_name": "投资和经济建设处",
+      "position_name": "协办一级",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "BASIC_SALARY",
+          "component_name": "基本工资",
+          "amount": 1960,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 1
+        },
+        {
+          "component_code": "POSITION_SALARY",
+          "component_name": "岗位工资",
+          "amount": 600,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 2
+        },
+        {
+          "component_code": "ALLOWANCE",
+          "component_name": "补助",
+          "amount": 341,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 10
+        },
+        {
+          "component_code": "BASIC_PERFORMANCE",
+          "component_name": "基础绩效",
+          "amount": 3045,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 30
+        },
+        {
+          "component_code": "PERFORMANCE_SALARY",
+          "component_name": "绩效工资",
+          "amount": 600,
+          "category": "performance",
+          "is_taxable": true,
+          "display_order": 31
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 6546,
+        "tax_amount": 5.61,
+        "deduction_amount": 1860.9299999999998,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 8307,
+        "housing_fund_base": 8308,
+        "occupational_pension_base": 0
+      },
+      "payroll_summary": {
+        "gross_pay": 6546,
+        "total_deductions": 2368.61,
+        "net_pay": 4177.39
+      },
+      "deduction_details": {
+        "personal_income_tax": 5.61,
+        "pension_personal": 664.56,
+        "medical_personal": 166.14,
+        "unemployment_personal": 33.23,
+        "occupational_pension_personal": 0,
+        "housing_fund_personal": 997
+      }
+    },
+    {
+      "employee_id": "308",
+      "employee_name": "黄明",
+      "employee_code": "",
+      "id_number": "513401196804180245",
+      "department_name": "局领导",
+      "position_name": "成都高新区发展规划局副局长",
+      "period": "2025年02月",
+      "income_items": [
+        {
+          "component_code": "DUTY_TECH_SALARY",
+          "component_name": "职务/技术等级工资",
+          "amount": 2770,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 5
+        },
+        {
+          "component_code": "LEVEL_POSITION_SALARY",
+          "component_name": "级别/岗位级别工资",
+          "amount": 4247,
+          "category": "basic_salary",
+          "is_taxable": true,
+          "display_order": 6
+        },
+        {
+          "component_code": "CIVIL_SERVANT_ALLOWANCE",
+          "component_name": "公务员规范后津补贴",
+          "amount": 1040,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 12
+        },
+        {
+          "component_code": "TRANSPORT_ALLOWANCE",
+          "component_name": "公务交通补贴",
+          "amount": 7180,
+          "category": "subsidy",
+          "is_taxable": false,
+          "display_order": 13
+        },
+        {
+          "component_code": "TOWNSHIP_WORK_ALLOWANCE",
+          "component_name": "乡镇工作补贴",
+          "amount": 7951,
+          "category": "allowance",
+          "is_taxable": true,
+          "display_order": 16
+        },
+        {
+          "component_code": "ONE_TIME_ADJUSTMENT",
+          "component_name": "一次性补扣发",
+          "amount": 7831,
+          "category": "adjustment",
+          "is_taxable": true,
+          "display_order": 91
+        }
+      ],
+      "personal_tax": {
+        "taxable_income": 31135,
+        "tax_amount": 292.25,
+        "deduction_amount": 6661.42,
+        "cumulative_taxable_income": 0,
+        "cumulative_tax_amount": 0,
+        "tax_rate": 0,
+        "quick_deduction": 0,
+        "special_deductions": 0,
+        "other_deductions": 0
+      },
+      "insurance_base": {
+        "social_insurance_base": 21953,
+        "housing_fund_base": 29900,
+        "occupational_pension_base": 21953
+      },
+      "payroll_summary": {
+        "gross_pay": 31135,
+        "total_deductions": 7088.07,
+        "net_pay": 24046.93
+      },
+      "deduction_details": {
+        "personal_income_tax": 292.25,
+        "pension_personal": 1756.24,
+        "medical_personal": 439.06,
+        "unemployment_personal": 0,
+        "occupational_pension_personal": 878.12,
+        "housing_fund_personal": 3588
+      }
+    }
+  ]
+}

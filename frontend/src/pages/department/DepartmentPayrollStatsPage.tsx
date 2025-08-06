@@ -236,6 +236,7 @@ export default function DepartmentPayrollStatsPage() {
                       });
                     }}
                     className="w-full"
+                    showDataIndicators={true}
                   />
                 </div>
                 

@@ -26,6 +26,7 @@ export const PERMISSIONS = {
   PAYROLL_CREATE: 'payroll.create',
   PAYROLL_UPDATE: 'payroll.update',
   PAYROLL_DELETE: 'payroll.delete',
+  PAYROLL_CLEAR: 'payroll.clear',
   PAYROLL_APPROVE: 'payroll.approve',
   PAYROLL_EXPORT: 'payroll.export',
   
@@ -84,6 +85,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.PAYROLL_VIEW,
     PERMISSIONS.PAYROLL_CREATE,
     PERMISSIONS.PAYROLL_UPDATE,
+    PERMISSIONS.PAYROLL_DELETE,
+    PERMISSIONS.PAYROLL_CLEAR,
     PERMISSIONS.PAYROLL_APPROVE,
     PERMISSIONS.PAYROLL_EXPORT,
   ],

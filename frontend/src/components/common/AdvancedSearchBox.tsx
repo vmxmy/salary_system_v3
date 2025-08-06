@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { SearchIcon, XIcon } from 'lucide-react';
 
 export interface SimpleSearchBoxProps {
@@ -22,6 +22,7 @@ export const SimpleSearchBox: React.FC<SimpleSearchBoxProps> = ({
 }) => {
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.preventDefault(); // 防止表单提交
       onSearch();
     }
   }, [onSearch]);
