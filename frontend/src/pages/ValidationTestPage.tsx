@@ -3,6 +3,7 @@ import { ValidationStep } from '@/components/payroll/wizard/ValidationStep';
 
 // 模拟向导状态用于测试
 const mockWizardState = {
+  currentStep: 4, // 验证步骤
   mode: 'copy' as const,
   payrollPeriod: '2025-02',
   payDate: '2025-02-28',
@@ -11,12 +12,13 @@ const mockWizardState = {
     totalRecords: 682,
     baseStrategy: 'copy',
     selectedCategories: ['basic_salary', 'allowances', 'deductions'],
-    selectedEmployeeIds: null, // null表示选择所有员工
+    selectedEmployeeIds: undefined, // undefined表示选择所有员工
     statistics: {
       totalGrossPay: 50000
     }
   },
-  selectedEmployees: []
+  selectedEmployees: [],
+  isDraftSaved: false
 };
 
 export default function ValidationTestPage() {

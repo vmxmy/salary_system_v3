@@ -20,8 +20,24 @@ const CreationMode = {
 
 type CreationMode = typeof CreationMode[keyof typeof CreationMode];
 
+// 向导状态接口 (应该与主文件中的保持一致)
+interface WizardState {
+  currentStep: number;
+  mode: string | null;
+  payrollPeriod: string;
+  payDate: string;
+  selectedEmployees: string[];
+  sourceData: {
+    sourceMonth?: string;
+    selectedEmployeeIds?: string[];
+    [key: string]: any;
+  } | null;
+  isDraftSaved: boolean;
+  draftId?: string;
+}
+
 interface ValidationStepProps {
-  wizardState: any;
+  wizardState: WizardState;
   onValidationComplete: (selectedEmployees: string[]) => void;
 }
 
@@ -38,7 +54,6 @@ export function ValidationStep({ wizardState, onValidationComplete }: Validation
   // 开始验证
   const startValidation = useCallback(async () => {
     if (hasValidated || isValidating) {
-      console.log('跳过重复验证:', { hasValidated, isValidating });
       return;
     }
     
@@ -46,7 +61,7 @@ export function ValidationStep({ wizardState, onValidationComplete }: Validation
     setValidationError(null);
     
     try {
-      console.log('开始真实数据验证，向导状态:', wizardState);
+      // Starting validation process
       
       // 根据创建模式进行不同的验证
       if (wizardState.mode === CreationMode.COPY && wizardState.sourceData) {
@@ -74,20 +89,12 @@ export function ValidationStep({ wizardState, onValidationComplete }: Validation
           .filter(emp => emp.validation_status !== 'error')
           .map(emp => emp.id);
         
-        console.log('🎯 ValidationStep 选择员工:', {
-          totalEmployees: validationResult.employees.length,
-          validEmployeeIds: validEmployeeIds.length,
-          validEmployeeIdsList: validEmployeeIds
-        });
+        // Selected valid employees for processing
         
         setSelectedEmployees(validEmployeeIds);
         onValidationComplete(validEmployeeIds);
         
-        console.log('验证完成:', {
-          summary: validationResult.summary,
-          issuesCount: validationResult.issues.length,
-          selectedCount: validEmployeeIds.length
-        });
+        // Validation completed successfully
         
       } else if (wizardState.mode === CreationMode.IMPORT) {
         // Excel导入模式的验证
@@ -151,7 +158,15 @@ export function ValidationStep({ wizardState, onValidationComplete }: Validation
 
   // 自动开始验证 - 只在组件挂载时执行一次
   useEffect(() => {
+    const abortController = new AbortController();
+    
     startValidation();
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      abortController.abort();
+      setIsValidating(false);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 处理员工选择
