@@ -12,6 +12,10 @@ let userCache: AuthUser | null = null;
 let cacheExpiry = 0;
 const CACHE_DURATION = 60000; // 1 minute cache
 
+// Cache for user roles to prevent repeated DB queries
+const roleCache = new Map<string, { role: string; expiry: number }>();
+const ROLE_CACHE_DURATION = 300000; // 5 minutes cache for roles
+
 export class AuthService {
   /**
    * Sign in with email and password
@@ -36,6 +40,7 @@ export class AuthService {
     // Clear cache on login
     userCache = null;
     cacheExpiry = 0;
+    roleCache.clear();
     
     // Ensure user_profiles record exists
     await this.ensureUserProfile(data.user.id, data.user.email!);
@@ -101,6 +106,7 @@ export class AuthService {
     // Clear cache on logout
     userCache = null;
     cacheExpiry = 0;
+    roleCache.clear();
   }
 
   /**
@@ -134,21 +140,19 @@ export class AuthService {
       let userRole = 'employee';
       
       try {
-        const [fetchedPermissions, fetchedRole] = await Promise.race([
-          Promise.all([
-            this.getUserPermissions(),
-            this.getUserRole(user.id)
-          ]),
-          new Promise<[string[], string]>((resolve) => 
+        // Fetch role first (with caching), then get permissions based on that role
+        userRole = await Promise.race([
+          this.getUserRole(user.id),
+          new Promise<string>((resolve) => 
             setTimeout(() => {
-              console.warn('[AuthService] Role/permission fetch timeout, using defaults');
-              resolve([this.getDefaultPermissions(), 'employee']);
-            }, 3000)
+              console.warn('[AuthService] Role fetch timeout after 5s, using default');
+              resolve('employee');
+            }, 5000)
           )
         ]);
         
-        permissions = fetchedPermissions;
-        userRole = fetchedRole;
+        // Get permissions based on the role (no additional DB query needed)
+        permissions = this.getRolePermissions(userRole);
       } catch (err) {
         console.error('[AuthService] Error fetching role/permissions, using defaults:', err);
         permissions = this.getDefaultPermissions();
@@ -328,10 +332,17 @@ export class AuthService {
   }
 
   /**
-   * Get user role from database
+   * Get user role from database with caching
    */
   private async getUserRole(userId: string): Promise<string> {
     try {
+      // Check cache first
+      const cached = roleCache.get(userId);
+      if (cached && cached.expiry > Date.now()) {
+        console.log('[AuthService] Using cached role for user:', userId);
+        return cached.role;
+      }
+      
       // First try to get role from user_roles table
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
@@ -341,6 +352,11 @@ export class AuthService {
         .maybeSingle();
       
       if (!roleError && roleData) {
+        // Cache the result
+        roleCache.set(userId, { 
+          role: roleData.role, 
+          expiry: Date.now() + ROLE_CACHE_DURATION 
+        });
         return roleData.role;
       }
       
@@ -379,14 +395,30 @@ export class AuthService {
             '主管': 'manager'
           };
           
-          return roleMapping[positionName] || 'employee';
+          const mappedRole = roleMapping[positionName] || 'employee';
+          // Cache the result
+          roleCache.set(userId, { 
+            role: mappedRole, 
+            expiry: Date.now() + ROLE_CACHE_DURATION 
+          });
+          return mappedRole;
         }
       }
       
       console.warn('[AuthService] Could not fetch user role, defaulting to employee');
+      // Cache even the default to prevent repeated queries
+      roleCache.set(userId, { 
+        role: 'employee', 
+        expiry: Date.now() + ROLE_CACHE_DURATION 
+      });
       return 'employee';
     } catch (err) {
       console.error('[AuthService] Error fetching user role:', err);
+      // Cache the error case to prevent repeated failures
+      roleCache.set(userId, { 
+        role: 'employee', 
+        expiry: Date.now() + 60000 // Shorter cache for error cases (1 minute)
+      });
       return 'employee';
     }
   }
