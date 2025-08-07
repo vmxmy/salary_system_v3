@@ -324,179 +324,210 @@ export function EmployeeModal({
 
   return (
     <dialog className={cn("modal", open && "modal-open")}>
-      <div className="modal-box w-11/12 max-w-5xl max-h-[90vh] p-0">
-        {/* DaisyUI 模态框头部 */}
-        <div className="flex items-center justify-between p-6 border-b border-base-200">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-              {modalConfig.icon}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-xl font-bold text-base-content">
-                {modalConfig.title}
-              </h2>
-              {modalConfig.subtitle && (
-                <p className="text-sm text-base-content/70 mt-1">
-                  {modalConfig.subtitle}
-                </p>
-              )}
-            </div>
-          </div>
-          
-          {/* DaisyUI 标准关闭按钮 */}
-          <button 
-            className="btn btn-sm btn-circle btn-ghost" 
-            onClick={handleClose}
-            aria-label={String(t('common:close'))}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* DaisyUI 模态框内容 */}
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
-            {isLoading && <LoadingScreen />}
-            
-            {isError && (
-              <div className="alert alert-error">
-                <svg className="w-6 h-6 stroke-current shrink-0" fill="none" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>
-                  {String(t('common:error.loadFailed'))}: {(error as Error)?.message}
-                </span>
-              </div>
-            )}
-
-            {(employee || mode === 'create') && (
-              <EmployeeDetailContent 
-                employee={(employee || displayData) as EmployeeData} 
-                isEditing={isEditing || mode === 'create'}
-                onEditDataChange={setEditDataRef}
-              />
-            )}
-        </div>
-
-        {/* DaisyUI 模态框底部 */}
-        <div className="flex items-center justify-between p-6 border-t border-base-200">
-          {/* 左侧删除按钮 - 仅在编辑状态显示 */}
-          <div>
-            {isEditing && mode !== 'create' && employee?.employee_id && (
-              <button
-                className="btn btn-error btn-outline"
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={deleteEmployeeMutation.isPending}
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={1.5} 
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
-                  />
-                </svg>
-                删除员工
-              </button>
-            )}
-          </div>
-
-          {/* 右侧操作按钮 */}
-          <div className="flex items-center gap-3">
-            <button
-              className="btn btn-ghost"
-              onClick={handleClose}
-            >
-              {modalConfig.secondaryButton}
-            </button>
-
-          {/* 根据状态显示不同的主操作按钮 */}
-          {mode === 'view' && !isEditing && (
-            <button
-              className="btn btn-primary"
-              onClick={() => setIsEditing(true)}
-              disabled={!employee}
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={1.5} 
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" 
-                />
-              </svg>
-              编辑
-            </button>
-          )}
-
-          {(mode === 'view' && isEditing) && (
-            <>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setIsEditing(false)}
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={1.5} 
-                    d="M6 18L18 6M6 6l12 12" 
-                  />
-                </svg>
-                取消编辑
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleSave}
-                disabled={!employee || updateEmployeeMutation.isPending}
-              >
-                {updateEmployeeMutation.isPending ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    保存中...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={1.5} 
-                        d="M5 13l4 4L19 7" 
-                      />
-                    </svg>
-                    保存更改
-                  </>
+      <div className="modal-box w-11/12 max-w-4xl max-h-[95vh] p-0 modal-compact">
+        {/* 优化的紧凑头部设计 */}
+        <div className="sticky top-0 z-10 bg-base-100/95 backdrop-blur-md border-b border-base-200/60">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {/* 紧凑头像/图标容器 */}
+              <div className="relative">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/12 to-primary/6 text-primary flex items-center justify-center flex-shrink-0 shadow-sm ring-1 ring-primary/10">
+                  {modalConfig.icon}
+                </div>
+                {/* 模式指示器 */}
+                {mode !== 'view' && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary ring-2 ring-base-100"></div>
                 )}
+              </div>
+              
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold text-base-content truncate">
+                  {modalConfig.title}
+                </h2>
+                {modalConfig.subtitle && (
+                  <p className="text-xs text-base-content/60 truncate mt-0.5">
+                    {modalConfig.subtitle}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            {/* 编辑状态指示器和操作 */}
+            <div className="flex items-center gap-2 ml-3">
+              {isEditing && (
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-warning/10 text-warning border border-warning/20">
+                  <div className="w-1.5 h-1.5 bg-warning rounded-full animate-pulse"></div>
+                  <span className="text-xs font-medium">编辑中</span>
+                </div>
+              )}
+              
+              {/* 紧凑关闭按钮 */}
+              <button 
+                className="btn btn-xs btn-circle btn-ghost hover:bg-base-200" 
+                onClick={handleClose}
+                aria-label={String(t('common:close'))}
+              >
+                ✕
               </button>
-            </>
+            </div>
+          </div>
+        </div>
+
+        {/* 优化的紧凑内容区域 */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          {isLoading && <LoadingScreen />}
+          
+          {isError && (
+            <div className="alert alert-error alert-sm my-3">
+              <svg className="w-5 h-5 stroke-current shrink-0" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm">
+                {String(t('common:error.loadFailed'))}: {(error as Error)?.message}
+              </span>
+            </div>
           )}
 
-          {mode === 'create' && (
-            <button
-              className="btn btn-primary"
-              onClick={handleSave}
-              disabled={createEmployeeMutation.isPending}
-            >
-              {createEmployeeMutation.isPending ? (
-                <>
-                  <span className="loading loading-spinner loading-sm"></span>
-                  创建中...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {(employee || mode === 'create') && (
+            <EmployeeDetailContent 
+              employee={(employee || displayData) as EmployeeData} 
+              isEditing={isEditing || mode === 'create'}
+              onEditDataChange={setEditDataRef}
+            />
+          )}
+        </div>
+
+        {/* 优化的粘性底部操作栏 */}
+        <div className="sticky bottom-0 z-10 bg-base-100/95 backdrop-blur-md border-t border-base-200/60">
+          <div className="flex items-center justify-between px-4 py-3">
+            {/* 左侧危险操作 - 紧凑布局 */}
+            <div>
+              {isEditing && mode !== 'create' && employee?.employee_id && (
+                <button
+                  className="btn btn-sm btn-error btn-outline hover:btn-error"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={deleteEmployeeMutation.isPending}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path 
                       strokeLinecap="round" 
                       strokeLinejoin="round" 
                       strokeWidth={1.5} 
-                      d="M5 13l4 4L19 7" 
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
                     />
                   </svg>
-                  {modalConfig.primaryButton}
+                  <span className="hidden sm:inline">删除</span>
+                </button>
+              )}
+            </div>
+
+            {/* 右侧主要操作 - 紧凑按钮组 */}
+            <div className="flex items-center gap-2">
+              {/* 根据状态显示不同的按钮组合 */}
+              {mode === 'view' && !isEditing && (
+                <>
+                  <button
+                    className="btn btn-sm btn-ghost"
+                    onClick={handleClose}
+                  >
+                    关闭
+                  </button>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={() => setIsEditing(true)}
+                    disabled={!employee}
+                  >
+                    <svg className="w-4 h-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={1.5} 
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" 
+                      />
+                    </svg>
+                    <span className="hidden sm:inline">编辑</span>
+                  </button>
                 </>
               )}
-            </button>
-          )}
+
+              {(mode === 'view' && isEditing) && (
+                <>
+                  <button
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => setIsEditing(false)}
+                  >
+                    <svg className="w-4 h-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={1.5} 
+                        d="M6 18L18 6M6 6l12 12" 
+                      />
+                    </svg>
+                    <span className="hidden sm:inline">取消</span>
+                  </button>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={handleSave}
+                    disabled={!employee || updateEmployeeMutation.isPending}
+                  >
+                    {updateEmployeeMutation.isPending ? (
+                      <>
+                        <span className="loading loading-spinner loading-sm"></span>
+                        <span className="hidden sm:inline ml-1">保存中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={1.5} 
+                            d="M5 13l4 4L19 7" 
+                          />
+                        </svg>
+                        <span className="hidden sm:inline">保存</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
+
+              {mode === 'create' && (
+                <>
+                  <button
+                    className="btn btn-sm btn-ghost"
+                    onClick={handleClose}
+                  >
+                    取消
+                  </button>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={handleSave}
+                    disabled={createEmployeeMutation.isPending}
+                  >
+                    {createEmployeeMutation.isPending ? (
+                      <>
+                        <span className="loading loading-spinner loading-sm"></span>
+                        <span className="hidden sm:inline ml-1">创建中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={1.5} 
+                            d="M5 13l4 4L19 7" 
+                          />
+                        </svg>
+                        <span className="hidden sm:inline">创建</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -506,26 +537,46 @@ export function EmployeeModal({
         <button onClick={handleClose}>close</button>
       </form>
 
-      {/* 删除确认对话框 */}
+      {/* 紧凑删除确认对话框 */}
       {showDeleteConfirm && (
         <div className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg text-error">确认删除员工</h3>
-            <p className="py-4">
-              确定要删除员工 <strong>{employee?.full_name}</strong> 吗？
-              <br />
-              <span className="text-warning text-sm">此操作将删除该员工的所有相关数据，且无法恢复。</span>
-            </p>
-            <div className="modal-action">
+          <div className="modal-box max-w-sm p-0">
+            {/* 紧凑头部 */}
+            <div className="p-4 border-b border-base-200/60">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <h3 className="font-semibold text-base text-error">确认删除员工</h3>
+              </div>
+            </div>
+            
+            {/* 紧凑内容 */}
+            <div className="p-4">
+              <p className="text-sm text-base-content/80">
+                确定要删除员工 <span className="font-medium text-base-content">{employee?.full_name}</span> 吗？
+              </p>
+              <div className="alert alert-warning mt-3 p-3">
+                <svg className="w-4 h-4 stroke-current shrink-0" fill="none" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span className="text-xs">此操作将删除所有相关数据，且无法恢复</span>
+              </div>
+            </div>
+            
+            {/* 紧凑操作按钮 */}
+            <div className="flex justify-end gap-2 p-4 pt-0">
               <button 
-                className="btn btn-ghost" 
+                className="btn btn-sm btn-ghost" 
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleteEmployeeMutation.isPending}
               >
                 取消
               </button>
               <button 
-                className="btn btn-error" 
+                className="btn btn-sm btn-error" 
                 onClick={handleDelete}
                 disabled={deleteEmployeeMutation.isPending}
               >
@@ -666,12 +717,12 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
 
 
   return (
-    <div className="space-y-4">
-      {/* 基本信息手风琴 */}
+    <div className="space-y-3">
+      {/* 基本信息手风琴 - 紧凑样式 */}
       <AccordionSection
         id="basic"
         icon={
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
         }
@@ -679,6 +730,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         isOpen={openSections.has('basic')}
         onToggle={toggleSection}
         isEditing={isEditing}
+        className="compact-accordion"
       >
         <AccordionContent>
           <DetailField 
@@ -727,11 +779,11 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         </AccordionContent>
       </AccordionSection>
 
-      {/* 工作信息手风琴 */}
+      {/* 工作信息手风琴 - 紧凑样式 */}
       <AccordionSection
         id="job"
         icon={
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
         }
@@ -739,6 +791,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         isOpen={openSections.has('job')}
         onToggle={toggleSection}
         isEditing={isEditing}
+        className="compact-accordion"
       >
         <AccordionContent>
           <DetailField 
@@ -803,11 +856,11 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         </AccordionContent>
       </AccordionSection>
 
-      {/* 联系信息手风琴 */}
+      {/* 联系信息手风琴 - 紧凑样式 */}
       <AccordionSection
         id="contact"
         icon={
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         }
@@ -815,6 +868,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         isOpen={openSections.has('contact')}
         onToggle={toggleSection}
         isEditing={isEditing}
+        className="compact-accordion"
       >
         <AccordionContent>
           <DetailField 
@@ -834,12 +888,12 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         </AccordionContent>
       </AccordionSection>
 
-      {/* 银行信息手风琴 */}
+      {/* 银行信息手风琴 - 紧凑样式 */}
       {(employee.primary_bank_account || employee.bank_name || isEditing) && (
         <AccordionSection
           id="bank"
           icon={
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
             </svg>
           }
@@ -847,6 +901,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
           isOpen={openSections.has('bank')}
           onToggle={toggleSection}
           isEditing={isEditing}
+          className="compact-accordion"
         >
           <AccordionContent>
             <DetailField 
@@ -874,11 +929,11 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         </AccordionSection>
       )}
 
-      {/* 教育信息手风琴 */}
+      {/* 教育信息手风琴 - 紧凑样式 */}
       <AccordionSection
         id="education"
         icon={
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z M12 14l9-5-9-5-9 5 9 5zm0 0v6.756" />
           </svg>
         }
@@ -887,6 +942,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         onToggle={toggleSection}
         isEditing={isEditing}
         variant="form"
+        className="compact-accordion"
       >
         <EducationSection
           educationRecords={educationRecords}
@@ -987,14 +1043,14 @@ function EducationSection({
         />
       ))}
 
-      {/* 现代化添加按钮 - 只在编辑模式下显示 */}
+      {/* 紧凑添加按钮 - 只在编辑模式下显示 */}
       {isEditing && educationRecords.length > 0 && !isAddingNew && (
-        <div className="mt-4">
+        <div className="mt-3">
           <button
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-xs"
             onClick={() => setIsAddingNew(true)}
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
             </svg>
             {String(t('employee:education.add'))}
@@ -1002,11 +1058,11 @@ function EducationSection({
         </div>
       )}
 
-      {/* 没有记录时的现代化添加按钮 */}
+      {/* 没有记录时的紧凑添加按钮 */}
       {isEditing && !educationRecords.length && !isAddingNew && (
-        <div className="text-center py-8">
+        <div className="text-center py-6">
           <button
-            className="btn btn-primary btn-md"
+            className="btn btn-primary btn-sm"
             onClick={() => setIsAddingNew(true)}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1074,19 +1130,19 @@ function EducationSection({
               rows={3}
             />
           </FieldGroup>
-          <div className="flex justify-end gap-3 pt-4 border-t border-base-200/60">
+          <div className="flex justify-end gap-2 pt-3 border-t border-base-200/60">
             <button
-              className="btn btn-ghost btn-md"
+              className="btn btn-ghost btn-sm"
               onClick={handleCancelAdd}
             >
               取消
             </button>
             <button
-              className="btn btn-primary btn-md"
+              className="btn btn-primary btn-sm"
               onClick={handleAdd}
               disabled={!newEducation.institution_name || !newEducation.degree || !newEducation.field_of_study || !newEducation.graduation_date}
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
               </svg>
               保存
@@ -1095,13 +1151,13 @@ function EducationSection({
         </AccordionFormGroup>
       )}
 
-      {/* 现代化添加按钮 */}
-      {isEditing && !isAddingNew && (
+      {/* 紧凑化添加按钮 */}
+      {isEditing && !isAddingNew && educationRecords.length === 0 && (
         <button
-          className="btn btn-secondary btn-sm w-full"
+          className="btn btn-secondary btn-xs w-full"
           onClick={() => setIsAddingNew(true)}
         >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
           </svg>
           添加教育信息
@@ -1200,20 +1256,20 @@ function EducationCard({
             rows={3}
           />
         </FieldGroup>
-        <div className="flex justify-end gap-3 pt-4 border-t border-base-200/60">
+        <div className="flex justify-end gap-2 pt-3 border-t border-base-200/60">
           <button
-            className="btn btn-error btn-sm"
+            className="btn btn-error btn-xs"
             onClick={handleDelete}
             disabled={isDeleting}
           >
             {isDeleting ? (
               <>
-                <span className="loading loading-spinner loading-sm"></span>
+                <span className="loading loading-spinner loading-xs"></span>
                 {String(t('common:deleting'))}
               </>
             ) : (
               <>
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
                 {String(t('common:delete'))}
