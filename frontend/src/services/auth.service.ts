@@ -37,6 +37,9 @@ export class AuthService {
     userCache = null;
     cacheExpiry = 0;
     
+    // Ensure user_profiles record exists
+    await this.ensureUserProfile(data.user.id, data.user.email!);
+    
     // Fetch user role and permissions
     const permissions = await this.getUserPermissions();
     const userRole = await this.getUserRole(data.user.id);
@@ -262,6 +265,68 @@ export class AuthService {
     } catch (err) {
       console.error('[AuthService] Error getting permissions:', err);
       return this.getDefaultPermissions();
+    }
+  }
+
+  /**
+   * Ensure user profile exists
+   */
+  private async ensureUserProfile(userId: string, email: string): Promise<void> {
+    try {
+      // Check if user_profiles record exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('[AuthService] Error checking user profile:', checkError);
+        return;
+      }
+      
+      // If profile doesn't exist, create it
+      if (!existingProfile) {
+        console.log('[AuthService] Creating user profile for new user');
+        const { error: insertError } = await supabase
+          .from('user_profiles')
+          .insert({
+            id: userId,
+            email: email,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        
+        if (insertError) {
+          console.error('[AuthService] Error creating user profile:', insertError);
+        }
+      }
+      
+      // Also ensure user_roles record exists
+      const { data: existingRole, error: roleCheckError } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (!existingRole && !roleCheckError) {
+        console.log('[AuthService] Creating default user role');
+        const { error: roleInsertError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: userId,
+            role: 'employee',
+            is_active: true,
+            created_at: new Date().toISOString()
+          });
+        
+        if (roleInsertError) {
+          console.error('[AuthService] Error creating user role:', roleInsertError);
+        }
+      }
+    } catch (err) {
+      console.error('[AuthService] Error ensuring user profile:', err);
     }
   }
 
