@@ -284,32 +284,41 @@ export class AuthService {
       
       // Fallback: derive role from employee assignment via user_profiles
       console.log('[AuthService] No user_roles found, checking employee assignment...');
+      
+      // First get the user profile
       const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
-        .select(`
-          employee_id,
-          employees!inner(
-            employee_assignments!inner(
-              position_id,
-              positions!inner(name)
-            )
-          )
-        `)
+        .select('employee_id')
         .eq('id', userId)
         .maybeSingle();
       
-      if (!profileError && profileData?.employees?.[0]?.employee_assignments?.[0]) {
-        const positionName = profileData.employees[0].employee_assignments[0].positions?.[0]?.name;
-        // Map position names to roles
-        const roleMapping: Record<string, string> = {
-          '总经理': 'admin',
-          '人事经理': 'hr_manager', 
-          '财务经理': 'finance_admin',
-          '部门经理': 'manager',
-          '主管': 'manager'
-        };
+      if (!profileError && profileData?.employee_id) {
+        // Then get the employee's position
+        const { data: assignmentData, error: assignmentError } = await supabase
+          .from('employee_assignments')
+          .select(`
+            position_id,
+            positions(name)
+          `)
+          .eq('employee_id', profileData.employee_id)
+          .eq('is_active', true)
+          .order('start_date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
         
-        return roleMapping[positionName] || 'employee';
+        if (!assignmentError && assignmentData?.positions?.name) {
+          const positionName = assignmentData.positions.name;
+          // Map position names to roles
+          const roleMapping: Record<string, string> = {
+            '总经理': 'admin',
+            '人事经理': 'hr_manager', 
+            '财务经理': 'finance_admin',
+            '部门经理': 'manager',
+            '主管': 'manager'
+          };
+          
+          return roleMapping[positionName] || 'employee';
+        }
       }
       
       console.warn('[AuthService] Could not fetch user role, defaulting to employee');
