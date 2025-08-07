@@ -64,7 +64,7 @@ export function DataTable<TData, TValue>({
       pageSize: data.length,
     } : (initialPagination || {
       pageIndex: 0,
-      pageSize: 50, // 默认每页50条
+      pageSize: 75, // 默认每页75条
     }),
   });
 
@@ -102,10 +102,10 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div className={cn("card bg-base-100 shadow", className)}>
+    <div className={cn("card card-compact bg-base-100 shadow", className)}>
       {/* Toolbar */}
       {showToolbar && (
-        <div className="card-body pb-0">
+        <div className="card-body toolbar-compact pb-1">
           <DataTableToolbar
             table={table}
             globalFilter={globalFilter}
@@ -118,10 +118,10 @@ export function DataTable<TData, TValue>({
       )}
 
       {/* Table */}
-      <div className="card-body pt-4">
+      <div className="card-body pt-1">
         <div className="overflow-x-auto">
           <table className={cn(
-            "table",
+            "table table-compact data-table-compact",
             compact && "table-sm",
             striped && "table-zebra",
             hover && "table-hover"
@@ -138,19 +138,20 @@ export function DataTable<TData, TValue>({
                         maxWidth: header.column.columnDef.maxSize,
                       }}
                       className={cn(
+                        "px-2 py-1 text-xs font-medium",
                         header.column.getCanSort() && "cursor-pointer select-none",
                       )}
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       {header.isPlaceholder ? null : (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           {flexRender(
                             header.column.columnDef.header,
                             header.getContext()
                           )}
                           {{
-                            asc: <span className="text-primary">↑</span>,
-                            desc: <span className="text-primary">↓</span>,
+                            asc: <span className="text-primary text-xs">↑</span>,
+                            desc: <span className="text-primary text-xs">↓</span>,
                           }[header.column.getIsSorted() as string] ?? null}
                         </div>
                       )}
@@ -170,7 +171,7 @@ export function DataTable<TData, TValue>({
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id}>
+                      <td key={cell.id} className="px-2 py-1 text-sm">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
@@ -181,8 +182,8 @@ export function DataTable<TData, TValue>({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={columns.length} className="text-center py-8">
-                    <div className="text-base-content/60">
+                  <td colSpan={columns.length} className="text-center py-2">
+                    <div className="text-base-content/60 text-sm">
                       {emptyMessage || String(t('table.noData'))}
                     </div>
                   </td>
@@ -195,7 +196,7 @@ export function DataTable<TData, TValue>({
 
       {/* Pagination */}
       {showPagination && (
-        <div className="card-body pt-0">
+        <div className="card-body pt-1 pagination-compact">
           <DataTablePagination
             table={table}
             totalRows={totalRows}
