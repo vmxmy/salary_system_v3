@@ -245,55 +245,13 @@ export class AuthService {
       
       // Get user role with better error handling
       try {
-        console.log('[AuthService] Querying user_roles for user_id:', user.id);
+        console.log('[AuthService] Fetching user role for permissions...');
         
-        const roleQuery = supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('is_active', true);
+        // Use the getUserRole method which handles fallbacks
+        const userRole = await this.getUserRole(user.id);
+        console.log('[AuthService] User role determined:', userRole);
         
-        const result = await Promise.race([
-          roleQuery.maybeSingle(), // Use maybeSingle() instead of single() to avoid 406 errors
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Role query timeout after 5s')), 5000)
-          )
-        ]);
-        
-        const { data: roleData, error } = result as any;
-        
-        if (error) {
-          console.error('[AuthService] Database error fetching role:', error);
-          // Try a simple fallback query without filtering by is_active
-          console.log('[AuthService] Attempting fallback query without is_active filter');
-          try {
-            const fallbackResult = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', user.id)
-              .limit(1)
-              .single();
-            
-            if (fallbackResult.data) {
-              console.log('[AuthService] Fallback query successful, role:', fallbackResult.data.role);
-              const permissions = this.getRolePermissions(fallbackResult.data.role);
-              console.log('[AuthService] Permissions loaded via fallback:', permissions);
-              return permissions;
-            }
-          } catch (fallbackError) {
-            console.error('[AuthService] Fallback query also failed:', fallbackError);
-          }
-          return this.getDefaultPermissions();
-        }
-        
-        if (!roleData) {
-          console.warn('[AuthService] No role found for user, using defaults');
-          return this.getDefaultPermissions();
-        }
-        
-        console.log('[AuthService] User role found:', roleData.role);
-        
-        const permissions = this.getRolePermissions(roleData.role);
+        const permissions = this.getRolePermissions(userRole);
         console.log('[AuthService] Permissions loaded:', permissions);
         return permissions;
         
@@ -312,19 +270,50 @@ export class AuthService {
    */
   private async getUserRole(userId: string): Promise<string> {
     try {
-      const { data, error } = await supabase
+      // First try to get role from user_roles table
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .eq('is_active', true)
         .maybeSingle();
       
-      if (error || !data) {
-        console.warn('[AuthService] Could not fetch user role, defaulting to employee');
-        return 'employee';
+      if (!roleError && roleData) {
+        return roleData.role;
       }
       
-      return data.role;
+      // Fallback: derive role from employee assignment via user_profiles
+      console.log('[AuthService] No user_roles found, checking employee assignment...');
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select(`
+          employee_id,
+          employees!inner(
+            employee_assignments!inner(
+              position_id,
+              positions!inner(name)
+            )
+          )
+        `)
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (!profileError && profileData?.employees?.[0]?.employee_assignments?.[0]) {
+        const positionName = profileData.employees[0].employee_assignments[0].positions?.[0]?.name;
+        // Map position names to roles
+        const roleMapping: Record<string, string> = {
+          '总经理': 'admin',
+          '人事经理': 'hr_manager', 
+          '财务经理': 'finance_admin',
+          '部门经理': 'manager',
+          '主管': 'manager'
+        };
+        
+        return roleMapping[positionName] || 'employee';
+      }
+      
+      console.warn('[AuthService] Could not fetch user role, defaulting to employee');
+      return 'employee';
     } catch (err) {
       console.error('[AuthService] Error fetching user role:', err);
       return 'employee';
