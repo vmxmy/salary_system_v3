@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import React from 'react';
 
 // Permission constants
 export const PERMISSIONS = {
@@ -175,7 +176,6 @@ export class PermissionService {
       return this.isRoleHigher(role, highest) ? role : highest;
     }, null as string | null);
   }
-}
 
   /**
    * 应用层访问控制 - 数据行级权限检查
@@ -192,7 +192,7 @@ export class PermissionService {
     }
 
     // 管理员和HR可以访问所有用户数据
-    const adminRoles = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR_MANAGER];
+    const adminRoles: string[] = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR_MANAGER];
     if (adminRoles.includes(currentUserRole)) {
       return action !== 'delete' || this.isRoleHigher(currentUserRole, ROLES.HR_MANAGER);
     }
@@ -215,7 +215,7 @@ export class PermissionService {
     action: 'view' | 'manage' = 'view'
   ): boolean {
     // 超级管理员和系统管理员可以访问所有部门
-    const systemAdminRoles = [ROLES.SUPER_ADMIN, ROLES.ADMIN];
+    const systemAdminRoles: string[] = [ROLES.SUPER_ADMIN, ROLES.ADMIN];
     if (systemAdminRoles.includes(userRole)) {
       return true;
     }
@@ -243,7 +243,7 @@ export class PermissionService {
     action: 'view' | 'create' | 'edit' | 'approve' | 'delete' = 'view'
   ): boolean {
     // 财务管理员和超级管理员拥有完全权限
-    const payrollAdminRoles = [ROLES.SUPER_ADMIN, ROLES.FINANCE_ADMIN];
+    const payrollAdminRoles: string[] = [ROLES.SUPER_ADMIN, ROLES.FINANCE_ADMIN];
     if (payrollAdminRoles.includes(userRole)) {
       return true;
     }

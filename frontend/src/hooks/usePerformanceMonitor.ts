@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { performanceMonitor, PerformanceSummary, QueryPerformanceMetric } from '@/services/performance-monitor.service';
+import { performanceMonitor } from '@/services/performance-monitor.service';
+import type { PerformanceSummary, QueryPerformanceMetric } from '@/services/performance-monitor.service';
 
 export interface UsePerformanceMonitorOptions {
   autoRefresh?: boolean;

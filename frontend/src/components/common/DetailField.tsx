@@ -160,10 +160,10 @@ export function DetailField({
     : formatValue(value, type, variant);
 
   return (
-    <div className={cn("form-control space-y-2", className)}>
+    <div className={cn("form-control", className)}>
       <label className="label pb-1">
         <span className={cn(
-          "label-text font-medium",
+          "label-text font-medium text-sm",
           "text-base-content/80",
           required && "after:content-['*'] after:text-error after:ml-1"
         )}>
@@ -177,7 +177,7 @@ export function DetailField({
             {renderEditInput()}
           </div>
         ) : (
-          <div className="flex-1 min-h-[2rem] flex items-center">
+          <div className="flex-1 min-h-[1.75rem] flex items-center">
             {displayValue}
           </div>
         )}
@@ -188,7 +188,7 @@ export function DetailField({
             className="btn btn-xs btn-ghost tooltip"
             data-tip={showSensitive ? '隐藏' : '显示'}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {showSensitive ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
               ) : (
@@ -218,7 +218,9 @@ export function FieldGroup({
 }: FieldGroupProps) {
   return (
     <div className={cn(
-      "grid gap-6",
+      "grid",
+      // Compact gap spacing for better density
+      "gap-4 lg:gap-5",
       columns === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2",
       className
     )}>

@@ -123,6 +123,50 @@
   .data-table-compact .table-cell {
     @apply py-1.5 px-2;
   }
+
+  /* 紧凑化手风琴样式 */
+  .compact-accordion {
+    @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+
+  .compact-accordion .collapse-title {
+    @apply min-h-[3rem] py-2 px-4 text-base;
+  }
+
+  .compact-accordion .collapse-content {
+    @apply px-4 pb-4;
+  }
+
+  .compact-accordion .collapse-content > div {
+    @apply pt-2;
+  }
+
+  /* 紧凑化详情字段样式 */
+  .form-compact .form-control {
+    @apply gap-1.5;
+  }
+
+  .form-compact .label {
+    @apply pb-0.5;
+  }
+
+  .form-compact .label-text {
+    @apply text-sm font-medium;
+  }
+
+  .form-compact .input,
+  .form-compact .select,
+  .form-compact .textarea {
+    @apply text-sm;
+  }
+
+  .form-compact .input {
+    @apply h-9;
+  }
+
+  .form-compact .select {
+    @apply h-9 min-h-[2.25rem];
+  }
 }
 
 /* 强制应用宋体字体到整个页面 - TailwindCSS 4 需要显式声明 */

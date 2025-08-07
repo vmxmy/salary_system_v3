@@ -9,20 +9,48 @@ export interface AuthUser {
 }
 
 // Cache for user data to prevent unnecessary calls
-let userCache: AuthUser | null = null;
-let cacheExpiry = 0;
-const CACHE_DURATION = 60000; // 1 minute cache
+class AuthCache {
+  private cache = new Map<string, { data: any; expiry: number }>();
+  
+  get<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry || entry.expiry < Date.now()) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.data;
+  }
+  
+  set<T>(key: string, data: T, ttlMs: number): void {
+    this.cache.set(key, {
+      data,
+      expiry: Date.now() + ttlMs
+    });
+  }
+  
+  clear(): void {
+    this.cache.clear();
+  }
+  
+  delete(key: string): void {
+    this.cache.delete(key);
+  }
+}
 
-// Cache for user roles to prevent repeated DB queries
-const roleCache = new Map<string, { role: string; expiry: number }>();
+const authCache = new AuthCache();
+const CACHE_DURATION = 60000; // 1 minute cache
 const ROLE_CACHE_DURATION = 300000; // 5 minutes cache for roles
 
 export class AuthService {
+  private pendingGetUser: Promise<AuthUser | null> | null = null;
+  private pendingGetPermissions: Promise<string[]> | null = null;
+  private abortController: AbortController | null = null;
   /**
    * Sign in with email and password
    */
   async signIn(email: string, password: string): Promise<AuthUser> {
-    console.log(`[AuthService] Attempting sign-in for ${email}`);
+    // Remove sensitive data from logs
+    console.log('[AuthService] Attempting sign-in');
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -37,11 +65,9 @@ export class AuthService {
       throw new Error('No user returned');
     }
 
-    console.log(`[AuthService] Sign-in successful for ${email}, user ID: ${data.user.id}`);
+    console.log('[AuthService] Sign-in successful');
     // Clear cache on login
-    userCache = null;
-    cacheExpiry = 0;
-    roleCache.clear();
+    authCache.clear();
     
     // Ensure user_profiles record exists
     await this.ensureUserProfile(data.user.id, data.user.email!);
@@ -85,8 +111,7 @@ export class AuthService {
     });
 
     // Clear cache on signup
-    userCache = null;
-    cacheExpiry = 0;
+    authCache.clear();
     
     // Return basic user data
     return {
@@ -105,88 +130,145 @@ export class AuthService {
     if (error) throw error;
     
     // Clear cache on logout
-    userCache = null;
-    cacheExpiry = 0;
-    roleCache.clear();
+    authCache.clear();
   }
 
   /**
-   * Get current user - simplified version without enrichment
+   * Get current user with request deduplication and proper timeout
    */
   async getCurrentUser(): Promise<AuthUser | null> {
+    // Request deduplication - return existing promise if one is in progress
+    if (this.pendingGetUser) {
+      return this.pendingGetUser;
+    }
+    
+    this.pendingGetUser = this._getCurrentUserImpl();
+    
     try {
-      console.log('[AuthService] Getting current user from Supabase...');
-      
-      // Add timeout protection for the getUser call
-      const getUserWithTimeout = async () => {
-        return Promise.race([
-          supabase.auth.getUser(),
-          new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error('getUser timeout after 5 seconds')), 5000)
-          )
-        ]);
-      };
-      
-      const { data: { user }, error } = await getUserWithTimeout();
-      
-      if (error || !user) {
-        console.log('[AuthService] No current user found');
-        return null;
+      const result = await this.pendingGetUser;
+      return result;
+    } finally {
+      this.pendingGetUser = null;
+    }
+  }
+  
+  private async _getCurrentUserImpl(): Promise<AuthUser | null> {
+    try {
+      // Check cache first
+      const cachedUser = authCache.get<AuthUser>('current_user');
+      if (cachedUser) {
+        return cachedUser;
       }
       
-      console.log('[AuthService] User found, fetching role and permissions...', user.email);
+      // Use getSession first (faster, local)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      // Fetch user role and permissions with timeout to prevent hanging
-      let permissions: string[] = [];
-      let userRole = 'employee';
-      
-      try {
-        // Fetch role first (with caching), then get permissions based on that role
-        userRole = await Promise.race([
-          this.getUserRole(user.id),
-          new Promise<string>((resolve) => 
-            setTimeout(() => {
-              console.warn('[AuthService] Role fetch timeout after 5s, using default');
-              resolve('employee');
-            }, 5000)
-          )
-        ]);
+      if (sessionError || !session?.user) {
+        // Only call getUser if no session
+        const { data: { user }, error } = await this.getUserWithAbortController();
         
-        // Get permissions based on the role (no additional DB query needed)
-        permissions = this.getRolePermissions(userRole);
-      } catch (err) {
-        console.error('[AuthService] Error fetching role/permissions, using defaults:', err);
-        permissions = this.getDefaultPermissions();
-        userRole = 'employee';
+        if (error || !user) {
+          console.log('[AuthService] No current user found');
+          return null;
+        }
+        
+        // Use the user from getUser
+        return this.buildAuthUser(user);
       }
-
-      // Return user data with permissions
-      const authUser: AuthUser = {
-        id: user.id,
-        email: user.email!,
-        role: userRole,
-        permissions,
-      };
       
-      console.log('[AuthService] Returning user data with permissions:', user.email, permissions);
+      // Use session.user (faster path)
+      const user = session.user;
+      console.log('[AuthService] User found from session');
+      
+      // Build the auth user object
+      const authUser = await this.buildAuthUser(user);
+      
+      // Cache the result
+      authCache.set('current_user', authUser, CACHE_DURATION);
+      
+      console.log('[AuthService] User data prepared');
       return authUser;
     } catch (err) {
-      console.error('[AuthService] getCurrentUser: Error:', err);
+      console.error('[AuthService] Error in getCurrentUser:', err);
       
-      // If it's a timeout error, try clearing corrupted auth state
-      if (err instanceof Error && err.message.includes('timeout')) {
-        console.warn('[AuthService] Timeout detected, clearing corrupted auth state and retrying...');
-        this.clearCorruptedAuthState();
-        
-        // Trigger page reload to restart auth flow with clean state
-        setTimeout(() => {
-          console.log('[AuthService] Reloading page to reset auth state...');
-          window.location.reload();
-        }, 1000);
+      // Clean up abort controller
+      if (this.abortController) {
+        this.abortController = null;
+      }
+      
+      // If it's a timeout/abort error, return cached data if available
+      if (err instanceof Error && (err.name === 'AbortError' || err.message.includes('timeout'))) {
+        console.warn('[AuthService] Request timeout, using cached data if available');
+        const cachedUser = authCache.get<AuthUser>('current_user');
+        if (cachedUser) {
+          return cachedUser;
+        }
       }
       
       return null;
     }
+  }
+  
+  /**
+   * Get user with AbortController for proper timeout handling
+   */
+  private async getUserWithAbortController() {
+    // Clean up any existing controller
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+    
+    this.abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      if (this.abortController) {
+        this.abortController.abort();
+      }
+    }, 10000); // 10 second timeout
+    
+    try {
+      // Note: Supabase doesn't support AbortController yet, so we use Promise.race as fallback
+      const result = await Promise.race([
+        supabase.auth.getUser(),
+        new Promise<never>((_, reject) => {
+          const listener = () => {
+            reject(new Error('Request aborted'));
+          };
+          this.abortController?.signal.addEventListener('abort', listener);
+        })
+      ]);
+      
+      clearTimeout(timeoutId);
+      return result;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    } finally {
+      this.abortController = null;
+    }
+  }
+  
+  /**
+   * Build AuthUser object with role and permissions
+   */
+  private async buildAuthUser(user: any): Promise<AuthUser> {
+    let userRole = 'employee';
+    let permissions: string[] = [];
+    
+    try {
+      // Get role with caching
+      userRole = await this.getUserRole(user.id);
+      permissions = this.getRolePermissions(userRole);
+    } catch (err) {
+      console.error('[AuthService] Error fetching role/permissions:', err);
+      permissions = this.getDefaultPermissions();
+    }
+    
+    return {
+      id: user.id,
+      email: user.email!,
+      role: userRole,
+      permissions,
+    };
   }
 
   /**
@@ -211,8 +293,7 @@ export class AuthService {
     if (error) throw error;
     
     // Clear cache after password update
-    userCache = null;
-    cacheExpiry = 0;
+    authCache.clear();
   }
 
   /**
@@ -229,52 +310,58 @@ export class AuthService {
   }
 
   /**
-   * Get user permissions - simplified version to avoid hanging
+   * Get user permissions with request deduplication
    */
   async getUserPermissions(): Promise<string[]> {
+    // Request deduplication
+    if (this.pendingGetPermissions) {
+      return this.pendingGetPermissions;
+    }
+    
+    this.pendingGetPermissions = this._getUserPermissionsImpl();
+    
+    try {
+      const result = await this.pendingGetPermissions;
+      return result;
+    } finally {
+      this.pendingGetPermissions = null;
+    }
+  }
+  
+  private async _getUserPermissionsImpl(): Promise<string[]> {
     const monitor = performanceMonitor?.startOperation('getUserPermissions', 'auth');
     
     try {
-      console.log('[AuthService] Getting user permissions...');
+      // Check cache first
+      const cachedPermissions = authCache.get<string[]>('user_permissions');
+      if (cachedPermissions) {
+        monitor?.end();
+        return cachedPermissions;
+      }
       
-      // First check session and user state
+      // Use getSession (faster than getUser)
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('[AuthService] Session state:', {
-        hasSession: !!session,
-        sessionError: sessionError?.message,
-        userEmail: session?.user?.email
-      });
       
       if (sessionError || !session?.user) {
-        console.log('[AuthService] No active session found for permissions check');
+        console.log('[AuthService] No active session for permissions');
         monitor?.end();
         return [];
       }
 
       const user = session.user;
-      console.log('[AuthService] Fetching user role from database for user:', user.email);
       
-      // Get user role with better error handling
-      try {
-        console.log('[AuthService] Fetching user role for permissions...');
-        
-        // Use the getUserRole method which handles fallbacks
-        const userRole = await this.getUserRole(user.id);
-        console.log('[AuthService] User role determined:', userRole);
-        
-        const permissions = this.getRolePermissions(userRole);
-        console.log('[AuthService] Permissions loaded:', permissions);
-        monitor?.end();
-        return permissions;
-        
-      } catch (timeoutOrError) {
-        console.error('[AuthService] Role query failed:', timeoutOrError);
-        monitor?.end(timeoutOrError.message);
-        return this.getDefaultPermissions();
-      }
-    } catch (err) {
+      // Get user role with caching
+      const userRole = await this.getUserRole(user.id);
+      const permissions = this.getRolePermissions(userRole);
+      
+      // Cache the permissions
+      authCache.set('user_permissions', permissions, CACHE_DURATION);
+      
+      monitor?.end();
+      return permissions;
+    } catch (err: any) {
       console.error('[AuthService] Error getting permissions:', err);
-      monitor?.end(err.message);
+      monitor?.end(err?.message);
       return this.getDefaultPermissions();
     }
   }
@@ -346,11 +433,11 @@ export class AuthService {
     
     try {
       // Check cache first
-      const cached = roleCache.get(userId);
-      if (cached && cached.expiry > Date.now()) {
-        console.log('[AuthService] Using cached role for user:', userId);
+      const cacheKey = `user_role_${userId}`;
+      const cached = authCache.get<string>(cacheKey);
+      if (cached) {
         monitor?.end();
-        return cached.role;
+        return cached;
       }
       
       // First try to get role from user_roles table
@@ -363,76 +450,25 @@ export class AuthService {
       
       if (!roleError && roleData) {
         // Cache the result
-        roleCache.set(userId, { 
-          role: roleData.role, 
-          expiry: Date.now() + ROLE_CACHE_DURATION 
-        });
+        authCache.set(`user_role_${userId}`, roleData.role, ROLE_CACHE_DURATION);
         monitor?.end();
         return roleData.role;
       }
       
-      // Fallback: derive role from employee assignment via user_profiles
-      console.log('[AuthService] No user_roles found, checking employee assignment...');
-      
-      // First get the user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('employee_id')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (!profileError && profileData?.employee_id) {
-        // Then get the employee's position from job history
-        const { data: assignmentData, error: assignmentError } = await supabase
-          .from('employee_job_history')
-          .select(`
-            position_id,
-            positions(name)
-          `)
-          .eq('employee_id', profileData.employee_id)
-          .or('effective_end_date.is.null,effective_end_date.gte.now()')
-          .order('effective_start_date', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        if (!assignmentError && assignmentData?.positions?.name) {
-          const positionName = assignmentData.positions.name;
-          // Map position names to roles
-          const roleMapping: Record<string, string> = {
-            '总经理': 'admin',
-            '人事经理': 'hr_manager', 
-            '财务经理': 'finance_admin',
-            '部门经理': 'manager',
-            '主管': 'manager'
-          };
-          
-          const mappedRole = roleMapping[positionName] || 'employee';
-          // Cache the result
-          roleCache.set(userId, { 
-            role: mappedRole, 
-            expiry: Date.now() + ROLE_CACHE_DURATION 
-          });
-          monitor?.end();
-          return mappedRole;
-        }
-      }
+      // Simplified fallback - just return default role
+      // Complex role derivation should be done server-side
+      console.log('[AuthService] No user_roles found, using default');
       
       console.warn('[AuthService] Could not fetch user role, defaulting to employee');
       // Cache even the default to prevent repeated queries
-      roleCache.set(userId, { 
-        role: 'employee', 
-        expiry: Date.now() + ROLE_CACHE_DURATION 
-      });
+      authCache.set(`user_role_${userId}`, 'employee', ROLE_CACHE_DURATION);
       monitor?.end();
       return 'employee';
     } catch (err) {
       console.error('[AuthService] Error fetching user role:', err);
       // Cache the error case to prevent repeated failures
-      roleCache.set(userId, { 
-        role: 'employee', 
-        expiry: Date.now() + 60000 // Shorter cache for error cases (1 minute)
-      });
-      monitor?.end(err.message);
+      authCache.set(`user_role_${userId}`, 'employee', 60000); // Shorter cache for error cases
+      monitor?.end((err as Error).message);
       return 'employee';
     }
   }
@@ -466,8 +502,7 @@ export class AuthService {
   onAuthStateChange(callback: (user: AuthUser | null) => void) {
     return supabase.auth.onAuthStateChange(async (_event, session) => {
       // Clear cache on auth state changes
-      userCache = null;
-      cacheExpiry = 0;
+      authCache.clear();
       
       if (session?.user) {
         // Return basic user data without enrichment
@@ -488,8 +523,7 @@ export class AuthService {
    * Clear the user cache (useful for forcing refresh)
    */
   clearCache(): void {
-    userCache = null;
-    cacheExpiry = 0;
+    authCache.clear();
   }
 
   /**

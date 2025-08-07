@@ -28,13 +28,19 @@ export function AccordionSection({
   className = '',
   variant = 'default'
 }: AccordionSectionProps) {
+  const isCompact = className.includes('compact-accordion');
+  
   return (
     <div className={cn(
-      "collapse collapse-arrow bg-base-100 border border-base-200/60 rounded-xl",
-      "shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04),0_1px_3px_-1px_rgba(0,0,0,0.06)]",
-      "hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.08)]",
+      "collapse collapse-arrow bg-base-100 border border-base-200/60",
+      isCompact ? "rounded-lg" : "rounded-xl",
+      isCompact 
+        ? "shadow-sm hover:shadow-md" 
+        : "shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04),0_1px_3px_-1px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.08)]",
       "hover:border-base-200 transition-all duration-300 ease-out",
-      isOpen && "shadow-[0_8px_24px_-4px_rgba(0,0,0,0.08),0_4px_12px_-2px_rgba(0,0,0,0.1)] border-primary/20",
+      isOpen && (isCompact 
+        ? "shadow-md border-primary/20" 
+        : "shadow-[0_8px_24px_-4px_rgba(0,0,0,0.08),0_4px_12px_-2px_rgba(0,0,0,0.1)] border-primary/20"),
       className
     )}>
       <input 
@@ -47,26 +53,31 @@ export function AccordionSection({
         aria-controls={`section-content-${id}`}
       />
       <div className={cn(
-        "collapse-title text-lg font-semibold flex items-center justify-between",
+        "collapse-title flex items-center justify-between",
+        isCompact ? "text-base font-medium" : "text-lg font-semibold",
         "peer-checked:border-b peer-checked:border-base-200/60 peer-checked:bg-gradient-to-r peer-checked:from-primary/5 peer-checked:to-transparent",
         "hover:bg-gradient-to-r hover:from-base-50 hover:to-transparent",
         "hover:translate-y-[-1px] cursor-pointer transition-all duration-300 ease-out",
-        "min-h-[4.5rem] py-5 px-6"
+        isCompact ? "min-h-[3rem] py-3 px-4" : "min-h-[4.5rem] py-5 px-6"
       )}>
-        <div className="flex items-center gap-4">
+        <div className={cn("flex items-center", isCompact ? "gap-3" : "gap-4")}>
           {/* 现代化图标容器 */}
           <div className="relative group">
             {/* 外层光环效果 */}
             <div className={cn(
-              "absolute inset-0 rounded-xl transition-all duration-300",
+              "absolute inset-0 transition-all duration-300",
+              isCompact ? "rounded-lg" : "rounded-xl",
               "bg-gradient-to-br from-primary/15 to-primary/5",
-              "blur-xl group-hover:blur-2xl opacity-0 group-hover:opacity-100",
-              isOpen && "opacity-100 blur-2xl"
+              isCompact 
+                ? "blur-md group-hover:blur-lg opacity-0 group-hover:opacity-100" 
+                : "blur-xl group-hover:blur-2xl opacity-0 group-hover:opacity-100",
+              isOpen && (isCompact ? "opacity-100 blur-lg" : "opacity-100 blur-2xl")
             )} />
             
             {/* 主图标容器 */}
             <div className={cn(
-              "relative flex items-center justify-center w-10 h-10 rounded-xl",
+              "relative flex items-center justify-center rounded-xl",
+              isCompact ? "w-8 h-8 rounded-lg" : "w-10 h-10 rounded-xl",
               "bg-gradient-to-br from-primary/12 to-primary/6",
               "shadow-[inset_0_1px_2px_0_rgba(255,255,255,0.1),inset_0_-1px_2px_0_rgba(0,0,0,0.05)]",
               "ring-1 ring-primary/10 text-primary",
@@ -85,7 +96,7 @@ export function AccordionSection({
           </div>
           
           <span className={cn(
-            "text-base",
+            isCompact ? "text-sm" : "text-base",
             "text-base-content transition-colors duration-200",
             isOpen && "text-primary/90"
           )}>
@@ -95,28 +106,48 @@ export function AccordionSection({
         
         {/* 现代化编辑模式指示器 */}
         {isEditing && (
-          <div className="flex items-center gap-3 mr-6">
+          <div className={cn("flex items-center mr-6", isCompact ? "gap-2" : "gap-3")}>
             <div className="relative">
               {/* 编辑徽章光环 */}
-              <div className="absolute inset-0 bg-gradient-to-r from-warning/20 to-warning/10 rounded-full blur-lg animate-pulse" />
+              <div className={cn(
+                "absolute inset-0 bg-gradient-to-r from-warning/20 to-warning/10 rounded-full animate-pulse",
+                isCompact ? "blur-md" : "blur-lg"
+              )} />
               
               {/* 编辑徽章 */}
-              <div className="relative flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-warning/10 to-warning/5 border border-warning/20 shadow-[0_0_16px_-4px_rgba(251,191,36,0.3)]">
+              <div className={cn(
+                "relative flex items-center gap-1.5 rounded-full bg-gradient-to-r from-warning/10 to-warning/5 border border-warning/20 shadow-[0_0_16px_-4px_rgba(251,191,36,0.3)]",
+                isCompact ? "px-2 py-1" : "px-3 py-1.5"
+              )}>
                 <div className="relative">
-                  <div className="h-1.5 w-1.5 bg-warning rounded-full shadow-[0_0_6px_1px_rgba(251,191,36,0.5)]" />
-                  <div className="absolute inset-0 h-1.5 w-1.5 bg-warning rounded-full animate-ping opacity-75" />
+                  <div className={cn(
+                    "bg-warning rounded-full shadow-[0_0_6px_1px_rgba(251,191,36,0.5)]",
+                    isCompact ? "h-1 w-1" : "h-1.5 w-1.5"
+                  )} />
+                  <div className={cn(
+                    "absolute inset-0 bg-warning rounded-full animate-ping opacity-75",
+                    isCompact ? "h-1 w-1" : "h-1.5 w-1.5"
+                  )} />
                 </div>
-                <span className="text-xs font-medium text-warning tracking-wide">编辑中</span>
+                <span className={cn(
+                  "font-medium text-warning tracking-wide",
+                  isCompact ? "text-xs" : "text-xs"
+                )}>
+                  编辑中
+                </span>
               </div>
             </div>
           </div>
         )}
       </div>
       
-      <div className="collapse-content peer-checked:pb-6" id={`section-content-${id}`}>
+      <div className={cn(
+        "collapse-content",
+        isCompact ? "peer-checked:pb-4" : "peer-checked:pb-6"
+      )} id={`section-content-${id}`}>
         <div className={cn(
-          "pt-6 px-6",
-          variant === 'form' ? "px-8" : ""
+          isCompact ? "pt-3 px-4" : "pt-6 px-6",
+          variant === 'form' && !isCompact ? "px-8" : ""
         )}>
           {children}
         </div>
@@ -145,7 +176,9 @@ export function AccordionContent({
 
   return (
     <div className={cn(
-      "grid grid-cols-1 lg:grid-cols-2 gap-6",
+      "grid grid-cols-1 lg:grid-cols-2",
+      // Compact spacing for tight layouts
+      "gap-4 lg:gap-5",
       className
     )}>
       {children}

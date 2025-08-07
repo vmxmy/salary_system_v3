@@ -61,19 +61,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     getSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log('[AuthContext] Auth state changed:', _event);
-      setSession(session);
-      if (session?.user) {
-        try {
-          const authUser = await authService.getCurrentUser();
-          setUser(authUser);
-        } catch (error) {
-          console.error('[AuthContext] Error getting user on auth change:', error);
+    // Debounce function to prevent rapid updates
+    let updateTimeout: NodeJS.Timeout;
+    const debouncedUpdateUser = async (session: any) => {
+      clearTimeout(updateTimeout);
+      updateTimeout = setTimeout(async () => {
+        if (session?.user) {
+          try {
+            const authUser = await authService.getCurrentUser();
+            setUser(authUser);
+          } catch (error) {
+            console.error('[AuthContext] Error getting user:', error);
+            setUser(null);
+          }
+        } else {
           setUser(null);
         }
+      }, 500); // 500ms debounce
+    };
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[AuthContext] Auth state changed:', event);
+      setSession(session);
+      
+      // Only update user on significant events
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        // Immediate update for sign in/out
+        if (session?.user) {
+          try {
+            const authUser = await authService.getCurrentUser();
+            setUser(authUser);
+          } catch (error) {
+            console.error('[AuthContext] Error getting user:', error);
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+      } else if (event === 'TOKEN_REFRESHED') {
+        // For token refresh, just update session without fetching user again
+        // User data doesn't change during token refresh
+        console.log('[AuthContext] Token refreshed, keeping existing user data');
       } else {
-        setUser(null);
+        // For other events, use debounced update
+        debouncedUpdateUser(session);
       }
     });
 

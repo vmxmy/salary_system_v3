@@ -308,8 +308,8 @@ const PerformanceMonitorPage: React.FC = () => {
             <div>
               <h4 className="font-semibold mb-2">性能优化建议</h4>
               <ul className="space-y-1 text-base-content/70">
-                <li>• 慢查询 > 10%: 考虑添加数据库索引</li>
-                <li>• 平均耗时 > 500ms: 实现查询结果缓存</li>
+                <li>• 慢查询 {'>'} 10%: 考虑添加数据库索引</li>
+                <li>• 平均耗时 {'>'} 500ms: 实现查询结果缓存</li>
                 <li>• 高频操作: 考虑批量处理优化</li>
                 <li>• 重复错误: 检查数据库连接和权限</li>
               </ul>
