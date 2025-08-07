@@ -42,7 +42,7 @@ export function DetailField({
 
   // 格式化值
   const formatValue = (val: string | undefined | null, fieldType: string, fieldVariant: string): React.ReactNode => {
-    if (!val) return <span className={cn("text-base", "text-base-content/40 italic")}>-</span>;
+    if (!val) return <span className={cn("text-sm", "text-base-content/40 italic")}>-</span>;
     
     // 如果提供了自定义渲染函数，优先使用
     if (renderValue && !isEditing) return renderValue();
@@ -77,7 +77,7 @@ export function DetailField({
         // 根据variant进行格式化
         switch (fieldVariant) {
           case 'amount':
-            return <span className={cn("text-base", "font-mono", "text-base-content")}>{val}</span>;
+            return <span className={cn("text-sm", "font-mono", "text-base-content")}>{val}</span>;
           case 'status':
             return (
               <span className={cn(
@@ -90,7 +90,7 @@ export function DetailField({
               </span>
             );
           default:
-            return <span className={cn("text-base", "text-base-content")}>{val}</span>;
+            return <span className={cn("text-sm", "text-base-content")}>{val}</span>;
         }
     }
   };
@@ -163,7 +163,7 @@ export function DetailField({
     <div className={cn("form-control", className)}>
       <label className="label pb-1">
         <span className={cn(
-          "label-text font-medium text-sm",
+          "label-text font-medium text-xs",
           "text-base-content/80",
           required && "after:content-['*'] after:text-error after:ml-1"
         )}>

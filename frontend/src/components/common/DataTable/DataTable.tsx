@@ -126,7 +126,7 @@ export function DataTable<TData, TValue>({
             striped && "table-zebra",
             hover && "table-hover"
           )}>
-            <thead>
+            <thead className="bg-base-200/50 border-b-2 border-base-300">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
@@ -138,21 +138,41 @@ export function DataTable<TData, TValue>({
                         maxWidth: header.column.columnDef.maxSize,
                       }}
                       className={cn(
-                        "px-2 py-1 text-xs font-medium",
-                        header.column.getCanSort() && "cursor-pointer select-none",
+                        "px-3 py-2 text-xs font-semibold text-base-content/80 uppercase tracking-wider",
+                        header.column.getCanSort() && "cursor-pointer select-none hover:bg-base-300/50 transition-colors",
                       )}
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       {header.isPlaceholder ? null : (
-                        <div className="flex items-center gap-1">
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
+                        <div className="flex items-center gap-2">
+                          <span className="truncate">
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                          </span>
+                          {header.column.getCanSort() && (
+                            <span className="inline-flex">
+                              {{
+                                asc: (
+                                  <svg className="w-3 h-3 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                ),
+                                desc: (
+                                  <svg className="w-3 h-3 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M14.707 12.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                ),
+                              }[header.column.getIsSorted() as string] ?? (
+                                header.column.getCanSort() && (
+                                  <svg className="w-3 h-3 text-base-content/30" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                  </svg>
+                                )
+                              )}
+                            </span>
                           )}
-                          {{
-                            asc: <span className="text-primary text-xs">↑</span>,
-                            desc: <span className="text-primary text-xs">↓</span>,
-                          }[header.column.getIsSorted() as string] ?? null}
                         </div>
                       )}
                     </th>
@@ -167,11 +187,13 @@ export function DataTable<TData, TValue>({
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
                     className={cn(
-                      row.getIsSelected() && "bg-primary/10"
+                      "border-b border-base-200/50 transition-colors",
+                      row.getIsSelected() && "bg-primary/10 hover:bg-primary/15",
+                      !row.getIsSelected() && "hover:bg-base-200/30"
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-2 py-1 text-sm">
+                      <td key={cell.id} className="px-3 py-2 text-sm text-base-content/90">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
@@ -182,8 +204,8 @@ export function DataTable<TData, TValue>({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={columns.length} className="text-center py-2">
-                    <div className="text-base-content/60 text-sm">
+                  <td colSpan={columns.length} className="text-center py-8">
+                    <div className="text-base-content/50 text-sm">
                       {emptyMessage || String(t('table.noData'))}
                     </div>
                   </td>

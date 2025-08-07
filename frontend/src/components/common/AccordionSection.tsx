@@ -54,7 +54,7 @@ export function AccordionSection({
       />
       <div className={cn(
         "collapse-title flex items-center justify-between",
-        isCompact ? "text-base font-medium" : "text-lg font-semibold",
+        isCompact ? "text-sm font-medium" : "text-lg font-semibold",
         "peer-checked:border-b peer-checked:border-base-200/60 peer-checked:bg-gradient-to-r peer-checked:from-primary/5 peer-checked:to-transparent",
         "hover:bg-gradient-to-r hover:from-base-50 hover:to-transparent",
         "hover:translate-y-[-1px] cursor-pointer transition-all duration-300 ease-out",
@@ -96,7 +96,7 @@ export function AccordionSection({
           </div>
           
           <span className={cn(
-            isCompact ? "text-sm" : "text-base",
+            isCompact ? "text-xs" : "text-base",
             "text-base-content transition-colors duration-200",
             isOpen && "text-primary/90"
           )}>

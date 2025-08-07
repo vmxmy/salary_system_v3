@@ -276,7 +276,7 @@ export function EmployeeModal({
           title: '新增员工',
           subtitle: '填写员工基本信息',
           icon: (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
           ),
@@ -288,7 +288,7 @@ export function EmployeeModal({
           title: `编辑 ${displayData?.full_name || '员工'}`,
           subtitle: displayData?.employee_id ? `员工编号: ${displayData.employee_id}` : '',
           icon: (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
                 d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
@@ -306,7 +306,7 @@ export function EmployeeModal({
             displayData?.position_name
           ].filter(Boolean).join(' • '),
           icon: (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
@@ -324,14 +324,14 @@ export function EmployeeModal({
 
   return (
     <dialog className={cn("modal", open && "modal-open")}>
-      <div className="modal-box w-11/12 max-w-4xl max-h-[95vh] p-0 modal-compact">
+      <div className="modal-box w-11/12 max-w-4xl max-h-[95vh] p-0">
         {/* 优化的紧凑头部设计 */}
         <div className="sticky top-0 z-10 bg-base-100/95 backdrop-blur-md border-b border-base-200/60">
-          <div className="flex items-center justify-between p-4">
+          <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               {/* 紧凑头像/图标容器 */}
               <div className="relative">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/12 to-primary/6 text-primary flex items-center justify-center flex-shrink-0 shadow-sm ring-1 ring-primary/10">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/12 to-primary/6 text-primary flex items-center justify-center flex-shrink-0 shadow-sm ring-1 ring-primary/10">
                   {modalConfig.icon}
                 </div>
                 {/* 模式指示器 */}
@@ -341,7 +341,7 @@ export function EmployeeModal({
               </div>
               
               <div className="min-w-0 flex-1">
-                <h2 className="text-lg font-semibold text-base-content truncate">
+                <h2 className="text-sm font-semibold text-base-content truncate">
                   {modalConfig.title}
                 </h2>
                 {modalConfig.subtitle && (
@@ -374,15 +374,15 @@ export function EmployeeModal({
         </div>
 
         {/* 优化的紧凑内容区域 */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="flex-1 overflow-y-auto px-4 pb-3">
           {isLoading && <LoadingScreen />}
           
           {isError && (
-            <div className="alert alert-error alert-sm my-3">
-              <svg className="w-5 h-5 stroke-current shrink-0" fill="none" viewBox="0 0 24 24">
+            <div className="alert alert-error alert-sm my-2">
+              <svg className="w-4 h-4 stroke-current shrink-0" fill="none" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-sm">
+              <span className="text-xs">
                 {String(t('common:error.loadFailed'))}: {(error as Error)?.message}
               </span>
             </div>
@@ -416,7 +416,7 @@ export function EmployeeModal({
                       d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
                     />
                   </svg>
-                  <span className="hidden sm:inline">删除</span>
+                  <span className="hidden sm:inline text-sm">删除</span>
                 </button>
               )}
             </div>
@@ -427,7 +427,7 @@ export function EmployeeModal({
               {mode === 'view' && !isEditing && (
                 <>
                   <button
-                    className="btn btn-sm btn-ghost"
+                    className="btn btn-sm btn-ghost text-sm"
                     onClick={handleClose}
                   >
                     关闭
@@ -445,7 +445,7 @@ export function EmployeeModal({
                         d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" 
                       />
                     </svg>
-                    <span className="hidden sm:inline">编辑</span>
+                    <span className="hidden sm:inline text-sm">编辑</span>
                   </button>
                 </>
               )}
@@ -453,7 +453,7 @@ export function EmployeeModal({
               {(mode === 'view' && isEditing) && (
                 <>
                   <button
-                    className="btn btn-sm btn-ghost"
+                    className="btn btn-sm btn-ghost text-sm"
                     onClick={() => setIsEditing(false)}
                   >
                     <svg className="w-4 h-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -464,17 +464,17 @@ export function EmployeeModal({
                         d="M6 18L18 6M6 6l12 12" 
                       />
                     </svg>
-                    <span className="hidden sm:inline">取消</span>
+                    <span className="hidden sm:inline text-sm">取消</span>
                   </button>
                   <button
-                    className="btn btn-sm btn-primary"
+                    className="btn btn-sm btn-primary text-sm"
                     onClick={handleSave}
                     disabled={!employee || updateEmployeeMutation.isPending}
                   >
                     {updateEmployeeMutation.isPending ? (
                       <>
                         <span className="loading loading-spinner loading-sm"></span>
-                        <span className="hidden sm:inline ml-1">保存中...</span>
+                        <span className="hidden sm:inline ml-1 text-sm">保存中...</span>
                       </>
                     ) : (
                       <>
@@ -486,7 +486,7 @@ export function EmployeeModal({
                             d="M5 13l4 4L19 7" 
                           />
                         </svg>
-                        <span className="hidden sm:inline">保存</span>
+                        <span className="hidden sm:inline text-sm">保存</span>
                       </>
                     )}
                   </button>
@@ -496,20 +496,20 @@ export function EmployeeModal({
               {mode === 'create' && (
                 <>
                   <button
-                    className="btn btn-sm btn-ghost"
+                    className="btn btn-sm btn-ghost text-sm"
                     onClick={handleClose}
                   >
                     取消
                   </button>
                   <button
-                    className="btn btn-sm btn-primary"
+                    className="btn btn-sm btn-primary text-sm"
                     onClick={handleSave}
                     disabled={createEmployeeMutation.isPending}
                   >
                     {createEmployeeMutation.isPending ? (
                       <>
                         <span className="loading loading-spinner loading-sm"></span>
-                        <span className="hidden sm:inline ml-1">创建中...</span>
+                        <span className="hidden sm:inline ml-1 text-sm">创建中...</span>
                       </>
                     ) : (
                       <>
@@ -521,7 +521,7 @@ export function EmployeeModal({
                             d="M5 13l4 4L19 7" 
                           />
                         </svg>
-                        <span className="hidden sm:inline">创建</span>
+                        <span className="hidden sm:inline text-sm">创建</span>
                       </>
                     )}
                   </button>
@@ -542,24 +542,24 @@ export function EmployeeModal({
         <div className="modal modal-open">
           <div className="modal-box max-w-sm p-0">
             {/* 紧凑头部 */}
-            <div className="p-4 border-b border-base-200/60">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="px-4 py-3 border-b border-base-200/60">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-error/10 text-error flex items-center justify-center">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                   </svg>
                 </div>
-                <h3 className="font-semibold text-base text-error">确认删除员工</h3>
+                <h3 className="font-semibold text-xs text-error">确认删除员工</h3>
               </div>
             </div>
             
             {/* 紧凑内容 */}
-            <div className="p-4">
-              <p className="text-sm text-base-content/80">
+            <div className="p-3">
+              <p className="text-xs text-base-content/80">
                 确定要删除员工 <span className="font-medium text-base-content">{employee?.full_name}</span> 吗？
               </p>
-              <div className="alert alert-warning mt-3 p-3">
-                <svg className="w-4 h-4 stroke-current shrink-0" fill="none" viewBox="0 0 24 24">
+              <div className="alert alert-warning mt-2 p-2">
+                <svg className="w-3 h-3 stroke-current shrink-0" fill="none" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
                 <span className="text-xs">此操作将删除所有相关数据，且无法恢复</span>
@@ -567,26 +567,26 @@ export function EmployeeModal({
             </div>
             
             {/* 紧凑操作按钮 */}
-            <div className="flex justify-end gap-2 p-4 pt-0">
+            <div className="flex justify-end gap-2 px-3 pb-3">
               <button 
-                className="btn btn-sm btn-ghost" 
+                className="btn btn-sm btn-ghost text-sm" 
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleteEmployeeMutation.isPending}
               >
                 取消
               </button>
               <button 
-                className="btn btn-sm btn-error" 
+                className="btn btn-sm btn-error text-sm" 
                 onClick={handleDelete}
                 disabled={deleteEmployeeMutation.isPending}
               >
                 {deleteEmployeeMutation.isPending ? (
                   <>
                     <span className="loading loading-spinner loading-sm"></span>
-                    删除中...
+                    <span className="text-sm">删除中...</span>
                   </>
                 ) : (
-                  '确认删除'
+                  <span className="text-sm">确认删除</span>
                 )}
               </button>
             </div>
@@ -717,7 +717,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
 
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* 基本信息手风琴 - 紧凑样式 */}
       <AccordionSection
         id="basic"
@@ -730,7 +730,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         isOpen={openSections.has('basic')}
         onToggle={toggleSection}
         isEditing={isEditing}
-        className="compact-accordion"
+        className="compact-accordion form-compact"
       >
         <AccordionContent>
           <DetailField 
@@ -791,7 +791,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         isOpen={openSections.has('job')}
         onToggle={toggleSection}
         isEditing={isEditing}
-        className="compact-accordion"
+        className="compact-accordion form-compact"
       >
         <AccordionContent>
           <DetailField 
@@ -868,7 +868,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         isOpen={openSections.has('contact')}
         onToggle={toggleSection}
         isEditing={isEditing}
-        className="compact-accordion"
+        className="compact-accordion form-compact"
       >
         <AccordionContent>
           <DetailField 
@@ -901,7 +901,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
           isOpen={openSections.has('bank')}
           onToggle={toggleSection}
           isEditing={isEditing}
-          className="compact-accordion"
+          className="compact-accordion form-compact"
         >
           <AccordionContent>
             <DetailField 
@@ -942,7 +942,7 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         onToggle={toggleSection}
         isEditing={isEditing}
         variant="form"
-        className="compact-accordion"
+        className="compact-accordion form-compact"
       >
         <EducationSection
           educationRecords={educationRecords}
@@ -1017,17 +1017,17 @@ function EducationSection({
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-8">
-        <span className="loading loading-spinner loading-md"></span>
+      <div className="flex justify-center py-4">
+        <span className="loading loading-spinner loading-sm"></span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* 现有教育记录 */}
       {educationRecords.length === 0 && !isAddingNew && !isEditing && (
-        <div className="text-base text-center py-8 text-base-content/60">
+        <div className="text-xs text-center py-6 text-base-content/60">
           {String(t('employee:education.noData'))}
         </div>
       )}
@@ -1045,30 +1045,30 @@ function EducationSection({
 
       {/* 紧凑添加按钮 - 只在编辑模式下显示 */}
       {isEditing && educationRecords.length > 0 && !isAddingNew && (
-        <div className="mt-3">
+        <div className="mt-2">
           <button
-            className="btn btn-primary btn-xs"
+            className="btn btn-primary btn-xs text-xs"
             onClick={() => setIsAddingNew(true)}
           >
             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
             </svg>
-            {String(t('employee:education.add'))}
+            <span className="text-xs">{String(t('employee:education.add'))}</span>
           </button>
         </div>
       )}
 
       {/* 没有记录时的紧凑添加按钮 */}
       {isEditing && !educationRecords.length && !isAddingNew && (
-        <div className="text-center py-6">
+        <div className="text-center py-4">
           <button
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-sm text-sm"
             onClick={() => setIsAddingNew(true)}
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
             </svg>
-            {String(t('employee:education.add'))}
+            <span className="text-sm">{String(t('employee:education.add'))}</span>
           </button>
         </div>
       )}
@@ -1078,7 +1078,7 @@ function EducationSection({
         <AccordionFormGroup
           title={String(t('employee:education.add'))}
           icon={
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
           }
@@ -1130,15 +1130,15 @@ function EducationSection({
               rows={3}
             />
           </FieldGroup>
-          <div className="flex justify-end gap-2 pt-3 border-t border-base-200/60">
+          <div className="flex justify-end gap-2 pt-2 border-t border-base-200/60">
             <button
-              className="btn btn-ghost btn-sm"
+              className="btn btn-ghost btn-sm text-sm"
               onClick={handleCancelAdd}
             >
               取消
             </button>
             <button
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm text-sm"
               onClick={handleAdd}
               disabled={!newEducation.institution_name || !newEducation.degree || !newEducation.field_of_study || !newEducation.graduation_date}
             >
@@ -1154,13 +1154,13 @@ function EducationSection({
       {/* 紧凑化添加按钮 */}
       {isEditing && !isAddingNew && educationRecords.length === 0 && (
         <button
-          className="btn btn-secondary btn-xs w-full"
+          className="btn btn-secondary btn-xs w-full text-xs"
           onClick={() => setIsAddingNew(true)}
         >
           <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
           </svg>
-          添加教育信息
+          <span className="text-xs">添加教育信息</span>
         </button>
       )}
     </div>
@@ -1256,23 +1256,23 @@ function EducationCard({
             rows={3}
           />
         </FieldGroup>
-        <div className="flex justify-end gap-2 pt-3 border-t border-base-200/60">
+        <div className="flex justify-end gap-2 pt-2 border-t border-base-200/60">
           <button
-            className="btn btn-error btn-xs"
+            className="btn btn-error btn-xs text-xs"
             onClick={handleDelete}
             disabled={isDeleting}
           >
             {isDeleting ? (
               <>
                 <span className="loading loading-spinner loading-xs"></span>
-                {String(t('common:deleting'))}
+                <span className="text-xs">{String(t('common:deleting'))}</span>
               </>
             ) : (
               <>
                 <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                {String(t('common:delete'))}
+                <span className="text-xs">{String(t('common:delete'))}</span>
               </>
             )}
           </button>

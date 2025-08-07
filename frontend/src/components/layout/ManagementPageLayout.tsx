@@ -56,11 +56,15 @@ export interface ManagementPageLayoutProps {
   // 表格配置
   initialSorting?: any[];
   initialPagination?: any;
+  pageCount?: number;
+  currentPage?: number;
+  onPaginationChange?: (pagination: any) => void;
   enableRowSelection?: boolean;
   onRowSelectionChange?: (selection: any) => void;
   enableExport?: boolean;
   showGlobalFilter?: boolean;
   showColumnToggle?: boolean;
+  striped?: boolean;
   
   // 模态框
   modal?: ReactNode;
@@ -95,9 +99,15 @@ export function ManagementPageLayout({
   onTableReady,
   initialSorting,
   initialPagination,
+  pageCount,
+  currentPage,
+  onPaginationChange,
   enableExport = false,
   showGlobalFilter = false,
   showColumnToggle = false,
+  enableRowSelection,
+  onRowSelectionChange,
+  striped = true,
   modal,
   customContent,
   footerContent
@@ -208,10 +218,16 @@ export function ManagementPageLayout({
             onTableReady={onTableReady}
             initialSorting={initialSorting}
             initialPagination={initialPagination}
+            pageCount={pageCount}
+            currentPage={currentPage}
+            onPaginationChange={onPaginationChange}
+            enableRowSelection={enableRowSelection}
+            onRowSelectionChange={onRowSelectionChange}
             enableExport={enableExport}
             showGlobalFilter={showGlobalFilter}
             showColumnToggle={showColumnToggle}
             compact={true}
+            striped={striped}
           />
         </div>
       )}
