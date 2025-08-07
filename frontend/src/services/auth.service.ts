@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { performanceMonitor } from '@/services/performance-monitor.service';
 
 export interface AuthUser {
   id: string;
@@ -231,6 +232,8 @@ export class AuthService {
    * Get user permissions - simplified version to avoid hanging
    */
   async getUserPermissions(): Promise<string[]> {
+    const monitor = performanceMonitor?.startOperation('getUserPermissions', 'auth');
+    
     try {
       console.log('[AuthService] Getting user permissions...');
       
@@ -244,6 +247,7 @@ export class AuthService {
       
       if (sessionError || !session?.user) {
         console.log('[AuthService] No active session found for permissions check');
+        monitor?.end();
         return [];
       }
 
@@ -260,14 +264,17 @@ export class AuthService {
         
         const permissions = this.getRolePermissions(userRole);
         console.log('[AuthService] Permissions loaded:', permissions);
+        monitor?.end();
         return permissions;
         
       } catch (timeoutOrError) {
         console.error('[AuthService] Role query failed:', timeoutOrError);
+        monitor?.end(timeoutOrError.message);
         return this.getDefaultPermissions();
       }
     } catch (err) {
       console.error('[AuthService] Error getting permissions:', err);
+      monitor?.end(err.message);
       return this.getDefaultPermissions();
     }
   }
@@ -335,11 +342,14 @@ export class AuthService {
    * Get user role from database with caching
    */
   private async getUserRole(userId: string): Promise<string> {
+    const monitor = performanceMonitor?.startOperation('getUserRole', 'user_roles');
+    
     try {
       // Check cache first
       const cached = roleCache.get(userId);
       if (cached && cached.expiry > Date.now()) {
         console.log('[AuthService] Using cached role for user:', userId);
+        monitor?.end();
         return cached.role;
       }
       
@@ -357,6 +367,7 @@ export class AuthService {
           role: roleData.role, 
           expiry: Date.now() + ROLE_CACHE_DURATION 
         });
+        monitor?.end();
         return roleData.role;
       }
       
@@ -401,6 +412,7 @@ export class AuthService {
             role: mappedRole, 
             expiry: Date.now() + ROLE_CACHE_DURATION 
           });
+          monitor?.end();
           return mappedRole;
         }
       }
@@ -411,6 +423,7 @@ export class AuthService {
         role: 'employee', 
         expiry: Date.now() + ROLE_CACHE_DURATION 
       });
+      monitor?.end();
       return 'employee';
     } catch (err) {
       console.error('[AuthService] Error fetching user role:', err);
@@ -419,6 +432,7 @@ export class AuthService {
         role: 'employee', 
         expiry: Date.now() + 60000 // Shorter cache for error cases (1 minute)
       });
+      monitor?.end(err.message);
       return 'employee';
     }
   }
