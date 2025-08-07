@@ -5,10 +5,10 @@ import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export function AuthLayout() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const { t } = useTranslation();
 
-  if (isLoading) {
+  if (loading) {
     return <LoadingScreen />;
   }
 

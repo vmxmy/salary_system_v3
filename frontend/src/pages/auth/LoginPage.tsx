@@ -72,9 +72,15 @@ export default function LoginPage() {
       setIsLoading(true);
       try {
         console.log('Attempting to sign in with:', formData.email);
-        await signIn(formData.email, formData.password);
+        const result = await signIn(formData.email, formData.password);
+        console.log('Sign in result:', result);
         console.log('Sign in successful, navigating to:', from);
-        navigate(from, { replace: true });
+        
+        // Add a small delay to ensure state is updated
+        setTimeout(() => {
+          console.log('Navigating now...');
+          navigate(from, { replace: true });
+        }, 100);
       } catch (error: any) {
         console.error('Sign in failed:', error);
         let errorMessage = t('login.failed');
@@ -83,6 +89,8 @@ export default function LoginPage() {
           errorMessage = t('login.invalidCredentials');
         } else if (error.message?.includes('Email not confirmed')) {
           errorMessage = t('login.emailNotConfirmed');
+        } else if (error.message) {
+          errorMessage = error.message;
         }
         
         // For now, use alert - can be replaced with a proper toast system later
