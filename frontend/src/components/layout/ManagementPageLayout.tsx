@@ -108,18 +108,20 @@ export function ManagementPageLayout({
     if (statCards.length === 0) return null;
     
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
         {statCards.map((card, index) => (
-          <div key={index} className="stat bg-base-100 border border-base-200 rounded-lg p-4">
+          <div key={index} className="stat stat-compact bg-base-100 border border-base-200 rounded-lg">
             <div className={`stat-figure ${card.colorClass || 'text-primary'}`}>
-              {card.icon}
+              <div className="w-5 h-5">
+                {card.icon}
+              </div>
             </div>
-            <div className="stat-title text-base-content/70">{card.title}</div>
-            <div className={`stat-value text-2xl font-bold ${card.colorClass || ''}`}>
+            <div className="stat-title text-base-content/70 text-xs">{card.title}</div>
+            <div className={`stat-value text-lg font-bold ${card.colorClass || ''}`}>
               {card.value}
             </div>
             {card.description && (
-              <div className="stat-desc text-base-content/50">{card.description}</div>
+              <div className="stat-desc text-base-content/50 text-xs">{card.description}</div>
             )}
           </div>
         ))}
@@ -181,7 +183,7 @@ export function ManagementPageLayout({
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="page-compact">
       {/* 页面工具栏 */}
       <PageToolbar
         title={title}
@@ -209,6 +211,7 @@ export function ManagementPageLayout({
             enableExport={enableExport}
             showGlobalFilter={showGlobalFilter}
             showColumnToggle={showColumnToggle}
+            compact={true}
           />
         </div>
       )}

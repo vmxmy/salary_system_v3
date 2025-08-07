@@ -4,6 +4,127 @@
   themes: light, dark, cupcake, bumblebee, emerald, corporate, synthwave, retro, cyberpunk, valentine, halloween, garden, forest, aqua, lofi, pastel, fantasy, wireframe, black, luxury, dracula, cmyk, autumn, business, acid, lemonade, night, coffee, winter, dim, nord, sunset;
 }
 
+/* UI 紧凑化全局样式 */
+@layer components {
+  /* 紧凑化按钮 */
+  .btn-compact {
+    @apply min-h-8 h-8 px-2 text-sm;
+  }
+  
+  /* 紧凑化卡片 */
+  .card-compact {
+    @apply p-3;
+  }
+  
+  .card-compact .card-body {
+    @apply p-3;
+  }
+  
+  /* 紧凑化统计卡片 */
+  .stat-compact {
+    @apply p-3;
+  }
+  
+  .stat-compact .stat-value {
+    @apply text-xl;
+  }
+  
+  .stat-compact .stat-title {
+    @apply text-xs;
+  }
+  
+  .stat-compact .stat-desc {
+    @apply text-xs;
+  }
+  
+  /* 紧凑化表格 */
+  .table-compact {
+    @apply table-sm;
+  }
+  
+  .table-compact th {
+    @apply px-2 py-1 text-xs font-medium;
+  }
+  
+  .table-compact td {
+    @apply px-2 py-1 text-sm;
+  }
+  
+  /* 紧凑化导航栏 */
+  .navbar-compact {
+    @apply min-h-12 h-12;
+  }
+  
+  /* 紧凑化侧边栏 */
+  .sidebar-compact {
+    @apply w-52;
+  }
+  
+  .sidebar-compact .menu li > * {
+    @apply px-2 py-1.5 text-sm;
+  }
+  
+  /* 紧凑化工具栏 */
+  .toolbar-compact {
+    @apply p-2 gap-2;
+  }
+  
+  /* 紧凑化搜索框 */
+  .search-compact {
+    @apply h-8 text-sm;
+  }
+  
+  /* 紧凑化分页 */
+  .pagination-compact .btn {
+    @apply min-h-6 h-6 px-1.5 text-xs;
+  }
+  
+  /* 紧凑化模态框 */
+  .modal-compact .modal-box {
+    @apply p-4;
+  }
+  
+  /* 紧凑化表单控件 */
+  .form-compact .form-control {
+    @apply gap-1;
+  }
+  
+  .form-compact .label {
+    @apply pb-1;
+  }
+  
+  .form-compact .input {
+    @apply h-8 text-sm;
+  }
+  
+  .form-compact .select {
+    @apply h-8 text-sm;
+  }
+  
+  /* 紧凑化徽章 */
+  .badge-compact {
+    @apply px-1.5 py-0.5 text-xs;
+  }
+  
+  /* 紧凑化页面容器 */
+  .page-compact {
+    @apply p-2 lg:p-3 space-y-3;
+  }
+  
+  /* 紧凑化数据表格特殊样式 */
+  .data-table-compact {
+    @apply text-sm;
+  }
+  
+  .data-table-compact .table-header {
+    @apply py-1 px-2;
+  }
+  
+  .data-table-compact .table-cell {
+    @apply py-1.5 px-2;
+  }
+}
+
 /* 强制应用宋体字体到整个页面 - TailwindCSS 4 需要显式声明 */
 @layer base {
   html {
