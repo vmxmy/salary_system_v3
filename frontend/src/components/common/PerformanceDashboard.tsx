@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { performanceMonitor, PerformanceSummary, QueryPerformanceMetric } from '@/services/performance-monitor.service';
+import { performanceMonitor } from '@/services/performance-monitor.service';
+import type { PerformanceSummary, QueryPerformanceMetric } from '@/services/performance-monitor.service';
 
 interface PerformanceDashboardProps {
   className?: string;

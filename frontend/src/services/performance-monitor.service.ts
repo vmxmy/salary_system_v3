@@ -358,7 +358,7 @@ export const createMonitoredSupabase = () => {
         // Only wrap query execution methods, not builder methods
         if (typeof originalMethod === 'function' && ['select', 'insert', 'update', 'delete'].includes(prop as string)) {
           return function(...args: any[]) {
-            const result = originalMethod.apply(this, args);
+            const result = originalMethod.apply(target, args);
             
             // Return a new proxy that wraps the query builder with monitoring
             return createQueryBuilderProxy(result, table, prop as string, args);
