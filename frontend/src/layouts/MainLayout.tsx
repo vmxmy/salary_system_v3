@@ -21,9 +21,9 @@ export function MainLayout() {
         {/* Header */}
         <Header />
         
-        {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6">
-          <div className="mx-auto max-w-7xl">
+        {/* Page Content - 紧凑化间距 */}
+        <main className="flex-1 p-2 lg:p-3">
+          <div className="mx-auto max-w-7xl space-y-3">
             <Outlet />
           </div>
         </main>

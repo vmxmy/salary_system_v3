@@ -10,6 +10,9 @@
           "env": {
             "SUPABASE_ACCESS_TOKEN": "sbp_8a78ab2e06e72da7317d88ce9aaabe16c7248deb"
           }
+        },
+        "zen": {
+          "command": "/Users/xumingyang/app/zen-mcp-server/zen-mcp-server"
         }
     }
 }

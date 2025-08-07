@@ -54,7 +54,8 @@
       "mcp__zen__chat",
       "Bash(node:*)",
       "Bash(timeout 30 npm run build:*)",
-      "Bash(npx vite build:*)"
+      "Bash(npx vite build:*)",
+      "mcp__zen__codereview"
     ],
     "deny": []
   },
