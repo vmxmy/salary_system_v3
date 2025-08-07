@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BuildingOfficeIcon, 
@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { ModernButton } from '@/components/common/ModernButton';
 import { DepartmentTree } from '@/components/department/DepartmentTree';
 import { DepartmentCardGrid } from '@/components/department/DepartmentCardGrid';
-import { DepartmentDetailModal } from '@/components/department/DepartmentDetailModal';
+import { DepartmentSidePanel } from '@/components/department/DepartmentSidePanel';
 import { DepartmentSearchPanel } from '@/components/department/DepartmentSearchPanel';
 import { DepartmentBatchOperations } from '@/components/department/DepartmentBatchOperations';
 import { 
@@ -44,9 +44,9 @@ export default function DepartmentManagementPage() {
   
   // 状态管理
   const [viewMode, setViewMode] = useState<DepartmentViewMode>('tree');
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>();
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [detailModalMode, setDetailModalMode] = useState<'view' | 'edit' | 'create'>('view');
+  const [selectedDepartment, setSelectedDepartment] = useState<DepartmentNode | null>(null);
+  const [showSidePanel, setShowSidePanel] = useState(false);
+  const [sidePanelMode, setSidePanelMode] = useState<'view' | 'edit' | 'create'>('view');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [searchFilters, setSearchFilters] = useState<DepartmentSearchFilters>({});
   
@@ -54,7 +54,7 @@ export default function DepartmentManagementPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedDepartments, setSelectedDepartments] = useState<DepartmentNode[]>([]);
   
-  // 树形展开状态
+  // 树形展开状态 - 默认展开所有节点
   const [treeExpandedNodes, setTreeExpandedNodes] = useState<Set<string>>(new Set());
   
 
@@ -67,6 +67,23 @@ export default function DepartmentManagementPage() {
     year: currentDate.getFullYear(),
     month: currentDate.getMonth() + 1
   });
+
+  // 当部门树数据加载完成时，默认展开所有节点
+  useEffect(() => {
+    if (departmentTree && departmentTree.length > 0 && treeExpandedNodes.size === 0) {
+      const getAllIds = (nodes: DepartmentNode[]): string[] => {
+        return nodes.reduce((acc: string[], node) => {
+          acc.push(node.id);
+          if (node.children) {
+            acc.push(...getAllIds(node.children));
+          }
+          return acc;
+        }, []);
+      };
+      
+      setTreeExpandedNodes(new Set(getAllIds(departmentTree)));
+    }
+  }, [departmentTree]);
 
   // 创建薪资统计映射
   const payrollStatsMap = useMemo(() => {
@@ -108,29 +125,29 @@ export default function DepartmentManagementPage() {
       title: '部门总数',
       value: stats.totalDepartments,
       description: '组织架构',
-      icon: <BuildingOfficeIcon className="w-8 h-8" />,
-      colorClass: 'text-purple-500'
+      icon: <BuildingOfficeIcon className="w-6 h-6" />,
+      colorClass: 'text-primary'
     },
     {
       title: '员工总数',
       value: stats.totalEmployees,
       description: '人员规模',
-      icon: <UsersIcon className="w-8 h-8" />,
-      colorClass: 'text-blue-500'
+      icon: <UsersIcon className="w-6 h-6" />,
+      colorClass: 'text-info'
     },
     {
       title: '活跃部门',
       value: stats.activeDepartments,
       description: '有员工的部门',
-      icon: <ChartBarIcon className="w-8 h-8" />,
-      colorClass: 'text-green-500'
+      icon: <ChartBarIcon className="w-6 h-6" />,
+      colorClass: 'text-success'
     },
     {
       title: '平均薪资',
       value: `¥${stats.avgSalary.toFixed(0)}`,
       description: '薪资水平',
-      icon: <CurrencyDollarIcon className="w-8 h-8" />,
-      colorClass: 'text-yellow-500'
+      icon: <CurrencyDollarIcon className="w-6 h-6" />,
+      colorClass: 'text-warning'
     }
   ], [stats]);
 
@@ -141,17 +158,32 @@ export default function DepartmentManagementPage() {
 
   // 处理部门选择
   const handleSelectDepartment = useCallback((departmentId: string) => {
-    setSelectedDepartmentId(departmentId);
-    setDetailModalMode('view');
-    setShowDetailModal(true);
-  }, []);
+    const dept = findDepartmentById(filteredDepartments, departmentId);
+    if (dept) {
+      setSelectedDepartment(dept);
+      setSidePanelMode('view');
+      setShowSidePanel(true);
+    }
+  }, [filteredDepartments]);
 
   // 处理新建部门
   const handleCreateDepartment = useCallback(() => {
-    setSelectedDepartmentId(undefined);
-    setDetailModalMode('create');
-    setShowDetailModal(true);
+    setSelectedDepartment(null);
+    setSidePanelMode('create');
+    setShowSidePanel(true);
   }, []);
+
+  // 辅助函数：在树中查找部门
+  const findDepartmentById = (nodes: DepartmentNode[], id: string): DepartmentNode | null => {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      if (node.children) {
+        const found = findDepartmentById(node.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
 
   // 处理导出
   const handleExport = useCallback(() => {
@@ -284,38 +316,42 @@ export default function DepartmentManagementPage() {
           
           {/* 视图切换按钮 */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-base-content/70 hidden sm:inline">视图：</span>
-            <div className="join w-full sm:w-auto">
+            <span className="text-sm text-base-content/60 hidden lg:inline">视图模式</span>
+            <div className="tabs tabs-boxed bg-base-200/50 p-1">
               <button
                 className={cn(
-                  'join-item btn btn-sm flex-1 sm:flex-none',
-                  viewMode === 'tree' ? 'btn-primary' : 'btn-ghost'
+                  'tab gap-1.5',
+                  viewMode === 'tree' && 'tab-active'
                 )}
                 onClick={() => setViewMode('tree')}
+                title="树形结构视图"
               >
-                <BuildingOfficeIcon className="w-4 h-4 sm:mr-1" />
-                <span className="hidden sm:inline">树形结构</span>
+                <BuildingOfficeIcon className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs">树形</span>
               </button>
               <button
                 className={cn(
-                  'join-item btn btn-sm flex-1 sm:flex-none',
-                  viewMode === 'cards' ? 'btn-primary' : 'btn-ghost'
+                  'tab gap-1.5',
+                  viewMode === 'cards' && 'tab-active'
                 )}
                 onClick={() => setViewMode('cards')}
+                title="卡片视图"
               >
-                <RectangleGroupIcon className="w-4 h-4 sm:mr-1" />
-                <span className="hidden sm:inline">卡片视图</span>
+                <RectangleGroupIcon className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs">卡片</span>
               </button>
               <button
                 className={cn(
-                  'join-item btn btn-sm flex-1 sm:flex-none',
-                  viewMode === 'table' ? 'btn-primary' : 'btn-ghost'
+                  'tab gap-1.5',
+                  viewMode === 'table' && 'tab-active',
+                  'opacity-50 cursor-not-allowed'
                 )}
                 onClick={() => setViewMode('table')}
                 disabled
+                title="表格视图（开发中）"
               >
-                <TableCellsIcon className="w-4 h-4 sm:mr-1" />
-                <span className="hidden sm:inline">表格视图</span>
+                <TableCellsIcon className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs">表格</span>
               </button>
             </div>
           </div>
@@ -345,7 +381,7 @@ export default function DepartmentManagementPage() {
               <DepartmentTree
                 data={filteredDepartments}
                 onSelect={handleSelectDepartment}
-                selectedId={selectedDepartmentId}
+                selectedId={selectedDepartment?.id}
                 selectionMode={selectionMode}
                 selectedDepartments={selectedDepartments}
                 onSelectionChange={handleSelectionChange}
@@ -431,17 +467,27 @@ export default function DepartmentManagementPage() {
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((card, index) => (
-            <div key={index} className="stat bg-base-100 border border-base-200 rounded-lg p-4">
-              <div className={`stat-figure ${card.colorClass || 'text-primary'}`}>
-                {card.icon}
+            <div key={index} className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="card-body p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-base-content/60 mb-1">
+                      {card.title}
+                    </p>
+                    <p className={`text-2xl font-bold ${card.colorClass || 'text-base-content'}`}>
+                      {card.value}
+                    </p>
+                    {card.description && (
+                      <p className="text-xs text-base-content/50 mt-1">
+                        {card.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className={`p-2 rounded-lg bg-base-200/50 ${card.colorClass || 'text-base-content/60'}`}>
+                    {card.icon}
+                  </div>
+                </div>
               </div>
-              <div className="stat-title text-base-content/70">{card.title}</div>
-              <div className={`stat-value text-2xl font-bold ${card.colorClass || ''}`}>
-                {card.value}
-              </div>
-              {card.description && (
-                <div className="stat-desc text-base-content/50">{card.description}</div>
-              )}
             </div>
           ))}
         </div>
@@ -466,15 +512,21 @@ export default function DepartmentManagementPage() {
       {/* 部门内容区域 */}
       {customContent}
 
-      {/* 模态框 */}
-      {showDetailModal && (
-        <DepartmentDetailModal
-          departmentId={selectedDepartmentId || undefined}
-          open={showDetailModal}
-          onClose={() => setShowDetailModal(false)}
-          mode={detailModalMode}
-        />
-      )}
+      {/* 侧边面板 */}
+      <DepartmentSidePanel
+        department={selectedDepartment}
+        isOpen={showSidePanel}
+        onClose={() => {
+          setShowSidePanel(false);
+          setSelectedDepartment(null);
+        }}
+        mode={sidePanelMode}
+        onSuccess={() => {
+          // 刷新数据会自动通过 React Query 处理
+          setShowSidePanel(false);
+          setSelectedDepartment(null);
+        }}
+      />
 
     </div>
   );

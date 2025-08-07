@@ -83,6 +83,16 @@ export const SimpleSearchBox: React.FC<SimpleSearchBoxProps> = ({
             </button>
           )}
         </div>
+        
+        {/* 搜索提示 */}
+        <div className="text-xs text-base-content/60 mt-2">
+          <span className="inline-flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            搜索范围：所有数据（跨页搜索）
+          </span>
+        </div>
       </div>
     </div>
   );

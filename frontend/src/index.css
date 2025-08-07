@@ -123,6 +123,37 @@
   .data-table-compact .table-cell {
     @apply py-1.5 px-2;
   }
+  
+  /* 优化的表格样式 */
+  .table thead {
+    @apply sticky top-0 z-10;
+  }
+  
+  .table-zebra tbody tr:nth-child(even) {
+    @apply bg-base-200/20;
+  }
+  
+  .table-zebra tbody tr:nth-child(odd) {
+    @apply bg-transparent;
+  }
+  
+  /* 表格排序图标样式 */
+  .table th .sort-icon {
+    @apply opacity-50 transition-opacity;
+  }
+  
+  .table th:hover .sort-icon {
+    @apply opacity-100;
+  }
+  
+  /* 表格选中行样式 */
+  .table tbody tr[data-state="selected"] {
+    @apply bg-primary/10 !important;
+  }
+  
+  .table tbody tr[data-state="selected"]:hover {
+    @apply bg-primary/15 !important;
+  }
 
   /* 紧凑化手风琴样式 */
   .compact-accordion {
