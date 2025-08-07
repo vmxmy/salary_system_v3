@@ -292,9 +292,7 @@ export class AuthService {
           .from('user_profiles')
           .insert({
             id: userId,
-            email: email,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            email: email
           });
         
         if (insertError) {
@@ -317,8 +315,7 @@ export class AuthService {
           .insert({
             user_id: userId,
             role: 'employee',
-            is_active: true,
-            created_at: new Date().toISOString()
+            is_active: true
           });
         
         if (roleInsertError) {
