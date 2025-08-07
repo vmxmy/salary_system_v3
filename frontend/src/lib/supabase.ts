@@ -18,6 +18,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storage: window.localStorage,
+      debug: process.env.NODE_ENV === 'development', // Enable debug in development
     },
     global: {
       headers: {
@@ -30,10 +31,14 @@ export const supabase = createClient<Database>(
   }
 );
 
+// Log initialization
+console.log('[Supabase] Client initialized with URL:', supabaseUrl);
+
 // Initialize performance monitoring in development mode
-if (process.env.NODE_ENV === 'development') {
-  createMonitoredSupabase();
-}
+// Temporarily disabled to debug authentication issues
+// if (process.env.NODE_ENV === 'development') {
+//   createMonitoredSupabase();
+// }
 
 // Auth helpers
 export const signIn = async (email: string, password: string) => {

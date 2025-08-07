@@ -6,16 +6,10 @@ import { queryClient } from './lib/queryClient'
 import App from './App.tsx'
 import './index.css'
 
-// Import performance monitor test in development
-if (import.meta.env.DEV) {
-  import('./test-performance-monitor');
-}
-
+// Clean startup with unified auth module
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
-  </React.StrictMode>,
+  <QueryClientProvider client={queryClient}>
+    <App />
+    <ReactQueryDevtools initialIsOpen={false} />
+  </QueryClientProvider>
 )

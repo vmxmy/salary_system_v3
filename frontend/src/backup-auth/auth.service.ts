@@ -51,38 +51,73 @@ export class AuthService {
   async signIn(email: string, password: string): Promise<AuthUser> {
     // Remove sensitive data from logs
     console.log('[AuthService] Attempting sign-in');
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      console.error('[AuthService] Supabase sign-in error:', error);
-      throw error;
-    }
-    if (!data.user) {
-      console.error('[AuthService] No user returned from Supabase after sign-in.');
-      throw new Error('No user returned');
-    }
-
-    console.log('[AuthService] Sign-in successful');
-    // Clear cache on login
-    authCache.clear();
+    const signInStart = Date.now();
     
-    // Ensure user_profiles record exists
-    await this.ensureUserProfile(data.user.id, data.user.email!);
-    
-    // Fetch user role and permissions
-    const permissions = await this.getUserPermissions();
-    const userRole = await this.getUserRole(data.user.id);
+    try {
+      console.log('[AuthService] Calling supabase.auth.signInWithPassword...');
+      
+      // Add timeout protection to prevent hanging promises
+      const signInPromise = supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Sign-in timeout after 10 seconds'));
+        }, 10000);
+      });
+      
+      const { data, error } = await Promise.race([signInPromise, timeoutPromise]);
 
-    // Return user data with permissions
-    return {
-      id: data.user.id,
-      email: data.user.email!,
-      role: userRole,
-      permissions,
-    };
+      console.log('[AuthService] Sign-in response received in', Date.now() - signInStart, 'ms');
+
+      if (error) {
+        console.error('[AuthService] Supabase sign-in error:', error);
+        throw error;
+      }
+      if (!data?.user) {
+        console.error('[AuthService] No user returned from Supabase after sign-in.');
+        throw new Error('No user returned');
+      }
+
+      console.log('[AuthService] Sign-in successful, user ID:', data.user.id);
+      
+      // Clear cache on login
+      authCache.clear();
+      
+      // Ensure user_profiles record exists
+      console.log('[AuthService] Ensuring user profile...');
+      const profileStart = Date.now();
+      await this.ensureUserProfile(data.user.id, data.user.email!);
+      console.log('[AuthService] User profile ensured in', Date.now() - profileStart, 'ms');
+      
+      // Fetch user role and permissions
+      console.log('[AuthService] Fetching permissions...');
+      const permStart = Date.now();
+      const permissions = await this.getUserPermissions();
+      console.log('[AuthService] Permissions fetched in', Date.now() - permStart, 'ms');
+      
+      console.log('[AuthService] Fetching user role...');
+      const roleStart = Date.now();
+      const userRole = await this.getUserRole(data.user.id);
+      console.log('[AuthService] Role fetched in', Date.now() - roleStart, 'ms');
+
+      const authUser = {
+        id: data.user.id,
+        email: data.user.email!,
+        role: userRole,
+        permissions,
+      };
+      
+      console.log('[AuthService] Sign-in complete, returning user with role:', userRole);
+      console.log('[AuthService] Total sign-in time:', Date.now() - signInStart, 'ms');
+      // Return user data with permissions
+      return authUser;
+    } catch (err) {
+      console.error('[AuthService] Sign-in error:', err);
+      throw err;
+    }
   }
 
   /**
@@ -157,10 +192,12 @@ export class AuthService {
       // Check cache first
       const cachedUser = authCache.get<AuthUser>('current_user');
       if (cachedUser) {
+        // Return cached user
         return cachedUser;
       }
       
       // Use getSession first (faster, local)
+      // No timeout needed for getSession as it should be fast
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session?.user) {
@@ -173,6 +210,7 @@ export class AuthService {
         }
         
         // Use the user from getUser
+        // Build auth user from getUser
         return this.buildAuthUser(user);
       }
       
@@ -180,6 +218,7 @@ export class AuthService {
       const user = session.user;
       console.log('[AuthService] User found from session');
       
+      // Build auth user from session
       // Build the auth user object
       const authUser = await this.buildAuthUser(user);
       
@@ -251,6 +290,7 @@ export class AuthService {
    * Build AuthUser object with role and permissions
    */
   private async buildAuthUser(user: any): Promise<AuthUser> {
+    // Build auth user with role and permissions
     let userRole = 'employee';
     let permissions: string[] = [];
     
@@ -263,12 +303,14 @@ export class AuthService {
       permissions = this.getDefaultPermissions();
     }
     
-    return {
+    const authUser = {
       id: user.id,
       email: user.email!,
       role: userRole,
       permissions,
     };
+    
+    return authUser;
   }
 
   /**
@@ -332,13 +374,17 @@ export class AuthService {
     const monitor = performanceMonitor?.startOperation('getUserPermissions', 'auth');
     
     try {
+      console.log('[AuthService] Getting user permissions...');
+      
       // Check cache first
       const cachedPermissions = authCache.get<string[]>('user_permissions');
       if (cachedPermissions) {
+        console.log('[AuthService] Returning cached permissions');
         monitor?.end();
         return cachedPermissions;
       }
       
+      console.log('[AuthService] Fetching session for permissions...');
       // Use getSession (faster than getUser)
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
@@ -371,12 +417,30 @@ export class AuthService {
    */
   private async ensureUserProfile(userId: string, email: string): Promise<void> {
     try {
-      // Check if user_profiles record exists
-      const { data: existingProfile, error: checkError } = await supabase
+      console.log('[AuthService] Checking if user profile exists for:', userId);
+      
+      // Add timeout for the query
+      const checkPromise = supabase
         .from('user_profiles')
         .select('id')
         .eq('id', userId)
         .maybeSingle();
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('ensureUserProfile timeout after 3 seconds')), 3000);
+      });
+      
+      let existingProfile = null;
+      let checkError = null;
+      
+      try {
+        const result = await Promise.race([checkPromise, timeoutPromise]);
+        existingProfile = result.data;
+        checkError = result.error;
+      } catch (timeoutErr) {
+        console.warn('[AuthService] ensureUserProfile query timed out');
+        return; // Skip profile creation on timeout
+      }
       
       if (checkError && checkError.code !== 'PGRST116') {
         console.error('[AuthService] Error checking user profile:', checkError);
@@ -429,6 +493,7 @@ export class AuthService {
    * Get user role from database with caching
    */
   private async getUserRole(userId: string): Promise<string> {
+    // Get user role with caching
     const monitor = performanceMonitor?.startOperation('getUserRole', 'user_roles');
     
     try {
@@ -436,16 +501,20 @@ export class AuthService {
       const cacheKey = `user_role_${userId}`;
       const cached = authCache.get<string>(cacheKey);
       if (cached) {
+        // Return cached role
         monitor?.end();
         return cached;
       }
       
+      // Query user_roles table
       // First try to get role from user_roles table
+      // Add limit(1) for better performance
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .eq('is_active', true)
+        .limit(1)
         .maybeSingle();
       
       if (!roleError && roleData) {

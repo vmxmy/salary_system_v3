@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { authService } from '@/services/auth.service';
+import { auth } from '@/lib/auth';
 
 export function DebugPage() {
   const [debug, setDebug] = useState<any>({});
@@ -25,7 +25,7 @@ export function DebugPage() {
         let authUser = null;
         let authError = null;
         try {
-          authUser = await authService.getCurrentUser();
+          authUser = await auth.getCurrentUser();
         } catch (e) {
           authError = e;
         }

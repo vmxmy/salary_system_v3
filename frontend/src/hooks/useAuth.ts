@@ -1,8 +1,8 @@
 /**
- * Unified useAuth hook that uses real Supabase authentication
+ * 统一的useAuth hook - 使用新的统一认证模块
  */
 
-import { useAuth as useRealAuth } from '@/contexts/AuthContext';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 
-// 强制使用真正的 Supabase 认证
-export const useAuth = useRealAuth;
+// 统一的认证hook，遵循Supabase最佳实践
+export const useAuth = useUnifiedAuth;

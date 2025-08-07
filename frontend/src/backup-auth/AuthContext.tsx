@@ -30,32 +30,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = !!user;
 
   useEffect(() => {
+    let mounted = true;
+    let initialized = false;
+    
     const getSession = async () => {
+      // Prevent multiple initialization
+      if (initialized) return;
+      initialized = true;
+      
       console.log('[AuthContext] Getting initial session...');
       try {
+        // Don't wait for session restoration, set loading to false quickly
+        setLoading(false);
+        
+        // Get session in background
         const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
         
         if (error) {
           console.error('[AuthContext] Session error:', error);
           setUser(null);
-          setLoading(false);
           return;
         }
         
         setSession(session);
         if (session?.user) {
           console.log('[AuthContext] Session found, getting user details...');
-          const authUser = await authService.getCurrentUser();
-          setUser(authUser);
+          // Get user details asynchronously
+          authService.getCurrentUser().then(authUser => {
+            if (mounted) {
+              setUser(authUser);
+            }
+          }).catch(err => {
+            console.error('[AuthContext] Error getting user:', err);
+            if (mounted) {
+              setUser(null);
+            }
+          });
         } else {
           console.log('[AuthContext] No session found');
           setUser(null);
         }
       } catch (error) {
         console.error('[AuthContext] Auth error:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
+        if (mounted) {
+          setUser(null);
+        }
       }
     };
 
@@ -84,9 +105,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('[AuthContext] Auth state changed:', event);
       setSession(session);
       
-      // Only update user on significant events
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
-        // Immediate update for sign in/out
+      // For SIGNED_IN event, don't immediately call getCurrentUser to avoid race condition
+      // The signIn method will handle updating the user state directly
+      if (event === 'SIGNED_OUT') {
+        // Clear user state on sign out
+        setUser(null);
+      } else if (event === 'USER_UPDATED') {
+        // Update user data on profile changes
         if (session?.user) {
           try {
             const authUser = await authService.getCurrentUser();
@@ -102,6 +127,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // For token refresh, just update session without fetching user again
         // User data doesn't change during token refresh
         console.log('[AuthContext] Token refreshed, keeping existing user data');
+      } else if (event === 'SIGNED_IN') {
+        // Don't call getCurrentUser here to avoid race condition with signIn method
+        // The signIn method will update user state directly
+        console.log('[AuthContext] SIGNED_IN event received, user state will be updated by signIn method');
       } else {
         // For other events, use debounced update
         debouncedUpdateUser(session);
@@ -109,13 +138,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => {
+      mounted = false;
       authListener.subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    console.log('[AuthContext] signIn called, delegating to authService...');
     const authUser = await authService.signIn(email, password);
+    console.log('[AuthContext] authService.signIn completed, updating user state...');
     setUser(authUser);
+    console.log('[AuthContext] User state updated in context');
     return authUser;
   };
 
