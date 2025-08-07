@@ -67,16 +67,12 @@ export default function PayrollListPage() {
 
   // 状态管理
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeSearchTerm, setActiveSearchTerm] = useState(''); // 实际用于搜索的查询
+  const [activeSearchQuery, setActiveSearchQuery] = useState(''); // 实际用于搜索的查询
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<PayrollStatusType | 'all'>('all');
   const [selectedMonth, setSelectedMonth] = useState(() => {
     // 默认为当前月份，将在useEffect中更新为最近有记录的月份
     return getCurrentYearMonth();
-  });
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 20
   });
   const [tableInstance, setTableInstance] = useState<Table<any> | null>(null);
   
@@ -97,33 +93,30 @@ export default function PayrollListPage() {
     }
   }, [latestMonth, latestMonthLoading]);
 
-  // 搜索处理函数
-  const handleSearch = () => {
-    // 手动触发搜索
-    setActiveSearchTerm(searchQuery);
-    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+  // 搜索处理函数 - 手动触发搜索
+  const handleSearch = useCallback(() => {
+    setActiveSearchQuery(searchQuery);
+    // TanStack Table 会自动重置分页到第一页
     if (tableInstance) {
       tableInstance.setPageIndex(0);
     }
-  };
+  }, [searchQuery, tableInstance]);
 
-  const handleSearchReset = () => {
+  const handleSearchReset = useCallback(() => {
     setSearchQuery('');
-    setActiveSearchTerm('');
-    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    setActiveSearchQuery('');
+    // TanStack Table 会自动重置分页到第一页
     if (tableInstance) {
       tableInstance.setPageIndex(0);
     }
-  };
+  }, [tableInstance]);
 
-  // 查询薪资列表
+  // 查询薪资列表 - 获取指定月份的所有数据
   const { data, isLoading, refetch } = usePayrolls({
-    status: statusFilter === 'all' ? undefined : statusFilter,
     startDate: monthDateRange.startDate,
     endDate: monthDateRange.endDate,
-    search: activeSearchTerm.trim() || undefined,
-    page: pagination.pageIndex + 1,
-    pageSize: pagination.pageSize
+    // 不传递分页参数，获取所有数据
+    pageSize: 1000 // 设置一个较大的值来获取所有数据
   });
 
   // 获取统计数据
@@ -134,11 +127,12 @@ export default function PayrollListPage() {
   const updateBatchStatus = useUpdateBatchPayrollStatus();
   const calculatePayrolls = useCalculatePayrolls();
 
-  // 数据处理流程 - 转换数据格式以确保兼容
+  // 数据处理流程 - 前端过滤和搜索
   const processedData = useMemo(() => {
-    const rawData = data?.data || [];
+    let rawData = data?.data || [];
     
-    return rawData.map(item => ({
+    // 先转换数据格式
+    let processedItems = rawData.map(item => ({
       ...item,
       id: item.id || item.payroll_id, // 确保有id字段用于选择
       // 确保employee字段存在（用于兼容旧代码）
@@ -148,7 +142,35 @@ export default function PayrollListPage() {
         id_number: null
       }
     }));
-  }, [data?.data]);
+    
+    // 状态过滤
+    if (statusFilter !== 'all') {
+      processedItems = processedItems.filter(item => item.status === statusFilter);
+    }
+    
+    // 全局模糊搜索 - 使用手动触发的搜索查询
+    if (activeSearchQuery.trim()) {
+      const query = activeSearchQuery.toLowerCase().trim();
+      processedItems = processedItems.filter(payroll => {
+        // 搜索所有可能的字段
+        const searchableFields = [
+          payroll.full_name,           // 员工姓名
+          payroll.department_name,     // 部门名称
+          payroll.status,               // 状态
+          payroll.pay_date,             // 支付日期
+          payroll.gross_pay?.toString(), // 应发工资
+          payroll.net_pay?.toString(),   // 实发工资
+        ].filter(Boolean); // 过滤掉空值
+        
+        // 检查是否任一字段包含搜索关键词
+        return searchableFields.some(field => 
+          field && field.toLowerCase().includes(query)
+        );
+      });
+    }
+    
+    return processedItems;
+  }, [data?.data, statusFilter, activeSearchQuery]);
 
   // 处理行点击 - 使用模态框替代导航
   const handleRowClick = useCallback((payroll: PayrollData) => {
@@ -329,10 +351,10 @@ export default function PayrollListPage() {
       onSearchChange={setSearchQuery}
       onSearch={handleSearch}
       onSearchReset={handleSearchReset}
-      searchPlaceholder="搜索员工姓名、薪资状态、薪资金额..."
+      searchPlaceholder="搜索员工姓名、部门名称、状态..."
       searchLoading={totalLoading}
       showFieldSelector={true}
-      fields={metadata.fields}
+      fields={metadata?.fields || []}
       userConfig={userConfig}
       onFieldConfigChange={updateUserConfig}
       onFieldConfigReset={resetToDefault}
@@ -375,7 +397,7 @@ export default function PayrollListPage() {
       loading={totalLoading}
       tableInstance={tableInstance || undefined}
       onTableReady={setTableInstance}
-      initialSorting={[{ id: 'pay_period_start', desc: true }]}
+      initialSorting={[{ id: 'pay_date', desc: true }]}
       initialPagination={{ pageIndex: 0, pageSize: 20 }}
       enableExport={false}
       showGlobalFilter={false}
