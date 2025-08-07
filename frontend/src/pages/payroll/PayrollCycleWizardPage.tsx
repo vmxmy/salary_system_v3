@@ -30,6 +30,49 @@ const CreationMode = {
   TEMPLATE: 'template'
 } as const;
 
+// 源数据接口
+interface SourceData {
+  type: 'copy' | 'import' | 'manual' | 'template';
+  sourceMonth?: string;
+  totalRecords?: number;
+  payrollData?: PayrollDataItem[];
+  statistics?: PayrollStatistics;
+  baseStrategy?: 'copy' | 'new';
+  selectedCategories?: string[];
+  categories?: SalaryComponentCategory[];
+  selectedEmployeeIds?: string[];
+  importFile?: File;
+  templateId?: string;
+}
+
+// 薪资数据项接口
+interface PayrollDataItem {
+  id: string;
+  employee_id: string;
+  employee?: {
+    full_name?: string;
+    id_number?: string | null;
+  };
+  gross_pay?: number;
+  net_pay?: number;
+  status?: string;
+  payroll_id?: string;
+  pay_date?: string;
+  pay_period_start?: string;
+  pay_period_end?: string;
+  full_name?: string;
+  total_deductions?: number;
+  department_name?: string;
+}
+
+// 薪资统计接口
+interface PayrollStatistics {
+  totalEmployees: number;
+  totalGrossPay: number;
+  totalNetPay: number;
+  avgSalary: number;
+}
+
 // 向导状态接口
 interface WizardState {
   currentStep: number;
@@ -37,7 +80,7 @@ interface WizardState {
   payrollPeriod: string;
   payDate: string;
   selectedEmployees: string[];
-  sourceData: any;
+  sourceData: SourceData | null;
   isDraftSaved: boolean;
   draftId?: string;
 }
@@ -111,7 +154,7 @@ export default function PayrollCycleWizardPage() {
   }, []);
 
   // 专门为数据源变更创建的回调
-  const handleSourceDataChange = useCallback((sourceData: any) => {
+  const handleSourceDataChange = useCallback((sourceData: SourceData | null) => {
     updateWizardState({ sourceData });
   }, [updateWizardState]);
 
@@ -151,7 +194,7 @@ export default function PayrollCycleWizardPage() {
       setIsLoading(true);
       
       if (result?.success) {
-        console.log('薪资周期创建成功，周期ID:', result.periodId);
+        // Successfully created payroll period
         setCreatedPeriodId(result.periodId);
         setIsSuccessModalOpen(true);
       } else {
@@ -202,10 +245,7 @@ export default function PayrollCycleWizardPage() {
           <ValidationStep 
             wizardState={wizardState}
             onValidationComplete={(selectedEmployees) => {
-              console.log('🔄 主向导页面接收到选中员工:', {
-                selectedEmployees,
-                length: selectedEmployees?.length
-              });
+              // Received selected employees for validation
               updateWizardState({ selectedEmployees });
             }}
           />
@@ -433,8 +473,8 @@ function ModeSelectionStep({ selectedMode, onModeSelect }: ModeSelectionStepProp
 // 步骤2：数据源配置内联组件
 interface DataSourceStepInlineProps {
   mode: string;
-  sourceData: any;
-  onSourceDataChange: (sourceData: any) => void;
+  sourceData: SourceData | null;
+  onSourceDataChange: (sourceData: SourceData | null) => void;
 }
 
 function DataSourceStepInline({ mode, sourceData, onSourceDataChange }: DataSourceStepInlineProps) {
@@ -476,7 +516,7 @@ function DataSourceStepInline({ mode, sourceData, onSourceDataChange }: DataSour
 }
 
 // 复制模式步骤内联组件
-function CopyModeStepInline({ sourceData, onSourceDataChange }: { sourceData: any; onSourceDataChange: (data: any) => void }) {
+function CopyModeStepInline({ sourceData, onSourceDataChange }: { sourceData: SourceData | null; onSourceDataChange: (data: SourceData | null) => void }) {
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     // 默认选择 2025-01，因为该月份有真实的薪资数据
     return '2025-01';
@@ -519,43 +559,62 @@ function CopyModeStepInline({ sourceData, onSourceDataChange }: { sourceData: an
     loadCategories();
   }, [selectedMonth]);
 
-  // 当数据加载完成时，更新源数据
+  // Memoize statistics calculation to prevent excessive re-renders
+  const statistics = useMemo(() => {
+    if (!payrollData?.data || payrollData.data.length === 0) return null;
+    
+    const totalGrossPay = payrollData.data.reduce((sum, item) => sum + (item.gross_pay || 0), 0);
+    const totalNetPay = payrollData.data.reduce((sum, item) => sum + (item.net_pay || 0), 0);
+    
+    return {
+      totalEmployees: payrollData.data.length,
+      totalGrossPay,
+      totalNetPay,
+      avgSalary: payrollData.data.length > 0 ? totalNetPay / payrollData.data.length : 0
+    };
+  }, [payrollData?.data]);
+
+  // Memoize selected employee IDs to prevent recalculation
+  const selectedEmployeeIds = useMemo(() => {
+    if (!payrollData?.data) return [];
+    return payrollData.data.map(item => item.employee_id).filter(Boolean);
+  }, [payrollData?.data]);
+
+  // Split useEffect for data loading - focused on payroll data changes
   useEffect(() => {
-    if (payrollData?.data && payrollData.data.length > 0) {
-      const statistics = {
-        totalEmployees: payrollData.data.length,
-        totalGrossPay: payrollData.data.reduce((sum, item) => sum + (item.gross_pay || 0), 0),
-        totalNetPay: payrollData.data.reduce((sum, item) => sum + (item.net_pay || 0), 0),
-        avgSalary: payrollData.data.length > 0 
-          ? payrollData.data.reduce((sum, item) => sum + (item.net_pay || 0), 0) / payrollData.data.length 
-          : 0
-      };
-      
-      const selectedEmployeeIds = payrollData.data.map(item => item.employee_id).filter(Boolean);
-      
-      console.log('📊 复制模式设置源数据:', {
-        sourceMonth: selectedMonth,
-        totalRecords: payrollData.total,
-        payrollDataLength: payrollData.data.length,
-        selectedEmployeeIdsLength: selectedEmployeeIds.length,
-        statistics
-      });
-      
+    if (payrollData?.data && payrollData.data.length > 0 && statistics) {
       onSourceDataChange({
         type: 'copy',
         sourceMonth: selectedMonth,
         totalRecords: payrollData.total,
         payrollData: payrollData.data,
         statistics,
-        baseStrategy, // 包含基数策略
-        selectedCategories, // 包含选中的薪资组件分类
-        categories, // 包含所有可用分类及其字段数据
-        selectedEmployeeIds // 添加选中的员工ID
+        baseStrategy,
+        selectedCategories,
+        categories,
+        selectedEmployeeIds
       });
     } else if (!isLoading) {
       onSourceDataChange(null);
     }
-  }, [payrollData?.data, payrollData?.total, selectedMonth, isLoading, baseStrategy, selectedCategories, categories, onSourceDataChange]);
+  }, [payrollData?.data, payrollData?.total, statistics, selectedEmployeeIds, selectedMonth, isLoading, onSourceDataChange]);
+
+  // Separate effect for configuration changes (baseStrategy, categories)
+  useEffect(() => {
+    if (payrollData?.data && payrollData.data.length > 0 && statistics) {
+      onSourceDataChange({
+        type: 'copy',
+        sourceMonth: selectedMonth,
+        totalRecords: payrollData.total,
+        payrollData: payrollData.data,
+        statistics,
+        baseStrategy,
+        selectedCategories,
+        categories,
+        selectedEmployeeIds
+      });
+    }
+  }, [baseStrategy, selectedCategories, categories]);
 
   const handleMonthChange = useCallback((month: string) => {
     setSelectedMonth(month);

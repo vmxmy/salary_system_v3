@@ -15,8 +15,29 @@ const CreationMode = {
 
 type CreationMode = typeof CreationMode[keyof typeof CreationMode];
 
+// 向导状态接口 (应该与主文件中的保持一致)
+interface WizardState {
+  currentStep: number;
+  mode: string | null;
+  payrollPeriod: string;
+  payDate: string;
+  selectedEmployees: string[];
+  sourceData: {
+    sourceMonth?: string;
+    selectedEmployeeIds?: string[];
+    payrollData?: Array<{
+      employee_id: string;
+      net_pay?: number;
+      [key: string]: any;
+    }>;
+    [key: string]: any;
+  } | null;
+  isDraftSaved: boolean;
+  draftId?: string;
+}
+
 interface ConfirmationStepProps {
-  wizardState: any;
+  wizardState: WizardState;
   onConfirm: (result?: { success: boolean; periodId?: string; error?: string }) => void;
 }
 
@@ -43,50 +64,29 @@ export function ConfirmationStep({ wizardState, onConfirm }: ConfirmationStepPro
     setCreationError(null);
 
     try {
-      console.group(`🎯 [${confirmationId}] 开始确认创建薪资记录`);
-      console.log('📋 向导状态详情:', {
-        mode: wizardState.mode,
-        payrollPeriod: wizardState.payrollPeriod,
-        payDate: wizardState.payDate,
-        selectedEmployeeIds: wizardState.selectedEmployees,
-        sourceData: wizardState.sourceData
-      });
+      // Starting payroll creation process
+      // Processing wizard state data
       
-      // 步骤1: 解析薪资期间
-      console.log('⚡ 步骤1: 解析薪资期间');
+      // Parse payroll period
       const [year, month] = wizardState.payrollPeriod.split('-').map(Number);
-      console.log('📅 解析结果:', { year, month });
       
-      // 步骤2: 构建薪资期间日期范围
-      console.log('⚡ 步骤2: 构建薪资期间日期范围');
+      // Build payroll period date range
       const payPeriodStart = `${year}-${month.toString().padStart(2, '0')}-01`;
       const lastDay = new Date(year, month, 0).getDate();
       const payPeriodEnd = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
-      console.log('📆 目标期间:', { payPeriodStart, payPeriodEnd, lastDay });
       
       // 步骤3: 构建源期间日期（如果是复制模式）
       let sourcePeriodStart: string | undefined;
       let sourcePeriodEnd: string | undefined;
       
       if (wizardState.mode === CreationMode.COPY && wizardState.sourceData?.sourceMonth) {
-        console.log('⚡ 步骤3: 构建源期间日期（复制模式）');
         const [srcYear, srcMonth] = wizardState.sourceData.sourceMonth.split('-').map(Number);
         sourcePeriodStart = `${srcYear}-${srcMonth.toString().padStart(2, '0')}-01`;
         const srcLastDay = new Date(srcYear, srcMonth, 0).getDate();
         sourcePeriodEnd = `${srcYear}-${srcMonth.toString().padStart(2, '0')}-${srcLastDay.toString().padStart(2, '0')}`;
-        console.log('📆 源期间:', { 
-          sourceYear: srcYear, 
-          sourceMonth: srcMonth, 
-          sourcePeriodStart, 
-          sourcePeriodEnd, 
-          srcLastDay 
-        });
-      } else {
-        console.log('⚡ 步骤3: 跳过源期间构建（非复制模式）');
       }
       
-      // 步骤4: 构建创建参数
-      console.log('⚡ 步骤4: 构建创建参数');
+      // Build creation parameters
       const createParams = {
         payPeriodStart,
         payPeriodEnd,
@@ -99,39 +99,21 @@ export function ConfirmationStep({ wizardState, onConfirm }: ConfirmationStepPro
         createdBy: undefined // TODO: 从认证上下文获取当前用户ID
       };
 
-      console.log('📤 最终创建参数:', {
-        ...createParams,
-        selectedEmployeeCount: createParams.selectedEmployeeIds?.length || '全部员工',
-        isCopyMode: !!(sourcePeriodStart && sourcePeriodEnd)
-      });
+      // Prepared creation parameters
 
-      // 步骤5: 调用创建服务
-      console.log('⚡ 步骤5: 调用PayrollCreationService.createPayrollBatch');
+      // Call payroll creation service
       const result = await PayrollCreationService.createPayrollBatch(createParams);
       
-      console.log('📊 服务调用完成，结果:', {
-        success: result.success,
-        error_code: result.error_code,
-        error_message: result.error_message,
-        hasSummary: !!result.summary
-      });
+      // Service call completed
 
-      // 步骤6: 处理结果
-      console.log('⚡ 步骤6: 处理创建结果');
+      // Handle creation result
       if (result.success) {
-        console.log('🎉 薪资记录创建成功!');
-        console.log('📈 成功摘要:', result.summary);
         
         onConfirm({
           success: true,
           periodId: `${payPeriodStart}_${payPeriodEnd}`, // 使用日期范围作为标识
         });
       } else {
-        console.error('❌ 薪资记录创建失败');
-        console.error('🔍 失败详情:', {
-          error_code: result.error_code,
-          error_message: result.error_message
-        });
         
         setCreationError(result.error_message || '创建薪资记录失败');
         setIsCreating(false);
@@ -142,16 +124,8 @@ export function ConfirmationStep({ wizardState, onConfirm }: ConfirmationStepPro
           error: result.error_message || '创建薪资记录失败'
         });
       }
-      
-      console.groupEnd();
     } catch (error) {
-      console.error(`💥 [${confirmationId}] 确认创建过程发生异常:`);
-      console.error('🔍 异常详情:', {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      console.groupEnd();
+      console.error('Payroll creation failed with exception:', error instanceof Error ? error.message : String(error));
       
       const errorMessage = error instanceof Error ? error.message : '网络错误，请重试';
       setCreationError(errorMessage);
@@ -168,14 +142,7 @@ export function ConfirmationStep({ wizardState, onConfirm }: ConfirmationStepPro
   // 加载统计信息
   useEffect(() => {
     const loadStatistics = async () => {
-      console.log('🔍 ConfirmationStep 加载统计信息，wizardState:', {
-        mode: wizardState.mode,
-        selectedEmployees: wizardState.selectedEmployees,
-        selectedEmployeesLength: wizardState.selectedEmployees?.length,
-        sourceDataSelectedEmployeeIds: wizardState.sourceData?.selectedEmployeeIds,
-        sourceDataSelectedLength: wizardState.sourceData?.selectedEmployeeIds?.length,
-        sourceDataStatistics: wizardState.sourceData?.statistics
-      });
+      // Loading statistics for confirmation step
       
       setLoadingStats(true);
       try {
@@ -186,29 +153,21 @@ export function ConfirmationStep({ wizardState, onConfirm }: ConfirmationStepPro
             ? wizardState.selectedEmployees 
             : wizardState.sourceData.selectedEmployeeIds || [];
           
-          console.log('📋 复制模式统计计算:', {
-            wizardStateSelectedEmployees: wizardState.selectedEmployees,
-            sourceDataSelectedEmployeeIds: wizardState.sourceData.selectedEmployeeIds,
-            finalSelectedEmployeeIds: selectedEmployeeIds,
-            payrollDataLength: wizardState.sourceData.payrollData?.length
-          });
+          // Calculating statistics for copy mode
           
-          // 注意：payrollData中的字段是employee_id，不是id
-          const selectedData = wizardState.sourceData.payrollData?.filter((emp: any) => 
+          // Ensure consistent field naming: filter by employee_id from payrollData
+          const selectedData = wizardState.sourceData.payrollData?.filter((emp) => 
             selectedEmployeeIds.includes(emp.employee_id)
           ) || [];
           
-          console.log('📊 过滤后的选中数据:', {
-            selectedDataLength: selectedData.length,
-            sampleData: selectedData.slice(0, 2)
-          });
+          // Filtered selected employee data
+          
+          const totalNetPay = selectedData.reduce((sum, emp) => sum + (emp.net_pay || 0), 0);
           
           setStatistics({
             employeeCount: selectedData.length,
-            totalAmount: selectedData.reduce((sum: number, emp: any) => sum + (emp.net_pay || 0), 0),
-            avgAmount: selectedData.length > 0 
-              ? selectedData.reduce((sum: number, emp: any) => sum + (emp.net_pay || 0), 0) / selectedData.length 
-              : 0
+            totalAmount: totalNetPay,
+            avgAmount: selectedData.length > 0 ? totalNetPay / selectedData.length : 0
           });
         } else {
           // 其他模式，从数据库获取预估数据
@@ -299,7 +258,7 @@ export function ConfirmationStep({ wizardState, onConfirm }: ConfirmationStepPro
                 {wizardState.mode === CreationMode.COPY && wizardState.sourceData && (
                   <div className="flex justify-between">
                     <span className="text-base-content/60">数据源:</span>
-                    <span className="font-medium">{formatMonth(wizardState.sourceData.sourceMonth)}</span>
+                    <span className="font-medium">{wizardState.sourceData.sourceMonth ? formatMonth(wizardState.sourceData.sourceMonth) : '-'}</span>
                   </div>
                 )}
               </div>
@@ -381,7 +340,7 @@ export function ConfirmationStep({ wizardState, onConfirm }: ConfirmationStepPro
                 <div>
                   <p className="font-medium text-base-content">复制员工薪资数据</p>
                   <p className="text-sm text-base-content/60">
-                    从 {formatMonth(wizardState.sourceData?.sourceMonth)} 复制 {
+                    从 {wizardState.sourceData?.sourceMonth ? formatMonth(wizardState.sourceData.sourceMonth) : '-'} 复制 {
                       wizardState.selectedEmployees?.length || 
                       wizardState.sourceData?.selectedEmployeeIds?.length || 
                       0
