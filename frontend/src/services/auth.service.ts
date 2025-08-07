@@ -358,16 +358,16 @@ export class AuthService {
         .maybeSingle();
       
       if (!profileError && profileData?.employee_id) {
-        // Then get the employee's position
+        // Then get the employee's position from job history
         const { data: assignmentData, error: assignmentError } = await supabase
-          .from('employee_assignments')
+          .from('employee_job_history')
           .select(`
             position_id,
             positions(name)
           `)
           .eq('employee_id', profileData.employee_id)
-          .eq('is_active', true)
-          .order('start_date', { ascending: false })
+          .or('effective_end_date.is.null,effective_end_date.gte.now()')
+          .order('effective_start_date', { ascending: false })
           .limit(1)
           .maybeSingle();
         
