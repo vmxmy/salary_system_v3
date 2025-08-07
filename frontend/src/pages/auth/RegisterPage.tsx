@@ -67,9 +67,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      await signUp(formData.email, formData.password, {
-        full_name: formData.fullName,
-      });
+      await signUp(formData.email, formData.password);
       
       // For now, use alert - can be replaced with a proper toast system later
       alert(t('register.success'));

@@ -2,7 +2,7 @@ import { RouterProvider } from 'react-router-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from './locales';
 import { router } from './router';
-import { AuthProvider } from './contexts/AuthContext';
+import { UnifiedAuthProvider } from './contexts/UnifiedAuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 
 function App() {
@@ -10,9 +10,9 @@ function App() {
   return (
     <I18nextProvider i18n={i18n}>
       <ToastProvider>
-        <AuthProvider>
+        <UnifiedAuthProvider>
           <RouterProvider router={router} />
-        </AuthProvider>
+        </UnifiedAuthProvider>
       </ToastProvider>
     </I18nextProvider>
   );
