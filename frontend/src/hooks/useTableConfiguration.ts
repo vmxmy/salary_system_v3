@@ -56,6 +56,9 @@ export function useTableConfiguration(tableName: string, actions?: ActionColumn)
         case 'view_payroll_summary':
           tableMetadata = await metadataService.getPayrollViewMetadata();
           break;
+        case 'payroll_metadata':
+          tableMetadata = await metadataService.getPayrollMetadataMetadata();
+          break;
         default:
           throw new Error(`Unsupported table: ${tableName}`);
       }

@@ -9,6 +9,7 @@
     "dashboard": "Dashboard",
     "employees": "Employees",
     "payroll": "Payroll",
+    "payrollMetadata": "Payroll Metadata",
     "organization": "Organization",
     "departments": "Departments",
     "positions": "Positions",

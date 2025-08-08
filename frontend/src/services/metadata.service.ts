@@ -152,6 +152,240 @@ class MetadataService {
   }
 
   /**
+   * 获取薪资元数据表的字段元数据
+   */
+  async getPayrollMetadataMetadata(): Promise<TableMetadata> {
+    const cacheKey = 'payroll_metadata_metadata';
+    
+    // 检查缓存
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const cacheTime = isDevelopment ? 30 * 1000 : this.CACHE_DURATION;
+    
+    if (this.cache.has(cacheKey) && Date.now() < (this.cacheExpiry.get(cacheKey) || 0)) {
+      console.log('Using cached payroll metadata metadata');
+      return this.cache.get(cacheKey)!;
+    }
+
+    // 由于这是一个前端模拟的表格，我们直接返回静态配置
+    const metadata: TableMetadata = {
+      tableName: 'payroll_metadata',
+      displayName: '薪资元数据',
+      description: '薪资计算的基础组件、公式和规则管理',
+      primaryKey: 'id',
+      defaultSort: { field: 'updated_at', direction: 'desc' },
+      defaultFields: [
+        'name',          // 名称
+        'type',          // 类型
+        'category',      // 分类
+        'status',        // 状态
+        'description',   // 描述
+        'updated_at'     // 更新时间
+      ],
+      fields: [
+        {
+          name: 'id',
+          type: 'text',
+          label: 'ID',
+          description: '元数据唯一标识符',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: false,
+          width: 120,
+          alignment: 'left',
+          visible: false,
+          order: 1,
+        },
+        {
+          name: 'name',
+          type: 'text',
+          label: '名称',
+          description: '薪资组件或规则名称',
+          required: false,
+          searchable: true,
+          sortable: true,
+          filterable: false,
+          width: 150,
+          alignment: 'left',
+          visible: true,
+          order: 2,
+        },
+        {
+          name: 'type',
+          type: 'select',
+          label: '类型',
+          description: '元数据类型',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: true,
+          width: 120,
+          alignment: 'center',
+          visible: true,
+          order: 3,
+          options: [
+            { value: 'component', label: '薪资组件' },
+            { value: 'calculation', label: '计算规则' },
+            { value: 'deduction', label: '扣除项目' },
+            { value: 'benefit', label: '福利项目' },
+          ],
+        },
+        {
+          name: 'description',
+          type: 'text',
+          label: '描述',
+          description: '详细说明',
+          required: false,
+          searchable: true,
+          sortable: false,
+          filterable: false,
+          width: 200,
+          alignment: 'left',
+          visible: true,
+          order: 4,
+        },
+        {
+          name: 'category',
+          type: 'text',
+          label: '分类',
+          description: '所属分类',
+          required: false,
+          searchable: true,
+          sortable: true,
+          filterable: true,
+          width: 120,
+          alignment: 'left',
+          visible: true,
+          order: 5,
+        },
+        {
+          name: 'status',
+          type: 'select',
+          label: '状态',
+          description: '使用状态',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: true,
+          width: 100,
+          alignment: 'center',
+          visible: true,
+          order: 6,
+          options: [
+            { value: 'active', label: '活跃' },
+            { value: 'inactive', label: '停用' },
+          ],
+        },
+        {
+          name: 'formula',
+          type: 'text',
+          label: '公式',
+          description: '计算公式',
+          required: false,
+          searchable: true,
+          sortable: false,
+          filterable: false,
+          width: 200,
+          alignment: 'left',
+          visible: false,
+          order: 7,
+        },
+        {
+          name: 'base_amount',
+          type: 'number',
+          label: '基础金额',
+          description: '基础金额',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: false,
+          width: 120,
+          alignment: 'right',
+          visible: false,
+          order: 8,
+        },
+        {
+          name: 'percentage',
+          type: 'number',
+          label: '百分比',
+          description: '计算百分比',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: false,
+          width: 100,
+          alignment: 'right',
+          visible: false,
+          order: 9,
+        },
+        {
+          name: 'taxable',
+          type: 'boolean',
+          label: '应税',
+          description: '是否应税',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: true,
+          width: 80,
+          alignment: 'center',
+          visible: false,
+          order: 10,
+        },
+        {
+          name: 'mandatory',
+          type: 'boolean',
+          label: '强制',
+          description: '是否强制',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: true,
+          width: 80,
+          alignment: 'center',
+          visible: false,
+          order: 11,
+        },
+        {
+          name: 'created_at',
+          type: 'datetime',
+          label: '创建时间',
+          description: '创建时间',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: false,
+          width: 150,
+          alignment: 'center',
+          visible: false,
+          order: 12,
+        },
+        {
+          name: 'updated_at',
+          type: 'datetime',
+          label: '更新时间',
+          description: '最后更新时间',
+          required: false,
+          searchable: false,
+          sortable: true,
+          filterable: false,
+          width: 150,
+          alignment: 'center',
+          visible: true,
+          order: 13,
+        },
+      ],
+    };
+
+    // 缓存结果
+    this.cache.set(cacheKey, metadata);
+    this.cacheExpiry.set(cacheKey, Date.now() + cacheTime);
+    console.log('Payroll metadata metadata cached successfully');
+
+    return metadata;
+  }
+
+  /**
    * 获取员工视图的字段元数据
    */
   async getEmployeeViewMetadata(): Promise<TableMetadata> {
