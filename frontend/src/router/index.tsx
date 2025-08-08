@@ -19,6 +19,7 @@ const DepartmentPage = lazy(() => import('@/pages/department/DepartmentManagemen
 const DepartmentPayrollStatsPage = lazy(() => import('@/pages/department/DepartmentPayrollStatsPage'));
 const PositionPage = lazy(() => import('@/pages/organization/PositionPage'));
 const PayrollListPage = lazy(() => import('@/pages/payroll/PayrollListPage'));
+const PayrollMetadataPage = lazy(() => import('@/pages/payroll/PayrollMetadataPage'));
 const PayrollDetailPage = lazy(() => import('@/pages/payroll/PayrollDetailPage'));
 const CreateBatchPayrollPage = lazy(() => import('@/pages/payroll/CreateBatchPayrollPage'));
 const PayrollCycleWizardPage = lazy(() => import('@/pages/payroll/PayrollCycleWizardPage'));
@@ -174,6 +175,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingScreen />}>
                 <PayrollListPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'metadata',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PayrollMetadataPage />
               </Suspense>
             ),
           },
