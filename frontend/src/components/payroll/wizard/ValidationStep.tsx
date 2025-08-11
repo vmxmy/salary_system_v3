@@ -385,7 +385,7 @@ export function ValidationStep({ wizardState, onValidationComplete }: Validation
                       <td>
                         <div>
                           <div className="font-medium text-base-content">
-                            {employee.full_name}
+                            {employee.employee_name}
                           </div>
                           {employee.has_recent_changes && (
                             <div className="text-xs text-warning">

@@ -10,6 +10,7 @@
     "employees": "Employees",
     "payroll": "Payroll",
     "payrollMetadata": "Payroll Metadata",
+    "payrollImport": "Import Payroll",
     "organization": "Organization",
     "departments": "Departments",
     "positions": "Positions",

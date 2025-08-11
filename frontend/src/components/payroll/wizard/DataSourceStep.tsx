@@ -209,7 +209,7 @@ function CopyModeStep({ sourceData, onSourceDataChange }: { sourceData: any; onS
                 <tbody>
                   {payrollData.data.slice(0, 5).map((item) => (
                     <tr key={item.id}>
-                      <td>{item.employee?.full_name || '未知'}</td>
+                      <td>{item.employee?.employee_name || '未知'}</td>
                       <td className="font-mono text-xs">{item.employee?.id_number || '-'}</td>
                       <td className="font-mono text-success">{formatCurrency(item.gross_pay)}</td>
                       <td className="font-mono text-primary">{formatCurrency(item.net_pay)}</td>

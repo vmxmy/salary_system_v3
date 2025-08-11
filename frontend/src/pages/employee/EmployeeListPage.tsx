@@ -66,7 +66,7 @@ export default function EmployeeListPage() {
       data = data.filter(employee => {
         // 搜索所有可能的字段
         const searchableFields = [
-          employee.full_name,           // 姓名
+          employee.employee_name,           // 姓名
           employee.id_number,           // 身份证号
           employee.department_name,     // 部门
           employee.position_name,       // 职位
@@ -270,7 +270,7 @@ export default function EmployeeListPage() {
       loading={totalLoading}
       tableInstance={tableInstance || undefined}
       onTableReady={setTableInstance}
-      initialSorting={[{ id: 'full_name', desc: false }]}
+      initialSorting={[{ id: 'employee_name', desc: false }]}
       initialPagination={{ pageIndex: 0, pageSize: 75 }}
       enableExport={false}
       showGlobalFilter={false}

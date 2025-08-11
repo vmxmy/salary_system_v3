@@ -293,40 +293,51 @@ export default function DepartmentPayrollStatsPage() {
             </div>
           )}
 
-          {/* 总体统计卡片 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <OverviewStatCard
-              title="部门总数"
-              value={overallStats.totalDepartments}
-              icon={BuildingOfficeIcon}
-              color="purple"
-            />
-            <OverviewStatCard
-              title="员工总数"
-              value={overallStats.totalEmployees}
-              icon={(className: string) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
-              color="blue"
-              trend={overallStats.employeeGrowth !== 0 ? {
-                value: `${overallStats.employeeGrowth > 0 ? '+' : ''}${overallStats.employeeGrowth.toFixed(1)}%`,
-                isPositive: overallStats.employeeGrowth > 0
-              } : undefined}
-            />
-            <OverviewStatCard
-              title="平均薪资"
-              value={`¥${overallStats.avgSalary.toLocaleString()}`}
-              icon={CurrencyDollarIcon}
-              color="green"
-              trend={overallStats.salaryGrowth !== 0 ? {
-                value: `${overallStats.salaryGrowth > 0 ? '+' : ''}${overallStats.salaryGrowth.toFixed(1)}%`,
-                isPositive: overallStats.salaryGrowth > 0
-              } : undefined}
-            />
-            <OverviewStatCard
-              title="薪资总额"
-              value={`¥${(overallStats.totalSalary / 10000).toFixed(1)}万`}
-              icon={ChartBarIcon}
-              color="yellow"
-            />
+          {/* 总体统计卡片 - 使用 DaisyUI stats 组件 */}
+          <div className="stats stats-vertical lg:stats-horizontal shadow w-full">
+            <div className="stat">
+              <div className="stat-figure text-primary">
+                <BuildingOfficeIcon className="w-8 h-8" />
+              </div>
+              <div className="stat-title">部门总数</div>
+              <div className="stat-value text-primary">{overallStats.totalDepartments}</div>
+            </div>
+
+            <div className="stat">
+              <div className="stat-figure text-info">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div className="stat-title">员工总数</div>
+              <div className="stat-value text-info">{overallStats.totalEmployees}</div>
+              {overallStats.employeeGrowth !== 0 && (
+                <div className="stat-desc">
+                  {overallStats.employeeGrowth > 0 ? '↗︎' : '↘︎'} {Math.abs(overallStats.employeeGrowth).toFixed(1)}% 环比
+                </div>
+              )}
+            </div>
+
+            <div className="stat">
+              <div className="stat-figure text-success">
+                <CurrencyDollarIcon className="w-8 h-8" />
+              </div>
+              <div className="stat-title">平均薪资</div>
+              <div className="stat-value text-success">¥{overallStats.avgSalary.toLocaleString()}</div>
+              {overallStats.salaryGrowth !== 0 && (
+                <div className="stat-desc">
+                  {overallStats.salaryGrowth > 0 ? '↗︎' : '↘︎'} {Math.abs(overallStats.salaryGrowth).toFixed(1)}% 环比
+                </div>
+              )}
+            </div>
+
+            <div className="stat">
+              <div className="stat-figure text-warning">
+                <ChartBarIcon className="w-8 h-8" />
+              </div>
+              <div className="stat-title">薪资总额</div>
+              <div className="stat-value text-warning">¥{(overallStats.totalSalary / 10000).toFixed(1)}万</div>
+            </div>
           </div>
 
           {/* 主要内容区域 */}
@@ -460,66 +471,3 @@ export default function DepartmentPayrollStatsPage() {
   );
 }
 
-// 统计卡片组件
-interface OverviewStatCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ComponentType<{ className?: string }> | ((className: string) => React.ReactNode);
-  color: 'purple' | 'blue' | 'green' | 'yellow';
-  trend?: {
-    value: string;
-    isPositive: boolean;
-  };
-}
-
-function OverviewStatCard({ title, value, icon, color, trend }: OverviewStatCardProps) {
-  // DaisyUI classes for styling
-
-  const colorClasses = {
-    purple: 'bg-purple-500/10 text-purple-500 dark:bg-purple-400/10 dark:text-purple-400',
-    blue: 'bg-blue-500/10 text-blue-500 dark:bg-blue-400/10 dark:text-blue-400',
-    green: 'bg-green-500/10 text-green-500 dark:bg-green-400/10 dark:text-green-400',
-    yellow: 'bg-yellow-500/10 text-yellow-500 dark:bg-yellow-400/10 dark:text-yellow-400'
-  };
-
-  const IconComponent = typeof icon === 'function' && icon.length === 0 ? icon as React.ComponentType<{ className?: string }> : null;
-
-  return (
-    <div className={'card bg-base-100 shadow-xl'}>
-      <div className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-sm text-text-secondary">{title}</p>
-            <p className="text-2xl font-bold text-text-primary mt-1">{value}</p>
-            {trend && (
-              <div className={cn(
-                'flex items-center gap-1 mt-2 text-xs',
-                trend.isPositive ? 'text-success' : 'text-error'
-              )}>
-                {trend.isPositive ? (
-                  <ChartBarIcon className="w-3 h-3" />
-                ) : (
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-                  </svg>
-                )}
-                <span>{trend.value}</span>
-                <span className="text-text-tertiary">环比</span>
-              </div>
-            )}
-          </div>
-          <div className={cn(
-            'w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0',
-            colorClasses[color]
-          )}>
-            {IconComponent ? (
-              <IconComponent className="w-6 h-6" />
-            ) : (
-              typeof icon === 'function' ? (icon as any)('w-6 h-6') : icon
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

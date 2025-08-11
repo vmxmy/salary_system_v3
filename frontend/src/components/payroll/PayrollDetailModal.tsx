@@ -23,7 +23,7 @@ interface PayrollDetailData {
   employee_id?: string;
   employee?: {
     id: string;
-    full_name: string;
+    employee_name: string;
     id_number: string;
   };
   pay_period_start: string;
@@ -81,7 +81,7 @@ interface InsuranceDetail {
 // 缴费基数数据类型
 interface ContributionBase {
   employee_id: string;
-  full_name: string;
+  employee_name: string;
   id_number: string;
   employment_status: string;
   insurance_type_id: string;
@@ -268,7 +268,7 @@ export function PayrollDetailModal({
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <h1 className="text-xl font-bold text-base-content">
-                  {payrollData?.employee?.full_name || String(t('payroll:payrollDetails'))}
+                  {payrollData?.employee?.employee_name || String(t('payroll:payrollDetails'))}
                 </h1>
                 <div className="flex items-center gap-4 text-sm text-base-content/60">
                   {payrollData && (

@@ -138,7 +138,7 @@ export default function PayrollDetailPage() {
       {/* 页面标题和操作 */}
       <PageHeader
         title={t('payroll:payrollDetails')}
-        description={`${payroll.employee?.full_name} - ${payroll.employee?.id_number || '未知'}`}
+        description={`${payroll.employee?.employee_name} - ${payroll.employee?.id_number || '未知'}`}
         actions={
           <div className="flex items-center gap-3">
             <button

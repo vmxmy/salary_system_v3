@@ -72,13 +72,14 @@ export class PayrollService {
         pay_period_start,
         pay_period_end,
         employee_id,
-        full_name,
+        employee_name,
         department_name,
         gross_pay,
         total_deductions,
         net_pay,
-        status
-      `, { count: 'exact' });
+        status,
+        id_number
+      `, { count: 'exact' })
 
     // 应用过滤条件
     if (filters?.status) {
@@ -117,15 +118,15 @@ export class PayrollService {
       pay_period_start: item.pay_period_start,
       pay_period_end: item.pay_period_end,
       employee_id: item.employee_id,
-      full_name: item.full_name, // 添加直接的 full_name 字段
+      employee_name: item.employee_name, // 统一使用employee_name字段
       gross_pay: item.gross_pay,
       total_deductions: item.total_deductions,
       net_pay: item.net_pay,
       status: item.status,
       employee: {
         id: item.employee_id,
-        full_name: item.full_name,
-        id_number: null // 视图中没有id_number字段
+        employee_name: item.employee_name,
+        id_number: item.id_number || null
       },
       department_name: item.department_name
     }));
@@ -160,16 +161,17 @@ export class PayrollService {
         pay_period_start,
         pay_period_end,
         employee_id,
-        full_name,
+        employee_name,
         department_name,
         gross_pay,
         total_deductions,
         net_pay,
-        status
-      `, { count: 'exact' });
+        status,
+        id_number
+      `, { count: 'exact' })
 
     // 搜索条件：员工姓名、部门名称或状态匹配
-    query = query.or(`full_name.ilike.${searchTerm},department_name.ilike.${searchTerm},status.ilike.${searchTerm}`);
+    query = query.or(`employee_name.ilike.${searchTerm},department_name.ilike.${searchTerm},status.ilike.${searchTerm}`);
 
     // 应用其他过滤条件
     if (filters.status) {
@@ -208,15 +210,15 @@ export class PayrollService {
       pay_period_start: item.pay_period_start,
       pay_period_end: item.pay_period_end,
       employee_id: item.employee_id,
-      full_name: item.full_name, // 添加直接的 full_name 字段
+      employee_name: item.employee_name, // 统一使用employee_name字段
       gross_pay: item.gross_pay,
       total_deductions: item.total_deductions,
       net_pay: item.net_pay,
       status: item.status,
       employee: {
         id: item.employee_id,
-        full_name: item.full_name,
-        id_number: null // 视图中没有id_number字段
+        employee_name: item.employee_name,
+        id_number: item.id_number || null
       },
       department_name: item.department_name
     }));
@@ -233,14 +235,21 @@ export class PayrollService {
   // 获取薪资详情（包含明细项）
   static async getPayrollDetails(payrollId: string) {
     const { data, error } = await supabase
-      .from('view_payroll_detail_items')
+      .from('view_payroll_unified')
       .select('*')
       .eq('payroll_id', payrollId)
+      .not('payroll_item_id', 'is', null) // 只获取有明细项的记录
       .order('category_sort_order', { ascending: true })
       .order('component_name', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    
+    // 统一字段名映射
+    return (data || []).map(item => ({
+      ...item,
+      amount: item.item_amount, // 映射amount字段
+      item_notes: item.item_notes
+    }));
   }
 
   // 更新薪资记录
@@ -470,7 +479,7 @@ export class PayrollService {
       .from('view_employee_insurance_base_monthly_latest')
       .select(`
         employee_id,
-        full_name,
+        employee_name,
         id_number,
         employment_status,
         insurance_type_id,

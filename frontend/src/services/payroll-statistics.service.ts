@@ -10,7 +10,7 @@ export interface PayrollEstimation {
 
 export interface EmployeePayrollStatistics {
   employeeId: string;
-  fullName: string;
+  employeeName: string;
   idNumber: string;
   employmentStatus: string;
   latestGrossPay: number;
@@ -94,7 +94,7 @@ class PayrollStatisticsService {
 
     return (data || []).map(item => ({
       employeeId: item.employee_id,
-      fullName: item.full_name,
+      employeeName: item.employee_name,
       idNumber: item.id_number,
       employmentStatus: item.employment_status,
       latestGrossPay: Number(item.latest_gross_pay) || 0,
@@ -109,16 +109,26 @@ class PayrollStatisticsService {
    */
   async getPayrollHistoryTrend() {
     const { data, error } = await supabase
-      .from('view_payroll_history_trend')
+      .from('view_payroll_trend_unified')
       .select('*')
-      .order('pay_month', { ascending: false });
+      .eq('is_recent_12_months', true)
+      .order('pay_month', { ascending: false })
+      .limit(12);
 
     if (error) {
       console.error('Error fetching payroll history trend:', error);
       throw error;
     }
 
-    return data || [];
+    // 转换字段名以保持兼容性
+    return (data || []).map(item => ({
+      pay_month: item.pay_month,
+      employee_count: item.employee_count,
+      total_gross: item.total_gross_pay,
+      total_deductions: item.total_deductions,
+      total_net: item.total_net_pay,
+      avg_net_pay: item.avg_net_pay
+    }));
   }
 
   /**

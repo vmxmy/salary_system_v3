@@ -81,7 +81,7 @@ export class InsuranceConfigService {
         *,
         employee:employees(
           id,
-          full_name,
+          employee_name,
           id_number
         ),
         insurance_type:insurance_types(
@@ -127,7 +127,7 @@ export class InsuranceConfigService {
     }
 
     const { data, error } = await query
-      .order('employee_full_name')
+      .order('employee_employee_name')
       .order('insurance_type_name');
 
     if (error) throw error;
@@ -386,7 +386,7 @@ export class InsuranceConfigService {
         *,
         employee:employees(
           id,
-          full_name,
+          employee_name,
           id_number
         ),
         insurance_type:insurance_types(

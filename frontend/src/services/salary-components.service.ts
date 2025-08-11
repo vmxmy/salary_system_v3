@@ -152,7 +152,7 @@ export class SalaryComponentsService {
         *,
         employee:employees(
           id,
-          full_name,
+          employee_name,
           id_number
         ),
         salary_component:salary_components(
