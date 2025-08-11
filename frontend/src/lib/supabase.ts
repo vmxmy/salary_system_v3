@@ -18,21 +18,79 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storage: window.localStorage,
-      debug: process.env.NODE_ENV === 'development', // Enable debug in development
+      debug: process.env.NODE_ENV === 'development',
+      // 改进的认证配置以处理连接问题
+      flowType: 'pkce', // 使用 PKCE 流程提高安全性
+      storageKey: 'sb-rjlymghylrshudywrzec-auth-token',
     },
     global: {
       headers: {
-        'x-application-name': 'salary-system',
+        'x-application-name': 'salary-system-v3',
+        'apikey': supabaseAnonKey,
+      },
+      // 改进连接处理
+      fetch: (url, options = {}) => {
+        return fetch(url, {
+          ...options,
+          // 设置合理的超时时间
+          signal: AbortSignal.timeout(15000), // 15秒超时
+        }).catch(error => {
+          console.error('[Supabase] Network error:', error);
+          if (error.name === 'AbortError') {
+            throw new Error('连接超时，请检查网络或项目状态');
+          }
+          if (error.message.includes('ERR_CONNECTION_CLOSED')) {
+            throw new Error('连接已关闭，可能项目已暂停，请检查 Supabase 项目状态');
+          }
+          throw error;
+        });
       },
     },
     db: {
       schema: 'public',
+    },
+    // 针对无状态应用的连接池配置
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
     },
   }
 );
 
 // Log initialization
 console.log('[Supabase] Client initialized with URL:', supabaseUrl);
+
+// 认证错误处理工具函数
+export const handleAuthError = (error: any) => {
+  if (error?.message?.includes('ERR_CONNECTION_CLOSED')) {
+    // 清除可能损坏的认证状态
+    localStorage.removeItem('sb-rjlymghylrshudywrzec-auth-token');
+    console.warn('[Supabase] Connection closed, clearing auth state');
+    
+    // 可选：重新加载页面或重定向到登录页面
+    return {
+      shouldReload: true,
+      message: 'Supabase 项目可能已暂停，请检查项目状态或稍后再试'
+    };
+  }
+  
+  if (error?.message?.includes('Invalid refresh token')) {
+    // 清除无效的刷新令牌
+    localStorage.removeItem('sb-rjlymghylrshudywrzec-auth-token');
+    console.warn('[Supabase] Invalid refresh token, clearing auth state');
+    
+    return {
+      shouldReload: true,
+      message: '认证令牌已过期，请重新登录'
+    };
+  }
+  
+  return {
+    shouldReload: false,
+    message: error?.message || '未知错误'
+  };
+};
 
 // Initialize performance monitoring in development mode
 // Temporarily disabled to debug authentication issues

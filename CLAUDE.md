@@ -264,6 +264,84 @@ The system maintains the sophisticated HR and payroll management capabilities of
 
 ### Frontend Development Memories
 - 前端使用标准的daisyUI5样式，不要使用任何自定义的样式管理
+- **字段命名统一**：所有字段使用 `employee_name` 而不是 `full_name`，保持前后端一致
+
+## 数据库视图和字段规范文档
+
+### 视图架构使用指南 (view-documentation.md)
+
+系统采用分层视图架构，解决了数据冗余和性能问题：
+
+#### 核心视图使用场景
+- **view_payroll_summary**: 薪资列表页面（一对一关系，避免数据重复）
+  - 用于列表展示，每个薪资记录仅一行
+  - 包含员工基本信息但不包含薪资明细项
+  - 查询示例: `.from('view_payroll_summary').select('*').eq('pay_month', '2025-01')`
+
+- **view_payroll_unified**: 薪资详情页面（一对多关系，包含所有明细）
+  - 用于详情展示和报表生成
+  - 每个薪资对应多行（各薪资项目）
+  - 查询示例: `.from('view_payroll_unified').select('*').eq('payroll_id', 'uuid')`
+
+- **view_payroll_trend_unified**: 统计报表（预聚合数据）
+  - 用于趋势分析和月度统计
+  - 包含汇总指标和时间维度标识
+  - 查询示例: `.from('view_payroll_trend_unified').select('*').eq('is_recent_12_months', true)`
+
+#### 性能优化原则
+1. 列表页面必须使用 `view_payroll_summary` 避免JOIN导致的数据倍增
+2. 详情页面使用 `view_payroll_unified` 获取完整信息
+3. 统计分析使用专门的聚合视图，避免实时计算
+
+### 字段映射规范 (field-mapping-guide.md)
+
+#### 统一字段命名规则
+所有前后端代码必须使用一致的字段名，禁止使用已废弃的旧字段名：
+
+**核心字段映射**:
+- `employee_name` (原 full_name) - 员工姓名
+- `payroll_id` (原 id) - 薪资记录ID
+- `bank_account_number` (原 primary_bank_account) - 银行账号
+- `position_name` (原 position_title) - 职位名称
+- `category_name` (原 personnel_category_name) - 人员类别
+
+**时间维度字段**:
+- `pay_month` - 格式: YYYY-MM
+- `pay_month_string` - 格式: YYYY年MM月
+- `pay_year` - 年份数字
+- `pay_month_number` - 月份数字(1-12)
+- `is_current_month` - 是否当前月份
+- `is_current_year` - 是否当前年份
+
+#### TypeScript类型定义要求
+```typescript
+// 标准接口定义
+interface Employee {
+  employee_id: string;
+  employee_name: string;  // 不使用 full_name
+  // ...
+}
+
+interface PayrollSummaryView {
+  payroll_id: string;
+  employee_name: string;  // 映射自 employees.full_name
+  department_name?: string;
+  // ...
+}
+```
+
+#### 数据转换最佳实践
+- 后端视图层负责字段名映射（如 `e.full_name as employee_name`）
+- 前端直接使用统一后的字段名，无需二次转换
+- 避免在前端代码中做字段名兼容处理
+
+### 重要提醒
+1. **新功能开发**: 必须参照字段映射规范，使用统一的字段名
+2. **视图选择**: 根据使用场景选择正确的视图，避免性能问题
+3. **类型安全**: 使用 TypeScript 接口确保字段名一致性
+4. **文档位置**: 
+   - 视图API文档: `/docs/api/view-documentation.md`
+   - 字段映射指南: `/docs/field-mapping-guide.md`
 
 ## DaisyUI 5 + TailwindCSS 4 样式配置管理指南
 

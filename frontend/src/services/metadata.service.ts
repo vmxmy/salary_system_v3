@@ -70,7 +70,7 @@ class MetadataService {
     const basicStructure = {
       'view_employee_basic_info': [
         { column_name: 'employee_id', data_type: 'uuid', is_nullable: 'YES', ordinal_position: 1 },
-        { column_name: 'full_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 2 },
+        { column_name: 'employee_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 2 },
         { column_name: 'department_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 3 },
         { column_name: 'position_name', data_type: 'text', is_nullable: 'YES', ordinal_position: 4 },
         { column_name: 'employment_status', data_type: 'text', is_nullable: 'YES', ordinal_position: 5 },
@@ -129,7 +129,7 @@ class MetadataService {
         primaryKey: 'payroll_id',
         defaultSort: { field: 'pay_date', direction: 'desc' },
         defaultFields: [
-          'full_name',        // 员工姓名
+          'employee_name',    // 员工姓名
           'department_name',  // 部门
           'pay_date',         // 发薪日期
           'status',           // 状态
@@ -431,9 +431,9 @@ class MetadataService {
         description: '员工基本信息和当前状态',
         fields: fields.sort((a, b) => (a.order || 999) - (b.order || 999)),
         primaryKey: 'employee_id',
-        defaultSort: { field: 'full_name', direction: 'asc' },
+        defaultSort: { field: 'employee_name', direction: 'asc' },
         defaultFields: [
-          'full_name',      // 姓名
+          'employee_name',  // 姓名
           'gender',         // 性别
           'category_name',  // 人员身份（人员类别）
           'department_name',// 部门
@@ -490,7 +490,7 @@ class MetadataService {
   private generateFieldLabel(fieldName: string): string {
     const labelMap: Record<string, string> = {
       'employee_id': '员工ID',
-      'full_name': '姓名',
+      'employee_name': '姓名',
       'id_number': '身份证号',
       'hire_date': '入职日期',
       'termination_date': '离职日期',
@@ -532,7 +532,6 @@ class MetadataService {
   private generateFieldDescription(fieldName: string): string {
     const descMap: Record<string, string> = {
       'employee_id': '员工唯一标识符',
-      'full_name': '员工完整姓名',
       'employment_status': '员工当前在职状态（在职/离职/停职）',
       'department_name': '员工所属部门名称',
       'position_name': '员工当前职位名称',
@@ -547,7 +546,7 @@ class MetadataService {
    */
   private isSearchableField(fieldName: string): boolean {
     const searchableFields = [
-      'full_name', 'employee_id', 'id_number', 'department_name', 
+      'employee_name', 'employee_id', 'id_number', 'department_name', 
       'position_name', 'rank_name', 'category_name', 'mobile_phone',
       'email', 'work_email', 'personal_email', 'bank_name',
       'primary_bank_account', 'latest_institution', 'latest_field_of_study'
@@ -581,7 +580,6 @@ class MetadataService {
   private getDefaultWidth(fieldName: string): number {
     const widthMap: Record<string, number> = {
       'employee_id': 120,
-      'full_name': 120,
       'id_number': 150,
       'employment_status': 100,
       'department_name': 120,
@@ -621,7 +619,7 @@ class MetadataService {
    */
   private isDefaultVisible(fieldName: string): boolean {
     const defaultVisibleFields = [
-      'full_name',      // 姓名
+      'employee_name',  // 姓名
       'gender',         // 性别
       'category_name',  // 人员身份（人员类别）
       'department_name',// 部门
@@ -664,7 +662,7 @@ class MetadataService {
    */
   private getDefaultOrder(fieldName: string): number {
     const orderMap: Record<string, number> = {
-      'full_name': 1,           // 姓名
+      'employee_name': 1,       // 姓名
       'gender': 2,              // 性别
       'category_name': 3,       // 人员身份
       'department_name': 4,     // 部门
@@ -711,7 +709,7 @@ class MetadataService {
       'pay_period_start': '计薪开始',
       'pay_period_end': '计薪结束',
       'employee_id': '员工ID',
-      'full_name': '员工姓名',
+      'employee_name': '员工姓名',
       'department_name': '部门',
       'position_name': '职位',
       'category_name': '人员类别',
@@ -735,7 +733,7 @@ class MetadataService {
   private generatePayrollFieldDescription(fieldName: string): string {
     const descMap: Record<string, string> = {
       'payroll_id': '薪资记录唯一标识符',
-      'full_name': '员工完整姓名',
+      'employee_name': '员工完整姓名',
       'department_name': '员工所属部门',
       'pay_date': '薪资发放日期',
       'status': '薪资记录当前状态',
@@ -752,7 +750,7 @@ class MetadataService {
    */
   private isPayrollSearchableField(fieldName: string): boolean {
     const searchableFields = [
-      'full_name', 'department_name', 'position_name', 'category_name', 
+      'employee_name', 'department_name', 'position_name', 'category_name', 
       'status', 'primary_bank_account', 'bank_name'
     ];
     return searchableFields.includes(fieldName);
@@ -782,7 +780,7 @@ class MetadataService {
   private getPayrollDefaultWidth(fieldName: string): number {
     const widthMap: Record<string, number> = {
       'payroll_id': 120,
-      'full_name': 120,
+      'employee_name': 120,
       'department_name': 120,
       'position_name': 120,
       'category_name': 120,
@@ -808,7 +806,7 @@ class MetadataService {
    */
   private isPayrollDefaultVisible(fieldName: string): boolean {
     const defaultVisibleFields = [
-      'full_name',        // 员工姓名
+      'employee_name',    // 员工姓名
       'department_name',  // 部门
       'pay_date',         // 发薪日期
       'status',           // 状态
@@ -842,7 +840,7 @@ class MetadataService {
    */
   private getPayrollDefaultOrder(fieldName: string): number {
     const orderMap: Record<string, number> = {
-      'full_name': 1,         // 员工姓名
+      'employee_name': 1,     // 员工姓名
       'department_name': 2,   // 部门
       'pay_date': 3,          // 发薪日期
       'status': 4,            // 状态
@@ -876,7 +874,7 @@ class MetadataService {
       primaryKey: 'payroll_id',
       defaultSort: { field: 'pay_date', direction: 'desc' },
       defaultFields: [
-        'full_name',        // 员工姓名
+        'employee_name',    // 员工姓名
         'department_name',  // 部门
         'pay_date',         // 发薪日期
         'status',           // 状态
@@ -900,7 +898,7 @@ class MetadataService {
           order: 8,
         },
         {
-          name: 'full_name',
+          name: 'employee_name',
           type: 'text',
           label: '员工姓名',
           description: '员工完整姓名',
@@ -1016,9 +1014,9 @@ class MetadataService {
       displayName: '员工列表',
       description: '员工基本信息和当前状态',
       primaryKey: 'employee_id',
-      defaultSort: { field: 'full_name', direction: 'asc' },
+      defaultSort: { field: 'employee_name', direction: 'asc' },
       defaultFields: [
-        'full_name',      // 姓名
+        'employee_name',  // 姓名
         'gender',         // 性别
         'category_name',  // 人员身份
         'department_name',// 部门
@@ -1041,7 +1039,7 @@ class MetadataService {
           order: 1,
         },
         {
-          name: 'full_name',
+          name: 'employee_name',
           type: 'text',
           label: '姓名',
           description: '员工完整姓名',

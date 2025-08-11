@@ -17,7 +17,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 interface EmployeeData {
   id: string;
-  full_name: string;
+  employee_name: string;
   id_number: string;
   department_name?: string;
   position_name?: string;
@@ -57,11 +57,11 @@ export default function CreateBatchPayrollPage() {
   // 表格列定义
   const columns: ColumnDef<any>[] = [
     {
-      accessorKey: 'full_name',
+      accessorKey: 'employee_name',
       header: t('employee:fullName'),
       cell: ({ row }) => (
         <div>
-          <p className="font-medium">{row.original.full_name}</p>
+          <p className="font-medium">{row.original.employee_name}</p>
           <p className="text-xs text-base-content/60">{row.original.id_number}</p>
         </div>
       )

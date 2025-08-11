@@ -49,7 +49,7 @@ export class EmployeeService extends BaseService<'employees'> {
     const { data: employeesData, error } = await supabase
       .from('view_employee_basic_info')
       .select('*')
-      .order('full_name', { ascending: true });
+      .order('employee_name', { ascending: true });
 
     if (error) {
       console.error('Failed to fetch employees:', error);
@@ -64,7 +64,7 @@ export class EmployeeService extends BaseService<'employees'> {
     const employees: EmployeeListItem[] = employeesData.map(emp => ({
       id: emp.employee_id,
       employee_id: emp.employee_id,
-      full_name: emp.full_name,
+      employee_name: emp.employee_name,
       id_number: emp.id_number,
       hire_date: emp.hire_date,
       termination_date: emp.termination_date,
@@ -108,7 +108,7 @@ export class EmployeeService extends BaseService<'employees'> {
    * 分页获取员工数据
    */
   async getEmployees(params: EmployeeQueryParams): Promise<EmployeeQueryResult> {
-    const { page = 1, pageSize = 10, search, employment_status, department_id, sortBy = 'full_name', sortOrder = 'asc' } = params;
+    const { page = 1, pageSize = 10, search, employment_status, department_id, sortBy = 'employee_name', sortOrder = 'asc' } = params;
     
     // 使用视图查询
     let query = supabase
@@ -117,7 +117,7 @@ export class EmployeeService extends BaseService<'employees'> {
 
     // 应用筛选条件
     if (search) {
-      query = query.or(`full_name.ilike.%${search}%,employee_id.ilike.%${search}%,mobile_phone.ilike.%${search}%`);
+      query = query.or(`employee_name.ilike.%${search}%,employee_id.ilike.%${search}%,mobile_phone.ilike.%${search}%`);
     }
     
     if (employment_status) {
@@ -146,7 +146,7 @@ export class EmployeeService extends BaseService<'employees'> {
     const employees: EmployeeListItem[] = (data || []).map(emp => ({
       id: emp.employee_id,
       employee_id: emp.employee_id,
-      full_name: emp.full_name,
+      employee_name: emp.employee_name,
       id_number: emp.id_number,
       hire_date: emp.hire_date,
       termination_date: emp.termination_date,
@@ -206,7 +206,7 @@ export class EmployeeService extends BaseService<'employees'> {
       pageSize: options.limit || 10,
       search: options.search,
       employment_status: options.status,
-      sortBy: 'full_name',
+      sortBy: 'employee_name',
       sortOrder: 'asc'
     };
 
@@ -320,7 +320,7 @@ export class EmployeeService extends BaseService<'employees'> {
    */
   async updateEmployeeDetails(employeeId: string, updates: {
     // 基本信息
-    full_name?: string;
+    employee_name?: string;
     gender?: string;
     date_of_birth?: string;
     id_number?: string;
@@ -343,7 +343,7 @@ export class EmployeeService extends BaseService<'employees'> {
   }) {
     // 1. 更新员工基本信息（不包括银行信息）
     const employeeUpdates: any = {};
-    if (updates.full_name !== undefined) employeeUpdates.full_name = updates.full_name;
+    if (updates.employee_name !== undefined) employeeUpdates.employee_name = updates.employee_name;
     if (updates.gender !== undefined) employeeUpdates.gender = updates.gender;
     if (updates.date_of_birth !== undefined) employeeUpdates.date_of_birth = updates.date_of_birth;
     if (updates.id_number !== undefined) employeeUpdates.id_number = updates.id_number;
@@ -1365,7 +1365,7 @@ export class EmployeeService extends BaseService<'employees'> {
     
     // 只保留employees表实际存在的字段
     const basicEmployeeData = {
-      full_name: employeeFields.full_name,
+      employee_name: employeeFields.employee_name,
       gender: employeeFields.gender,
       date_of_birth: employeeFields.date_of_birth,
       id_number: employeeFields.id_number,
