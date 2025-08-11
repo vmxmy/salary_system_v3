@@ -9,7 +9,7 @@ interface PayrollSummaryCardProps {
   payroll: {
     id: string;
     employee?: {
-      full_name: string;
+      employee_name: string;
       id_number: string;
     };
     pay_period_start: string;
@@ -50,7 +50,7 @@ export function PayrollSummaryCard({
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold text-base-content truncate">
-            {payroll.employee?.full_name || t('unknown')}
+            {payroll.employee?.employee_name || t('unknown')}
           </h3>
           <p className="text-sm text-base-content/60">
             {payroll.employee?.id_number || '-'}

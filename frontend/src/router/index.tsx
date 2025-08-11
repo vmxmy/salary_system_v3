@@ -20,6 +20,8 @@ const DepartmentPayrollStatsPage = lazy(() => import('@/pages/department/Departm
 const PositionPage = lazy(() => import('@/pages/organization/PositionPage'));
 const PayrollListPage = lazy(() => import('@/pages/payroll/PayrollListPage'));
 const PayrollMetadataPage = lazy(() => import('@/pages/payroll/PayrollMetadataPage'));
+const PayrollImportPage = lazy(() => import('@/pages/payroll/PayrollImportPage'));
+const MetadataManagementPage = lazy(() => import('@/pages/metadata/MetadataManagementPage'));
 const PayrollDetailPage = lazy(() => import('@/pages/payroll/PayrollDetailPage'));
 const CreateBatchPayrollPage = lazy(() => import('@/pages/payroll/CreateBatchPayrollPage'));
 const PayrollCycleWizardPage = lazy(() => import('@/pages/payroll/PayrollCycleWizardPage'));
@@ -168,6 +170,14 @@ export const router = createBrowserRouter([
         ],
       },
       {
+        path: 'metadata',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <MetadataManagementPage />
+          </Suspense>
+        ),
+      },
+      {
         path: 'payroll',
         children: [
           {
@@ -183,6 +193,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingScreen />}>
                 <PayrollMetadataPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'import',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PayrollImportPage />
               </Suspense>
             ),
           },

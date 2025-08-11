@@ -13,7 +13,7 @@ import type { EmployeeEducation } from '@/types/employee';
 // 员工数据类型 (支持新增和编辑)
 interface EmployeeData {
   employee_id?: string; // 新增时为空
-  full_name?: string;
+  employee_name?: string;
   gender?: string;
   date_of_birth?: string;
   id_number?: string;
@@ -46,7 +46,7 @@ interface EmployeeModalProps {
 
 // 默认员工数据模板
 const INITIAL_EMPLOYEE_DATA: EmployeeData = {
-  full_name: '',
+  employee_name: '',
   gender: '',
   date_of_birth: '',
   id_number: '',
@@ -136,7 +136,7 @@ export function EmployeeModal({
     if (mode === 'create') {
       // 创建模式的必填字段验证
       const requiredFields = [
-        { field: 'full_name', label: '姓名' },
+        { field: 'employee_name', label: '姓名' },
         { field: 'gender', label: '性别' },
         { field: 'date_of_birth', label: '出生日期' },
         { field: 'hire_date', label: '入职日期' },
@@ -198,7 +198,7 @@ export function EmployeeModal({
         const updates: any = {};
         
         // 基本信息
-        if (editDataRef.full_name !== employee.full_name) updates.full_name = editDataRef.full_name;
+        if (editDataRef.employee_name !== employee.employee_name) updates.employee_name = editDataRef.employee_name;
         if (editDataRef.gender !== employee.gender) updates.gender = editDataRef.gender;
         if (editDataRef.date_of_birth !== employee.date_of_birth) updates.date_of_birth = editDataRef.date_of_birth;
         if (editDataRef.id_number !== employee.id_number) updates.id_number = editDataRef.id_number;
@@ -285,7 +285,7 @@ export function EmployeeModal({
         };
       case 'edit':
         return {
-          title: `编辑 ${displayData?.full_name || '员工'}`,
+          title: `编辑 ${displayData?.employee_name || '员工'}`,
           subtitle: displayData?.employee_id ? `员工编号: ${displayData.employee_id}` : '',
           icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,7 +299,7 @@ export function EmployeeModal({
       case 'view':
       default:
         return {
-          title: displayData?.full_name || '员工详情',
+          title: displayData?.employee_name || '员工详情',
           subtitle: [
             displayData?.employee_id && `员工编号: ${displayData.employee_id}`,
             displayData?.department_name,
@@ -556,7 +556,7 @@ export function EmployeeModal({
             {/* 紧凑内容 */}
             <div className="p-3">
               <p className="text-xs text-base-content/80">
-                确定要删除员工 <span className="font-medium text-base-content">{employee?.full_name}</span> 吗？
+                确定要删除员工 <span className="font-medium text-base-content">{employee?.employee_name}</span> 吗？
               </p>
               <div className="alert alert-warning mt-2 p-2">
                 <svg className="w-3 h-3 stroke-current shrink-0" fill="none" viewBox="0 0 24 24">
@@ -735,9 +735,9 @@ function EmployeeDetailContent({ employee, isEditing, onEditDataChange }: Employ
         <AccordionContent>
           <DetailField 
             label={String(t('employee:fields.fullName'))} 
-            value={isEditing ? editData.full_name : employee.full_name}
+            value={isEditing ? editData.employee_name : employee.employee_name}
             isEditing={isEditing}
-            onChange={(value) => updateEditData('full_name', value)}
+            onChange={(value) => updateEditData('employee_name', value)}
           />
           <DetailField 
             label={String(t('employee:fields.gender'))} 

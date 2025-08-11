@@ -50,7 +50,7 @@ interface PayrollDataItem {
   id: string;
   employee_id: string;
   employee?: {
-    full_name?: string;
+    employee_name?: string;
     id_number?: string | null;
   };
   gross_pay?: number;
@@ -60,7 +60,7 @@ interface PayrollDataItem {
   pay_date?: string;
   pay_period_start?: string;
   pay_period_end?: string;
-  full_name?: string;
+  employee_name?: string;
   total_deductions?: number;
   department_name?: string;
 }
@@ -947,7 +947,7 @@ function CopyModeStepInline({ sourceData, onSourceDataChange }: { sourceData: So
                 <tbody>
                   {payrollData.data.slice(0, 5).map((item) => (
                     <tr key={item.id}>
-                      <td>{item.employee?.full_name || '未知'}</td>
+                      <td>{item.employee?.employee_name || '未知'}</td>
                       <td className="font-mono text-xs">{item.employee?.id_number || '-'}</td>
                       <td className="font-mono text-success">{formatCurrency(item.gross_pay)}</td>
                       <td className="font-mono text-primary">{formatCurrency(item.net_pay)}</td>

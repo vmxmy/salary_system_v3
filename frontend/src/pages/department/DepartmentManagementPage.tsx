@@ -29,14 +29,6 @@ import {
 import { filterDepartmentTree } from '@/utils/departmentFilters';
 import type { DepartmentViewMode, DepartmentSearchFilters, DepartmentNode } from '@/types/department';
 
-// 添加统计卡片类型定义
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  description?: string;
-  icon: React.ReactNode;
-  colorClass?: string;
-}
 
 export default function DepartmentManagementPage() {
   const { showSuccess, showError, showWarning, showInfo } = useToast();
@@ -119,37 +111,6 @@ export default function DepartmentManagementPage() {
     };
   }, [filteredDepartments, payrollStatsMap]);
 
-  // 准备统计卡片数据
-  const statCards: StatCardProps[] = useMemo(() => [
-    {
-      title: '部门总数',
-      value: stats.totalDepartments,
-      description: '组织架构',
-      icon: <BuildingOfficeIcon className="w-6 h-6" />,
-      colorClass: 'text-primary'
-    },
-    {
-      title: '员工总数',
-      value: stats.totalEmployees,
-      description: '人员规模',
-      icon: <UsersIcon className="w-6 h-6" />,
-      colorClass: 'text-info'
-    },
-    {
-      title: '活跃部门',
-      value: stats.activeDepartments,
-      description: '有员工的部门',
-      icon: <ChartBarIcon className="w-6 h-6" />,
-      colorClass: 'text-success'
-    },
-    {
-      title: '平均薪资',
-      value: `¥${stats.avgSalary.toFixed(0)}`,
-      description: '薪资水平',
-      icon: <CurrencyDollarIcon className="w-6 h-6" />,
-      colorClass: 'text-warning'
-    }
-  ], [stats]);
 
   // 处理搜索
   const handleSearch = useCallback((filters: DepartmentSearchFilters) => {
@@ -464,32 +425,43 @@ export default function DepartmentManagementPage() {
           <p className="text-base-content/70 mt-2">管理组织架构，查看部门层级和薪资统计</p>
         </div>
 
-        {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {statCards.map((card, index) => (
-            <div key={index} className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
-              <div className="card-body p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-base-content/60 mb-1">
-                      {card.title}
-                    </p>
-                    <p className={`text-2xl font-bold ${card.colorClass || 'text-base-content'}`}>
-                      {card.value}
-                    </p>
-                    {card.description && (
-                      <p className="text-xs text-base-content/50 mt-1">
-                        {card.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className={`p-2 rounded-lg bg-base-200/50 ${card.colorClass || 'text-base-content/60'}`}>
-                    {card.icon}
-                  </div>
-                </div>
-              </div>
+        {/* 统计卡片 - 使用 DaisyUI stats 组件 */}
+        <div className="stats stats-vertical lg:stats-horizontal shadow w-full">
+          <div className="stat">
+            <div className="stat-figure text-primary">
+              <BuildingOfficeIcon className="w-8 h-8" />
             </div>
-          ))}
+            <div className="stat-title">部门总数</div>
+            <div className="stat-value text-primary">{stats.totalDepartments}</div>
+            <div className="stat-desc">组织架构</div>
+          </div>
+
+          <div className="stat">
+            <div className="stat-figure text-info">
+              <UsersIcon className="w-8 h-8" />
+            </div>
+            <div className="stat-title">员工总数</div>
+            <div className="stat-value text-info">{stats.totalEmployees}</div>
+            <div className="stat-desc">人员规模</div>
+          </div>
+
+          <div className="stat">
+            <div className="stat-figure text-success">
+              <ChartBarIcon className="w-8 h-8" />
+            </div>
+            <div className="stat-title">活跃部门</div>
+            <div className="stat-value text-success">{stats.activeDepartments}</div>
+            <div className="stat-desc">有员工的部门</div>
+          </div>
+
+          <div className="stat">
+            <div className="stat-figure text-warning">
+              <CurrencyDollarIcon className="w-8 h-8" />
+            </div>
+            <div className="stat-title">平均薪资</div>
+            <div className="stat-value text-warning">¥{stats.avgSalary.toFixed(0)}</div>
+            <div className="stat-desc">薪资水平</div>
+          </div>
         </div>
       </div>
 

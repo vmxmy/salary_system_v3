@@ -463,7 +463,7 @@ function DynamicCell<T = any>({ value, row, field }: DynamicCellProps<T>) {
         );
       }
       // 特殊处理姓名
-      if (field.name === 'full_name') {
+      if (field.name === 'employee_name') {
         return (
           <div className={cn(cellClass, 'font-medium text-base-content')}>
             {value}

@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 
 export interface EmployeeValidationData {
   id: string;
-  full_name: string;
+  employee_name: string;
   id_number: string;
   employment_status: string;
   hire_date: string;
@@ -71,7 +71,7 @@ export class PayrollValidationService {
       const employeeIds = sourcePayrollData.map((item: any) => item.employee_id);
       const { data: currentEmployeeStatus, error: statusError } = await supabase
         .from('employees')
-        .select('id, full_name, id_number, employment_status, hire_date, termination_date, updated_at')
+        .select('id, employee_name, id_number, employment_status, hire_date, termination_date, updated_at')
         .in('id', employeeIds);
 
       if (statusError) {
@@ -179,7 +179,7 @@ export class PayrollValidationService {
 
     return {
       id: employee.id,
-      full_name: employee.full_name,
+      employee_name: employee.employee_name,
       id_number: employee.id_number,
       employment_status: employee.employment_status,
       hire_date: employee.hire_date,

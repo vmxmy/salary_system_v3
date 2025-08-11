@@ -19,7 +19,7 @@ interface PayrollDetailViewProps {
   payroll: {
     id: string;
     employee?: {
-      full_name: string;
+      employee_name: string;
       id_number: string | null;
     };
     pay_period_start: string;
@@ -77,7 +77,7 @@ export function PayrollDetailView({
                 {t('payrollDetails')}
               </h2>
               <p className="text-base-content/60 mt-1">
-                {payroll.employee?.full_name} ({payroll.employee?.id_number})
+                {payroll.employee?.employee_name} ({payroll.employee?.id_number})
               </p>
             </div>
             <PayrollStatusBadge status={payroll.status} size="lg" showIcon={false} />

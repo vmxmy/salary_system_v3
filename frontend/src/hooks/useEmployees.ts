@@ -64,7 +64,7 @@ export function useAllEmployees() {
                     const updatedData = oldData.map(employee => 
                       employee.employee_id === newRecord.id ? {
                         ...employee,
-                        full_name: newRecord.full_name || employee.full_name,
+                        employee_name: newRecord.employee_name || employee.employee_name,
                         email: newRecord.email || employee.email,
                         mobile_phone: newRecord.mobile_phone || employee.mobile_phone,
                         employment_status: newRecord.employment_status || employee.employment_status,
@@ -337,7 +337,7 @@ export function useEmployeeListFiltering() {
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
         const searchableFields = [
-          employee.full_name,
+          employee.employee_name,
           employee.employee_id,
           employee.email,
           employee.mobile_phone,

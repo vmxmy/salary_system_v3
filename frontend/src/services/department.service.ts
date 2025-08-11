@@ -184,7 +184,7 @@ export class DepartmentService extends BaseService<'departments'> {
         .from('view_employee_basic_info')
         .select('*')
         .eq('department_id', departmentId)
-        .order('full_name', { ascending: true });
+        .order('employee_name', { ascending: true });
 
       if (error) throw error;
       
@@ -192,8 +192,8 @@ export class DepartmentService extends BaseService<'departments'> {
       return (data || []).map(employee => ({
         id: employee.employee_id,
         employee_id: employee.employee_id,
-        full_name: employee.full_name,
-        name: employee.full_name,  // 保持兼容性
+        employee_name: employee.employee_name,
+        name: employee.employee_name,  // 保持兼容性
         position_name: employee.position_name,
         personnel_category: employee.category_name,  // 使用正确的字段名
         employment_status: employee.employment_status,
@@ -295,7 +295,7 @@ export class DepartmentService extends BaseService<'departments'> {
       .from('view_employee_basic_info')
       .select('*')
       .eq('department_id', departmentId)
-      .order('full_name', { ascending: true });
+      .order('employee_name', { ascending: true });
 
     if (error) throw error;
     return data || [];

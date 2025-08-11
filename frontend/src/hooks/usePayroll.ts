@@ -50,7 +50,7 @@ export function usePayrollResults(periodId?: string) {
           *,
           employee:employees(
             id,
-            full_name,
+            employee_name,
             employee_no,
             id_number,
             department:departments(name),
@@ -195,7 +195,7 @@ export function useExportPayroll(periodId: string) {
         .select(`
           *,
           employee:employees(
-            full_name,
+            employee_name,
             employee_no,
             id_number,
             bank_account,

@@ -12,6 +12,7 @@
     "employees": "员工管理",
     "payroll": "薪资管理",
     "payrollMetadata": "薪资元数据",
+    "payrollImport": "薪资导入",
     "organization": "组织架构",
     "departments": "部门管理",
     "positions": "岗位管理",

@@ -569,8 +569,8 @@ function DepartmentDetailContent({
             <DepartmentEmployeePanel
               department={{
                 ...department,
-                manager: typeof department.manager === 'object' && department.manager?.full_name 
-                  ? department.manager.full_name 
+                manager: typeof department.manager === 'object' && department.manager?.employee_name 
+                  ? department.manager.employee_name 
                   : (department.manager as unknown as string) || undefined
               }}
               className="border-0 shadow-none"
@@ -592,8 +592,8 @@ function DepartmentDetailContent({
             <DepartmentPayrollAnalysis
               department={{
                 ...department,
-                manager: typeof department.manager === 'object' && department.manager?.full_name 
-                  ? department.manager.full_name 
+                manager: typeof department.manager === 'object' && department.manager?.employee_name 
+                  ? department.manager.employee_name 
                   : (department.manager as unknown as string) || undefined
               }}
               className="border-0 shadow-none"

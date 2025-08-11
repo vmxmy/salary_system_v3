@@ -3,7 +3,7 @@
 export interface Employee {
   id: string;
   user_id?: string;
-  full_name: string;
+  employee_name: string;
   id_number?: string;
   hire_date: string;
   termination_date?: string;
@@ -17,7 +17,7 @@ export interface Employee {
 // 员工基本信息视图类型（view_employee_basic_info）
 export interface EmployeeBasicInfo {
   employee_id: string;
-  full_name: string;
+  employee_name: string;
   id_number?: string;
   hire_date: string;
   termination_date?: string;
@@ -53,7 +53,7 @@ export interface EmployeeBasicInfo {
 // 员工当前状态视图类型（v_employee_current_status）
 export interface EmployeeCurrentStatus {
   employee_id: string;
-  full_name: string;
+  employee_name: string;
   employment_status: string;
   department_name?: string;
   position_name?: string;
@@ -168,7 +168,7 @@ export interface EmployeeWithDetails extends EmployeeBasicInfo {
 export interface EmployeeListItem {
   id: string;
   employee_id: string;
-  full_name: string;
+  employee_name: string;
   id_number?: string; // 身份证号
   hire_date?: string;
   termination_date?: string; // 离职日期
@@ -206,7 +206,7 @@ export interface EmployeeListItem {
 
 // 员工创建/更新请求类型
 export interface CreateEmployeeRequest {
-  full_name: string;
+  employee_name: string;
   id_number?: string;
   hire_date: string;
   employment_status?: 'active' | 'inactive';

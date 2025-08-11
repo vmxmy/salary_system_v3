@@ -10,7 +10,7 @@ interface PayrollData {
   id: string;
   employee?: {
     id: string;
-    full_name: string;
+    employee_name: string;
     id_number: string;
   };
   pay_period_start: string;
@@ -61,12 +61,12 @@ export function PayrollList({
   const columns = useMemo<ColumnDef<PayrollData>[]>(() => {
     const cols: ColumnDef<PayrollData>[] = [
       {
-        accessorKey: 'employee.full_name',
+        accessorKey: 'employee.employee_name',
         header: t('payroll:employee'),
         cell: ({ row }) => (
           <div>
             <p className="font-medium text-base-content">
-              {row.original.employee?.full_name || '-'}
+              {row.original.employee?.employee_name || '-'}
             </p>
             <p className="text-xs text-base-content/60">
               {row.original.employee?.id_number || '-'}

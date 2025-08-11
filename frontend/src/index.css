@@ -148,11 +148,11 @@
   
   /* 表格选中行样式 */
   .table tbody tr[data-state="selected"] {
-    @apply bg-primary/10 !important;
+    @apply !bg-primary/10;
   }
   
   .table tbody tr[data-state="selected"]:hover {
-    @apply bg-primary/15 !important;
+    @apply !bg-primary/15;
   }
 
   /* 紧凑化手风琴样式 */
@@ -217,11 +217,11 @@
   
   /* 如果需要无衬线字体的地方，可以使用这个类 */
   .sans-font {
-    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", -apple-system, BlinkMacSystemFont, sans-serif;
   }
   
   /* 测试衬线字体 - 直接应用到页面 */
   .test-serif {
-    font-family: "Songti SC", "SimSun", "Times New Roman", serif !important;
+    font-family: "Songti SC", "SimSun", "Times New Roman", serif;
   }
 }

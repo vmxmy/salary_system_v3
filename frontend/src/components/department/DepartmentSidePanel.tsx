@@ -147,7 +147,7 @@ export function DepartmentSidePanel({
 
   // 定义表格列
   const columns = useMemo(() => [
-    columnHelper.accessor('full_name', {
+    columnHelper.accessor('employee_name', {
       header: '姓名',
       cell: info => info.getValue() || info.row.original.name || '-'
     }),

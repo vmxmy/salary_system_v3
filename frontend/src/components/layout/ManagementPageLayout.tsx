@@ -113,25 +113,23 @@ export function ManagementPageLayout({
   footerContent
 }: ManagementPageLayoutProps) {
   
-  // 渲染统计卡片
+  // 渲染统计卡片 - 使用标准 DaisyUI stats 组件
   const renderStatCards = () => {
     if (statCards.length === 0) return null;
     
     return (
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
+      <div className="stats stats-vertical lg:stats-horizontal shadow w-full mt-3">
         {statCards.map((card, index) => (
-          <div key={index} className="stat stat-compact bg-base-100 border border-base-200 rounded-lg">
+          <div key={index} className="stat">
             <div className={`stat-figure ${card.colorClass || 'text-primary'}`}>
-              <div className="w-5 h-5">
-                {card.icon}
-              </div>
+              {card.icon}
             </div>
-            <div className="stat-title text-base-content/70 text-xs">{card.title}</div>
-            <div className={`stat-value text-lg font-bold ${card.colorClass || ''}`}>
+            <div className="stat-title">{card.title}</div>
+            <div className={`stat-value ${card.colorClass || ''}`}>
               {card.value}
             </div>
             {card.description && (
-              <div className="stat-desc text-base-content/50 text-xs">{card.description}</div>
+              <div className="stat-desc">{card.description}</div>
             )}
           </div>
         ))}

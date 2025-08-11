@@ -68,11 +68,12 @@ export class InsuranceBaseService {
     targetMonth: string,
     employeeIds?: string[]
   ): Promise<BaseCopyResult> {
-    // 获取基数统计信息用于结果展示
+    // 使用新的统一视图获取基数统计信息
     let query = supabase
-      .from('view_employee_insurance_base_monthly_latest')
+      .from('view_employee_insurance_base_unified')
       .select('employee_id, insurance_type_id', { count: 'exact' })
-      .eq('month_string', sourceMonth);
+      .eq('month_string', sourceMonth)
+      .eq('rn', 1); // 只获取最新记录
     
     if (employeeIds && employeeIds.length > 0) {
       query = query.in('employee_id', employeeIds);
@@ -201,10 +202,10 @@ export class InsuranceBaseService {
     const month = yearMonth || new Date().toISOString().substring(0, 7);
     
     const { data, error } = await supabase
-      .from('view_employee_insurance_base_monthly_latest')
+      .from('view_employee_insurance_base_unified')
       .select(`
         employee_id,
-        full_name,
+        employee_name,
         insurance_type_id,
         insurance_type_name,
         insurance_type_key,
@@ -214,7 +215,8 @@ export class InsuranceBaseService {
       `)
       .in('employee_id', employeeIds)
       .eq('month_string', month)
-      .order('full_name')
+      .eq('rn', 1) // 只获取最新记录
+      .order('employee_name')
       .order('insurance_type_key');
 
     if (error) throw error;

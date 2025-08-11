@@ -49,7 +49,7 @@ export interface DepartmentNode extends Department {
 // Department with additional details
 export interface DepartmentWithDetails extends Department {
   parent?: { name: string } | null;
-  manager?: { full_name: string } | null;
+  manager?: { employee_name: string } | null;
   employee_count?: number;
   children_count?: number;
   full_path?: string;

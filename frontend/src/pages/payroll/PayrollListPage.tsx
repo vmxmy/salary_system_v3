@@ -26,7 +26,7 @@ interface PayrollData {
   pay_period_start: string;
   pay_period_end: string;
   employee_id: string;
-  full_name: string;
+  employee_name: string; // 使用数据库字段名
   department_name: string;
   gross_pay: number;
   total_deductions: number;
@@ -35,7 +35,7 @@ interface PayrollData {
   // 兼容旧结构
   employee?: {
     id: string;
-    full_name: string;
+    employee_name: string;
     id_number?: string;
   };
 }
@@ -138,7 +138,7 @@ export default function PayrollListPage() {
       // 确保employee字段存在（用于兼容旧代码）
       employee: item.employee || {
         id: item.employee_id,
-        full_name: item.full_name,
+        employee_name: item.employee_name,
         id_number: null
       }
     }));
@@ -154,7 +154,7 @@ export default function PayrollListPage() {
       processedItems = processedItems.filter(payroll => {
         // 搜索所有可能的字段
         const searchableFields = [
-          payroll.full_name,           // 员工姓名
+          payroll.employee_name,        // 员工姓名
           payroll.department_name,     // 部门名称
           payroll.status,               // 状态
           payroll.pay_date,             // 支付日期
