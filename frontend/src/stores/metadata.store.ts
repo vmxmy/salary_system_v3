@@ -51,14 +51,14 @@ interface MetadataActions {
   setPagination: (pagination: PaginationOptions) => void;
   
   // 选择操作
-  setSelectedRows: (ids: string[]) => void;
+  setSelectedRows: (rows: string[]) => void;
   selectAll: () => void;
   clearSelection: () => void;
   toggleSelection: (id: string) => void;
   
-  // 统计信息
-  setStatistics: (statistics: StatisticsInfo) => void;
-  calculateStatistics: () => void;
+  // 统计操作
+  setStatistics: (statistics: StatisticsInfo | null) => void;
+  updateStatistics: () => void;
   
   // 批量操作
   batchUpdate: (ids: string[], updates: Partial<EmployeeMetadata>) => void;
@@ -71,25 +71,35 @@ interface MetadataActions {
   setImporting: (importing: boolean) => void;
   setExporting: (exporting: boolean) => void;
   
-  // 重置状态
+  // 重置
   reset: () => void;
 }
 
-type MetadataStore = MetadataState & MetadataActions;
+export type MetadataStore = MetadataState & MetadataActions;
 
 const initialState: MetadataState = {
   employees: [],
   loading: false,
   error: null,
   
-  filters: {},
+  filters: {
+    period: undefined,
+    departmentId: undefined,
+    positionId: undefined,
+    employeeStatus: undefined,
+    dataStatus: undefined,
+    searchText: undefined,
+    salaryMin: undefined,
+    salaryMax: undefined,
+    hasAdjustment: undefined,
+    sortField: undefined,
+    sortOrder: undefined
+  },
+  
   pagination: {
     current: 1,
-    pageSize: 20,
-    total: 0,
-    showSizeChanger: true,
-    showQuickJumper: true,
-    showTotal: true
+    pageSize: 10,
+    total: 0
   },
   
   selectedRows: [],
@@ -105,18 +115,18 @@ const initialState: MetadataState = {
 export const useMetadataStore = create<MetadataStore>()(
   devtools(
     subscribeWithSelector(
-      (set, get) => ({
+      (set: any, get: any): MetadataStore => ({
         ...initialState,
 
         // 数据操作
-        setEmployees: (employees) => set(
+        setEmployees: (employees: EmployeeMetadata[]) => set(
           { employees, lastUpdated: new Date() },
           false,
           'setEmployees'
         ),
 
-        addEmployee: (employee) => set(
-          (state) => ({
+        addEmployee: (employee: EmployeeMetadata) => set(
+          (state: MetadataStore) => ({
             employees: [...state.employees, employee],
             lastUpdated: new Date()
           }),
@@ -124,9 +134,9 @@ export const useMetadataStore = create<MetadataStore>()(
           'addEmployee'
         ),
 
-        updateEmployee: (id, updates) => set(
-          (state) => ({
-            employees: state.employees.map(emp => 
+        updateEmployee: (id: string, updates: Partial<EmployeeMetadata>) => set(
+          (state: MetadataStore) => ({
+            employees: state.employees.map((emp: EmployeeMetadata) => 
               emp.payroll_id === id ? { ...emp, ...updates } : emp
             ),
             lastUpdated: new Date()
@@ -135,10 +145,10 @@ export const useMetadataStore = create<MetadataStore>()(
           'updateEmployee'
         ),
 
-        removeEmployee: (id) => set(
-          (state) => ({
-            employees: state.employees.filter(emp => emp.payroll_id !== id),
-            selectedRows: state.selectedRows.filter(rowId => rowId !== id),
+        removeEmployee: (id: string) => set(
+          (state: MetadataStore) => ({
+            employees: state.employees.filter((emp: EmployeeMetadata) => emp.payroll_id !== id),
+            selectedRows: state.selectedRows.filter((rowId: string) => rowId !== id),
             lastUpdated: new Date()
           }),
           false,
@@ -146,73 +156,70 @@ export const useMetadataStore = create<MetadataStore>()(
         ),
 
         // 状态操作
-        setLoading: (loading) => set({ loading }, false, 'setLoading'),
-        setError: (error) => set({ error }, false, 'setError'),
+        setLoading: (loading: boolean) => set({ loading }, false, 'setLoading'),
+        setError: (error: string | null) => set({ error }, false, 'setError'),
 
         // 筛选和分页
-        setFilters: (filters) => set({ filters }, false, 'setFilters'),
-        resetFilters: () => set({ filters: {} }, false, 'resetFilters'),
-        setPagination: (pagination) => set({ pagination }, false, 'setPagination'),
+        setFilters: (filters: FilterOptions) => set({ filters }, false, 'setFilters'),
+        resetFilters: () => set({ filters: initialState.filters }, false, 'resetFilters'),
+        setPagination: (pagination: PaginationOptions) => set({ pagination }, false, 'setPagination'),
 
         // 选择操作
-        setSelectedRows: (selectedRows) => set({ selectedRows }, false, 'setSelectedRows'),
-        
+        setSelectedRows: (selectedRows: string[]) => set({ selectedRows }, false, 'setSelectedRows'),
         selectAll: () => set(
-          (state) => ({
-            selectedRows: state.employees.map(emp => emp.payroll_id)
+          (state: MetadataStore) => ({
+            selectedRows: state.employees.map((emp: EmployeeMetadata) => emp.payroll_id)
           }),
           false,
           'selectAll'
         ),
-
         clearSelection: () => set({ selectedRows: [] }, false, 'clearSelection'),
 
-        toggleSelection: (id) => set(
-          (state) => ({
+        toggleSelection: (id: string) => set(
+          (state: MetadataStore) => ({
             selectedRows: state.selectedRows.includes(id)
-              ? state.selectedRows.filter(rowId => rowId !== id)
+              ? state.selectedRows.filter((rowId: string) => rowId !== id)
               : [...state.selectedRows, id]
           }),
           false,
           'toggleSelection'
         ),
 
-        // 统计信息
-        setStatistics: (statistics) => set({ statistics }, false, 'setStatistics'),
-
-        calculateStatistics: () => {
-          const { employees, pagination } = get();
+        // 统计操作
+        setStatistics: (statistics: StatisticsInfo | null) => set({ statistics }, false, 'setStatistics'),
+        
+        updateStatistics: () => {
+          const state = get() as MetadataStore;
+          const { employees } = state;
           
-          if (employees.length === 0) {
-            set({ statistics: null });
+          if (!employees.length) {
+            set({ statistics: null }, false, 'updateStatistics');
             return;
           }
 
-          const totalSalary = employees.reduce((sum, emp) => sum + parseFloat(emp.gross_pay || '0'), 0);
-          const totalTax = employees.reduce((sum, emp) => sum + parseFloat(emp.total_deductions || '0'), 0);
+          const totalSalary = employees.reduce((sum: number, emp: EmployeeMetadata) => sum + parseFloat(emp.gross_pay || '0'), 0);
+          const totalTax = employees.reduce((sum: number, emp: EmployeeMetadata) => sum + parseFloat(emp.total_deductions || '0'), 0);
           const averageSalary = totalSalary / employees.length;
-          const departmentCount = new Set(employees.map(emp => emp.department_name)).size;
-          const positionCount = new Set(employees.map(emp => emp.position_name)).size;
+          const departmentCount = new Set(employees.map((emp: EmployeeMetadata) => emp.department_name)).size;
+          const positionCount = new Set(employees.map((emp: EmployeeMetadata) => emp.position_name)).size;
 
-          const statistics: StatisticsInfo = {
-            totalEmployees: pagination.total,
-            totalSalary,
-            totalTax,
-            averageSalary,
-            departmentCount,
-            positionCount
-          };
-
-          set({ statistics }, false, 'calculateStatistics');
+          set({
+            statistics: {
+              totalEmployees: employees.length,
+              totalSalary,
+              totalTax,
+              averageSalary,
+              departmentCount,
+              positionCount
+            }
+          }, false, 'updateStatistics');
         },
 
         // 批量操作
-        batchUpdate: (ids, updates) => set(
-          (state) => ({
-            employees: state.employees.map(emp =>
-              ids.includes(emp.payroll_id) 
-                ? { ...emp, ...updates, updated_at: new Date().toISOString() }
-                : emp
+        batchUpdate: (ids: string[], updates: Partial<EmployeeMetadata>) => set(
+          (state: MetadataStore) => ({
+            employees: state.employees.map((emp: EmployeeMetadata) =>
+              ids.includes(emp.payroll_id) ? { ...emp, ...updates } : emp
             ),
             lastUpdated: new Date()
           }),
@@ -220,27 +227,28 @@ export const useMetadataStore = create<MetadataStore>()(
           'batchUpdate'
         ),
 
-        batchDelete: (ids) => set(
-          (state) => ({
-            employees: state.employees.filter(emp => !ids.includes(emp.payroll_id)),
-            selectedRows: state.selectedRows.filter(id => !ids.includes(id)),
+        batchDelete: (ids: string[]) => set(
+          (state: MetadataStore) => ({
+            employees: state.employees.filter((emp: EmployeeMetadata) => !ids.includes(emp.payroll_id)),
+            selectedRows: state.selectedRows.filter((id: string) => !ids.includes(id)),
             lastUpdated: new Date()
           }),
           false,
           'batchDelete'
         ),
 
-        batchLock: (ids) => {
+        batchLock: (ids: string[]) => {
           const now = new Date().toISOString();
           set(
-            (state) => ({
-              employees: state.employees.map(emp =>
+            (state: MetadataStore) => ({
+              employees: state.employees.map((emp: EmployeeMetadata) =>
                 ids.includes(emp.payroll_id)
                   ? { 
                       ...emp, 
-                      is_locked: true, 
+                      is_locked: true,
+                      lock_reason: '批量锁定',
                       locked_at: now,
-                      status: 'locked' as const
+                      locked_by: 'current_user' // 需要从auth store获取
                     }
                   : emp
               ),
@@ -251,15 +259,16 @@ export const useMetadataStore = create<MetadataStore>()(
           );
         },
 
-        batchUnlock: (ids) => set(
-          (state) => ({
-            employees: state.employees.map(emp =>
+        batchUnlock: (ids: string[]) => set(
+          (state: MetadataStore) => ({
+            employees: state.employees.map((emp: EmployeeMetadata) =>
               ids.includes(emp.payroll_id)
                 ? { 
                     ...emp, 
-                    is_locked: false, 
-                    locked_at: undefined,
-                    status: 'confirmed' as const
+                    is_locked: false,
+                    lock_reason: null,
+                    locked_at: null,
+                    locked_by: null
                   }
                 : emp
             ),
@@ -270,58 +279,36 @@ export const useMetadataStore = create<MetadataStore>()(
         ),
 
         // 操作状态
-        setSaving: (saving) => set({ saving }, false, 'setSaving'),
-        setImporting: (importing) => set({ importing }, false, 'setImporting'),
-        setExporting: (exporting) => set({ exporting }, false, 'setExporting'),
+        setSaving: (saving: boolean) => set({ saving }, false, 'setSaving'),
+        setImporting: (importing: boolean) => set({ importing }, false, 'setImporting'),
+        setExporting: (exporting: boolean) => set({ exporting }, false, 'setExporting'),
 
-        // 重置状态
+        // 重置
         reset: () => set(initialState, false, 'reset')
       })
     ),
     {
-      name: 'metadata-store',
-      partialize: (state: any) => ({
-        filters: state.filters,
-        pagination: state.pagination
-      })
+      name: 'metadata-store'
     }
   )
 );
 
-// 订阅变化，自动计算统计信息
+// 订阅employees变化，自动更新统计信息
 useMetadataStore.subscribe(
-  (state) => state.employees,
+  (state: MetadataStore) => state.employees,
   () => {
-    useMetadataStore.getState().calculateStatistics();
+    const { updateStatistics } = useMetadataStore.getState();
+    updateStatistics();
   }
 );
 
-// 持久化筛选条件
+// 订阅筛选条件变化，重置分页
 useMetadataStore.subscribe(
-  (state) => ({ filters: state.filters, pagination: state.pagination }),
-  (current, previous) => {
-    if (current.filters !== previous.filters || current.pagination !== previous.pagination) {
-      localStorage.setItem(
-        'metadata-filters', 
-        JSON.stringify({
-          filters: current.filters,
-          pagination: current.pagination
-        })
-      );
+  (state: MetadataStore) => ({ filters: state.filters, pagination: state.pagination }),
+  (current: any, previous: any) => {
+    if (JSON.stringify(current.filters) !== JSON.stringify(previous?.filters)) {
+      const { setPagination } = useMetadataStore.getState();
+      setPagination({ ...current.pagination, current: 1 });
     }
   }
 );
-
-// 从本地存储恢复状态
-const savedState = localStorage.getItem('metadata-filters');
-if (savedState) {
-  try {
-    const { filters, pagination } = JSON.parse(savedState);
-    useMetadataStore.setState({
-      filters: filters || {},
-      pagination: { ...initialState.pagination, ...pagination }
-    });
-  } catch (error) {
-    console.warn('Failed to restore saved filters:', error);
-  }
-}
