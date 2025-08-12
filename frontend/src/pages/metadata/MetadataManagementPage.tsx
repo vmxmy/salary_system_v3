@@ -7,7 +7,8 @@ import { useToast } from '@/contexts/ToastContext';
 import { useMetadataStore } from '@/stores/metadata.store';
 import { payrollService, PayrollService } from '@/services/payroll.service';
 import { metadataService } from '@/services/metadata.service';
-import { ExcelService } from '@/services/excel.service';
+import { PayrollExportService } from '@/services/payroll-export.service';
+import * as XLSX from 'xlsx';
 import { getCurrentYearMonth } from '@/lib/dateUtils';
 import type { EmployeeMetadata, FilterOptions } from '@/types/metadata';
 
@@ -192,28 +193,31 @@ export default function MetadataManagementPage() {
         return;
       }
 
-      // 调用Excel服务导出数据
-      ExcelService.exportPayrollData(dataToExport, {
-        filename: `薪资数据_${filters.period || '全部'}_${new Date().toISOString().split('T')[0]}.csv`,
-        includeHeaders: true,
-        includeStats: true,
-        columns: [
-          'employee_name',
-          'id_number',
-          'department_name',
-          'position_name',
-          'category_name',
-          'pay_period_start',
-          'pay_period_end',
-          'pay_date',
-          'gross_pay',
-          'total_deductions',
-          'net_pay',
-          'primary_bank_account',
-          'bank_name',
-          'status'
-        ]
-      });
+      // 使用XLSX直接导出数据
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, '薪资数据');
+      
+      // 设置列宽
+      worksheet['!cols'] = [
+        { wch: 15 }, // employee_name
+        { wch: 20 }, // id_number
+        { wch: 20 }, // department_name
+        { wch: 15 }, // position_name
+        { wch: 15 }, // category_name
+        { wch: 12 }, // pay_period_start
+        { wch: 12 }, // pay_period_end
+        { wch: 12 }, // pay_date
+        { wch: 12 }, // gross_pay
+        { wch: 12 }, // total_deductions
+        { wch: 12 }, // net_pay
+        { wch: 20 }, // primary_bank_account
+        { wch: 15 }, // bank_name
+        { wch: 10 }  // status
+      ];
+      
+      const filename = `薪资数据_${filters.period || '全部'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, filename);
 
       showSuccess(`成功导出 ${dataToExport.length} 条记录`);
     } catch (error) {
@@ -251,28 +255,31 @@ export default function MetadataManagementPage() {
         updated_at: item.updated_at || new Date().toISOString()
       }));
       
-      // 调用Excel服务导出数据
-      ExcelService.exportPayrollData(exportData, {
-        filename: `薪资数据_全部_${filters.period || '所有期间'}_${new Date().toISOString().split('T')[0]}.csv`,
-        includeHeaders: true,
-        includeStats: true,
-        columns: [
-          'employee_name',
-          'id_number',
-          'department_name',
-          'position_name',
-          'category_name',
-          'pay_period_start',
-          'pay_period_end',
-          'pay_date',
-          'gross_pay',
-          'total_deductions',
-          'net_pay',
-          'primary_bank_account',
-          'bank_name',
-          'status'
-        ]
-      });
+      // 使用XLSX直接导出数据
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, '薪资数据');
+      
+      // 设置列宽
+      worksheet['!cols'] = [
+        { wch: 15 }, // employee_name
+        { wch: 20 }, // id_number
+        { wch: 20 }, // department_name
+        { wch: 15 }, // position_name
+        { wch: 15 }, // category_name
+        { wch: 12 }, // pay_period_start
+        { wch: 12 }, // pay_period_end
+        { wch: 12 }, // pay_date
+        { wch: 12 }, // gross_pay
+        { wch: 12 }, // total_deductions
+        { wch: 12 }, // net_pay
+        { wch: 20 }, // primary_bank_account
+        { wch: 15 }, // bank_name
+        { wch: 10 }  // status
+      ];
+      
+      const filename = `薪资数据_全部_${filters.period || '所有期间'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, filename);
 
       showSuccess(`成功导出全部 ${exportData.length} 条记录`);
     } catch (error) {

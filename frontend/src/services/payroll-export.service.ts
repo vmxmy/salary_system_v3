@@ -64,10 +64,31 @@ export class PayrollExportService {
    * 导出指定周期的薪资数据
    */
   static async exportPayrollData(config: ExportConfig): Promise<void> {
+    // 使用本地日期格式化
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    console.log('[PayrollExportService] Export config:', {
+      payPeriod: config.payPeriod,
+      startDateFormatted: formatDate(config.payPeriod.start),
+      endDateFormatted: formatDate(config.payPeriod.end),
+      dataGroups: config.dataGroups
+    });
+    
     const workbook = XLSX.utils.book_new();
     
     for (const group of config.dataGroups) {
+      console.log(`[PayrollExportService] Getting data for group: ${group}`);
       const sheetData = await this.getSheetDataForGroup(group, config.payPeriod);
+      console.log(`[PayrollExportService] Sheet data for ${group}:`, {
+        headers: sheetData.headers,
+        dataLength: sheetData.data.length,
+        sampleData: sheetData.data.slice(0, 2)
+      });
       
       if (sheetData.data.length > 0) {
         const worksheet = XLSX.utils.json_to_sheet(sheetData.data, {
@@ -84,11 +105,60 @@ export class PayrollExportService {
       }
     }
     
+    // 检查工作簿是否为空
+    if (workbook.SheetNames.length === 0) {
+      console.error('[PayrollExportService] No data found for export');
+      alert('没有找到可导出的数据，请检查选择的时间范围和数据类型。');
+      return;
+    }
+    
     // 生成文件名
     const fileName = config.fileName || this.generateFileName(config);
     
     // 下载文件
     XLSX.writeFile(workbook, fileName);
+  }
+
+  /**
+   * 获取指定周期内有薪资记录的员工ID列表
+   */
+  private static async getEmployeeIdsWithPayroll(payPeriod: { start: Date; end: Date }): Promise<string[]> {
+    // 使用本地日期格式化，避免时区问题
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    const startDate = formatDate(payPeriod.start);
+    const endDate = formatDate(payPeriod.end);
+    
+    console.log('[getEmployeeIdsWithPayroll] Query params:', {
+      startDate,
+      endDate,
+      payPeriod
+    });
+    
+    const { data, error } = await supabase
+      .from('view_payroll_summary')
+      .select('employee_id')
+      .gte('pay_period_start', startDate)
+      .lte('pay_period_end', endDate);
+    
+    if (error) {
+      console.error('Error fetching employee IDs with payroll:', error);
+      throw error;
+    }
+    
+    const employeeIds = [...new Set(data?.map(item => item.employee_id) || [])];
+    console.log('[getEmployeeIdsWithPayroll] Found employee IDs:', {
+      count: employeeIds.length,
+      ids: employeeIds.slice(0, 5) // 只显示前5个ID作为示例
+    });
+    
+    // 返回去重后的员工ID列表
+    return employeeIds;
   }
 
   /**
@@ -123,79 +193,84 @@ export class PayrollExportService {
    * 获取收入数据
    */
   private static async getEarningsData(payPeriod: { start: Date; end: Date }) {
-    // 获取该周期的所有薪资记录
-    const { data: payrolls } = await supabase
-      .from('view_payroll_summary')
+    // 使用本地日期格式化，避免时区问题
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    // 直接使用 view_payroll_unified 获取收入数据，包含所有薪资组件明细
+    const { data: payrollData, error } = await supabase
+      .from('view_payroll_unified')
       .select(`
         payroll_id,
         employee_id,
         employee_name,
-        id_number
+        id_number,
+        component_name,
+        component_type,
+        item_amount
       `)
-      .gte('pay_period_start', payPeriod.start.toISOString().split('T')[0])
-      .lte('pay_period_end', payPeriod.end.toISOString().split('T')[0]);
+      .eq('component_type', 'earning')
+      .gte('pay_period_start', formatDate(payPeriod.start))
+      .lte('pay_period_end', formatDate(payPeriod.end))
+      .order('employee_name')
+      .order('component_name');
 
-    if (!payrolls || payrolls.length === 0) {
+    if (error) {
+      console.error('Error fetching earnings data:', error);
+      throw error;
+    }
+
+    if (!payrollData || payrollData.length === 0) {
       return { headers: [], data: [] };
     }
 
-    // 获取所有收入组件
-    const { data: components } = await supabase
-      .from('salary_components')
-      .select('id, name')
-      .eq('type', 'earning')
-      .order('name');
-
-    const componentMap = new Map(components?.map(c => [c.id, c.name]) || []);
+    // 获取所有独特的收入组件名称
+    const componentNames = [...new Set(payrollData.map(item => item.component_name))].sort();
     
-    // 获取薪资明细
-    const payrollIds = payrolls.map(p => p.payroll_id);
-    const { data: payrollItems } = await supabase
-      .from('payroll_items')
-      .select('payroll_id, component_id, amount')
-      .in('payroll_id', payrollIds)
-      .in('component_id', Array.from(componentMap.keys()));
-
-    // 组装数据
+    // 组装数据 - 按员工分组
     const dataMap = new Map<string, any>();
     
-    payrolls.forEach(payroll => {
-      const key = payroll.payroll_id;
+    payrollData.forEach(item => {
+      const key = item.payroll_id; // 使用 payroll_id 作为唯一标识
       
-      dataMap.set(key, {
-        '员工编号': '',  // 视图中没有员工编号，需要单独查询
-        '员工姓名': payroll.employee_name || '',
-        '身份证号': payroll.id_number || ''
-      });
-    });
-
-    // 填充收入数据
-    payrollItems?.forEach(item => {
-      const data = dataMap.get(item.payroll_id);
-      if (data) {
-        const componentName = componentMap.get(item.component_id);
-        if (componentName) {
-          data[componentName] = parseFloat(item.amount);
-        }
+      if (!dataMap.has(key)) {
+        dataMap.set(key, {
+          '员工编号': item.employee_id || '', // 使用 employee_id 作为员工编号
+          '员工姓名': item.employee_name || '',
+          '身份证号': item.id_number || ''
+        });
+      }
+      
+      const data = dataMap.get(key);
+      // 填充具体的收入数据
+      if (item.component_name && item.item_amount !== null) {
+        data[item.component_name] = parseFloat(item.item_amount.toString());
       }
     });
 
-    // 确保所有组件都有列
-    const headers = ['员工编号', '员工姓名', '身份证号'];
-    components?.forEach(comp => {
-      headers.push(comp.name);
-    });
+    // 构建完整的表头
+    const headers = ['员工编号', '员工姓名', '身份证号', ...componentNames];
 
     // 确保所有数据行都有所有列
     const data = Array.from(dataMap.values()).map(row => {
       headers.forEach(header => {
         if (!(header in row)) {
-          row[header] = '';
+          row[header] = 0; // 收入字段默认为0而不是空字符串
         }
       });
       return row;
     });
 
+    console.log(`导出收入数据: ${data.length} 名员工, ${componentNames.length} 个收入项目`, {
+      payPeriod,
+      componentNames: componentNames.slice(0, 5), // 只显示前5个组件名
+      sampleData: data.slice(0, 2) // 只显示前2个员工数据作为样本
+    });
+    
     return { headers, data };
   }
 
@@ -203,48 +278,58 @@ export class PayrollExportService {
    * 获取缴费基数数据
    */
   private static async getContributionBasesData(payPeriod: { start: Date; end: Date }) {
-    // 获取该周期的员工基数数据
-    const { data: bases } = await supabase
-      .from('employee_contribution_bases')
-      .select(`
-        employee_id,
-        insurance_type_id,
-        contribution_base,
-        employees!inner (
-          employee_code,
-          full_name,
-          id_number
-        ),
-        insurance_types!inner (
-          system_key,
-          name
-        )
-      `)
-      .lte('effective_start_date', payPeriod.end.toISOString())
-      .or(`effective_end_date.gte.${payPeriod.start.toISOString()},effective_end_date.is.null`);
+    // 首先获取当月有薪资记录的员工ID列表
+    const employeeIdsWithPayroll = await this.getEmployeeIdsWithPayroll(payPeriod);
+    
+    if (employeeIdsWithPayroll.length === 0) {
+      return { headers: [], data: [] };
+    }
+    
+    // 使用本地日期格式化，避免时区问题
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    // 使用统一的保险基数视图获取数据
+    const startDate = formatDate(payPeriod.start);
+    const endDate = formatDate(payPeriod.end);
+    
+    const { data: bases, error } = await supabase
+      .from('view_employee_insurance_base_unified')
+      .select('*')
+      .gte('effective_start_date', startDate)
+      .lte('effective_end_date', endDate)
+      .in('employee_id', employeeIdsWithPayroll); // 只查询有薪资记录的员工
+
+    if (error) {
+      console.error('Error fetching contribution bases data:', error);
+      throw error;
+    }
 
     if (!bases || bases.length === 0) {
       return { headers: [], data: [] };
     }
 
-    // 组装数据
+    // 组装数据 - 视图已经包含了员工信息，直接使用
     const dataMap = new Map<string, any>();
     
-    bases.forEach(base => {
-      const employee = (base as any).employees;
-      const insuranceType = (base as any).insurance_types;
-      const key = employee.id_number || employee.employee_code || employee.full_name;
+    bases.forEach((base: any) => {
+      // 使用身份证号作为唯一标识
+      const key = base.id_number || base.employee_id;
       
       if (!dataMap.has(key)) {
         dataMap.set(key, {
-          '员工编号': employee.employee_code || '',
-          '员工姓名': employee.full_name || '',
-          '身份证号': employee.id_number || ''
+          '员工编号': base.employee_id || '',
+          '员工姓名': base.employee_name || '', // 统一字段名：直接使用employee_name
+          '身份证号': base.id_number || ''
         });
       }
       
       const data = dataMap.get(key);
-      const fieldName = this.getInsuranceFieldName(insuranceType.system_key);
+      const fieldName = this.getInsuranceFieldName(base.insurance_type_key);
       data[fieldName] = parseFloat(base.contribution_base);
     });
 
@@ -275,51 +360,77 @@ export class PayrollExportService {
   }
 
   /**
-   * 获取人员类别数据
+   * 获取人员类别数据 - 基于薪资周期的时间切片查询
    */
   private static async getCategoryAssignmentData(payPeriod: { start: Date; end: Date }) {
-    const { data: assignments } = await supabase
+    // 首先获取当月有薪资记录的员工ID列表
+    const employeeIdsWithPayroll = await this.getEmployeeIdsWithPayroll(payPeriod);
+    
+    if (employeeIdsWithPayroll.length === 0) {
+      return { headers: [], data: [] };
+    }
+    
+    // 使用本地日期格式化，避免时区问题
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    const startDate = formatDate(payPeriod.start);
+    const endDate = formatDate(payPeriod.end);
+    
+    const { data: assignments, error } = await supabase
       .from('employee_category_assignments')
       .select(`
         employee_id,
+        employee_category_id,
         effective_start_date,
-        employees!inner (
-          employee_code,
-          full_name,
+        effective_end_date,
+        employees (
+          employee_name,
           id_number
         ),
-        employee_categories!inner (
-          code,
+        employee_categories (
           name
         )
       `)
-      .lte('effective_start_date', payPeriod.end.toISOString())
-      .or(`effective_end_date.gte.${payPeriod.start.toISOString()},effective_end_date.is.null`);
+      .lte('effective_start_date', endDate)
+      .or(`effective_end_date.gte.${startDate},effective_end_date.is.null`)
+      .in('employee_id', employeeIdsWithPayroll); // 只查询有薪资记录的员工
+
+
+    if (error) {
+      console.error('Error fetching category assignment data:', error);
+      throw error;
+    }
 
     if (!assignments || assignments.length === 0) {
+      console.warn('人员类别查询返回空数据');
       return { headers: [], data: [] };
     }
 
     const headers = [
       '员工编号',
-      '员工姓名',
+      '员工姓名', 
       '身份证号',
-      '人员类别代码',
       '人员类别',
-      '生效日期'
+      '生效日期',
+      '失效日期'
     ];
 
-    const data = assignments.map(assignment => {
-      const employee = (assignment as any).employees;
-      const category = (assignment as any).employee_categories;
+    const data = assignments.map((assignment: any) => {
+      const employee = assignment.employees;
+      const category = assignment.employee_categories;
       
       return {
-        '员工编号': employee.employee_code || '',
-        '员工姓名': employee.full_name || '',
-        '身份证号': employee.id_number || '',
-        '人员类别代码': category.code || '',
-        '人员类别': category.name || '',
-        '生效日期': assignment.effective_start_date
+        '员工编号': assignment.employee_id || '', // 使用employee_id作为员工编号
+        '员工姓名': employee?.employee_name || '', // 直接使用统一的employee_name字段
+        '身份证号': employee?.id_number || '',
+        '人员类别': category?.name || '',
+        '生效日期': assignment.effective_start_date,
+        '失效日期': assignment.effective_end_date || '' // 显示失效日期，便于了解时间切片
       };
     });
 
@@ -327,36 +438,59 @@ export class PayrollExportService {
   }
 
   /**
-   * 获取职务信息数据
+   * 获取职务信息数据 - 基于薪资周期的时间切片查询
    */
   private static async getJobAssignmentData(payPeriod: { start: Date; end: Date }) {
-    const { data: jobs } = await supabase
+    // 首先获取当月有薪资记录的员工ID列表
+    const employeeIdsWithPayroll = await this.getEmployeeIdsWithPayroll(payPeriod);
+    
+    if (employeeIdsWithPayroll.length === 0) {
+      return { headers: [], data: [] };
+    }
+    
+    // 使用本地日期格式化，避免时区问题
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    const startDate = formatDate(payPeriod.start);
+    const endDate = formatDate(payPeriod.end);
+    
+    const { data: jobs, error } = await supabase
       .from('employee_job_history')
       .select(`
         employee_id,
+        department_id,
+        position_id,
+        rank_id,
         effective_start_date,
-        employees!inner (
-          employee_code,
-          full_name,
+        effective_end_date,
+        employees (
+          employee_name,
           id_number
         ),
-        departments!inner (
-          code,
+        departments (
           name
         ),
-        positions!inner (
-          code,
-          name
-        ),
-        ranks (
-          code,
+        positions (
           name
         )
       `)
-      .lte('effective_start_date', payPeriod.end.toISOString())
-      .or(`effective_end_date.gte.${payPeriod.start.toISOString()},effective_end_date.is.null`);
+      .lte('effective_start_date', endDate)
+      .or(`effective_end_date.gte.${startDate},effective_end_date.is.null`)
+      .in('employee_id', employeeIdsWithPayroll); // 只查询有薪资记录的员工
+
+
+    if (error) {
+      console.error('Error fetching job assignment data:', error);
+      throw error;
+    }
 
     if (!jobs || jobs.length === 0) {
+      console.warn('职务信息查询返回空数据');
       return { headers: [], data: [] };
     }
 
@@ -364,32 +498,25 @@ export class PayrollExportService {
       '员工编号',
       '员工姓名',
       '身份证号',
-      '部门代码',
       '部门名称',
-      '职位代码',
-      '职位名称',
-      '职级代码',
-      '职级名称',
-      '生效日期'
+      '职位名称', 
+      '生效日期',
+      '失效日期'
     ];
 
-    const data = jobs.map(job => {
-      const employee = (job as any).employees;
-      const department = (job as any).departments;
-      const position = (job as any).positions;
-      const rank = (job as any).ranks;
+    const data = jobs.map((job: any) => {
+      const employee = job.employees;
+      const department = job.departments;
+      const position = job.positions;
       
       return {
-        '员工编号': employee.employee_code || '',
-        '员工姓名': employee.full_name || '',
-        '身份证号': employee.id_number || '',
-        '部门代码': department?.code || '',
+        '员工编号': job.employee_id || '', // 使用employee_id作为员工编号
+        '员工姓名': employee?.employee_name || '', // 直接使用统一的employee_name字段
+        '身份证号': employee?.id_number || '',
         '部门名称': department?.name || '',
-        '职位代码': position?.code || '',
         '职位名称': position?.name || '',
-        '职级代码': rank?.code || '',
-        '职级名称': rank?.name || '',
-        '生效日期': job.effective_start_date
+        '生效日期': job.effective_start_date,
+        '失效日期': job.effective_end_date || '' // 显示失效日期，便于了解时间切片
       };
     });
 
@@ -437,8 +564,8 @@ export class PayrollExportService {
       const key = row['身份证号'] || row['员工编号'] || row['员工姓名'];
       const existing = mergedMap.get(key) || {};
       
-      existing['人员类别代码'] = row['人员类别代码'];
       existing['人员类别'] = row['人员类别'];
+      existing['类别生效日期'] = row['生效日期'];
       
       mergedMap.set(key, existing);
     });
@@ -448,12 +575,9 @@ export class PayrollExportService {
       const key = row['身份证号'] || row['员工编号'] || row['员工姓名'];
       const existing = mergedMap.get(key) || {};
       
-      existing['部门代码'] = row['部门代码'];
       existing['部门名称'] = row['部门名称'];
-      existing['职位代码'] = row['职位代码'];
       existing['职位名称'] = row['职位名称'];
-      existing['职级代码'] = row['职级代码'];
-      existing['职级名称'] = row['职级名称'];
+      existing['职务生效日期'] = row['生效日期'];
       
       mergedMap.set(key, existing);
     });

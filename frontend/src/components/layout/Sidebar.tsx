@@ -1,8 +1,17 @@
-import { NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 
-const menuItems = [
+interface MenuItem {
+  key: string;
+  path?: string;
+  icon: React.ReactNode;
+  permissions: string[];
+  children?: MenuItem[];
+}
+
+const menuItems: MenuItem[] = [
   {
     key: 'dashboard',
     path: '/dashboard',
@@ -35,33 +44,34 @@ const menuItems = [
   },
   {
     key: 'payroll',
-    path: '/payroll',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
       </svg>
     ),
     permissions: ['payroll:read'],
-  },
-  {
-    key: 'payrollMetadata',
-    path: '/payroll/metadata',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-      </svg>
-    ),
-    permissions: ['payroll:metadata'],
-  },
-  {
-    key: 'payrollImport',
-    path: '/payroll/import',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-      </svg>
-    ),
-    permissions: ['payroll:import'],
+    children: [
+      {
+        key: 'payrollManagement',
+        path: '/payroll',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+        ),
+        permissions: ['payroll:read'],
+      },
+      {
+        key: 'payrollImport',
+        path: '/payroll/import',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+        ),
+        permissions: ['payroll:import'],
+      },
+    ],
   },
 ];
 
@@ -72,12 +82,93 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const { t } = useTranslation(['common']);
+  const location = useLocation();
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['payroll']); // 默认展开薪资菜单
 
   // 简化的权限检查
   const hasPermission = (permissions: string[]) => {
     if (permissions.length === 0) return true;
     // 这里可以根据用户权限进行更复杂的检查
     return true;
+  };
+
+  // 切换菜单展开状态
+  const toggleMenu = (key: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(key) 
+        ? prev.filter(k => k !== key)
+        : [...prev, key]
+    );
+  };
+
+  // 检查菜单是否展开
+  const isExpanded = (key: string) => expandedMenus.includes(key);
+
+  // 检查菜单项是否激活
+  const isMenuActive = (item: MenuItem): boolean => {
+    if (item.path && location.pathname === item.path) return true;
+    if (item.children) {
+      return item.children.some(child => child.path === location.pathname);
+    }
+    return false;
+  };
+
+  // 渲染菜单项
+  const renderMenuItem = (item: MenuItem, level: number = 0) => {
+    if (!hasPermission(item.permissions)) return null;
+
+    const hasChildren = item.children && item.children.length > 0;
+    const isActive = isMenuActive(item);
+    const expanded = isExpanded(item.key);
+
+    if (hasChildren) {
+      return (
+        <li key={item.key}>
+          <details open={expanded}>
+            <summary 
+              className={cn(
+                "flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors text-sm cursor-pointer",
+                isActive && "bg-base-300",
+                "hover:bg-base-300"
+              )}
+              onClick={(e) => {
+                e.preventDefault();
+                toggleMenu(item.key);
+              }}
+            >
+              <span className="w-4 h-4 flex-shrink-0">
+                {item.icon}
+              </span>
+              <span className="truncate">{String(t(`common:nav.${item.key}`))}</span>
+            </summary>
+            <ul className="ml-4">
+              {item.children.map(child => renderMenuItem(child, level + 1))}
+            </ul>
+          </details>
+        </li>
+      );
+    }
+
+    return (
+      <li key={item.key}>
+        <NavLink
+          to={item.path!}
+          className={({ isActive }) => cn(
+            "flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors text-sm",
+            level > 0 && "ml-2",
+            isActive 
+              ? "bg-primary text-primary-content" 
+              : "hover:bg-base-300"
+          )}
+          onClick={onClose}
+        >
+          <span className="w-4 h-4 flex-shrink-0">
+            {item.icon}
+          </span>
+          <span className="truncate">{String(t(`common:nav.${item.key}`))}</span>
+        </NavLink>
+      </li>
+    );
   };
 
   return (
@@ -94,29 +185,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           </h2>
           
           <ul className="menu menu-compact">
-            {menuItems.map((item) => {
-              if (!hasPermission(item.permissions)) return null;
-              
-              return (
-                <li key={item.key}>
-                  <NavLink
-                    to={item.path}
-                    className={({ isActive }) => cn(
-                      "flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors text-sm",
-                      isActive 
-                        ? "bg-primary text-primary-content" 
-                        : "hover:bg-base-300"
-                    )}
-                    onClick={onClose}
-                  >
-                    <span className="w-4 h-4 flex-shrink-0">
-                      {item.icon}
-                    </span>
-                    <span className="truncate">{String(t(`common:nav.${item.key}`))}</span>
-                  </NavLink>
-                </li>
-              );
-            })}
+            {menuItems.map(item => renderMenuItem(item))}
           </ul>
         </div>
       </div>
