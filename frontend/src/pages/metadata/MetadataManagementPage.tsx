@@ -185,7 +185,7 @@ export default function MetadataManagementPage() {
     try {
       // 如果有选中的行，只导出选中的数据
       const dataToExport = selectedRows.length > 0 
-        ? employees.filter(emp => selectedRows.includes(emp.payroll_id))
+        ? employees.filter((emp: any) => selectedRows.includes(emp.payroll_id))
         : employees;
 
       if (dataToExport.length === 0) {
@@ -298,7 +298,7 @@ export default function MetadataManagementPage() {
 
     try {
       // 调用服务层批量删除（仅限草稿状态）
-      const deletePromises = selectedRows.map(payrollId => 
+      const deletePromises = selectedRows.map((payrollId: string) => 
         payrollService.deletePayroll(payrollId)
       );
       
@@ -345,8 +345,8 @@ export default function MetadataManagementPage() {
   const statistics = useMemo(() => {
     if (!employees.length) return null;
 
-    const totalSalary = employees.reduce((sum, emp) => sum + (parseFloat(emp.gross_pay) || 0), 0);
-    const totalDeductions = employees.reduce((sum, emp) => sum + (parseFloat(emp.total_deductions) || 0), 0);
+    const totalSalary = employees.reduce((sum: number, emp: any) => sum + (parseFloat(emp.gross_pay) || 0), 0);
+    const totalDeductions = employees.reduce((sum: number, emp: any) => sum + (parseFloat(emp.total_deductions) || 0), 0);
     const averageSalary = totalSalary / employees.length;
 
     return {
@@ -354,8 +354,8 @@ export default function MetadataManagementPage() {
       totalSalary,
       totalDeductions,
       averageSalary,
-      departmentCount: new Set(employees.map(e => e.department_name)).size,
-      positionCount: new Set(employees.map(e => e.position_name)).size
+      departmentCount: new Set(employees.map((e: any) => e.department_name)).size,
+      positionCount: new Set(employees.map((e: any) => e.position_name)).size
     };
   }, [employees, pagination.total]);
 
