@@ -3,8 +3,10 @@ import { ImportDataGroup } from '@/types/payroll-import';
 import { PayrollExportService } from '@/services/payroll-export.service';
 import type { PayrollPeriod, ExportConfig } from '@/services/payroll-export.service';
 import { useToast, ToastContainer } from '@/components/common/Toast';
-import { InfoIcon, XCircleIcon, RefreshIcon, MoneyIcon, BankIcon, PeopleIcon, BriefcaseIcon } from '@/components/common/Icons';
+import { InfoIcon, XCircleIcon, RefreshIcon } from '@/components/common/Icons';
 import { MonthPicker } from '@/components/common/MonthPicker';
+import { DataGroupSelector } from '@/components/common/DataGroupSelector';
+import { DataGroupSelectAllController } from '@/components/common/DataGroupSelectAllController';
 import { useAvailablePayrollMonths, type AvailablePayrollMonth } from '@/hooks/useAvailablePayrollMonths';
 
 interface HistoryDataExporterProps {
@@ -21,33 +23,6 @@ export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClos
   // 获取可用的薪资月份数据
   const { data: availableMonths, isLoading } = useAvailablePayrollMonths(true);
 
-  // 数据组选项
-  const dataGroupOptions = [
-    {
-      value: ImportDataGroup.EARNINGS,
-      label: '收入数据',
-      description: '所有收入项目的历史数据',
-      icon: MoneyIcon
-    },
-    {
-      value: ImportDataGroup.CONTRIBUTION_BASES,
-      label: '缴费基数',
-      description: '各类保险和公积金基数',
-      icon: BankIcon
-    },
-    {
-      value: ImportDataGroup.CATEGORY_ASSIGNMENT,
-      label: '人员类别',
-      description: '员工类别分配历史',
-      icon: PeopleIcon
-    },
-    {
-      value: ImportDataGroup.JOB_ASSIGNMENT,
-      label: '职务信息',
-      description: '部门和职位分配历史',
-      icon: BriefcaseIcon
-    }
-  ];
 
   // 设置默认选中最近的月份
   useEffect(() => {
@@ -69,10 +44,18 @@ export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClos
 
   // 全选/取消全选
   const handleSelectAll = () => {
-    if (selectedGroups.length === dataGroupOptions.length) {
+    const allBasicGroups = [
+      ImportDataGroup.EARNINGS,
+      ImportDataGroup.CONTRIBUTION_BASES,
+      ImportDataGroup.CATEGORY_ASSIGNMENT,
+      ImportDataGroup.JOB_ASSIGNMENT
+    ];
+    
+    if (selectedGroups.length === allBasicGroups.length && 
+        allBasicGroups.every(group => selectedGroups.includes(group))) {
       setSelectedGroups([]);
     } else {
-      setSelectedGroups(dataGroupOptions.map(opt => opt.value));
+      setSelectedGroups(allBasicGroups);
     }
   };
 
@@ -149,8 +132,9 @@ export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClos
             onChange={setSelectedMonth}
             showDataIndicators={true}
             availableMonths={availableMonths}
+            onlyShowMonthsWithData={true}
             className="w-full"
-            placeholder="请选择要导出的月份"
+            placeholder="请选择有薪资数据的月份"
             disabled={isLoading}
           />
           
@@ -174,50 +158,23 @@ export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClos
         </div>
 
         {/* 数据类型选择 */}
-        <div className="form-control mb-6">
-          <label className="label">
-            <span className="label-text font-semibold">选择要导出的数据类型</span>
-            <button
-              className="btn btn-xs btn-ghost"
-              onClick={handleSelectAll}
-            >
-              {selectedGroups.length === dataGroupOptions.length ? '取消全选' : '全选'}
-            </button>
-          </label>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {dataGroupOptions.map(option => (
-              <div
-                key={option.value}
-                className={`card bordered cursor-pointer transition-all ${
-                  selectedGroups.includes(option.value)
-                    ? 'border-primary bg-primary/5'
-                    : 'border-base-300 hover:border-primary/50'
-                }`}
-                onClick={() => handleGroupToggle(option.value)}
-              >
-                <div className="card-body p-4">
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      className="checkbox checkbox-primary mt-1"
-                      checked={selectedGroups.includes(option.value)}
-                      onChange={() => {}}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <option.icon className="text-2xl" />
-                        <h3 className="font-semibold">{option.label}</h3>
-                      </div>
-                      <p className="text-sm text-base-content/70 mt-1">
-                        {option.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+        <div className="mb-6">
+          <div className="form-control mb-4">
+            <div className="flex items-center gap-4 mb-2">
+              <span className="label-text font-semibold">选择数据类型</span>
+              <DataGroupSelectAllController
+                selectedGroups={selectedGroups}
+                onSelectAll={handleSelectAll}
+              />
+            </div>
           </div>
+          
+          <DataGroupSelector
+            selectedGroups={selectedGroups}
+            onGroupToggle={handleGroupToggle}
+            multiple={true}
+            className="mt-0"
+          />
         </div>
 
         {/* 导出信息摘要 */}
