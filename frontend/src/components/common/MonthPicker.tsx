@@ -19,6 +19,8 @@ interface MonthPickerProps {
   availableMonths?: AvailablePayrollMonth[];
   /** Disable months that already have payroll data */
   disableMonthsWithData?: boolean;
+  /** Only allow selection of months that have payroll data (opposite of disableMonthsWithData) */
+  onlyShowMonthsWithData?: boolean;
 }
 
 export function MonthPicker({
@@ -32,7 +34,8 @@ export function MonthPicker({
   disabled = false,
   showDataIndicators = false,
   availableMonths: providedAvailableMonths,
-  disableMonthsWithData = false
+  disableMonthsWithData = false,
+  onlyShowMonthsWithData = false
 }: MonthPickerProps) {
   const { t } = useTranslation('common');
   const [isOpen, setIsOpen] = useState(false);
@@ -110,6 +113,12 @@ export function MonthPicker({
     if (disableMonthsWithData && showDataIndicators) {
       const monthAvailability = checkMonthAvailability(availableMonths, yearMonth);
       if (monthAvailability.hasData) return true;
+    }
+    
+    // 如果启用了只显示有数据月份功能，检查该月份是否没有数据
+    if (onlyShowMonthsWithData && showDataIndicators) {
+      const monthAvailability = checkMonthAvailability(availableMonths, yearMonth);
+      if (!monthAvailability.hasData) return true;
     }
     
     return false;

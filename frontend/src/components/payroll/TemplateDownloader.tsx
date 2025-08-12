@@ -4,6 +4,8 @@ import useExcelTemplate from '@/hooks/useExcelTemplate';
 import { useToast, ToastContainer } from '@/components/common/Toast';
 import { InfoIcon, XCircleIcon } from '@/components/common/Icons';
 import { MonthPicker } from '@/components/common/MonthPicker';
+import { DataGroupSelector } from '@/components/common/DataGroupSelector';
+import { DataGroupSelectAllController } from '@/components/common/DataGroupSelectAllController';
 import { useAvailablePayrollMonths } from '@/hooks/useAvailablePayrollMonths';
 
 interface TemplateDownloaderProps {
@@ -35,34 +37,6 @@ export const TemplateDownloader: React.FC<TemplateDownloaderProps> = ({
   // 获取可用的薪资月份数据
   const { data: availableMonths } = useAvailablePayrollMonths(true);
 
-  // 数据组选项
-  const dataGroupOptions = [
-    {
-      value: ImportDataGroup.EARNINGS,
-      label: '收入数据',
-      description: '基本工资、津贴、奖金等收入项目',
-      icon: '💰'
-    },
-    {
-      value: ImportDataGroup.CONTRIBUTION_BASES,
-      label: '缴费基数',
-      description: '养老、医疗、公积金等缴费基数',
-      icon: '🏦'
-    },
-    {
-      value: ImportDataGroup.CATEGORY_ASSIGNMENT,
-      label: '人员类别',
-      description: '员工的人员类别分配信息',
-      icon: '👥'
-    },
-    {
-      value: ImportDataGroup.JOB_ASSIGNMENT,
-      label: '职务信息',
-      description: '部门、职位、职级等信息',
-      icon: '💼'
-    }
-  ];
-
   // 处理数据组选择
   const handleGroupToggle = (group: ImportDataGroup) => {
     setSelectedGroups(prev => {
@@ -75,11 +49,17 @@ export const TemplateDownloader: React.FC<TemplateDownloaderProps> = ({
 
   // 全选/取消全选
   const handleSelectAll = () => {
-    if (selectedGroups.length === dataGroupOptions.length) {
-      setSelectedGroups([]);
-    } else {
-      setSelectedGroups(dataGroupOptions.map(opt => opt.value));
-    }
+    const allGroups = [
+      ImportDataGroup.EARNINGS,
+      ImportDataGroup.CONTRIBUTION_BASES,
+      ImportDataGroup.CATEGORY_ASSIGNMENT,
+      ImportDataGroup.JOB_ASSIGNMENT
+    ];
+    
+    const isAllSelected = selectedGroups.length === allGroups.length && 
+      allGroups.every(group => selectedGroups.includes(group));
+    
+    setSelectedGroups(isAllSelected ? [] : allGroups);
   };
 
   // 下载模板
@@ -125,63 +105,37 @@ export const TemplateDownloader: React.FC<TemplateDownloaderProps> = ({
         <div className="form-control mb-6">
           <label className="label">
             <span className="label-text font-semibold">薪资期间</span>
-            <span className="label-text-alt text-base-content/60">选择要生成模板的月份</span>
+            <span className="label-text-alt text-base-content/60">选择有薪资数据的月份</span>
           </label>
           <MonthPicker
             value={selectedMonth}
             onChange={setSelectedMonth}
             showDataIndicators={true}
             availableMonths={availableMonths}
+            onlyShowMonthsWithData={true}
             className="w-full"
-            placeholder="请选择薪资月份"
+            placeholder="请选择有薪资数据的月份"
           />
         </div>
 
         {/* 数据组选择 */}
-        <div className="form-control mb-6">
-          <label className="label">
-            <span className="label-text font-semibold">选择要导入的数据类型</span>
-            <button
-              className="btn btn-xs btn-ghost"
-              onClick={handleSelectAll}
-            >
-              {selectedGroups.length === dataGroupOptions.length ? '取消全选' : '全选'}
-            </button>
-          </label>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {dataGroupOptions.map(option => (
-              <div
-                key={option.value}
-                className={`card bordered cursor-pointer transition-all ${
-                  selectedGroups.includes(option.value)
-                    ? 'border-primary bg-primary/5'
-                    : 'border-base-300 hover:border-primary/50'
-                }`}
-                onClick={() => handleGroupToggle(option.value)}
-              >
-                <div className="card-body p-4">
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      className="checkbox checkbox-primary mt-1"
-                      checked={selectedGroups.includes(option.value)}
-                      onChange={() => {}}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{option.icon}</span>
-                        <h3 className="font-semibold">{option.label}</h3>
-                      </div>
-                      <p className="text-sm text-base-content/70 mt-1">
-                        {option.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+        <div className="mb-6">
+          <div className="form-control mb-4">
+            <div className="flex items-center gap-4 mb-2">
+              <span className="label-text font-semibold">选择要导入的数据类型</span>
+              <DataGroupSelectAllController
+                selectedGroups={selectedGroups}
+                onSelectAll={handleSelectAll}
+              />
+            </div>
           </div>
+          
+          <DataGroupSelector
+            selectedGroups={selectedGroups}
+            onGroupToggle={handleGroupToggle}
+            multiple={true}
+            className="mt-0"
+          />
         </div>
 
         {/* 模板选项 */}

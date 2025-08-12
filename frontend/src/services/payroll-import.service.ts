@@ -612,7 +612,7 @@ export class PayrollImportService {
     } else if (identifier.idNumber) {
       query = query.eq('id_number', identifier.idNumber);
     } else if (identifier.name) {
-      query = query.eq('full_name', identifier.name);
+      query = query.eq('employee_name', identifier.name);
     }
     
     const { data, error } = await query.single();
@@ -697,22 +697,60 @@ export class PayrollImportService {
     return mapping;
   }
 
+  /**
+   * 执行批量薪资项目更新插入操作（带事务处理）
+   */
   private async upsertPayrollItems(items: any[]) {
-    if (this.config.mode === ImportMode.UPDATE || this.config.mode === ImportMode.UPSERT) {
-      // 先删除现有项
-      const payrollIds = [...new Set(items.map(i => i.payroll_id))];
-      const componentIds = [...new Set(items.map(i => i.component_id))];
+    try {
+      // 使用Supabase的RPC函数实现事务处理
+      const { data, error } = await supabase.rpc('upsert_payroll_items_batch', {
+        items_data: items,
+        import_mode: this.config.mode
+      });
+
+      if (error) {
+        throw new Error(`批量更新薪资项目失败: ${error.message}`);
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      // 如果RPC函数不存在，回退到原有逻辑但增加错误处理
+      console.warn('RPC函数不存在，使用原有逻辑');
       
-      await supabase
-        .from('payroll_items')
-        .delete()
-        .in('payroll_id', payrollIds)
-        .in('component_id', componentIds);
+      if (this.config.mode === ImportMode.UPDATE || this.config.mode === ImportMode.UPSERT) {
+        try {
+          // 先删除现有项
+          const payrollIds = [...new Set(items.map(i => i.payroll_id))];
+          const componentIds = [...new Set(items.map(i => i.component_id))];
+          
+          const deleteResult = await supabase
+            .from('payroll_items')
+            .delete()
+            .in('payroll_id', payrollIds)
+            .in('component_id', componentIds);
+
+          if (deleteResult.error) {
+            throw new Error(`删除现有薪资项目失败: ${deleteResult.error.message}`);
+          }
+        } catch (deleteError) {
+          throw new Error(`删除阶段失败: ${deleteError instanceof Error ? deleteError.message : '未知错误'}`);
+        }
+      }
+      
+      try {
+        const insertResult = await supabase
+          .from('payroll_items')
+          .insert(items);
+
+        if (insertResult.error) {
+          throw new Error(`插入薪资项目失败: ${insertResult.error.message}`);
+        }
+
+        return insertResult;
+      } catch (insertError) {
+        throw new Error(`插入阶段失败: ${insertError instanceof Error ? insertError.message : '未知错误'}`);
+      }
     }
-    
-    return await supabase
-      .from('payroll_items')
-      .insert(items);
   }
 
   private async upsertContributionBases(bases: any[]) {
@@ -724,26 +762,49 @@ export class PayrollImportService {
     return { error: null };
   }
 
+  /**
+   * 处理时间片段分配（带事务处理和错误上下文）
+   */
   private async handleTimeSlicedAssignment(tableName: string, data: any) {
-    // 关闭之前的有效记录
-    const updateConditions: any = {
-      employee_id: data.employee_id
-    };
-    
-    if (tableName === 'employee_contribution_bases') {
-      updateConditions.insurance_type_id = data.insurance_type_id;
+    try {
+      // 构建更新条件
+      const updateConditions: any = {
+        employee_id: data.employee_id
+      };
+      
+      if (tableName === 'employee_contribution_bases') {
+        updateConditions.insurance_type_id = data.insurance_type_id;
+      }
+      
+      // 第一步：关闭之前的有效记录
+      const updateResult = await supabase
+        .from(tableName)
+        .update({ effective_end_date: data.effective_start_date })
+        .match(updateConditions)
+        .is('effective_end_date', null);
+
+      if (updateResult.error) {
+        throw new Error(`关闭${tableName}表中员工${data.employee_id}的旧记录失败: ${updateResult.error.message}`);
+      }
+      
+      // 第二步：插入新记录
+      const insertResult = await supabase
+        .from(tableName)
+        .insert(data);
+
+      if (insertResult.error) {
+        throw new Error(`向${tableName}表插入员工${data.employee_id}的新记录失败: ${insertResult.error.message}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      const contextError = new Error(
+        `处理${tableName}表的时间片段分配失败 (员工ID: ${data.employee_id}): ${
+          error instanceof Error ? error.message : '未知错误'
+        }`
+      );
+      throw contextError;
     }
-    
-    await supabase
-      .from(tableName)
-      .update({ effective_end_date: data.effective_start_date })
-      .match(updateConditions)
-      .is('effective_end_date', null);
-    
-    // 插入新记录
-    await supabase
-      .from(tableName)
-      .insert(data);
   }
 
   private async resolveCategoryId(code?: string, name?: string): Promise<string | null> {
