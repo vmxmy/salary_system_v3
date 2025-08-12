@@ -442,7 +442,7 @@ export default function PayrollMetadataPage() {
                 <div className="flex gap-2">
                   <ModernButton
                     size="sm"
-                    variant="success"
+                    variant="primary"
                     onClick={handleBatchActivate}
                     icon={
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -454,7 +454,7 @@ export default function PayrollMetadataPage() {
                   </ModernButton>
                   <ModernButton
                     size="sm"
-                    variant="warning"
+                    variant="secondary"
                     onClick={handleBatchDeactivate}
                     icon={
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

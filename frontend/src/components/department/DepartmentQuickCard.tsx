@@ -79,7 +79,7 @@ export function DepartmentQuickCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-sm truncate">{department.name}</h3>
-            {department.employee_count > 0 && (
+            {department.employee_count && department.employee_count > 0 && (
               <span className="badge badge-sm badge-ghost">
                 <UsersIcon className="w-3 h-3 mr-1" />
                 {department.employee_count}
@@ -88,7 +88,7 @@ export function DepartmentQuickCard({
           </div>
           {hasChildren && (
             <p className="text-xs text-base-content/60 mt-0.5">
-              {department.children.length} 个子部门
+              {department.children?.length || 0} 个子部门
             </p>
           )}
         </div>

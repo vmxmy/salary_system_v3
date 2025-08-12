@@ -16,19 +16,19 @@ export function useAvailablePayrollMonths(enabled: boolean = true) {
   return useQuery({
     queryKey: ['available-payroll-months'],
     queryFn: async (): Promise<AvailablePayrollMonth[]> => {
-      // 使用视图获取薪资数据
+      // 使用视图获取薪资数据，按月份分组统计
       const { data, error } = await supabase
         .from('view_payroll_summary')
-        .select('pay_period_start');
+        .select('pay_period_start, employee_id');
 
       if (error) throw error;
 
-      // 按月份分组统计
-      const monthCounts = new Map<string, number>();
+      // 按月份分组统计（每个月份统计不重复的员工数）
+      const monthDataMap = new Map<string, Set<string>>();
       
       (data || []).forEach(row => {
         // 从 pay_period_start 提取月份信息
-        if (row.pay_period_start) {
+        if (row.pay_period_start && row.employee_id) {
           let monthString = '';
           
           if (typeof row.pay_period_start === 'string') {
@@ -53,18 +53,21 @@ export function useAvailablePayrollMonths(enabled: boolean = true) {
             }
           }
           
-          // 验证月份格式并计数
+          // 验证月份格式并添加员工ID到对应月份的Set中
           if (monthString && /^\d{4}-\d{2}$/.test(monthString)) {
-            monthCounts.set(monthString, (monthCounts.get(monthString) || 0) + 1);
+            if (!monthDataMap.has(monthString)) {
+              monthDataMap.set(monthString, new Set<string>());
+            }
+            monthDataMap.get(monthString)!.add(row.employee_id);
           }
         }
       });
 
-      // 转换为数组并排序
-      return Array.from(monthCounts.entries())
-        .map(([month, count]) => ({
+      // 转换为数组并排序（使用Set的size来获取不重复的员工数）
+      return Array.from(monthDataMap.entries())
+        .map(([month, employeeSet]) => ({
           month,
-          payrollCount: count,
+          payrollCount: employeeSet.size, // 使用Set的size获取不重复的员工数
           hasData: true
         }))
         .sort((a, b) => b.month.localeCompare(a.month));
@@ -92,7 +95,7 @@ export function checkMonthAvailability(
   const monthData = availableMonths.find(m => m.month === yearMonth);
   return {
     hasData: !!monthData?.hasData,
-    count: monthData?.payrollCount || 0
+    count: monthData?.payrollCount || 0  // 使用 payrollCount 字段
   };
 }
 

@@ -257,13 +257,7 @@ export const FieldMapping = {
   }
 };
 
+// Export only the FieldMapping utility since it's the only value
 export default {
-  EmployeeInsuranceBaseUnified,
-  PayrollUnified,
-  PayrollTrendUnified,
-  PayrollListItem,
-  PayrollDetailItem,
-  PayrollHistoryTrend,
-  UnifiedViewFilters,
   FieldMapping
 };

@@ -3,6 +3,8 @@ import { ImportDataGroup } from '@/types/payroll-import';
 import useExcelTemplate from '@/hooks/useExcelTemplate';
 import { useToast, ToastContainer } from '@/components/common/Toast';
 import { InfoIcon, XCircleIcon } from '@/components/common/Icons';
+import { MonthPicker } from '@/components/common/MonthPicker';
+import { useAvailablePayrollMonths } from '@/hooks/useAvailablePayrollMonths';
 
 interface TemplateDownloaderProps {
   onClose?: () => void;
@@ -22,12 +24,16 @@ export const TemplateDownloader: React.FC<TemplateDownloaderProps> = ({
   // 状态管理
   const [selectedGroups, setSelectedGroups] = useState<ImportDataGroup[]>([]);
   const [includeExample, setIncludeExample] = useState(true);
-  const [payPeriod, setPayPeriod] = useState(
-    defaultPeriod || {
-      year: new Date().getFullYear(),
-      month: new Date().getMonth() + 1
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    if (defaultPeriod) {
+      return `${defaultPeriod.year}-${String(defaultPeriod.month).padStart(2, '0')}`;
     }
-  );
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  
+  // 获取可用的薪资月份数据
+  const { data: availableMonths } = useAvailablePayrollMonths(true);
 
   // 数据组选项
   const dataGroupOptions = [
@@ -83,10 +89,13 @@ export const TemplateDownloader: React.FC<TemplateDownloaderProps> = ({
       return;
     }
 
+    // 解析选中的月份
+    const [year, month] = selectedMonth.split('-').map(Number);
+    
     await downloadTemplate({
       groups: selectedGroups,
       includeExample,
-      payPeriod
+      payPeriod: { year, month }
     });
 
     // 显示成功提示
@@ -116,33 +125,16 @@ export const TemplateDownloader: React.FC<TemplateDownloaderProps> = ({
         <div className="form-control mb-6">
           <label className="label">
             <span className="label-text font-semibold">薪资期间</span>
+            <span className="label-text-alt text-base-content/60">选择要生成模板的月份</span>
           </label>
-          <div className="flex gap-2">
-            <select
-              className="select select-bordered flex-1"
-              value={payPeriod.year}
-              onChange={(e) => setPayPeriod(prev => ({
-                ...prev,
-                year: parseInt(e.target.value)
-              }))}
-            >
-              {[2024, 2025, 2026].map(year => (
-                <option key={year} value={year}>{year}年</option>
-              ))}
-            </select>
-            <select
-              className="select select-bordered flex-1"
-              value={payPeriod.month}
-              onChange={(e) => setPayPeriod(prev => ({
-                ...prev,
-                month: parseInt(e.target.value)
-              }))}
-            >
-              {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                <option key={month} value={month}>{month}月</option>
-              ))}
-            </select>
-          </div>
+          <MonthPicker
+            value={selectedMonth}
+            onChange={setSelectedMonth}
+            showDataIndicators={true}
+            availableMonths={availableMonths}
+            className="w-full"
+            placeholder="请选择薪资月份"
+          />
         </div>
 
         {/* 数据组选择 */}
