@@ -4,6 +4,9 @@ import { HistoryDataExporter } from './HistoryDataExporter';
 import { ImportDataGroup, ImportMode } from '@/types/payroll-import';
 import type { ImportConfig, ExcelDataRow } from '@/types/payroll-import';
 import { PayrollImportService } from '@/services/payroll-import.service';
+import { DataGroupSelector } from '@/components/common/DataGroupSelector';
+import { DataGroupSelectAllController } from '@/components/common/DataGroupSelectAllController';
+import { MonthPicker } from '@/components/common/MonthPicker';
 import * as XLSX from 'xlsx';
 import { useToast, ToastContainer } from '@/components/common/Toast';
 import { DownloadIcon, UploadIcon, FolderIcon, CheckCircleIcon, CloseIcon } from '@/components/common/Icons';
@@ -14,8 +17,13 @@ export const PayrollImportPage: React.FC = () => {
   const [importing, setImporting] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ExcelDataRow[]>([]);
+  const [selectedDataGroups, setSelectedDataGroups] = useState<ImportDataGroup[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [importConfig, setImportConfig] = useState<ImportConfig>({
-    dataGroup: ImportDataGroup.ALL,
+    dataGroup: [],
     mode: ImportMode.UPSERT,
     payPeriod: {
       start: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -29,6 +37,60 @@ export const PayrollImportPage: React.FC = () => {
   });
   const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 处理月份选择
+  const handleMonthChange = (month: string) => {
+    setSelectedMonth(month);
+    const [year, monthNum] = month.split('-');
+    const start = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+    const end = new Date(parseInt(year), parseInt(monthNum), 0);
+    
+    setImportConfig(prev => ({
+      ...prev,
+      payPeriod: { start, end }
+    }));
+  };
+
+  // 处理数据组选择（多选模式）
+  const handleGroupToggle = (group: ImportDataGroup) => {
+    setSelectedDataGroups(prev => {
+      if (prev.includes(group)) {
+        // 如果已选择，则取消选择
+        const newGroups = prev.filter(g => g !== group);
+        setImportConfig(prevConfig => ({
+          ...prevConfig,
+          dataGroup: newGroups
+        }));
+        return newGroups;
+      } else {
+        // 如果未选择，则添加选择
+        const newGroups = [...prev, group];
+        setImportConfig(prevConfig => ({
+          ...prevConfig,
+          dataGroup: newGroups
+        }));
+        return newGroups;
+      }
+    });
+  };
+
+  // 全选数据组（多选模式）
+  const handleSelectAllDataGroups = () => {
+    const allBasicGroups = [
+      ImportDataGroup.EARNINGS,
+      ImportDataGroup.CONTRIBUTION_BASES,
+      ImportDataGroup.CATEGORY_ASSIGNMENT,
+      ImportDataGroup.JOB_ASSIGNMENT
+    ];
+    
+    const isAllSelected = selectedDataGroups.length === allBasicGroups.length && 
+      allBasicGroups.every(group => selectedDataGroups.includes(group));
+    
+    const newGroups = isAllSelected ? [] : allBasicGroups;
+    setSelectedDataGroups(newGroups);
+    setImportConfig(prev => ({ ...prev, dataGroup: newGroups }));
+  };
+
 
   // 处理文件上传
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,8 +141,10 @@ export const PayrollImportPage: React.FC = () => {
         
         setParsedData(allData);
         
-        // 显示预览
-        console.log(`成功解析 ${allData.length} 行数据`);
+        // 显示预览 - 开发环境下才输出日志
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`成功解析 ${allData.length} 行数据`);
+        }
         
       } catch (error) {
         console.error('文件解析失败:', error);
@@ -95,6 +159,11 @@ export const PayrollImportPage: React.FC = () => {
   const handleImport = async () => {
     if (!parsedData.length) {
       toast.warning('没有可导入的数据');
+      return;
+    }
+
+    if (selectedDataGroups.length === 0) {
+      toast.warning('请选择要导入的数据类型');
       return;
     }
 
@@ -113,7 +182,10 @@ export const PayrollImportPage: React.FC = () => {
         toast.warning(`导入完成，但有错误。成功 ${result.successCount} 条，失败 ${result.failedCount} 条`);
       }
     } catch (error) {
-      console.error('导入失败:', error);
+      // 开发环境下才输出错误日志
+      if (process.env.NODE_ENV === 'development') {
+        console.error('导入失败:', error);
+      }
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       toast.error('导入失败: ' + errorMessage);
     } finally {
@@ -137,41 +209,42 @@ export const PayrollImportPage: React.FC = () => {
       <h1 className="text-2xl font-bold">薪资数据导入导出</h1>
       <div className="divider"></div>
 
-      {/* 标签页 */}
-      <div className="tabs tabs-boxed">
-        <a
-          className={`tab tab-lg ${activeTab === 'template' ? 'tab-active' : ''}`}
-          onClick={() => setActiveTab('template')}
-        >
-          <DownloadIcon className="w-5 h-5 mr-2" />
-          下载模板
-        </a>
-        <a
-          className={`tab tab-lg ${activeTab === 'import' ? 'tab-active' : ''}`}
-          onClick={() => setActiveTab('import')}
-        >
-          <UploadIcon className="w-5 h-5 mr-2" />
-          导入数据
-        </a>
-        <a
-          className={`tab tab-lg ${activeTab === 'export' ? 'tab-active' : ''}`}
-          onClick={() => setActiveTab('export')}
-        >
-          <FolderIcon className="w-5 h-5 mr-2" />
-          导出历史
-        </a>
-      </div>
-
-      {/* 内容区域 */}
-      <div className="mt-6">
-        {activeTab === 'template' ? (
+      {/* 标签页 - 使用 DaisyUI 5 tabs-border 样式 */}
+      <div className="tabs tabs-border">
+        <input
+          type="radio"
+          name="payroll_import_tabs"
+          className="tab"
+          aria-label="下载模板"
+          checked={activeTab === 'template'}
+          onChange={() => setActiveTab('template')}
+        />
+        <div className="tab-content border-base-300 bg-base-100 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <DownloadIcon className="w-5 h-5" />
+            <h2 className="text-xl font-semibold">下载模板</h2>
+          </div>
           <TemplateDownloader
             defaultPeriod={{
               year: importConfig.payPeriod.start.getFullYear(),
               month: importConfig.payPeriod.start.getMonth() + 1
             }}
           />
-        ) : activeTab === 'import' ? (
+        </div>
+
+        <input
+          type="radio"
+          name="payroll_import_tabs"
+          className="tab"
+          aria-label="导入数据"
+          checked={activeTab === 'import'}
+          onChange={() => setActiveTab('import')}
+        />
+        <div className="tab-content border-base-300 bg-base-100 p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <UploadIcon className="w-5 h-5" />
+            <h2 className="text-xl font-semibold">导入数据</h2>
+          </div>
           <div className="flex flex-col gap-6">
             {/* 导入配置 */}
             <div className="card bg-base-100 shadow-xl">
@@ -179,6 +252,24 @@ export const PayrollImportPage: React.FC = () => {
                 <h2 className="card-title">导入配置</h2>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* 薪资周期选择 */}
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">薪资周期</span>
+                    </label>
+                    <MonthPicker
+                      value={selectedMonth}
+                      onChange={handleMonthChange}
+                      placeholder="请选择薪资周期"
+                      showDataIndicators={true}
+                      disableMonthsWithData={true}
+                      className="select-bordered"
+                    />
+                    <label className="label">
+                      <span className="label-text-alt">只能选择无薪资数据的月份</span>
+                    </label>
+                  </div>
+
                   {/* 导入模式 */}
                   <div className="form-control">
                     <label className="label">
@@ -200,24 +291,23 @@ export const PayrollImportPage: React.FC = () => {
                   </div>
 
                   {/* 数据组选择 */}
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text">数据类型</span>
-                    </label>
-                    <select
-                      className="select select-bordered"
-                      value={Array.isArray(importConfig.dataGroup) ? 'multiple' : importConfig.dataGroup}
-                      onChange={(e) => setImportConfig(prev => ({
-                        ...prev,
-                        dataGroup: e.target.value as ImportDataGroup
-                      }))}
-                    >
-                      <option value={ImportDataGroup.ALL}>全部数据</option>
-                      <option value={ImportDataGroup.EARNINGS}>仅收入数据</option>
-                      <option value={ImportDataGroup.CONTRIBUTION_BASES}>仅缴费基数</option>
-                      <option value={ImportDataGroup.CATEGORY_ASSIGNMENT}>仅人员类别</option>
-                      <option value={ImportDataGroup.JOB_ASSIGNMENT}>仅职务信息</option>
-                    </select>
+                  <div className="col-span-2">
+                    <div className="form-control mb-4">
+                      <div className="flex items-center gap-4 mb-2">
+                        <span className="label-text font-semibold">选择数据类型</span>
+                        <DataGroupSelectAllController
+                          selectedGroups={selectedDataGroups}
+                          onSelectAll={handleSelectAllDataGroups}
+                        />
+                      </div>
+                    </div>
+                    
+                    <DataGroupSelector
+                      selectedGroups={selectedDataGroups}
+                      onGroupToggle={handleGroupToggle}
+                      multiple={true}
+                      className="mt-0"
+                    />
                   </div>
                 </div>
 
@@ -354,10 +444,10 @@ export const PayrollImportPage: React.FC = () => {
                       <button
                         className="btn btn-primary"
                         onClick={handleImport}
-                        disabled={importing || parsedData.length === 0}
+                        disabled={importing || parsedData.length === 0 || selectedDataGroups.length === 0}
                       >
                         {importing && <span className="loading loading-spinner"></span>}
-                        {importing ? '导入中...' : `开始导入 (${parsedData.length} 条)`}
+                        {importing ? '导入中...' : selectedDataGroups.length === 0 ? '请选择数据类型' : `开始导入 (${parsedData.length} 条)`}
                       </button>
                     </div>
                   </div>
@@ -444,10 +534,23 @@ export const PayrollImportPage: React.FC = () => {
               </div>
             )}
           </div>
-        ) : (
-          // 导出历史数据
+        </div>
+
+        <input
+          type="radio"
+          name="payroll_import_tabs"
+          className="tab"
+          aria-label="导出历史"
+          checked={activeTab === 'export'}
+          onChange={() => setActiveTab('export')}
+        />
+        <div className="tab-content border-base-300 bg-base-100 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <FolderIcon className="w-5 h-5" />
+            <h2 className="text-xl font-semibold">导出历史</h2>
+          </div>
           <HistoryDataExporter />
-        )}
+        </div>
       </div>
     </div>
   );
