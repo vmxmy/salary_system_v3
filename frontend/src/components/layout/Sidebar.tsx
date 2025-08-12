@@ -142,7 +142,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               <span className="truncate">{String(t(`common:nav.${item.key}`))}</span>
             </summary>
             <ul className="ml-4">
-              {item.children.map(child => renderMenuItem(child, level + 1))}
+              {item.children?.map(child => renderMenuItem(child, level + 1))}
             </ul>
           </details>
         </li>
