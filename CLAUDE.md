@@ -266,6 +266,14 @@ The system maintains the sophisticated HR and payroll management capabilities of
 - 前端使用标准的daisyUI5样式，不要使用任何自定义的样式管理
 - **字段命名统一**：所有字段使用 `employee_name` 而不是 `full_name`，保持前后端一致
 
+### Database Migration Status (2025-01-11)
+- **字段名标准化完成**：成功完成从 `full_name` 到 `employee_name` 的完整迁移
+  - Phase 1: 更新所有视图使用 employee_name 别名 
+  - Phase 2: 添加 employee_name 列到 employees 表并同步数据 (81/81 employees)
+  - Phase 3: 删除旧的 full_name 字段，实现完全清洁的架构
+- **所有视图已更新**：包括 view_payroll_summary, view_payroll_unified, view_recent_activities, view_payroll_metadata 等
+- **数据完整性验证**：所有 895 条薪资记录和相关视图正常工作
+
 ## 数据库视图和字段规范文档
 
 ### 视图架构使用指南 (view-documentation.md)
