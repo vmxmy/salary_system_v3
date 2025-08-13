@@ -14,6 +14,7 @@ import {
   FolderOpenIcon,
   FolderIcon
 } from '@heroicons/react/24/outline';
+import { UniversalPageLayout } from '@/components/layout/UniversalPageLayout';
 import { useToast } from '@/contexts/ToastContext';
 import { cn } from '@/lib/utils';
 import { ModernButton } from '@/components/common/ModernButton';
@@ -416,57 +417,56 @@ export default function DepartmentManagementPage() {
     </div>
   );
 
+  // 统计卡片配置
+  const statCards = useMemo(() => [
+    {
+      title: '部门总数',
+      value: stats.totalDepartments,
+      description: '组织架构',
+      icon: <BuildingOfficeIcon className="w-8 h-8" />,
+      colorClass: 'text-primary'
+    },
+    {
+      title: '员工总数',
+      value: stats.totalEmployees,
+      description: '人员规模',
+      icon: <UsersIcon className="w-8 h-8" />,
+      colorClass: 'text-info'
+    },
+    {
+      title: '活跃部门',
+      value: stats.activeDepartments,
+      description: '有员工的部门',
+      icon: <ChartBarIcon className="w-8 h-8" />,
+      colorClass: 'text-success'
+    },
+    {
+      title: '平均薪资',
+      value: `¥${stats.avgSalary.toFixed(0)}`,
+      description: '薪资水平',
+      icon: <CurrencyDollarIcon className="w-8 h-8" />,
+      colorClass: 'text-warning'
+    }
+  ], [stats]);
+
   return (
-    <div className="p-6 space-y-6">
-      {/* 页面标题和统计卡片 */}
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-base-content">部门管理</h1>
-          <p className="text-base-content/70 mt-2">管理组织架构，查看部门层级和薪资统计</p>
-        </div>
-
-        {/* 统计卡片 - 使用 DaisyUI stats 组件 */}
-        <div className="stats stats-vertical lg:stats-horizontal shadow w-full">
-          <div className="stat">
-            <div className="stat-figure text-primary">
-              <BuildingOfficeIcon className="w-8 h-8" />
-            </div>
-            <div className="stat-title">部门总数</div>
-            <div className="stat-value text-primary">{stats.totalDepartments}</div>
-            <div className="stat-desc">组织架构</div>
-          </div>
-
-          <div className="stat">
-            <div className="stat-figure text-info">
-              <UsersIcon className="w-8 h-8" />
-            </div>
-            <div className="stat-title">员工总数</div>
-            <div className="stat-value text-info">{stats.totalEmployees}</div>
-            <div className="stat-desc">人员规模</div>
-          </div>
-
-          <div className="stat">
-            <div className="stat-figure text-success">
-              <ChartBarIcon className="w-8 h-8" />
-            </div>
-            <div className="stat-title">活跃部门</div>
-            <div className="stat-value text-success">{stats.activeDepartments}</div>
-            <div className="stat-desc">有员工的部门</div>
-          </div>
-
-          <div className="stat">
-            <div className="stat-figure text-warning">
-              <CurrencyDollarIcon className="w-8 h-8" />
-            </div>
-            <div className="stat-title">平均薪资</div>
-            <div className="stat-value text-warning">¥{stats.avgSalary.toFixed(0)}</div>
-            <div className="stat-desc">薪资水平</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 简化的工具栏 */}
-      <div className="card bg-base-100 border border-base-200">
+    <UniversalPageLayout
+      page={{
+        title: "部门管理",
+        subtitle: "管理组织架构，查看部门层级和薪资统计",
+        icon: <BuildingOfficeIcon className="w-6 h-6" />
+      }}
+      statistics={{
+        cards: statCards,
+        loading: isLoadingStats
+      }}
+      styling={{
+        compact: true,
+        spacing: 'normal'
+      }}
+    >
+      {/* 工具栏内容 */}
+      <div className="card bg-base-100 shadow-sm border border-base-200/60">
         <div className="card-body p-4">
           {toolbarContent}
         </div>
@@ -499,8 +499,7 @@ export default function DepartmentManagementPage() {
           setSelectedDepartment(null);
         }}
       />
-
-    </div>
+    </UniversalPageLayout>
   );
 }
 
