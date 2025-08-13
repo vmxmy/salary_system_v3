@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
@@ -71,6 +71,26 @@ const menuItems: MenuItem[] = [
         ),
         permissions: ['payroll:import'],
       },
+      {
+        key: 'payrollTemplates',
+        path: '/payroll/templates',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        ),
+        permissions: ['payroll:read'],
+      },
+      {
+        key: 'payrollExport',
+        path: '/payroll/export',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 11l3 3m0 0l3-3m-3 3V8" />
+          </svg>
+        ),
+        permissions: ['payroll:export'],
+      },
     ],
   },
 ];
@@ -83,7 +103,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const { t } = useTranslation(['common']);
   const location = useLocation();
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(['payroll']); // 默认展开薪资菜单
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
   // 简化的权限检查
   const hasPermission = (permissions: string[]) => {
@@ -91,6 +111,32 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     // 这里可以根据用户权限进行更复杂的检查
     return true;
   };
+
+  // 检查菜单项是否激活
+  const isMenuActive = (item: MenuItem): boolean => {
+    if (item.path && location.pathname === item.path) return true;
+    if (item.children) {
+      return item.children.some(child => child.path === location.pathname);
+    }
+    return false;
+  };
+
+  // 检查子菜单是否有激活项
+  const hasActiveChild = (item: MenuItem): boolean => {
+    if (!item.children) return false;
+    return item.children.some(child => child.path === location.pathname);
+  };
+
+  // 自动展开包含激活子菜单的父菜单
+  useEffect(() => {
+    const newExpandedMenus: string[] = [];
+    menuItems.forEach(item => {
+      if (hasActiveChild(item)) {
+        newExpandedMenus.push(item.key);
+      }
+    });
+    setExpandedMenus(newExpandedMenus);
+  }, [location.pathname]);
 
   // 切换菜单展开状态
   const toggleMenu = (key: string) => {
@@ -103,15 +149,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
   // 检查菜单是否展开
   const isExpanded = (key: string) => expandedMenus.includes(key);
-
-  // 检查菜单项是否激活
-  const isMenuActive = (item: MenuItem): boolean => {
-    if (item.path && location.pathname === item.path) return true;
-    if (item.children) {
-      return item.children.some(child => child.path === location.pathname);
-    }
-    return false;
-  };
 
   // 渲染菜单项
   const renderMenuItem = (item: MenuItem, level: number = 0) => {
@@ -128,8 +165,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <summary 
               className={cn(
                 "flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors text-sm cursor-pointer",
-                isActive && "bg-base-300",
-                "hover:bg-base-300"
+                hasActiveChild(item) && "bg-primary text-primary-content font-medium",
+                !hasActiveChild(item) && "hover:bg-base-300"
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -153,6 +190,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       <li key={item.key}>
         <NavLink
           to={item.path!}
+          end={true}  // 精确匹配路径，避免部分匹配
           className={({ isActive }) => cn(
             "flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors text-sm",
             level > 0 && "ml-2",

@@ -35,7 +35,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 interface Employee {
   id: string;
   employee_id: string;
-  full_name: string;
+  employee_name: string;
   email: string;
   department_name: string;
   employment_status: string;
@@ -59,7 +59,7 @@ function EmployeeList() {
         <span className="font-mono text-sm font-medium">{getValue()}</span>
       ),
     }),
-    columnHelper.accessor('full_name', {
+    columnHelper.accessor('employee_name', {
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('fields.name')} />
       ),
@@ -329,7 +329,7 @@ const handleExportExcel = async () => {
   await exportTableToExcel(
     data, 
     'employee-report', 
-    ['employee_id', 'full_name', 'email'], // specific columns
+    ['employee_id', 'employee_name', 'email'], // specific columns
     'Employee Data' // sheet name
   );
 };

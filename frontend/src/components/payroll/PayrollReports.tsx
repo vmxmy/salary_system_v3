@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
-import { usePayrolls, useCreateBatchPayrolls, useUpdateBatchPayrollStatus, useCalculatePayrolls, useLatestPayrollMonth } from '@/hooks/payroll';
+import { usePayrolls, useUpdateBatchPayrollStatus, useCalculatePayrolls, useLatestPayrollMonth } from '@/hooks/payroll';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
 import { useTableConfiguration } from '@/hooks/useTableConfiguration';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
@@ -124,7 +124,6 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
   const { data: statistics, isLoading: statsLoading } = usePayrollStatistics(selectedMonth);
 
   // Mutations
-  const createBatchPayrolls = useCreateBatchPayrolls();
   const updateBatchStatus = useUpdateBatchPayrollStatus();
   const calculatePayrolls = useCalculatePayrolls();
 
@@ -511,7 +510,6 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
           onMarkPaid={handleBatchMarkPaid}
           onExport={() => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id)), 'payroll-selected')}
           loading={
-            createBatchPayrolls.isPending ||
             updateBatchStatus.isPending ||
             calculatePayrolls.isPending
           }
