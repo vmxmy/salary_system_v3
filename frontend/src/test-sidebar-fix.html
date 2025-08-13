@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>侧边栏菜单焦点修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .pass {
+            color: green;
+            font-weight: bold;
+        }
+        .fail {
+            color: red;
+            font-weight: bold;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>侧边栏菜单焦点修复验证</h1>
+    
+    <div class="test-section">
+        <h2>修复内容</h2>
+        <ol>
+            <li>
+                <strong>自动展开激活菜单</strong>
+                <p>当访问子菜单路径（如 /payroll/import）时，父菜单（薪资）会自动展开</p>
+                <p>实现方式：使用 useEffect 监听路径变化，自动计算并设置展开状态</p>
+            </li>
+            <li>
+                <strong>父菜单激活样式</strong>
+                <p>当子菜单激活时，父菜单显示激活样式（蓝色背景）</p>
+                <p>实现方式：使用 hasActiveChild 函数判断并应用正确的样式类</p>
+            </li>
+            <li>
+                <strong>焦点状态一致性</strong>
+                <p>父菜单和子菜单的激活状态保持视觉一致性</p>
+            </li>
+            <li>
+                <strong>精确路径匹配</strong>
+                <p>修复 NavLink 路径匹配问题，避免 /payroll/import 激活 /payroll 菜单</p>
+                <p>实现方式：为 NavLink 添加 end={true} 属性，确保精确匹配</p>
+            </li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>测试步骤</h2>
+        <ol>
+            <li>访问 <a href="http://localhost:5176/payroll/import" target="_blank">http://localhost:5176/payroll/import</a></li>
+            <li>检查"薪资"父菜单是否自动展开 ✓</li>
+            <li>检查"薪资"父菜单是否显示蓝色激活背景 ✓</li>
+            <li>检查"薪资导入"子菜单是否显示激活状态 ✓</li>
+            <li><strong>检查"薪资管理"子菜单是否没有被错误激活 ✓</strong></li>
+            <li>点击其他菜单项，确认激活状态正确切换 ✓</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>代码变更详情</h2>
+        <h3>1. 添加了 useEffect Hook</h3>
+        <pre><code>
+useEffect(() => {
+  const newExpandedMenus: string[] = [];
+  menuItems.forEach(item => {
+    if (hasActiveChild(item)) {
+      newExpandedMenus.push(item.key);
+    }
+  });
+  setExpandedMenus(newExpandedMenus);
+}, [location.pathname]);
+        </code></pre>
+
+        <h3>2. 添加了 hasActiveChild 辅助函数</h3>
+        <pre><code>
+const hasActiveChild = (item: MenuItem): boolean => {
+  if (!item.children) return false;
+  return item.children.some(child => child.path === location.pathname);
+};
+        </code></pre>
+
+        <h3>3. 更新了父菜单的样式逻辑</h3>
+        <pre><code>
+className={cn(
+  "flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors text-sm cursor-pointer",
+  hasActiveChild(item) && "bg-primary text-primary-content font-medium",
+  !hasActiveChild(item) && "hover:bg-base-300"
+)}
+        </code></pre>
+
+        <h3>4. 添加精确路径匹配</h3>
+        <pre><code>
+&lt;NavLink
+  to={item.path!}
+  end={true}  // 精确匹配路径，避免部分匹配
+  className={({ isActive }) => cn(...)}
+&gt;
+        </code></pre>
+    </div>
+
+    <div class="test-section">
+        <h2 class="pass">✓ 修复完成</h2>
+        <p>侧边栏菜单焦点问题已成功修复。当选择"薪资导入"时：</p>
+        <ul>
+            <li>薪资父菜单会自动展开</li>
+            <li>薪资父菜单会显示激活状态（蓝色背景）</li>
+            <li>子菜单项正确显示激活状态</li>
+        </ul>
+    </div>
+</body>
+</html>

@@ -21,9 +21,11 @@ const PositionPage = lazy(() => import('@/pages/organization/PositionPage'));
 const PayrollListPage = lazy(() => import('@/pages/payroll/PayrollListPage'));
 const PayrollMetadataPage = lazy(() => import('@/pages/payroll/PayrollMetadataPage'));
 const PayrollImportPage = lazy(() => import('@/pages/payroll/PayrollImportPage'));
+const SmartPayrollImportPage = lazy(() => import('@/pages/payroll/SmartPayrollImportPage'));
+const PayrollTemplatesPage = lazy(() => import('@/pages/payroll/PayrollTemplatesPage'));
+const PayrollExportPage = lazy(() => import('@/pages/payroll/PayrollExportPage'));
 const MetadataManagementPage = lazy(() => import('@/pages/metadata/MetadataManagementPage'));
 const PayrollDetailPage = lazy(() => import('@/pages/payroll/PayrollDetailPage'));
-const CreateBatchPayrollPage = lazy(() => import('@/pages/payroll/CreateBatchPayrollPage'));
 const PayrollCycleWizardPage = lazy(() => import('@/pages/payroll/PayrollCycleWizardPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
@@ -205,10 +207,26 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            path: 'create-batch',
+            path: 'smart-import',
             element: (
               <Suspense fallback={<LoadingScreen />}>
-                <CreateBatchPayrollPage />
+                <SmartPayrollImportPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'templates',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PayrollTemplatesPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'export',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PayrollExportPage />
               </Suspense>
             ),
           },

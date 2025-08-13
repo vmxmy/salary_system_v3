@@ -23,7 +23,7 @@ export async function setupTestData() {
       password: 'admin123',
       role: ROLES.SUPER_ADMIN,
       metadata: {
-        full_name: 'System Admin',
+        employee_name: 'System Admin',
       },
     },
     {
@@ -31,7 +31,7 @@ export async function setupTestData() {
       password: 'hr123456',
       role: ROLES.HR_MANAGER,
       metadata: {
-        full_name: 'HR Manager',
+        employee_name: 'HR Manager',
       },
     },
     {
@@ -39,7 +39,7 @@ export async function setupTestData() {
       password: 'finance123',
       role: ROLES.FINANCE_ADMIN,
       metadata: {
-        full_name: 'Finance Admin',
+        employee_name: 'Finance Admin',
       },
     },
     {
@@ -47,7 +47,7 @@ export async function setupTestData() {
       password: 'manager123',
       role: ROLES.MANAGER,
       metadata: {
-        full_name: 'Department Manager',
+        employee_name: 'Department Manager',
       },
     },
     {
@@ -55,7 +55,7 @@ export async function setupTestData() {
       password: 'employee123',
       role: ROLES.EMPLOYEE,
       metadata: {
-        full_name: 'Regular Employee',
+        employee_name: 'Regular Employee',
       },
     },
   ];

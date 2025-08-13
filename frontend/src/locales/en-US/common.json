@@ -12,6 +12,8 @@
     "payrollManagement": "Payroll Management",
     "payrollMetadata": "Payroll Metadata",
     "payrollImport": "Import Payroll",
+    "payrollTemplates": "Import Templates",
+    "payrollExport": "Export Payroll",
     "organization": "Organization",
     "departments": "Departments",
     "positions": "Positions",

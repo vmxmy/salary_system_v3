@@ -1,4 +1,3 @@
-Initialising cli_login_postgres role...
 export type Json =
   | string
   | number
@@ -153,13 +152,6 @@ export type Database = {
             foreignKeyName: "employee_bank_accounts_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_bank_accounts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_payroll_statistics"
             referencedColumns: ["employee_id"]
           },
@@ -268,13 +260,6 @@ export type Database = {
             foreignKeyName: "employee_category_assignments_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_category_assignments_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_payroll_statistics"
             referencedColumns: ["employee_id"]
           },
@@ -335,13 +320,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_contacts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
             referencedColumns: ["employee_id"]
           },
           {
@@ -547,13 +525,6 @@ export type Database = {
             foreignKeyName: "employee_job_history_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_payroll_statistics"
             referencedColumns: ["employee_id"]
           },
@@ -687,13 +658,6 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_payroll_statistics"
             referencedColumns: ["employee_id"]
           },
@@ -781,13 +745,6 @@ export type Database = {
             foreignKeyName: "fk_insurance_calculation_logs_employee"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_employee"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_payroll_statistics"
             referencedColumns: ["employee_id"]
           },
@@ -818,13 +775,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payrolls"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_payroll"
-            columns: ["payroll_id"]
-            isOneToOne: false
-            referencedRelation: "view_payroll_list_optimized"
-            referencedColumns: ["payroll_id"]
           },
           {
             foreignKeyName: "fk_insurance_calculation_logs_payroll"
@@ -1053,13 +1003,6 @@ export type Database = {
             foreignKeyName: "payroll_items_payroll_id_fkey"
             columns: ["payroll_id"]
             isOneToOne: false
-            referencedRelation: "view_payroll_list_optimized"
-            referencedColumns: ["payroll_id"]
-          },
-          {
-            foreignKeyName: "payroll_items_payroll_id_fkey"
-            columns: ["payroll_id"]
-            isOneToOne: false
             referencedRelation: "view_payroll_summary"
             referencedColumns: ["payroll_id"]
           },
@@ -1142,13 +1085,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
             referencedColumns: ["employee_id"]
           },
           {
@@ -1242,13 +1178,6 @@ export type Database = {
             foreignKeyName: "personal_income_tax_calculation_logs_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "personal_income_tax_calculation_logs_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_payroll_statistics"
             referencedColumns: ["employee_id"]
           },
@@ -1265,13 +1194,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payrolls"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "personal_income_tax_calculation_logs_payroll_id_fkey"
-            columns: ["payroll_id"]
-            isOneToOne: false
-            referencedRelation: "view_payroll_list_optimized"
-            referencedColumns: ["payroll_id"]
           },
           {
             foreignKeyName: "personal_income_tax_calculation_logs_payroll_id_fkey"
@@ -1921,13 +1843,6 @@ export type Database = {
             foreignKeyName: "user_profiles_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "user_profiles_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_payroll_statistics"
             referencedColumns: ["employee_id"]
           },
@@ -2033,13 +1948,6 @@ export type Database = {
             foreignKeyName: "employee_job_history_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_payroll_statistics"
             referencedColumns: ["employee_id"]
           },
@@ -2086,19 +1994,6 @@ export type Database = {
         }
         Relationships: []
       }
-      view_dashboard_stats_optimized: {
-        Row: {
-          active_employees: number | null
-          current_month_employees: number | null
-          current_month_total: number | null
-          last_month_employees: number | null
-          last_month_total: number | null
-          total_departments: number | null
-          ytd_employees: number | null
-          ytd_total: number | null
-        }
-        Relationships: []
-      }
       view_department_hierarchy: {
         Row: {
           full_path: string | null
@@ -2106,19 +2001,6 @@ export type Database = {
           level: number | null
           name: string | null
           parent_department_id: string | null
-        }
-        Relationships: []
-      }
-      view_department_statistics: {
-        Row: {
-          avg_net_pay: number | null
-          department_name: string | null
-          dept_percentage: number | null
-          dept_rank: number | null
-          employee_count: number | null
-          month: string | null
-          total_gross_pay: number | null
-          total_net_pay: number | null
         }
         Relationships: []
       }
@@ -2257,13 +2139,6 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_payroll_statistics"
             referencedColumns: ["employee_id"]
           },
@@ -2324,32 +2199,6 @@ export type Database = {
           },
         ]
       }
-      view_employee_list_optimized: {
-        Row: {
-          avg_net_pay: number | null
-          date_of_birth: string | null
-          department_name: string | null
-          employee_id: string | null
-          employee_name: string | null
-          employment_status: string | null
-          gender: string | null
-          has_payroll: boolean | null
-          hire_date: string | null
-          id_number: string | null
-          is_active: boolean | null
-          latest_gross_pay: number | null
-          latest_net_pay: number | null
-          latest_pay_date: string | null
-          latest_pay_month: string | null
-          max_net_pay: number | null
-          min_net_pay: number | null
-          position_name: string | null
-          termination_date: string | null
-          total_payroll_count: number | null
-          years_of_service: number | null
-        }
-        Relationships: []
-      }
       view_employee_payroll_statistics: {
         Row: {
           employee_id: string | null
@@ -2376,28 +2225,6 @@ export type Database = {
         }
         Relationships: []
       }
-      view_monthly_statistics: {
-        Row: {
-          avg_gross_pay: number | null
-          avg_net_pay: number | null
-          employee_count: number | null
-          last_year_same_month: number | null
-          max_net_pay: number | null
-          min_net_pay: number | null
-          month: string | null
-          month_display: string | null
-          month_number: number | null
-          month_over_month_change: number | null
-          payroll_count: number | null
-          prev_month_total: number | null
-          total_deductions: number | null
-          total_gross_pay: number | null
-          total_net_pay: number | null
-          year: number | null
-          year_over_year_change: number | null
-        }
-        Relationships: []
-      }
       view_payroll_cost_analysis: {
         Row: {
           avg_employee_cost: number | null
@@ -2420,74 +2247,6 @@ export type Database = {
           total_employees: number | null
         }
         Relationships: []
-      }
-      view_payroll_list_optimized: {
-        Row: {
-          basic_salary: number | null
-          benefits_total: number | null
-          created_at: string | null
-          department_name: string | null
-          employee_id: string | null
-          employee_name: string | null
-          gross_pay: number | null
-          id_number: string | null
-          is_current_month: boolean | null
-          is_current_year: boolean | null
-          item_count: number | null
-          net_pay: number | null
-          pay_date: string | null
-          pay_month: string | null
-          pay_month_display: string | null
-          payroll_id: string | null
-          position_name: string | null
-          status: Database["public"]["Enums"]["payroll_status"] | null
-          total_deductions: number | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_basic_clean"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_payroll_statistics"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_payroll_metadata"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       view_payroll_metadata: {
         Row: {
@@ -2604,13 +2363,6 @@ export type Database = {
             foreignKeyName: "payrolls_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_payroll_statistics"
             referencedColumns: ["employee_id"]
           },
@@ -2668,13 +2420,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
             referencedColumns: ["employee_id"]
           },
           {
@@ -2777,13 +2522,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_list_optimized"
             referencedColumns: ["employee_id"]
           },
           {
@@ -4534,5 +4272,3 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.34.3 (currently installed v2.33.9)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

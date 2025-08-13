@@ -124,7 +124,7 @@ export class AuthService {
    * Sign up new user
    */
   async signUp(email: string, password: string, metadata?: {
-    full_name?: string;
+    employee_name?: string;
     employee_id?: string;
   }): Promise<AuthUser> {
     const { data, error } = await supabase.auth.signUp({

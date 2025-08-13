@@ -14,6 +14,8 @@
     "payrollManagement": "薪资管理",
     "payrollMetadata": "薪资元数据",
     "payrollImport": "薪资导入",
+    "payrollTemplates": "导入模板",
+    "payrollExport": "薪资导出",
     "organization": "组织架构",
     "departments": "部门管理",
     "positions": "岗位管理",
