@@ -1,0 +1,312 @@
+/* Universal Page Layout Styles */
+/* 基于 DaisyUI 5 + Tailwind CSS 4 的现代布局样式 */
+
+/* 页面布局基础类 */
+.page-layout-universal {
+  @apply min-h-screen bg-base-100;
+  
+  /* 确保页面内容不会被固定元素遮挡 */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 页面标题区域 */
+.page-header {
+  @apply mb-4 lg:mb-6;
+}
+
+.page-header h1 {
+  @apply text-2xl lg:text-3xl font-bold text-base-content;
+  @apply leading-tight;
+}
+
+.page-header p {
+  @apply text-base-content/70 mt-1 lg:mt-2;
+  @apply text-sm lg:text-base;
+}
+
+/* 统计卡片现代化样式 */
+.stats-modern {
+  @apply stats shadow-sm border border-base-200/60;
+  @apply bg-gradient-to-br from-base-100 to-base-200/30;
+  @apply transition-all duration-200;
+}
+
+.stats-modern:hover {
+  @apply shadow-md border-base-200/80;
+}
+
+.stat-modern {
+  @apply relative overflow-hidden;
+  @apply transition-colors duration-200;
+}
+
+.stat-modern::before {
+  @apply absolute inset-0 bg-gradient-to-br from-transparent to-base-200/10;
+  @apply opacity-0 transition-opacity duration-200;
+  content: '';
+}
+
+.stat-modern:hover::before {
+  @apply opacity-100;
+}
+
+/* 工具栏现代化样式 */
+.toolbar-modern {
+  @apply card bg-base-100 shadow-sm border border-base-200/60;
+  @apply transition-all duration-200;
+}
+
+.toolbar-modern:hover {
+  @apply shadow-md border-base-200/80;
+}
+
+.toolbar-content {
+  @apply card-body p-4 lg:p-5;
+}
+
+/* 内容区域样式 */
+.page-content {
+  @apply space-y-4 lg:space-y-6;
+}
+
+/* 响应式网格系统 */
+.responsive-grid {
+  @apply grid gap-3 lg:gap-4 xl:gap-6;
+  @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+}
+
+/* 紧凑模式的响应式网格 */
+.responsive-grid-compact {
+  @apply grid gap-2 lg:gap-3;
+  @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6;
+}
+
+/* 响应式统计卡片 */
+.responsive-stats {
+  @apply stats-vertical sm:stats-horizontal;
+  @apply w-full shadow-sm border border-base-200/60;
+  @apply bg-gradient-to-br from-base-100 to-base-200/30;
+}
+
+/* 移动端优化 */
+@media (max-width: 640px) {
+  .page-layout-universal {
+    @apply p-2 space-y-3;
+  }
+  
+  .page-header h1 {
+    @apply text-xl;
+  }
+  
+  .toolbar-content {
+    @apply p-3;
+  }
+  
+  .stats-vertical .stat {
+    @apply px-4 py-3;
+  }
+}
+
+/* 中等屏幕优化 */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .page-layout-universal {
+    @apply p-3 space-y-4;
+  }
+  
+  .responsive-stats {
+    @apply stats-horizontal;
+  }
+}
+
+/* 大屏幕优化 */
+@media (min-width: 1025px) {
+  .page-layout-universal {
+    @apply p-4 space-y-6;
+  }
+  
+  /* 统计卡片悬停效果 */
+  .stats-modern .stat:hover {
+    @apply bg-base-200/20 transform scale-[1.02];
+    @apply transition-all duration-200;
+  }
+}
+
+/* 数据表格现代化 */
+.table-modern {
+  @apply table table-sm;
+  @apply bg-base-100 shadow-sm rounded-lg overflow-hidden;
+  @apply border border-base-200/60;
+}
+
+.table-modern thead {
+  @apply bg-base-200/50;
+}
+
+.table-modern tbody tr {
+  @apply hover:bg-base-200/30 transition-colors duration-150;
+}
+
+.table-modern tbody tr:nth-child(even) {
+  @apply bg-base-200/10;
+}
+
+/* 卡片现代化 */
+.card-modern {
+  @apply card bg-base-100 shadow-sm border border-base-200/60;
+  @apply transition-all duration-200;
+}
+
+.card-modern:hover {
+  @apply shadow-md border-base-200/80;
+}
+
+.card-modern .card-body {
+  @apply p-4 lg:p-5;
+}
+
+/* 按钮组样式 */
+.button-group-modern {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.button-group-modern > * {
+  @apply shrink-0;
+}
+
+/* 搜索框现代化 */
+.search-modern {
+  @apply input w-full;
+  @apply transition-all duration-200;
+  @apply focus:shadow-md;
+}
+
+/* 徽章现代化 */
+.badge-modern {
+  @apply badge badge-sm;
+  @apply transition-all duration-200;
+}
+
+.badge-modern:hover {
+  @apply scale-105;
+}
+
+/* 状态指示器 */
+.status-indicator {
+  @apply inline-flex items-center gap-1;
+}
+
+.status-indicator::before {
+  @apply w-2 h-2 rounded-full;
+  content: '';
+}
+
+.status-success::before {
+  @apply bg-success;
+}
+
+.status-warning::before {
+  @apply bg-warning;
+}
+
+.status-error::before {
+  @apply bg-error;
+}
+
+.status-info::before {
+  @apply bg-info;
+}
+
+/* 加载状态 */
+.loading-shimmer {
+  @apply bg-base-300 rounded animate-pulse;
+}
+
+/* 空状态样式 */
+.empty-state {
+  @apply flex flex-col items-center justify-center py-12;
+  @apply text-base-content/60 space-y-4;
+}
+
+.empty-state-icon {
+  @apply w-16 h-16 opacity-40;
+}
+
+/* 打印样式 */
+@media print {
+  .page-layout-universal {
+    @apply p-0 space-y-4;
+    @apply bg-white text-black;
+  }
+  
+  .stats-modern,
+  .card-modern,
+  .table-modern {
+    @apply shadow-none border-gray-300;
+  }
+  
+  .toolbar-modern {
+    @apply hidden;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .stats-modern,
+  .card-modern,
+  .table-modern {
+    @apply border-2 border-base-content/20;
+  }
+  
+  .page-header h1 {
+    @apply font-black;
+  }
+}
+
+/* 减少动效模式 */
+@media (prefers-reduced-motion: reduce) {
+  .stats-modern,
+  .card-modern,
+  .table-modern tbody tr,
+  .badge-modern {
+    @apply transition-none;
+  }
+  
+  .loading-shimmer {
+    @apply animate-none;
+  }
+}
+
+/* Dark mode 优化 */
+@media (prefers-color-scheme: dark) {
+  .page-layout-universal {
+    /* DaisyUI 会自动处理 dark mode，这里只做额外优化 */
+  }
+}
+
+/* 焦点可见性优化 */
+.focus-visible {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+}
+
+/* 辅助功能优化 */
+.sr-only {
+  @apply absolute w-px h-px p-0 m-[-1px] overflow-hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 工具提示样式 */
+.tooltip-modern {
+  @apply tooltip;
+}
+
+/* 面包屑导航 */
+.breadcrumb-modern {
+  @apply breadcrumbs text-sm;
+}
+
+.breadcrumb-modern ul li a {
+  @apply hover:text-primary transition-colors duration-150;
+}

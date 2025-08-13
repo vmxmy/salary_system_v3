@@ -1,0 +1,139 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-13",
+  "sheetMappings": {
+    "收入数据": {
+      "dataGroup": "EARNINGS",
+      "required": true,
+      "fields": {
+        "required": ["员工编号", "员工姓名", "身份证号"],
+        "optional": ["基本工资", "岗位工资", "绩效工资", "津贴补贴", "加班工资", "奖金"],
+        "identifiers": {
+          "primary": "身份证号",
+          "secondary": ["员工编号", "员工姓名"]
+        }
+      },
+      "validation": {
+        "员工编号": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{3,20}$",
+          "required": false
+        },
+        "员工姓名": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 50,
+          "required": false
+        },
+        "身份证号": {
+          "type": "string",
+          "pattern": "^[1-9]\\d{5}(18|19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]$",
+          "required": false
+        }
+      }
+    },
+    "缴费基数": {
+      "dataGroup": "CONTRIBUTION_BASES",
+      "required": false,
+      "fields": {
+        "required": ["员工编号", "员工姓名", "身份证号"],
+        "optional": [
+          "养老保险基数",
+          "医疗保险基数",
+          "失业保险基数",
+          "工伤保险基数",
+          "生育保险基数",
+          "住房公积金基数",
+          "职业年金基数",
+          "大病医疗基数"
+        ],
+        "identifiers": {
+          "primary": "身份证号",
+          "secondary": ["员工编号", "员工姓名"]
+        }
+      },
+      "validation": {
+        "养老保险基数": {
+          "type": "number",
+          "min": 0,
+          "max": 999999
+        },
+        "医疗保险基数": {
+          "type": "number",
+          "min": 0,
+          "max": 999999
+        },
+        "住房公积金基数": {
+          "type": "number",
+          "min": 0,
+          "max": 999999
+        }
+      }
+    },
+    "人员类别": {
+      "dataGroup": "CATEGORY_ASSIGNMENT",
+      "required": false,
+      "fields": {
+        "required": ["员工编号", "员工姓名", "身份证号", "人员类别"],
+        "optional": ["生效日期", "失效日期"],
+        "identifiers": {
+          "primary": "身份证号",
+          "secondary": ["员工编号", "员工姓名"]
+        }
+      },
+      "validation": {
+        "人员类别": {
+          "type": "string",
+          "enum": ["正式员工", "合同工", "临时工", "实习生", "劳务派遣", "退休返聘"],
+          "required": true
+        },
+        "生效日期": {
+          "type": "date",
+          "format": "YYYY-MM-DD"
+        }
+      }
+    },
+    "职务信息": {
+      "dataGroup": "JOB_ASSIGNMENT",
+      "required": false,
+      "fields": {
+        "required": ["员工编号", "员工姓名", "身份证号", "部门名称", "职位名称"],
+        "optional": ["职级名称", "生效日期", "失效日期"],
+        "identifiers": {
+          "primary": "身份证号",
+          "secondary": ["员工编号", "员工姓名"]
+        }
+      },
+      "validation": {
+        "部门名称": {
+          "type": "string",
+          "required": true
+        },
+        "职位名称": {
+          "type": "string",
+          "required": true
+        },
+        "生效日期": {
+          "type": "date",
+          "format": "YYYY-MM-DD"
+        }
+      }
+    }
+  },
+  "globalRules": {
+    "employeeIdentification": {
+      "description": "至少需要一个员工标识字段",
+      "fields": ["员工编号", "员工姓名", "身份证号"],
+      "minRequired": 1
+    },
+    "dateFormat": {
+      "pattern": "YYYY-MM-DD",
+      "example": "2025-01-13"
+    },
+    "numberFormat": {
+      "decimalPlaces": 2,
+      "thousandsSeparator": false,
+      "currencySymbol": false
+    }
+  }
+}
