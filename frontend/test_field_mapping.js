@@ -10,7 +10,7 @@ const actualViewFields = [
   'pay_period_start',
   'pay_period_end',
   'employee_id',
-  'full_name',
+  'employee_name',
   'department_name',
   'gross_pay',
   'total_deductions', 
@@ -25,7 +25,7 @@ const configuredLabels = {
   'pay_period_start': '计薪开始',
   'pay_period_end': '计薪结束',
   'employee_id': '员工ID',
-  'full_name': '员工姓名',
+  'employee_name': '员工姓名',
   'department_name': '部门',
   'gross_pay': '应发工资',
   'total_deductions': '扣除合计',
@@ -35,7 +35,7 @@ const configuredLabels = {
 
 // 默认可见字段配置
 const defaultVisibleFields = [
-  'full_name',        // 员工姓名
+  'employee_name',        // 员工姓名
   'department_name',  // 部门  
   'pay_date',         // 发薪日期
   'status',           // 状态
@@ -51,7 +51,7 @@ const sampleData = {
   "pay_period_start": "2025-01-01", 
   "pay_period_end": "2025-01-31",
   "employee_id": "0e70168a-9705-4a30-82f4-5509fa9f3508",
-  "full_name": "杨洋",
+  "employee_name": "杨洋",
   "department_name": null,  // 🔴 问题：部门数据为空
   "gross_pay": "0.00",
   "total_deductions": "0.00",
