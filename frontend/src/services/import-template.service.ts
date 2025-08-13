@@ -30,7 +30,7 @@ export class ImportTemplateService {
     const baseFields: FieldMapping[] = [
       {
         excelColumn: '员工编号',
-        dbField: 'employee_code',
+        dbField: 'virtual_employee_code', // 注意：数据库中无employee_code字段
         dataType: 'string',
         required: false
       },
@@ -75,7 +75,7 @@ export class ImportTemplateService {
       // 员工标识字段
       {
         excelColumn: '员工编号',
-        dbField: 'employee_code',
+        dbField: 'virtual_employee_code', // 注意：数据库中无employee_code字段
         dataType: 'string',
         required: false
       },
@@ -158,7 +158,7 @@ export class ImportTemplateService {
     return [
       {
         excelColumn: '员工编号',
-        dbField: 'employee_code',
+        dbField: 'virtual_employee_code', // 注意：数据库中无employee_code字段
         dataType: 'string',
         required: false
       },
@@ -207,7 +207,7 @@ export class ImportTemplateService {
     return [
       {
         excelColumn: '员工编号',
-        dbField: 'employee_code',
+        dbField: 'virtual_employee_code', // 注意：数据库中无employee_code字段
         dataType: 'string',
         required: false
       },
@@ -330,7 +330,7 @@ export class ImportTemplateService {
       
       for (const mapping of mappings) {
         switch (mapping.dbField) {
-          case 'employee_code':
+          case 'virtual_employee_code':
             row[mapping.excelColumn] = `EMP00${i}`;
             break;
           case 'employee_name':

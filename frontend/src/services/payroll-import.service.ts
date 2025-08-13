@@ -212,12 +212,12 @@ export class PayrollImportService {
         
         // 批量插入或更新
         if (payrollItems.length > 0) {
-          const { error } = await this.upsertPayrollItems(payrollItems);
-          if (error) {
+          const result = await this.upsertPayrollItems(payrollItems);
+          if (result.error) {
             failedCount += batch.length;
             this.errors.push({
               row: i + 2,
-              message: `批量导入失败: ${error instanceof Error ? error.message : '未知错误'}`
+              message: `批量导入失败: ${result.error instanceof Error ? result.error.message : String(result.error)}`
             });
           } else {
             successCount += batch.length;
@@ -607,9 +607,7 @@ export class PayrollImportService {
   private async resolveEmployeeId(identifier: any): Promise<string | null> {
     let query = supabase.from('employees').select('id').limit(1);
     
-    if (identifier.code) {
-      query = query.eq('employee_code', identifier.code);
-    } else if (identifier.idNumber) {
+    if (identifier.idNumber) {
       query = query.eq('id_number', identifier.idNumber);
     } else if (identifier.name) {
       query = query.eq('employee_name', identifier.name);
@@ -700,7 +698,7 @@ export class PayrollImportService {
   /**
    * 执行批量薪资项目更新插入操作（带事务处理）
    */
-  private async upsertPayrollItems(items: any[]) {
+  private async upsertPayrollItems(items: any[]): Promise<{ data: any, error: any }> {
     try {
       // 使用Supabase的RPC函数实现事务处理
       const { data, error } = await supabase.rpc('upsert_payroll_items_batch', {
@@ -715,7 +713,6 @@ export class PayrollImportService {
       return { data, error: null };
     } catch (error) {
       // 如果RPC函数不存在，回退到原有逻辑但增加错误处理
-      console.warn('RPC函数不存在，使用原有逻辑');
       
       if (this.config.mode === ImportMode.UPDATE || this.config.mode === ImportMode.UPSERT) {
         try {
@@ -746,7 +743,7 @@ export class PayrollImportService {
           throw new Error(`插入薪资项目失败: ${insertResult.error.message}`);
         }
 
-        return insertResult;
+        return { data: insertResult.data, error: null };
       } catch (insertError) {
         throw new Error(`插入阶段失败: ${insertError instanceof Error ? insertError.message : '未知错误'}`);
       }

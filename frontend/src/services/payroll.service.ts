@@ -476,7 +476,7 @@ export class PayrollService {
   // 获取员工当月缴费基数信息
   static async getEmployeeMonthlyContributionBases(employeeId: string, yearMonth: string) {
     const { data, error } = await supabase
-      .from('view_employee_insurance_base_monthly_latest')
+      .from('view_employee_insurance_base_unified')
       .select(`
         employee_id,
         employee_name,
