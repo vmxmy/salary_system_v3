@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useAllEmployees } from '@/hooks/useEmployees';
+import { useEmployeeList } from '@/hooks/employee/useEmployeeList';
 import { useCreateBatchPayrolls } from '@/hooks/payroll';
 import { ManagementPageLayout } from '@/components/layout/ManagementPageLayout';
 import { DataTable } from '@/components/common/DataTable/DataTable';
@@ -14,6 +14,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { format } from 'date-fns';
 import { getMonthDateRange, getCurrentYearMonth } from '@/lib/dateUtils';
 import type { ColumnDef } from '@tanstack/react-table';
+import type { EmployeeListItem } from '@/types/employee';
 
 interface EmployeeData {
   id: string;
@@ -39,19 +40,21 @@ export default function CreateBatchPayrollPage() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
 
   // 获取员工列表
-  const { data: employeesData, isLoading } = useAllEmployees();
+  const { employees: employeesData, loading } = useEmployeeList();
+  const employees = employeesData as EmployeeListItem[];
+  const isLoading = loading.isInitialLoading;
 
   // 创建批量薪资
   const createBatchPayrolls = useCreateBatchPayrolls();
 
   // 过滤员工
   const filteredEmployees = departmentFilter === 'all' 
-    ? employeesData || []
-    : (employeesData || []).filter(emp => emp.department_name === departmentFilter);
+    ? employees || []
+    : (employees || []).filter(emp => emp.department_name === departmentFilter);
 
   // 获取部门列表
   const departments = Array.from(
-    new Set((employeesData || []).map(emp => emp.department_name).filter(Boolean))
+    new Set((employees || []).map(emp => emp.department_name).filter(Boolean))
   );
 
   // 表格列定义

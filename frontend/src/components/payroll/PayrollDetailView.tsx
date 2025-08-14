@@ -4,7 +4,7 @@ import { PayrollAmountDisplay } from './PayrollAmountDisplay';
 import { formatCurrency, formatDate, formatMonth } from '@/lib/format';
 import { useTranslation } from '@/hooks/useTranslation';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import type { PayrollStatusType } from '@/services/payroll.service';
+import { PayrollStatus, type PayrollStatusType } from '@/hooks/payroll';
 
 interface PayrollDetailItem {
   id: string;

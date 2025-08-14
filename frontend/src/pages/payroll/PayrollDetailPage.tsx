@@ -1,12 +1,17 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
-import { usePayrolls, usePayrollDetails, useUpdatePayrollStatus } from '@/hooks/payroll';
+import { 
+  usePayrolls, 
+  usePayrollDetails, 
+  useUpdatePayrollStatus,
+  PayrollStatus,
+  type PayrollStatusType 
+} from '@/hooks/payroll';
 import { PayrollDetailView } from '@/components/payroll';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { cn } from '@/lib/utils';
 import { buttonEffects } from '@/styles/design-effects';
-import { PayrollStatus, type PayrollStatusType } from '@/services/payroll.service';
 import { useToast } from '@/contexts/ToastContext';
 import { useState } from 'react';
 

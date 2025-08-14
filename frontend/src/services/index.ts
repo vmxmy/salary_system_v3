@@ -1,6 +1,5 @@
 // Export all services
 export { BaseService } from './base.service';
-export { employeeService } from './employee.service';
 export { departmentService } from './department.service';
 export { PayrollCreationService } from './payroll-creation.service';
 

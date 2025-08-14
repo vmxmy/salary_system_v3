@@ -4,7 +4,7 @@ import { PayrollStatusBadge } from './PayrollStatusBadge';
 import { formatCurrency, formatDate, formatMonth } from '@/lib/format';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { PayrollStatusType } from '@/services/payroll.service';
+import { PayrollStatus, type PayrollStatusType } from '@/hooks/payroll';
 
 interface PayrollData {
   id: string;

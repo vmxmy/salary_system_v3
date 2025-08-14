@@ -6,7 +6,8 @@ import { AccordionSection, AccordionContent } from '@/components/common/Accordio
 import { DetailField } from '@/components/common/DetailField';
 import { ModernButton } from '@/components/common/ModernButton';
 import { PayrollStatusBadge } from './PayrollStatusBadge';
-import { payrollService, PayrollStatus, type PayrollStatusType } from '@/services/payroll.service';
+import { PayrollStatus, type PayrollStatusType } from '@/hooks/payroll';
+import { payrollService } from '@/services/payroll.service';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/format';
 import {

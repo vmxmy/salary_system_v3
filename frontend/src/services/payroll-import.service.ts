@@ -217,7 +217,7 @@ export class PayrollImportService {
             failedCount += batch.length;
             this.errors.push({
               row: i + 2,
-              message: `批量导入失败: ${error instanceof Error ? error.message : '未知错误'}`
+              message: `批量导入失败: ${(error as any)?.message || '未知错误'}`
             });
           } else {
             successCount += batch.length;

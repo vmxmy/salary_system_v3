@@ -9,7 +9,7 @@ import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
 import { DataTable } from '@/components/common/DataTable';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { ModernButton } from '@/components/common/ModernButton';
-import { PayrollStatus, type PayrollStatusType } from '@/services/payroll.service';
+import { PayrollStatus, type PayrollStatusType } from '@/hooks/payroll';
 import { useToast } from '@/contexts/ToastContext';
 import { getMonthDateRange, getCurrentYearMonth, formatMonth } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/format';
