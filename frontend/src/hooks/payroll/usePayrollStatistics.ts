@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getPayrolls } from '@/services/payroll.service';
+import { PayrollService } from '@/services/payroll.service';
 import { getMonthDateRange } from '@/lib/dateUtils';
 
 export interface PayrollStatistics {
@@ -32,7 +32,7 @@ export function usePayrollStatistics(yearMonth: string) {
 
       // 获取该月的薪资数据  
       const monthDateRange = getMonthDateRange(yearMonth);
-      const payrolls = await getPayrolls({
+      const payrolls = await PayrollService.getPayrolls({
         startDate: monthDateRange.startDate,
         endDate: monthDateRange.endDate,
         pageSize: 1000 // 获取所有数据用于统计
@@ -62,7 +62,7 @@ export function usePayrollStatistics(yearMonth: string) {
       };
 
       // 累计计算
-      data.forEach(payroll => {
+      data.forEach((payroll: any) => {
         statistics.totalGrossPay += payroll.gross_pay || 0;
         statistics.totalDeductions += payroll.total_deductions || 0;
         statistics.totalNetPay += payroll.net_pay || 0;

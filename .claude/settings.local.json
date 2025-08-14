@@ -58,7 +58,12 @@
       "mcp__zen__codereview",
       "Bash(for dir in \"01-metadata-page-foundation\" \"02-metadata-excel-export\" \"03-metadata-excel-import\" \"04-earnings-inline-edit\" \"05-contribution-base-inline-edit\" \"06-tax-amount-inline-edit\" \"07-data-validation-persistence\" \"08-interaction-optimization\")",
       "Bash(do mkdir -p \"$dir\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(git clean:*)",
+      "Bash(mv:*)",
+      "Bash(for:*)",
+      "Bash(do)",
+      "Bash(sed:*)"
     ],
     "deny": []
   },

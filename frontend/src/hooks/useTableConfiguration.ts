@@ -29,7 +29,11 @@ export interface UseTableConfigurationReturn {
  * 表格配置管理 Hook
  * 统一管理表格元数据、用户配置和动态列生成
  */
-export function useTableConfiguration(tableName: string, actions?: ActionColumn): UseTableConfigurationReturn {
+export function useTableConfiguration(
+  tableName: string, 
+  actions?: ActionColumn,
+  enableRowSelection?: boolean
+): UseTableConfigurationReturn {
   // 状态管理
   const [metadata, setMetadata] = useState<TableMetadata | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(true);
@@ -98,11 +102,11 @@ export function useTableConfiguration(tableName: string, actions?: ActionColumn)
     console.log('Metadata fields:', metadata?.fields?.map(f => ({ name: f.name, label: f.label, visible: f.visible })));
     console.log('User config columns:', userConfig?.columns?.filter(c => c.visible).map(c => ({ field: c.field, visible: c.visible, label: c.label })));
     
-    const generatedColumns = columnConfigService.generateColumns(metadata, userConfig, actions);
+    const generatedColumns = columnConfigService.generateColumns(metadata, userConfig, actions, enableRowSelection);
     console.log('Generated columns:', generatedColumns.map(c => ({ id: c.id, header: typeof c.header })));
     
     return generatedColumns;
-  }, [metadata, userConfig, actions]);
+  }, [metadata, userConfig, actions, enableRowSelection]);
 
   // 更新用户配置
   const updateUserConfig = useCallback((newConfig: UserTableConfig) => {

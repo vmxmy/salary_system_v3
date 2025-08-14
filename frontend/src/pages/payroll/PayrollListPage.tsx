@@ -1,7 +1,15 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
-import { usePayrolls, useCreateBatchPayrolls, useUpdateBatchPayrollStatus, useCalculatePayrolls, useLatestPayrollMonth } from '@/hooks/payroll';
+import { 
+  usePayrolls, 
+  useCreateBatchPayrolls, 
+  useUpdateBatchPayrollStatus, 
+  useCalculatePayrolls, 
+  useLatestPayrollMonth,
+  PayrollStatus,
+  type PayrollStatusType 
+} from '@/hooks/payroll';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
 import { useTableConfiguration } from '@/hooks/useTableConfiguration';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
@@ -9,7 +17,6 @@ import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
 import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { ModernButton } from '@/components/common/ModernButton';
-import { PayrollStatus, type PayrollStatusType } from '@/services/payroll.service';
 import { useToast } from '@/contexts/ToastContext';
 import { getMonthDateRange, getCurrentYearMonth, formatMonth } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/format';

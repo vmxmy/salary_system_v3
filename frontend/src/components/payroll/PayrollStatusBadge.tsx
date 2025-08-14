@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { PayrollStatus, type PayrollStatusType } from '@/services/payroll.service';
+import { PayrollStatus, type PayrollStatusType } from '@/hooks/payroll';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface PayrollStatusBadgeProps {

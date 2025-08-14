@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { PayrollAmountDisplay } from './PayrollAmountDisplay';
 import { PayrollStatusBadge } from './PayrollStatusBadge';
-import type { PayrollStatusType } from '@/services/payroll.service';
+import { PayrollStatus, type PayrollStatusType } from '@/hooks/payroll';
 import { formatDate, formatMonth } from '@/lib/format';
 import { useTranslation } from '@/hooks/useTranslation';
 

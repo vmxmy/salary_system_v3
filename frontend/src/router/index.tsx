@@ -38,6 +38,9 @@ const ValidationTestPage = lazy(() => import('@/pages/ValidationTestPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const DebugPage = lazy(() => import('@/pages/DebugPage'));
+// Test pages moved to archive
+// const HookTestPage = lazy(() => import('@/pages/test/AuthenticatedHookTestPage'));
+// const EmployeeCreateTestPage = lazy(() => import('@/pages/EmployeeCreateTestPage'));
 
 // Route configuration
 export const router = createBrowserRouter([
@@ -302,6 +305,23 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
+      // Test routes moved to archive
+      // {
+      //   path: 'hook-test',
+      //   element: (
+      //     <Suspense fallback={<LoadingScreen />}>
+      //       <HookTestPage />
+      //     </Suspense>
+      //   ),
+      // },
+      // {
+      //   path: 'employee-create-test',
+      //   element: (
+      //     <Suspense fallback={<LoadingScreen />}>
+      //       <EmployeeCreateTestPage />
+      //     </Suspense>
+      //   ),
+      // },
       {
         path: 'unauthorized',
         element: (

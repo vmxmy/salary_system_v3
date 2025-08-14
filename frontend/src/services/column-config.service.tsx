@@ -42,12 +42,52 @@ class ColumnConfigService {
   generateColumns<T extends Record<string, any>>(
     metadata: TableMetadata,
     userConfig?: UserTableConfig,
-    actions?: ActionColumn
+    actions?: ActionColumn,
+    enableRowSelection?: boolean
   ): ColumnDef<T>[] {
+    const columns: ColumnDef<T>[] = [];
+    
+    // 如果启用了行选择，添加选择列
+    if (enableRowSelection) {
+      columns.push({
+        id: 'select',
+        header: ({ table }: any) => {
+          const indeterminate = table.getIsSomeRowsSelected();
+          const checked = table.getIsAllRowsSelected();
+          
+          return (
+            <input
+              type="checkbox"
+              className="checkbox checkbox-sm"
+              checked={checked}
+              ref={(el) => {
+                if (el) {
+                  el.indeterminate = indeterminate;
+                }
+              }}
+              onChange={table.getToggleAllRowsSelectedHandler()}
+            />
+          );
+        },
+        cell: ({ row }: any) => (
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={row.getIsSelected()}
+            disabled={!row.getCanSelect()}
+            onChange={row.getToggleSelectedHandler()}
+          />
+        ),
+        size: 40,
+        enableSorting: false,
+        enableHiding: false,
+      });
+    }
+    
     const visibleFields = this.getVisibleFields(metadata, userConfig);
     const sortedFields = this.sortFields(visibleFields, userConfig);
 
-    const columns = sortedFields.map(field => this.createColumn<T>(field, metadata));
+    columns.push(...sortedFields.map(field => this.createColumn<T>(field, metadata)));
     
     // 如果提供了操作列配置，添加操作列
     if (actions) {
