@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useAllEmployees } from '@/hooks/useEmployees';
+import { useEmployeeList } from '@/hooks/employee/useEmployeeList';
 import { useTableConfiguration } from '@/hooks/useTableConfiguration';
 import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
 import { ModernButton } from '@/components/common/ModernButton';
@@ -8,21 +8,26 @@ import { EmployeeModal } from '@/components/employee/EmployeeDetailModal';
 import { EmployeeExport } from '@/components/employee/EmployeeExport';
 import { RealtimeIndicator } from '@/components/common/RealtimeIndicator';
 import type { Table } from '@tanstack/react-table';
+import type { EmployeeListItem } from '@/types/employee';
 
 export default function EmployeeListPage() {
   const { t } = useTranslation(['employee', 'common']);
   
-  // 数据获取
-  const { data: allEmployees = [], isLoading, isError, error } = useAllEmployees();
+  // 数据获取 - 使用新的hook系统
+  const employeeList = useEmployeeList();
+  const { employees: allEmployees = [], loading, error } = employeeList;
+  const employees = allEmployees as EmployeeListItem[];
+  const isLoading = loading.isInitialLoading;
+  const isError = !!error;
   
   // 调试: 输出前几条数据查看结构
   console.log('=== Employee Data Debug ===');
-  console.log('Total employees:', allEmployees.length);
-  console.log('First 3 employees:', allEmployees.slice(0, 3));
-  console.log('Sample employee structure:', allEmployees[0]);
+  console.log('Total employees:', employees.length);
+  console.log('First 3 employees:', employees.slice(0, 3));
+  console.log('Sample employee structure:', employees[0]);
   
   // 临时调试：清除表格配置缓存
-  if (typeof window !== 'undefined' && allEmployees.length > 0) {
+  if (typeof window !== 'undefined' && employees.length > 0) {
     const hasDebugFlag = localStorage.getItem('debug_clear_table_config');
     if (!hasDebugFlag) {
       console.log('Clearing table config cache for debugging...');
@@ -42,11 +47,45 @@ export default function EmployeeListPage() {
     resetToDefault,
   } = useTableConfiguration('employees', {
     onViewDetail: (row) => {
-      setSelectedEmployeeId(row.employee_id);
+      console.log('[EmployeeListPage] View detail clicked, row:', row);
+      const employeeId = row.employee_id || row.id;
+      setSelectedEmployeeId(employeeId);
       setModalMode('view');
       setIsDetailModalOpen(true);
     },
-  });
+    onEdit: (row) => {
+      console.log('[EmployeeListPage] Edit clicked, row:', row);
+      console.log('[EmployeeListPage] Available row fields:', Object.keys(row));
+      console.log('[EmployeeListPage] row.employee_id:', row.employee_id);
+      console.log('[EmployeeListPage] row.id:', row.id);
+      
+      // 确保使用正确的ID字段
+      const employeeId = row.employee_id || row.id;
+      
+      if (!employeeId) {
+        console.error('[EmployeeListPage] No employee ID found in row:', row);
+        return;
+      }
+      
+      console.log('[EmployeeListPage] Setting employeeId:', employeeId);
+      console.log('[EmployeeListPage] Before state updates - current state:', {
+        selectedEmployeeId,
+        modalMode,
+        isDetailModalOpen
+      });
+      
+      // 批量更新状态
+      setSelectedEmployeeId(employeeId);
+      setModalMode('edit');
+      setIsDetailModalOpen(true);
+      
+      console.log('[EmployeeListPage] After state updates - new values:', {
+        selectedEmployeeId: employeeId,
+        modalMode: 'edit',
+        isDetailModalOpen: true
+      });
+    },
+  }, true); // 启用行选择
 
   // 状态管理
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,10 +94,20 @@ export default function EmployeeListPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'view' | 'edit' | 'create'>('view');
   const [tableInstance, setTableInstance] = useState<Table<any> | null>(null);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  
+  // 添加调试用的useEffect来监控状态变化
+  useEffect(() => {
+    console.log('[EmployeeListPage] State Changed:', {
+      selectedEmployeeId,
+      modalMode,
+      isDetailModalOpen
+    });
+  }, [selectedEmployeeId, modalMode, isDetailModalOpen]);
 
   // 数据处理流程 - 只处理搜索，排序和分页交给 TanStack Table
   const processedData = useMemo(() => {
-    let data = [...allEmployees];
+    let data = [...employees];
     
     // 全局模糊搜索 - 使用手动触发的搜索查询
     if (activeSearchQuery.trim()) {
@@ -86,7 +135,7 @@ export default function EmployeeListPage() {
     }
     
     return data;
-  }, [allEmployees, activeSearchQuery]);
+  }, [employees, activeSearchQuery]);
 
   // 搜索处理函数 - 手动触发搜索
   const handleSearch = useCallback(() => {
@@ -126,12 +175,25 @@ export default function EmployeeListPage() {
     // 模态框会自动关闭
   };
 
+  // 处理行选择变化
+  const handleRowSelectionChange = useCallback((rowSelection: any) => {
+    const selectedEmployeeIds = Object.keys(rowSelection)
+      .filter(key => rowSelection[key])
+      .map(index => {
+        const rowIndex = parseInt(index);
+        const employee = processedData[rowIndex];
+        return employee?.employee_id;
+      })
+      .filter(Boolean);
+    setSelectedRows(selectedEmployeeIds);
+  }, [processedData]);
+
   // 准备统计卡片数据
   const statCards: StatCardProps[] = useMemo(() => {
-    const totalEmployees = allEmployees.length;
-    const activeEmployees = allEmployees.filter(emp => emp.employment_status === 'active').length;
-    const departments = new Set(allEmployees.map(emp => emp.department_name).filter(Boolean)).size;
-    const thisMonthNew = allEmployees.filter(emp => {
+    const totalEmployees = employees.length;
+    const activeEmployees = employees.filter(emp => emp.employment_status === 'active').length;
+    const departments = new Set(employees.map(emp => emp.department_name).filter(Boolean)).size;
+    const thisMonthNew = employees.filter(emp => {
       if (!emp.hire_date) return false;
       const hireDate = new Date(emp.hire_date);
       const now = new Date();
@@ -184,7 +246,7 @@ export default function EmployeeListPage() {
         colorClass: 'text-info'
       }
     ];
-  }, [allEmployees]);
+  }, [employees]);
 
   // 处理加载状态
   const totalLoading = isLoading || metadataLoading;
@@ -260,7 +322,39 @@ export default function EmployeeListPage() {
           }
         >
           添加员工
-        </ModernButton>
+        </ModernButton>,
+        // 批量操作按钮（当有选中时显示）
+        ...(selectedRows.length > 0 ? [
+          <div key="batch-actions" className="flex items-center gap-2">
+            <span className="text-sm text-base-content/60">
+              已选择 {selectedRows.length} 项
+            </span>
+            <ModernButton
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                // TODO: 实现批量导出
+                console.log('批量导出:', selectedRows);
+              }}
+            >
+              批量导出
+            </ModernButton>
+            <ModernButton
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                if (confirm(`确定要删除选中的 ${selectedRows.length} 个员工吗？此操作将删除员工的所有相关数据且无法撤销。`)) {
+                  employeeList.actions.batchDelete(selectedRows);
+                  setSelectedRows([]); // 清空选择
+                }
+              }}
+              disabled={loading.isBatchProcessing}
+            >
+              {loading.isBatchProcessing && <span className="loading loading-spinner loading-xs"></span>}
+              批量删除
+            </ModernButton>
+          </div>
+        ] : [])
       ]}
       actions={[
         <RealtimeIndicator key="realtime-indicator" className="mr-2" showText={true} size="sm" />
@@ -275,8 +369,11 @@ export default function EmployeeListPage() {
       enableExport={false}
       showGlobalFilter={false}
       showColumnToggle={false}
+      enableRowSelection={true}
+      onRowSelectionChange={handleRowSelectionChange}
       modal={
         <EmployeeModal
+          key={`${modalMode}-${selectedEmployeeId}-${isDetailModalOpen}`}
           mode={modalMode}
           employeeId={selectedEmployeeId}
           open={isDetailModalOpen}
