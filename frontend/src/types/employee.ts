@@ -204,7 +204,7 @@ export interface EmployeeListItem {
   base_salary?: number; // 添加基本工资字段
 }
 
-// 员工创建/更新请求类型
+// 员工创建/更新请求类型（基础版本）
 export interface CreateEmployeeRequest {
   employee_name: string;
   id_number?: string;
@@ -212,11 +212,87 @@ export interface CreateEmployeeRequest {
   employment_status?: 'active' | 'inactive';
   gender?: 'male' | 'female' | 'other';
   date_of_birth?: string;
-  contacts?: Omit<EmployeeContact, 'id' | 'employee_id' | 'created_at' | 'updated_at'>[];
-  bankAccounts?: Omit<EmployeeBankAccount, 'id' | 'employee_id' | 'created_at' | 'updated_at'>[];
-  education?: Omit<EmployeeEducation, 'id' | 'employee_id' | 'created_at'>[];
-  documents?: Omit<EmployeeDocument, 'id' | 'employee_id' | 'created_at' | 'updated_at'>[];
-  specialDeductions?: Omit<EmployeeSpecialDeduction, 'id' | 'employee_id' | 'created_at' | 'updated_at'>[];
+  mobile_phone?: string;
+  email?: string;
+  work_email?: string;
+  personal_email?: string;
+}
+
+// 组织分配信息类型
+export interface OrganizationalAssignment {
+  department_id: string;
+  position_id: string;
+  rank_id?: string;    // 职级ID，可选
+  start_date: string;  // 任职开始日期 (effective_start_date)
+  end_date?: string;   // 任职结束日期 (effective_end_date)，null表示当前有效
+  notes?: string;      // 备注
+}
+
+// 员工类别分配信息类型
+export interface CategoryAssignment {
+  employee_category_id: string;
+  effective_start_date: string;
+  effective_end_date?: string;
+  notes?: string;
+}
+
+// 银行账户创建信息类型
+export interface BankAccountCreate {
+  account_holder_name: string;
+  account_number: string;
+  bank_name: string;
+  branch_name?: string;
+  is_primary: boolean;
+  effective_start_date: string;
+  effective_end_date?: string;
+}
+
+// 教育背景创建信息类型
+export interface EducationCreate {
+  institution_name: string;
+  degree: string;
+  field_of_study: string;
+  graduation_date: string;
+  notes?: string;
+}
+
+// 完整员工创建请求类型（包含所有关联数据）
+export interface FullEmployeeCreateRequest extends CreateEmployeeRequest {
+  // 组织分配信息
+  organizational_assignment?: OrganizationalAssignment;
+  
+  // 员工类别分配信息
+  category_assignment?: CategoryAssignment;
+  
+  // 银行账户信息（支持多个）
+  bank_accounts?: BankAccountCreate[];
+  
+  // 教育背景信息（支持多个）
+  education?: EducationCreate[];
+  
+  // 联系方式（已包含在基础字段中：mobile_phone, email, work_email, personal_email）
+}
+
+// 员工创建操作结果
+export interface EmployeeCreateResult {
+  employee: Employee;
+  organizational_assignment?: any; // employee_assignments 记录
+  category_assignment?: any; // employee_category_assignments 记录
+  bank_accounts?: EmployeeBankAccount[];
+  education?: EmployeeEducation[];
+}
+
+// 用于创建表单的下拉选项类型
+export interface LookupOption {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface EmployeeFormOptions {
+  departments: LookupOption[];
+  positions: LookupOption[];
+  categories: LookupOption[];
 }
 
 export interface UpdateEmployeeRequest extends Partial<CreateEmployeeRequest> {
