@@ -63,7 +63,8 @@
       "Bash(mv:*)",
       "Bash(for:*)",
       "Bash(do)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(timeout 10 npm run dev)"
     ],
     "deny": []
   },

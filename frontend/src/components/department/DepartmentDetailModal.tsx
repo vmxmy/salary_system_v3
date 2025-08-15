@@ -133,7 +133,7 @@ export function DepartmentDetailModal({
         // 更新现有部门
         await updateDepartmentMutation.mutateAsync({
           id: departmentId,
-          updates: editData
+          data: editData
         });
         showSuccess('部门更新成功');
         setIsEditing(false);

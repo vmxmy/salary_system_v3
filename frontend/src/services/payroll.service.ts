@@ -83,9 +83,10 @@ export class PayrollService {
         id_number
       `, { count: 'exact' });
 
+    // 搜索条件 - 注意：status是enum类型，不能使用ilike
     if (searchTerm) {
       query = query.or(
-        `employee_name.ilike.%${searchTerm}%,department_name.ilike.%${searchTerm}%,status.ilike.%${searchTerm}%`
+        `employee_name.ilike.%${searchTerm}%,department_name.ilike.%${searchTerm}%`
       );
     }
 

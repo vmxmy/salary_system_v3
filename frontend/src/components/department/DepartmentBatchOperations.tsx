@@ -149,7 +149,7 @@ export const DepartmentBatchOperations: React.FC<DepartmentBatchOperationsProps>
       for (const department of selectedDepartments) {
         await updateDepartment.mutateAsync({
           id: department.id,
-          updates: {
+          data: {
             parent_department_id: targetDepartmentId,
           }
         });

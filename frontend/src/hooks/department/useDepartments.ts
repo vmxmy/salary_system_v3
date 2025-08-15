@@ -1,377 +1,593 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useResource } from '@/hooks/core/useResource';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
+import type { Database } from '@/types/supabase';
+
+// 类型定义
+type DepartmentRow = Database['public']['Tables']['departments']['Row'];
+type DepartmentInsert = Database['public']['Tables']['departments']['Insert'];
+type DepartmentUpdate = Database['public']['Tables']['departments']['Update'];
 
 /**
- * 部门数据类型
+ * 部门节点类型（包含树结构）
  */
-export interface Department {
-  id: string;
-  name: string;
-  code?: string;
-  description?: string;
-  parent_id?: string;
-  level: number;
-  is_active: boolean;
-  manager_id?: string;
-  created_at: string;
-  updated_at: string;
-  // 计算属性
-  children?: Department[];
+export interface DepartmentNode extends DepartmentRow {
+  children?: DepartmentNode[];
   employee_count?: number;
-}
-
-/**
- * 部门树节点类型
- */
-export interface DepartmentTreeNode extends Department {
-  children: DepartmentTreeNode[];
-  employee_count: number;
-  manager_name?: string;
+  full_path?: string;
+  level?: number;
+  children_count?: number;
 }
 
 /**
  * 部门查询键管理
  */
-export const departmentQueryKeys = {
+export const DEPARTMENT_KEYS = {
   all: ['departments'] as const,
-  list: () => [...departmentQueryKeys.all, 'list'] as const,
-  tree: () => [...departmentQueryKeys.all, 'tree'] as const,
-  detail: (id: string) => [...departmentQueryKeys.all, 'detail', id] as const,
-  employees: (id: string) => [...departmentQueryKeys.all, id, 'employees'] as const,
-};
+  tree: () => [...DEPARTMENT_KEYS.all, 'tree'] as const,
+  hierarchy: () => [...DEPARTMENT_KEYS.all, 'hierarchy'] as const,
+  detail: (id: string) => [...DEPARTMENT_KEYS.all, 'detail', id] as const,
+  employees: (departmentId: string) => [...DEPARTMENT_KEYS.all, 'employees', departmentId] as const,
+  payrollStats: (filters?: any) => [...DEPARTMENT_KEYS.all, 'payroll-stats', filters] as const,
+} as const;
+
+// 兼容旧的导出名称
+export const departmentQueryKeys = DEPARTMENT_KEYS;
 
 /**
- * 部门管理Hook
- * 专注于部门数据的管理和组织架构处理
+ * Hook for department tree structure
  */
-export function useDepartments() {
+export function useDepartmentTree() {
   const { handleError } = useErrorHandler();
+  
+  return useQuery({
+    queryKey: DEPARTMENT_KEYS.tree(),
+    queryFn: async (): Promise<DepartmentNode[]> => {
+      try {
+        // Get all departments
+        const { data: departments, error: deptError } = await supabase
+          .from('departments')
+          .select('*')
+          .order('name', { ascending: true });
 
-  // 使用通用资源Hook
-  const {
-    items: departments,
-    loading,
-    error,
-    actions,
-    utils
-  } = useResource<Department>({
-    queryKey: departmentQueryKeys.list(),
-    tableConfig: {
-      tableName: 'departments',
-      orderBy: { column: 'level', ascending: true },
-      transform: (data) => ({
-        ...data,
-        employee_count: data.employee_count || 0
-      })
-    },
-    staleTime: 10 * 60 * 1000, // 部门数据相对稳定，10分钟缓存
-    enableRealtime: true,
-    successMessages: {
-      create: '部门创建成功',
-      update: '部门更新成功',
-      delete: '部门删除成功'
-    }
-  });
+        if (deptError) throw deptError;
+        if (!departments) return [];
 
-  // 构建部门树结构
-  const departmentTree = useMemo(() => {
-    const buildTree = (
-      departments: Department[], 
-      parentId: string | null = null
-    ): DepartmentTreeNode[] => {
-      return departments
-        .filter(dept => dept.parent_id === parentId)
-        .map(dept => ({
-          ...dept,
-          children: buildTree(departments, dept.id),
-          employee_count: dept.employee_count || 0
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-    };
+        // Get employee counts
+        const { data: employeeCounts, error: countError } = await supabase
+          .from('view_employee_basic_info')
+          .select('department_id');
 
-    return buildTree(departments);
-  }, [departments]);
+        if (countError) throw countError;
 
-  // 获取扁平化的部门列表（按层级排序）
-  const flattenedDepartments = useMemo(() => {
-    const flatten = (nodes: DepartmentTreeNode[], prefix = ''): DepartmentTreeNode[] => {
-      const result: DepartmentTreeNode[] = [];
-      
-      nodes.forEach(node => {
-        result.push({
-          ...node,
-          name: prefix + node.name
+        // Count employees by department
+        const countMap = new Map<string, number>();
+        employeeCounts?.forEach(assignment => {
+          if (assignment.department_id) {
+            countMap.set(assignment.department_id, (countMap.get(assignment.department_id) || 0) + 1);
+          }
         });
-        
-        if (node.children.length > 0) {
-          result.push(...flatten(node.children, prefix + '├─ '));
-        }
-      });
-      
-      return result;
-    };
 
-    return flatten(departmentTree);
-  }, [departmentTree]);
+        // Build tree structure
+        const departmentMap = new Map<string, DepartmentNode>();
+        const roots: DepartmentNode[] = [];
 
-  // 根部门（顶级部门）
-  const rootDepartments = useMemo(() => {
-    return departments.filter(dept => !dept.parent_id);
-  }, [departments]);
+        // First pass: create all nodes
+        departments.forEach(dept => {
+          departmentMap.set(dept.id, {
+            ...dept,
+            children: [],
+            employee_count: countMap.get(dept.id) || 0,
+          });
+        });
 
-  // 获取部门路径
-  const getDepartmentPath = useCallback((departmentId: string): Department[] => {
-    const path: Department[] = [];
-    let currentDept = departments.find(d => d.id === departmentId);
-    
-    while (currentDept) {
-      path.unshift(currentDept);
-      currentDept = currentDept.parent_id 
-        ? departments.find(d => d.id === currentDept!.parent_id)
-        : undefined;
-    }
-    
-    return path;
-  }, [departments]);
-
-  // 获取部门层级名称
-  const getDepartmentFullName = useCallback((departmentId: string): string => {
-    const path = getDepartmentPath(departmentId);
-    return path.map(dept => dept.name).join(' > ');
-  }, [getDepartmentPath]);
-
-  // 获取子部门（包括孙部门）
-  const getChildDepartments = useCallback((
-    parentId: string, 
-    includeGrandChildren = true
-  ): Department[] => {
-    if (!includeGrandChildren) {
-      return departments.filter(dept => dept.parent_id === parentId);
-    }
-
-    const getAllChildren = (id: string): Department[] => {
-      const directChildren = departments.filter(dept => dept.parent_id === id);
-      const allChildren = [...directChildren];
-      
-      directChildren.forEach(child => {
-        allChildren.push(...getAllChildren(child.id));
-      });
-      
-      return allChildren;
-    };
-
-    return getAllChildren(parentId);
-  }, [departments]);
-
-  // 检查是否为父部门
-  const isParentDepartment = useCallback((departmentId: string): boolean => {
-    return departments.some(dept => dept.parent_id === departmentId);
-  }, [departments]);
-
-  // 搜索部门
-  const searchDepartments = useCallback((
-    searchTerm: string
-  ): Department[] => {
-    if (!searchTerm) return departments;
-    
-    const term = searchTerm.toLowerCase();
-    return departments.filter(dept =>
-      dept.name.toLowerCase().includes(term) ||
-      dept.code?.toLowerCase().includes(term) ||
-      dept.description?.toLowerCase().includes(term)
-    );
-  }, [departments]);
-
-  // 按状态筛选部门
-  const getActiveDepartments = useCallback((): Department[] => {
-    return departments.filter(dept => dept.is_active);
-  }, [departments]);
-
-  const getInactiveDepartments = useCallback((): Department[] => {
-    return departments.filter(dept => !dept.is_active);
-  }, [departments]);
-
-  // 统计信息
-  const statistics = useMemo(() => {
-    const total = departments.length;
-    const active = departments.filter(d => d.is_active).length;
-    const inactive = total - active;
-    const rootCount = rootDepartments.length;
-    const maxLevel = Math.max(...departments.map(d => d.level), 0);
-    const totalEmployees = departments.reduce((sum, d) => sum + (d.employee_count || 0), 0);
-
-    return {
-      total,
-      active,
-      inactive,
-      rootCount,
-      maxLevel,
-      totalEmployees
-    };
-  }, [departments, rootDepartments]);
-
-  // 验证部门操作
-  const validateDepartmentOperation = useCallback((
-    operation: 'create' | 'update' | 'delete',
-    departmentData: Partial<Department>,
-    targetId?: string
-  ) => {
-    const errors: string[] = [];
-
-    switch (operation) {
-      case 'create':
-      case 'update':
-        // 检查名称是否为空
-        if (!departmentData.name?.trim()) {
-          errors.push('部门名称不能为空');
-        }
-
-        // 检查名称是否重复
-        const existingDept = departments.find(d => 
-          d.name === departmentData.name && 
-          (operation === 'create' || d.id !== targetId)
-        );
-        if (existingDept) {
-          errors.push('部门名称已存在');
-        }
-
-        // 检查父部门是否存在
-        if (departmentData.parent_id) {
-          const parentExists = departments.some(d => d.id === departmentData.parent_id);
-          if (!parentExists) {
-            errors.push('指定的父部门不存在');
+        // Second pass: build tree
+        departments.forEach(dept => {
+          const node = departmentMap.get(dept.id)!;
+          if (dept.parent_department_id) {
+            const parent = departmentMap.get(dept.parent_department_id);
+            if (parent) {
+              parent.children!.push(node);
+            }
+          } else {
+            roots.push(node);
           }
-        }
+        });
 
-        // 检查是否会造成循环引用
-        if (operation === 'update' && departmentData.parent_id && targetId) {
-          const childIds = getChildDepartments(targetId, true).map(d => d.id);
-          if (childIds.includes(departmentData.parent_id)) {
-            errors.push('不能将部门设置为其子部门的下级');
-          }
-        }
-        break;
-
-      case 'delete':
-        if (targetId) {
-          // 检查是否有子部门
-          if (isParentDepartment(targetId)) {
-            errors.push('该部门下还有子部门，无法删除');
-          }
-          
-          // 检查是否有员工
-          const dept = departments.find(d => d.id === targetId);
-          if (dept && dept.employee_count && dept.employee_count > 0) {
-            errors.push('该部门下还有员工，无法删除');
-          }
-        }
-        break;
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }, [departments, getChildDepartments, isParentDepartment]);
-
-  return {
-    // 数据
-    departments,
-    departmentTree,
-    flattenedDepartments,
-    rootDepartments,
-    statistics,
-    
-    // 状态
-    loading,
-    error,
-    
-    // 操作
-    actions: {
-      ...actions,
-      // 包装原有操作，添加验证
-      create: (data: Partial<Department>) => {
-        const validation = validateDepartmentOperation('create', data);
-        if (!validation.isValid) {
-          throw new Error(validation.errors.join(', '));
-        }
-        return actions.create(data);
-      },
-      update: (data: { id: string; data: Partial<Department> }) => {
-        const validation = validateDepartmentOperation('update', data.data, data.id);
-        if (!validation.isValid) {
-          throw new Error(validation.errors.join(', '));
-        }
-        return actions.update(data);
-      },
-      delete: (id: string) => {
-        const validation = validateDepartmentOperation('delete', {}, id);
-        if (!validation.isValid) {
-          throw new Error(validation.errors.join(', '));
-        }
-        return actions.delete(id);
+        return roots;
+      } catch (error) {
+        handleError(error, { customMessage: '获取部门树失败' });
+        throw error;
       }
     },
-    
-    // 工具函数
-    utils: {
-      ...utils,
-      getDepartmentPath,
-      getDepartmentFullName,
-      getChildDepartments,
-      isParentDepartment,
-      searchDepartments,
-      getActiveDepartments,
-      getInactiveDepartments,
-      validateDepartmentOperation
-    }
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook for department hierarchy view
+ */
+export function useDepartmentHierarchy() {
+  const { handleError } = useErrorHandler();
+  
+  return useQuery({
+    queryKey: DEPARTMENT_KEYS.hierarchy(),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('view_department_hierarchy')
+        .select('*')
+        .order('level', { ascending: true })
+        .order('name', { ascending: true });
+
+      if (error) {
+        handleError(error, { customMessage: '获取部门层级失败' });
+        throw error;
+      }
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook for single department (alias for useDepartmentDetail)
+ */
+export function useDepartment(departmentId: string) {
+  return useDepartmentDetail(departmentId);
+}
+
+/**
+ * Hook for department details with stats
+ */
+export function useDepartmentDetail(departmentId: string) {
+  const { handleError } = useErrorHandler();
+  
+  return useQuery({
+    queryKey: DEPARTMENT_KEYS.detail(departmentId),
+    queryFn: async () => {
+      try {
+        // Get basic department info
+        const { data: department, error } = await supabase
+          .from('departments')
+          .select('*')
+          .eq('id', departmentId)
+          .single();
+
+        if (error) throw error;
+        if (!department) return null;
+
+        // Get employee count
+        const { count: employeeCount } = await supabase
+          .from('view_employee_basic_info')
+          .select('*', { count: 'exact', head: true })
+          .eq('department_id', departmentId);
+
+        // Get hierarchy info
+        const { data: hierarchyInfo } = await supabase
+          .from('view_department_hierarchy')
+          .select('full_path, level')
+          .eq('id', departmentId)
+          .single();
+
+        // Get children count
+        const { count: childrenCount } = await supabase
+          .from('departments')
+          .select('*', { count: 'exact', head: true })
+          .eq('parent_department_id', departmentId);
+
+        return {
+          ...department,
+          employee_count: employeeCount || 0,
+          full_path: hierarchyInfo?.full_path || department.name,
+          level: hierarchyInfo?.level || 1,
+          children_count: childrenCount || 0
+        };
+      } catch (error) {
+        handleError(error, { customMessage: '获取部门详情失败' });
+        throw error;
+      }
+    },
+    enabled: !!departmentId,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook for department employees
+ */
+export function useDepartmentEmployees(departmentId: string) {
+  const { handleError } = useErrorHandler();
+  
+  return useQuery({
+    queryKey: DEPARTMENT_KEYS.employees(departmentId),
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('view_employee_basic_info')
+          .select('*')
+          .eq('department_id', departmentId)
+          .order('employee_name', { ascending: true });
+
+        if (error) throw error;
+        
+        // Transform for compatibility
+        return (data || []).map(employee => ({
+          id: employee.employee_id,
+          employee_id: employee.employee_id,
+          employee_name: employee.employee_name,
+          name: employee.employee_name,
+          position_name: employee.position_name,
+          personnel_category: employee.category_name,
+          employment_status: employee.employment_status,
+          status: employee.employment_status,
+          assignment_start_date: employee.hire_date,
+          department_id: employee.department_id,
+          department_name: employee.department_name,
+        }));
+      } catch (error) {
+        handleError(error, { customMessage: '获取部门员工失败' });
+        throw error;
+      }
+    },
+    enabled: !!departmentId,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook for getting latest payroll period with data
+ */
+export function useLatestPayrollPeriod() {
+  const { handleError } = useErrorHandler();
+  
+  return useQuery({
+    queryKey: [...DEPARTMENT_KEYS.all, 'latest-period'],
+    queryFn: async () => {
+      try {
+        // 获取最新有数据的薪资周期
+        const { data, error } = await supabase
+          .from('view_department_payroll_statistics')
+          .select('pay_year, pay_month')
+          .order('pay_year', { ascending: false })
+          .order('pay_month', { ascending: false })
+          .limit(1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          return {
+            year: data[0].pay_year,
+            month: data[0].pay_month
+          };
+        }
+
+        // 如果没有数据，返回当前月份
+        const now = new Date();
+        return {
+          year: now.getFullYear(),
+          month: now.getMonth() + 1
+        };
+      } catch (error) {
+        handleError(error, { customMessage: '获取最新薪资周期失败' });
+        // 返回当前月份作为后备
+        const now = new Date();
+        return {
+          year: now.getFullYear(),
+          month: now.getMonth() + 1
+        };
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook for department payroll statistics
+ */
+export function useDepartmentPayrollStats(filters?: {
+  year?: number;
+  month?: number;
+  departmentIds?: string[];
+  useLatestIfEmpty?: boolean; // 新增参数：如果没有指定年月，是否使用最新数据
+}) {
+  const { handleError } = useErrorHandler();
+  const { data: latestPeriod } = useLatestPayrollPeriod();
+  
+  // 如果没有指定年月且设置了使用最新数据，则使用最新周期
+  const effectiveYear = filters?.year || (filters?.useLatestIfEmpty && latestPeriod?.year);
+  const effectiveMonth = filters?.month || (filters?.useLatestIfEmpty && latestPeriod?.month);
+  
+  return useQuery({
+    queryKey: DEPARTMENT_KEYS.payrollStats({ ...filters, year: effectiveYear, month: effectiveMonth }),
+    queryFn: async () => {
+      try {
+        let query = supabase
+          .from('view_department_payroll_statistics')
+          .select('*');
+
+        if (effectiveYear) {
+          query = query.eq('pay_year', effectiveYear);
+        }
+
+        if (effectiveMonth) {
+          query = query.eq('pay_month', effectiveMonth);
+        }
+
+        if (filters?.departmentIds && filters.departmentIds.length > 0) {
+          query = query.in('department_id', filters.departmentIds);
+        }
+
+        const { data, error } = await query
+          .order('department_name', { ascending: true });
+
+        if (error) throw error;
+
+        // Format numeric values
+        return (data || []).map(item => ({
+          ...item,
+          total_gross_pay: formatNumber(item.total_gross_pay),
+          total_deductions: formatNumber(item.total_deductions),
+          total_net_pay: formatNumber(item.total_net_pay),
+          avg_gross_pay: formatNumber(item.avg_gross_pay),
+          avg_net_pay: formatNumber(item.avg_net_pay),
+          min_gross_pay: formatNumber(item.min_gross_pay),
+          max_gross_pay: formatNumber(item.max_gross_pay),
+          dept_gross_pay_percentage: formatNumber(item.dept_gross_pay_percentage, 4),
+          dept_employee_percentage: formatNumber(item.dept_employee_percentage, 4),
+        }));
+      } catch (error) {
+        handleError(error, { customMessage: '获取部门薪资统计失败' });
+        throw error;
+      }
+    },
+    enabled: Boolean(effectiveYear && effectiveMonth),
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook for creating department
+ */
+export function useCreateDepartment() {
+  const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
+
+  return useMutation({
+    mutationFn: async (data: DepartmentInsert) => {
+      const { data: result, error } = await supabase
+        .from('departments')
+        .insert(data)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DEPARTMENT_KEYS.all });
+    },
+    onError: (error) => {
+      handleError(error, { customMessage: '创建部门失败' });
+    },
+  });
+}
+
+/**
+ * Hook for updating department
+ */
+export function useUpdateDepartment() {
+  const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: DepartmentUpdate }) => {
+      const { data: result, error } = await supabase
+        .from('departments')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DEPARTMENT_KEYS.all });
+    },
+    onError: (error) => {
+      handleError(error, { customMessage: '更新部门失败' });
+    },
+  });
+}
+
+/**
+ * Hook for deleting department
+ */
+export function useDeleteDepartment() {
+  const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('departments')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DEPARTMENT_KEYS.all });
+    },
+    onError: (error) => {
+      handleError(error, { customMessage: '删除部门失败' });
+    },
+  });
+}
+
+/**
+ * Hook for moving department
+ */
+export function useMoveDepartment() {
+  const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
+
+  return useMutation({
+    mutationFn: async ({ departmentId, newParentId }: { 
+      departmentId: string; 
+      newParentId: string | null;
+    }) => {
+      // Check for circular reference
+      if (newParentId) {
+        const isCircular = await checkCircularReference(departmentId, newParentId);
+        if (isCircular) {
+          throw new Error('不能创建循环部门引用');
+        }
+      }
+
+      const { error } = await supabase
+        .from('departments')
+        .update({ parent_department_id: newParentId })
+        .eq('id', departmentId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DEPARTMENT_KEYS.all });
+    },
+    onError: (error) => {
+      handleError(error, { customMessage: '移动部门失败' });
+    },
+  });
+}
+
+/**
+ * Hook for department mutations (combined)
+ */
+export function useDepartmentMutations() {
+  const createDepartment = useCreateDepartment();
+  const updateDepartment = useUpdateDepartment();
+  const deleteDepartment = useDeleteDepartment();
+  const moveDepartment = useMoveDepartment();
+
+  return {
+    createDepartment,
+    updateDepartment,
+    deleteDepartment,
+    moveDepartment,
   };
 }
 
 /**
- * 部门选择Hook
- * 专门用于表单中的部门选择功能
+ * Hook for department search
  */
-export function useDepartmentSelector(options: {
-  /** 是否包含停用的部门 */
-  includeInactive?: boolean;
-  /** 是否显示层级结构 */
-  showHierarchy?: boolean;
-  /** 排除的部门ID列表 */
-  excludeIds?: string[];
-}) {
-  const { includeInactive = false, showHierarchy = true, excludeIds = [] } = options;
+export function useDepartmentSearch(searchTerm: string) {
+  const { handleError } = useErrorHandler();
   
-  const { departments, departmentTree, flattenedDepartments, loading } = useDepartments();
+  return useQuery({
+    queryKey: [...DEPARTMENT_KEYS.all, 'search', searchTerm],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('view_department_hierarchy')
+        .select('*')
+        .ilike('name', `%${searchTerm}%`)
+        .order('level', { ascending: true })
+        .order('name', { ascending: true });
 
-  // 构建选择器选项
-  const selectorOptions = useMemo(() => {
-    let sourceDepartments = showHierarchy ? flattenedDepartments : departments;
-    
-    // 过滤停用的部门
-    if (!includeInactive) {
-      sourceDepartments = sourceDepartments.filter(dept => dept.is_active);
-    }
-    
-    // 排除指定的部门
-    if (excludeIds.length > 0) {
-      sourceDepartments = sourceDepartments.filter(dept => !excludeIds.includes(dept.id));
-    }
+      if (error) {
+        handleError(error, { customMessage: '搜索部门失败' });
+        throw error;
+      }
+      return data || [];
+    },
+    enabled: !!searchTerm,
+    staleTime: 30 * 1000,
+  });
+}
 
-    return sourceDepartments.map(dept => ({
-      value: dept.id,
-      label: dept.name,
-      disabled: !dept.is_active,
-      level: dept.level
-    }));
-  }, [departments, flattenedDepartments, showHierarchy, includeInactive, excludeIds]);
+/**
+ * Hook for department list (flat)
+ */
+export function useDepartmentList() {
+  const { handleError } = useErrorHandler();
+  
+  return useQuery({
+    queryKey: [...DEPARTMENT_KEYS.all, 'list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('view_department_hierarchy')
+        .select('*')
+        .order('full_path', { ascending: true });
 
+      if (error) {
+        handleError(error, { customMessage: '获取部门列表失败' });
+        throw error;
+      }
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Main departments hook (backward compatibility)
+ */
+export function useDepartments() {
+  const tree = useDepartmentTree();
+  const hierarchy = useDepartmentHierarchy();
+  const mutations = useDepartmentMutations();
+  
   return {
-    options: selectorOptions,
-    isLoading: loading.isInitialLoading,
-    departments: showHierarchy ? departmentTree : departments
+    // Data
+    departments: tree.data || [],
+    departmentTree: tree.data || [],
+    hierarchyData: hierarchy.data || [],
+    
+    // Status
+    loading: tree.isLoading || hierarchy.isLoading,
+    error: tree.error || hierarchy.error,
+    
+    // Actions
+    actions: {
+      create: mutations.createDepartment.mutate,
+      update: mutations.updateDepartment.mutate,
+      delete: mutations.deleteDepartment.mutate,
+      move: mutations.moveDepartment.mutate,
+    },
+    
+    // Mutations (for direct access)
+    mutations,
   };
 }
+
+// Helper functions
+async function checkCircularReference(
+  departmentId: string,
+  targetParentId: string
+): Promise<boolean> {
+  let currentId: string | null = targetParentId;
+  
+  while (currentId) {
+    if (currentId === departmentId) {
+      return true; // Circular reference detected
+    }
+
+    const { data }: { data: any } = await supabase
+      .from('departments')
+      .select('parent_department_id')
+      .eq('id', currentId)
+      .single();
+
+    currentId = data?.parent_department_id || null;
+  }
+
+  return false;
+}
+
+function formatNumber(value: any, decimals: number = 2): number {
+  if (value == null || value === '') return 0;
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  return isNaN(num) ? 0 : parseFloat(num.toFixed(decimals));
+}
+

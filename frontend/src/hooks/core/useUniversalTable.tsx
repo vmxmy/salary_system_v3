@@ -11,6 +11,12 @@ export interface UniversalTableOptions extends TableOptions {
   filters?: Record<string, any>;
   // 权限控制
   permissions?: string[];
+  // 操作回调
+  actionCallbacks?: {
+    onEdit?: (data: any) => void;
+    onDelete?: (data: any) => void;
+    onView?: (data: any) => void;
+  };
   // 分页配置
   pagination?: {
     pageSize?: number;
@@ -39,19 +45,34 @@ export interface TableAction {
 // 生成表格操作按钮
 function generateTableActions(
   tableName: string,
-  permissions?: string[]
+  permissions?: string[],
+  actionCallbacks?: {
+    onEdit?: (data: any) => void;
+    onDelete?: (data: any) => void;
+    onView?: (data: any) => void;
+  }
 ): TableAction[] {
   const actions: TableAction[] = [];
   const perms = permissions || [];
+
+  if (perms.includes('view') || perms.includes('detail')) {
+    actions.push({
+      key: 'view',
+      label: '查看',
+      onClick: actionCallbacks?.onView || ((data) => {
+        console.log('View action:', data);
+      }),
+      variant: 'ghost',
+    });
+  }
 
   if (perms.includes('update') || perms.includes('edit')) {
     actions.push({
       key: 'edit',
       label: '编辑',
-      onClick: (data) => {
+      onClick: actionCallbacks?.onEdit || ((data) => {
         console.log('Edit action:', data);
-        // TODO: 实现编辑逻辑
-      },
+      }),
       variant: 'primary',
     });
   }
@@ -60,30 +81,17 @@ function generateTableActions(
     actions.push({
       key: 'delete',
       label: '删除',
-      onClick: (data) => {
+      onClick: actionCallbacks?.onDelete || ((data) => {
         console.log('Delete action:', data);
-        // TODO: 实现删除逻辑
-      },
+      }),
       variant: 'error',
-    });
-  }
-
-  if (perms.includes('view') || perms.includes('detail')) {
-    actions.push({
-      key: 'view',
-      label: '查看',
-      onClick: (data) => {
-        console.log('View action:', data);
-        // TODO: 实现查看详情逻辑
-      },
-      variant: 'ghost',
     });
   }
 
   return actions;
 }
 
-// 表格操作列渲染器 - 返回简单字符串表示
+// 表格操作列渲染器 - 返回可点击的按钮组件
 function createActionsRenderer(actions: TableAction[]) {
   return ({ row }: { row: any }) => {
     const data = row.original;
@@ -92,12 +100,44 @@ function createActionsRenderer(actions: TableAction[]) {
     );
 
     if (visibleActions.length === 0) {
-      return '';
+      return null;
     }
 
-    // 返回操作标签的简单组合
-    return visibleActions.map(action => action.label).join(' | ');
+    // 返回可点击的按钮组合
+    return (
+      <div className="flex gap-1">
+        {visibleActions.map((action, index) => (
+          <button
+            key={action.key}
+            type="button"
+            className={`btn btn-xs ${getButtonVariant(action.variant)}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              action.onClick(data);
+            }}
+            disabled={action.disabled ? action.disabled(data) : false}
+            title={action.label}
+          >
+            {action.icon && <action.icon className="w-3 h-3" />}
+            <span className="hidden sm:inline">{action.label}</span>
+          </button>
+        ))}
+      </div>
+    );
   };
+}
+
+// 获取按钮样式变体
+function getButtonVariant(variant?: string): string {
+  switch (variant) {
+    case 'primary': return 'btn-primary';
+    case 'secondary': return 'btn-secondary';
+    case 'success': return 'btn-success';
+    case 'warning': return 'btn-warning';
+    case 'error': return 'btn-error';
+    case 'ghost': return 'btn-ghost';
+    default: return 'btn-ghost';
+  }
 }
 
 /**
@@ -206,7 +246,7 @@ export function useUniversalTable(tableName: string, options?: UniversalTableOpt
       return null;
     }
     
-    const actions = generateTableActions(tableName, mergedOptions.permissions);
+    const actions = generateTableActions(tableName, mergedOptions.permissions, mergedOptions.actionCallbacks);
     
     if (actions.length === 0) {
       return null;

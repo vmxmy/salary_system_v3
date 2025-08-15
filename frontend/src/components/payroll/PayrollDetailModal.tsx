@@ -577,7 +577,7 @@ function PayrollBreakdownSection({
       header: '项目名称',
       cell: info => (
         <span className="text-sm font-medium text-base-content">
-          {info.getValue()}
+          {info.getValue() as React.ReactNode}
         </span>
       )
     }),
@@ -605,7 +605,7 @@ function PayrollBreakdownSection({
       header: '计算方式',
       cell: info => info.getValue() ? (
         <span className="text-xs text-base-content/60">
-          {info.getValue()}
+          {info.getValue() as React.ReactNode}
         </span>
       ) : (
         <span className="text-xs text-base-content/30">-</span>
@@ -615,7 +615,7 @@ function PayrollBreakdownSection({
       header: '备注',
       cell: info => info.getValue() ? (
         <span className="text-xs text-base-content/60">
-          {info.getValue()}
+          {info.getValue() as React.ReactNode}
         </span>
       ) : (
         <span className="text-xs text-base-content/30">-</span>
@@ -629,7 +629,7 @@ function PayrollBreakdownSection({
       header: '项目名称',
       cell: info => (
         <span className="text-sm font-medium text-base-content">
-          {info.getValue()}
+          {info.getValue() as React.ReactNode}
         </span>
       )
     }),
@@ -648,7 +648,7 @@ function PayrollBreakdownSection({
       cell: info => (
         <div className="text-right">
           <span className="text-sm font-semibold font-mono text-red-600">
-            -{formatCurrency(Math.abs(info.getValue()))}
+            -{formatCurrency(Math.abs(info.getValue() as number))}
           </span>
         </div>
       )
@@ -657,7 +657,7 @@ function PayrollBreakdownSection({
       header: '计算方式',
       cell: info => info.getValue() ? (
         <span className="text-xs text-base-content/60">
-          {info.getValue()}
+          {info.getValue() as React.ReactNode}
         </span>
       ) : (
         <span className="text-xs text-base-content/30">-</span>
@@ -667,7 +667,7 @@ function PayrollBreakdownSection({
       header: '备注',
       cell: info => info.getValue() ? (
         <span className="text-xs text-base-content/60">
-          {info.getValue()}
+          {info.getValue() as React.ReactNode}
         </span>
       ) : (
         <span className="text-xs text-base-content/30">-</span>
@@ -839,16 +839,16 @@ function InsuranceDetailsSection({
   const { t } = useTranslation(['payroll', 'common']);
 
   // 定义表格列
-  const insuranceColumns = useMemo<ColumnDef<InsuranceDetail>[]>(() => [
-    insuranceColumnHelper.accessor('insurance_type.name', {
+  const insuranceColumns = useMemo(() => [
+    insuranceColumnHelper.accessor('insurance_type.name' as keyof InsuranceDetail, {
       header: '保险类型',
       cell: info => (
         <span className="text-sm font-medium text-base-content">
-          {info.getValue() || info.row.original.insurance_type?.system_key || '未知'}
+          {String(info.getValue() || info.row.original.insurance_type?.system_key || '未知')}
         </span>
       )
     }),
-    insuranceColumnHelper.accessor('is_applicable', {
+    insuranceColumnHelper.accessor('is_applicable' as keyof InsuranceDetail, {
       header: '适用状态',
       cell: info => (
         <div className="flex items-center gap-2">
@@ -868,52 +868,52 @@ function InsuranceDetailsSection({
         </div>
       )
     }),
-    insuranceColumnHelper.accessor('contribution_base', {
+    insuranceColumnHelper.accessor('contribution_base' as keyof InsuranceDetail, {
       header: () => <div className="text-right">缴费基数</div>,
       cell: info => (
         <div className="text-right">
           <span className="text-sm font-mono text-base-content">
-            {formatCurrency(info.getValue())}
+            {formatCurrency(info.getValue() as number)}
           </span>
         </div>
       )
     }),
-    insuranceColumnHelper.accessor('employee_rate', {
+    insuranceColumnHelper.accessor('employee_rate' as keyof InsuranceDetail, {
       header: () => <div className="text-right">个人费率</div>,
       cell: info => (
         <div className="text-right">
           <span className="text-sm font-mono text-base-content/70">
-            {(info.getValue() * 100).toFixed(2)}%
+            {((info.getValue() as number) * 100).toFixed(2)}%
           </span>
         </div>
       )
     }),
-    insuranceColumnHelper.accessor('employee_amount', {
+    insuranceColumnHelper.accessor('employee_amount' as keyof InsuranceDetail, {
       header: () => <div className="text-right">个人缴费</div>,
       cell: info => (
         <div className="text-right">
           <span className="text-sm font-semibold font-mono text-red-600">
-            -{formatCurrency(info.getValue())}
+            -{formatCurrency((info.getValue() as number) || 0)}
           </span>
         </div>
       )
     }),
-    insuranceColumnHelper.accessor('employer_rate', {
+    insuranceColumnHelper.accessor('employer_rate' as keyof InsuranceDetail, {
       header: () => <div className="text-right">企业费率</div>,
       cell: info => (
         <div className="text-right">
           <span className="text-sm font-mono text-base-content/70">
-            {(info.getValue() * 100).toFixed(2)}%
+            {((info.getValue() as number) * 100).toFixed(2)}%
           </span>
         </div>
       )
     }),
-    insuranceColumnHelper.accessor('employer_amount', {
+    insuranceColumnHelper.accessor('employer_amount' as keyof InsuranceDetail, {
       header: () => <div className="text-right">企业缴费</div>,
       cell: info => (
         <div className="text-right">
           <span className="text-sm font-semibold font-mono text-blue-600">
-            -{formatCurrency(info.getValue())}
+            -{formatCurrency((info.getValue() as number) || 0)}
           </span>
         </div>
       )
@@ -1048,50 +1048,50 @@ function ContributionBaseSection({
   const { t } = useTranslation(['payroll', 'common']);
 
   // 定义表格列
-  const contributionColumns = useMemo<ColumnDef<ContributionBase>[]>(() => [
-    contributionColumnHelper.accessor('insurance_type_name', {
+  const contributionColumns = useMemo(() => [
+    contributionColumnHelper.accessor('insurance_type_name' as keyof ContributionBase, {
       header: '保险类型',
       cell: info => (
         <span className="text-sm font-medium text-base-content">
-          {info.getValue()}
+          {info.getValue() as React.ReactNode}
         </span>
       )
     }),
-    contributionColumnHelper.accessor('month_string', {
+    contributionColumnHelper.accessor('month_string' as keyof ContributionBase, {
       header: '月份',
       cell: info => (
         <span className="text-sm text-base-content/70">
-          {info.getValue()}
+          {info.getValue() as React.ReactNode}
         </span>
       )
     }),
-    contributionColumnHelper.accessor('employment_status', {
+    contributionColumnHelper.accessor('employment_status' as keyof ContributionBase, {
       header: '就业状态',
       cell: info => (
         <span className="badge badge-sm badge-ghost">
-          {info.getValue()}
+          {info.getValue() as React.ReactNode}
         </span>
       )
     }),
-    contributionColumnHelper.accessor('contribution_base', {
+    contributionColumnHelper.accessor('contribution_base' as keyof ContributionBase, {
       header: () => <div className="text-right">缴费基数</div>,
       cell: info => (
         <div className="text-right">
           <span className="text-sm font-semibold font-mono text-primary">
-            {formatCurrency(info.getValue())}
+            {formatCurrency(info.getValue() as number)}
           </span>
         </div>
       )
     }),
-    contributionColumnHelper.accessor('effective_start_date', {
+    contributionColumnHelper.accessor('effective_start_date' as keyof ContributionBase, {
       header: '生效日期',
       cell: info => (
         <span className="text-sm text-base-content/60">
-          {formatDate(info.getValue())}
+          {formatDate(String(info.getValue() || ''))}
         </span>
       )
     }),
-    contributionColumnHelper.accessor('effective_end_date', {
+    contributionColumnHelper.accessor('effective_end_date' as keyof ContributionBase, {
       header: '截止日期',
       cell: info => {
         const value = info.getValue();

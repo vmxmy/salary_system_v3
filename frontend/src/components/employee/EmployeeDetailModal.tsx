@@ -173,7 +173,13 @@ export function EmployeeModal({
   const handleSave = async () => {
     console.log('handleSave called, activeTab:', activeTab, 'mode:', mode);
     
-    // 根据当前标签页保存对应的数据
+    // 创建模式下，一次性保存所有数据（基础信息、银行账户、教育背景）
+    if (mode === 'create') {
+      await handleBasicInfoSave(); // 这个函数内部已经包含了所有tab的数据
+      return;
+    }
+    
+    // 编辑模式下，根据当前标签页保存对应的数据
     switch (activeTab) {
       case 'basic':
       case 'contact':
@@ -242,26 +248,32 @@ export function EmployeeModal({
         //   };
         // }
 
-        // 添加银行账户信息
-        if (localBankAccounts.length > 0) {
-          createData.bank_accounts = localBankAccounts.map(account => ({
+        // 添加银行账户信息（过滤掉不完整的记录）
+        const validBankAccounts = localBankAccounts.filter(account => 
+          account.account_number && account.bank_name
+        );
+        if (validBankAccounts.length > 0) {
+          createData.bank_accounts = validBankAccounts.map(account => ({
             account_holder_name: account.account_holder_name || formData.employee_name,
             account_number: account.account_number,
             bank_name: account.bank_name,
-            branch_name: account.branch_name,
+            branch_name: account.branch_name || '',
             is_primary: account.is_primary || false,
             effective_start_date: new Date().toISOString().split('T')[0],
           }));
         }
 
-        // 添加教育背景信息
-        if (localEducation.length > 0) {
-          createData.education = localEducation.map(edu => ({
-            institution_name: edu.institution_name,
+        // 添加教育背景信息（只要求degree字段必填）
+        const validEducation = localEducation.filter(edu => 
+          edu.degree && edu.degree.trim() !== ''
+        );
+        if (validEducation.length > 0) {
+          createData.education = validEducation.map(edu => ({
+            institution_name: edu.institution_name || '',
             degree: edu.degree,
-            field_of_study: edu.field_of_study,
-            graduation_date: edu.graduation_date,
-            notes: edu.notes,
+            field_of_study: edu.field_of_study || '',
+            graduation_date: edu.graduation_date || null,
+            notes: edu.notes || '',
           }));
         }
 
@@ -637,16 +649,17 @@ export function EmployeeModal({
 
         {/* Modal Footer */}
         <div className="modal-action mt-6">
-          {/* 编辑模式下显示保存按钮（在左边） */}
-          {mode === 'edit' && (
+          {/* 编辑和创建模式下显示保存按钮（在左边） */}
+          {(mode === 'edit' || mode === 'create') && (
             <button
               type="button"
               className="btn btn-primary"
               onClick={handleSave}
               disabled={isSubmitting}
+              title={mode === 'create' ? '保存所有标签页的信息并创建员工' : '保存当前标签页的更改'}
             >
               {isSubmitting && <span className="loading loading-spinner loading-xs mr-2"></span>}
-              保存更改
+              {mode === 'create' ? '创建员工' : '保存更改'}
             </button>
           )}
 

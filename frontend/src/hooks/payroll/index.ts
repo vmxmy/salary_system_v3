@@ -16,7 +16,7 @@ export {
 export {
   usePayrolls,
   usePayrollDetails,
-  useLatestPayrollMonth,
+  useLatestPayrollPeriod,
   usePayrollStatisticsByParams,
   useCostAnalysis,
   useEmployeeInsuranceDetails,
