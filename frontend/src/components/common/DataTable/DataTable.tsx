@@ -25,6 +25,7 @@ export function DataTable<TData, TValue>({
   onTableReady,
   initialSorting,
   initialPagination,
+  initialColumnVisibility,
   loading = false,
   emptyMessage,
   showToolbar = true,
@@ -59,6 +60,7 @@ export function DataTable<TData, TValue>({
     onPaginationChange,
     onRowSelectionChange,
     initialSorting,
+    initialColumnVisibility,
     initialPagination: pageCount !== undefined ? {
       pageIndex: (currentPage || 1) - 1,
       pageSize: data.length,
