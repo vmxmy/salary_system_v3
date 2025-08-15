@@ -158,11 +158,7 @@ export function useSmartTableColumns(tableName: string, options?: TableOptions) 
     if (!metadata?.columns) return [];
 
     const baseColumns: ColumnDef<any>[] = metadata.columns
-      // 过滤不可见的列
-      .filter(col => {
-        const pref = preferences?.columns?.[col.name];
-        return pref?.visible ?? shouldDefaultVisible(col.name);
-      })
+      // 不再过滤列，而是将所有列都包含进来
       // 排序
       .sort((a, b) => {
         const orderA = getColumnOrder(a.name, preferences?.columns);
@@ -260,6 +256,21 @@ export function useSmartTableColumns(tableName: string, options?: TableOptions) 
       .map(col => col.name) || [];
   }, [metadata?.columns, options?.searchFields, visibleColumns]);
 
+  // 生成初始列可见性配置
+  const initialColumnVisibility = useMemo(() => {
+    const visibility: Record<string, boolean> = {};
+    
+    if (metadata?.columns) {
+      metadata.columns.forEach(col => {
+        const pref = preferences?.columns?.[col.name];
+        // 如果有用户偏好，使用用户偏好；否则使用默认可见性规则
+        visibility[col.name] = pref?.visible ?? shouldDefaultVisible(col.name);
+      });
+    }
+    
+    return visibility;
+  }, [metadata?.columns, preferences?.columns]);
+
   return {
     // 核心数据
     columns,
@@ -282,6 +293,7 @@ export function useSmartTableColumns(tableName: string, options?: TableOptions) 
     // 辅助信息
     visibleColumns,
     searchableFields,
+    initialColumnVisibility,
   };
 }
 

@@ -56,6 +56,8 @@ function generateLabel(columnName: string): string {
     'full_name': '姓名',
     'id_number': '身份证号',
     'phone': '电话',
+    'mobile_phone': '手机号',
+    'mobile': '手机号',
     'email': '邮箱',
     'hire_date': '入职日期',
     'birth_date': '出生日期',
@@ -92,6 +94,43 @@ function generateLabel(columnName: string): string {
     'category_id': '类别ID', 
     'category_name': '人员类别',
     'personnel_category_name': '人员类别',
+    
+    // 银行账户相关
+    'bank_account_number': '银行账号',
+    'bank_name': '开户银行',
+    'bank_branch': '开户支行',
+    
+    // 社保公积金相关
+    'social_security_number': '社保号',
+    'housing_fund_account': '公积金账号',
+    
+    // 紧急联系人
+    'emergency_contact': '紧急联系人',
+    'emergency_phone': '紧急联系电话',
+    
+    // 地址相关
+    'address': '地址',
+    'home_address': '家庭地址',
+    'current_address': '现居地址',
+    
+    // 其他信息
+    'nationality': '国籍',
+    'ethnicity': '民族',
+    'marital_status': '婚姻状况',
+    'education_level': '学历',
+    'degree': '学位',
+    'graduation_date': '毕业日期',
+    'school': '毕业院校',
+    'major': '专业',
+    'work_years': '工作年限',
+    'contract_type': '合同类型',
+    'contract_start_date': '合同开始日期',
+    'contract_end_date': '合同结束日期',
+    'probation_end_date': '试用期结束日期',
+    'resignation_date': '离职日期',
+    'resignation_reason': '离职原因',
+    'notes': '备注',
+    'remark': '备注',
     
     // 系统字段
     'created_at': '创建时间',

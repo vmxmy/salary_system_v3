@@ -112,4 +112,6 @@ export interface UseDataTableReturn<TData> {
   setPagination: React.Dispatch<React.SetStateAction<PaginationState>>;
   columnSizing: ColumnSizingState;
   setColumnSizing: React.Dispatch<React.SetStateAction<ColumnSizingState>>;
+  globalFilter: string;
+  setGlobalFilter: React.Dispatch<React.SetStateAction<string>>;
 }
