@@ -38,6 +38,7 @@ const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const DebugPage = lazy(() => import('@/pages/DebugPage'));
 const PayrollHookTestPage = lazy(() => import('@/pages/test/PayrollHookTestPage'));
 const NewTableArchitectureTestPage = lazy(() => import('@/pages/test/NewTableArchitectureTestPage'));
+const TestMetadata = lazy(() => import('@/pages/test/TestMetadata'));
 // Test pages moved to archive
 // const HookTestPage = lazy(() => import('@/pages/test/AuthenticatedHookTestPage'));
 // const EmployeeCreateTestPage = lazy(() => import('@/pages/EmployeeCreateTestPage'));
@@ -115,6 +116,14 @@ export const router = createBrowserRouter([
     element: (
       <Suspense fallback={<LoadingScreen />}>
         <NewTableArchitectureTestPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/test/metadata',
+    element: (
+      <Suspense fallback={<LoadingScreen />}>
+        <TestMetadata />
       </Suspense>
     ),
   },

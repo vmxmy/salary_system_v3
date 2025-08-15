@@ -8,10 +8,9 @@ import { EmployeeModal } from '@/components/employee/EmployeeDetailModal';
 import { EmployeeExport } from '@/components/employee/EmployeeExport';
 import { RealtimeIndicator } from '@/components/common/RealtimeIndicator';
 import { ColumnVisibility } from '@/components/common/DataTable/components/ColumnVisibility';
+import { AdvancedSearch } from '@/components/common/AdvancedSearch';
 import { 
-  UserPlusIcon, 
-  EyeIcon, 
-  EyeSlashIcon
+  UserPlusIcon
 } from '@heroicons/react/24/outline';
 import type { EmployeeListItem } from '@/types/employee';
 
@@ -19,8 +18,6 @@ export default function EmployeeListPage() {
   const { t } = useTranslation(['employee', 'common']);
   
   // 页面状态
-  const [showSensitiveData, setShowSensitiveData] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [tableInstance, setTableInstance] = useState<any>(null);
@@ -75,6 +72,7 @@ export default function EmployeeListPage() {
     updateColumnPreference,
     toggleColumnVisibility,
     resetPreferences,
+    initialColumnVisibility: hookInitialColumnVisibility,
     
     // 其他信息
     visibleColumns,
@@ -85,8 +83,6 @@ export default function EmployeeListPage() {
     enableRowSelection: true,
     enableActions: true,
     permissions: ['view', 'create', 'edit', 'delete'],
-    showSensitiveData,
-    statusFilter,
     // 操作回调
     onViewEmployee: handleViewEmployee,
     onEditEmployee: handleEditEmployee,
@@ -136,16 +132,8 @@ export default function EmployeeListPage() {
     }
   };
 
-  // 将Hook系统的用户偏好转换为TanStack Table的VisibilityState格式
-  const initialColumnVisibility = useMemo(() => {
-    const visibility: Record<string, boolean> = {};
-    Object.entries(preferences).forEach(([columnId, pref]) => {
-      if (pref?.visible !== undefined) {
-        visibility[columnId] = pref.visible;
-      }
-    });
-    return visibility;
-  }, [preferences]);
+  // 使用从 Hook 返回的初始列可见性配置
+  const initialColumnVisibility = hookInitialColumnVisibility;
 
   // 统计卡片数据
   const statCards: StatCardProps[] = useMemo(() => [
@@ -181,30 +169,15 @@ export default function EmployeeListPage() {
 
   // 页面操作按钮
   const pageActions = (
-    <div className="flex gap-2">
-      {/* 敏感数据开关 */}
-      <div className="form-control">
-        <label className="label cursor-pointer gap-2">
-          <span className="label-text text-sm">敏感数据</span>
-          <input
-            type="checkbox"
-            className="toggle toggle-sm"
-            checked={showSensitiveData}
-            onChange={(e) => setShowSensitiveData(e.target.checked)}
-          />
-        </label>
-      </div>
-
-      {/* 状态筛选 */}
-      <select
-        className="select select-sm select-bordered"
-        value={statusFilter}
-        onChange={(e) => setStatusFilter(e.target.value as any)}
-      >
-        <option value="active">在职员工</option>
-        <option value="inactive">离职员工</option>
-        <option value="all">全部员工</option>
-      </select>
+    <div className="flex gap-2 items-center">
+      {/* 高级搜索框 - 支持所有字段模糊搜索 */}
+      {tableInstance && (
+        <AdvancedSearch 
+          table={tableInstance}
+          searchableFields={searchableFields}
+          placeholder="搜索员工姓名、部门、职位等..."
+        />
+      )}
 
       {/* 列配置 - 使用TanStack Table标准组件 */}
       {tableInstance && (

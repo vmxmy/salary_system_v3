@@ -35,6 +35,7 @@ export function useDataTable<TData>({
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [pagination, setPagination] = useState<PaginationState>(initialPagination);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(initialColumnSizing);
+  const [globalFilter, setGlobalFilter] = useState('');
 
   // 自定义的分页设置函数，处理外部回调
   const handlePaginationChange = useMemo(() => {
@@ -82,6 +83,7 @@ export function useDataTable<TData>({
       rowSelection,
       pagination,
       columnSizing,
+      globalFilter,
     },
     // State setters
     onSortingChange: setSorting,
@@ -90,6 +92,7 @@ export function useDataTable<TData>({
     onRowSelectionChange: handleRowSelectionChange,
     onPaginationChange: handlePaginationChange,
     onColumnSizingChange: setColumnSizing,
+    onGlobalFilterChange: setGlobalFilter,
     // Options
     enableRowSelection,
     enableColumnResizing,
@@ -111,5 +114,7 @@ export function useDataTable<TData>({
     setPagination,
     columnSizing,
     setColumnSizing,
+    globalFilter,
+    setGlobalFilter,
   };
 }

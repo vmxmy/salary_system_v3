@@ -312,6 +312,7 @@ export function useUniversalTable(tableName: string, options?: UniversalTableOpt
     // 辅助信息
     visibleColumns: smartColumns.visibleColumns,
     searchableFields: smartColumns.searchableFields,
+    initialColumnVisibility: smartColumns.initialColumnVisibility,
     
     // 默认配置
     defaultSorting,
