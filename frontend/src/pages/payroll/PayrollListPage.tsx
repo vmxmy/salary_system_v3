@@ -6,7 +6,7 @@ import {
   useCreateBatchPayrolls, 
   useUpdateBatchPayrollStatus, 
   useCalculatePayrolls, 
-  useLatestPayrollMonth,
+  useLatestPayrollPeriod,
   PayrollStatus,
   type PayrollStatusType 
 } from '@/hooks/payroll';
@@ -91,12 +91,12 @@ export default function PayrollListPage() {
   const monthDateRange = getMonthDateRange(selectedMonth);
 
   // 获取最近有薪资记录的月份
-  const { data: latestMonth, isLoading: latestMonthLoading } = useLatestPayrollMonth();
+  const { data: latestMonth, isLoading: latestMonthLoading } = useLatestPayrollPeriod();
 
   // 自动设置为最近有记录的月份
   useEffect(() => {
     if (latestMonth && !latestMonthLoading) {
-      setSelectedMonth(latestMonth);
+      setSelectedMonth(latestMonth.period_name || `${latestMonth.year}-${latestMonth.month.toString().padStart(2, '0')}`);
     }
   }, [latestMonth, latestMonthLoading]);
 
@@ -120,8 +120,8 @@ export default function PayrollListPage() {
 
   // 查询薪资列表 - 获取指定月份的所有数据
   const { data, isLoading, refetch } = usePayrolls({
-    startDate: monthDateRange.startDate,
-    endDate: monthDateRange.endDate,
+    periodYear: monthDateRange.year,
+    periodMonth: monthDateRange.month,
     // 不传递分页参数，获取所有数据
     pageSize: 1000 // 设置一个较大的值来获取所有数据
   });
@@ -162,7 +162,7 @@ export default function PayrollListPage() {
         // 搜索所有可能的字段
         const searchableFields = [
           payroll.employee_name,        // 员工姓名
-          payroll.department_name,     // 部门名称
+          payroll.employee?.department_name,     // 部门名称
           payroll.status,               // 状态
           payroll.pay_date,             // 支付日期
           payroll.gross_pay?.toString(), // 应发工资

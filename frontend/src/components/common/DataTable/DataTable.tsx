@@ -52,7 +52,7 @@ export function DataTable<TData, TValue>({
     setPagination: _setPagination,
   } = useDataTable({
     data,
-    columns,
+    columns: columns as any,
     pageCount,
     enableRowSelection,
     enableColumnResizing: true,

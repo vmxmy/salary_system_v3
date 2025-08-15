@@ -1,386 +1,251 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useEmployeeList } from '@/hooks/employee/useEmployeeList';
-import { useTableConfiguration } from '@/hooks/useTableConfiguration';
+import { useEmployeeTable } from '@/hooks/employee/useEmployeeTable';
 import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
+import { DataTable } from '@/components/common/DataTable';
 import { ModernButton } from '@/components/common/ModernButton';
 import { EmployeeModal } from '@/components/employee/EmployeeDetailModal';
 import { EmployeeExport } from '@/components/employee/EmployeeExport';
 import { RealtimeIndicator } from '@/components/common/RealtimeIndicator';
-import type { Table } from '@tanstack/react-table';
+import { 
+  UserPlusIcon, 
+  EyeIcon, 
+  EyeSlashIcon,
+  AdjustmentsHorizontalIcon 
+} from '@heroicons/react/24/outline';
 import type { EmployeeListItem } from '@/types/employee';
 
 export default function EmployeeListPage() {
   const { t } = useTranslation(['employee', 'common']);
   
-  // 数据获取 - 使用新的hook系统
-  const employeeList = useEmployeeList();
-  const { employees: allEmployees = [], loading, error } = employeeList;
-  const employees = allEmployees as EmployeeListItem[];
-  const isLoading = loading.isInitialLoading;
-  const isError = !!error;
+  // 页面状态
+  const [showSensitiveData, setShowSensitiveData] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
+  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
+  const [tableInstance, setTableInstance] = useState<any>(null);
   
-  // 调试: 输出前几条数据查看结构
-  console.log('=== Employee Data Debug ===');
-  console.log('Total employees:', employees.length);
-  console.log('First 3 employees:', employees.slice(0, 3));
-  console.log('Sample employee structure:', employees[0]);
-  
-  // 临时调试：清除表格配置缓存
-  if (typeof window !== 'undefined' && employees.length > 0) {
-    const hasDebugFlag = localStorage.getItem('debug_clear_table_config');
-    if (!hasDebugFlag) {
-      console.log('Clearing table config cache for debugging...');
-      localStorage.removeItem('table_config_view_employee_basic_info');
-      localStorage.setItem('debug_clear_table_config', 'true');
-    }
-  }
-
-  // 表格配置管理
+  // 🚀 使用新架构的员工表格 Hook
   const {
-    metadata,
-    metadataLoading,
-    metadataError,
-    userConfig,
+    // 数据和列
+    data,
     columns,
-    updateUserConfig,
-    resetToDefault,
-  } = useTableConfiguration('employees', {
-    onViewDetail: (row) => {
-      console.log('[EmployeeListPage] View detail clicked, row:', row);
-      const employeeId = row.employee_id || row.id;
-      setSelectedEmployeeId(employeeId);
-      setModalMode('view');
-      setIsDetailModalOpen(true);
-    },
-    onEdit: (row) => {
-      console.log('[EmployeeListPage] Edit clicked, row:', row);
-      console.log('[EmployeeListPage] Available row fields:', Object.keys(row));
-      console.log('[EmployeeListPage] row.employee_id:', row.employee_id);
-      console.log('[EmployeeListPage] row.id:', row.id);
-      
-      // 确保使用正确的ID字段
-      const employeeId = row.employee_id || row.id;
-      
-      if (!employeeId) {
-        console.error('[EmployeeListPage] No employee ID found in row:', row);
-        return;
-      }
-      
-      console.log('[EmployeeListPage] Setting employeeId:', employeeId);
-      console.log('[EmployeeListPage] Before state updates - current state:', {
-        selectedEmployeeId,
-        modalMode,
-        isDetailModalOpen
-      });
-      
-      // 批量更新状态
-      setSelectedEmployeeId(employeeId);
-      setModalMode('edit');
-      setIsDetailModalOpen(true);
-      
-      console.log('[EmployeeListPage] After state updates - new values:', {
-        selectedEmployeeId: employeeId,
-        modalMode: 'edit',
-        isDetailModalOpen: true
-      });
-    },
-  }, true); // 启用行选择
-
-  // 状态管理
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeSearchQuery, setActiveSearchQuery] = useState(''); // 实际用于搜索的查询
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'view' | 'edit' | 'create'>('view');
-  const [tableInstance, setTableInstance] = useState<Table<any> | null>(null);
-  const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  
-  // 添加调试用的useEffect来监控状态变化
-  useEffect(() => {
-    console.log('[EmployeeListPage] State Changed:', {
-      selectedEmployeeId,
-      modalMode,
-      isDetailModalOpen
-    });
-  }, [selectedEmployeeId, modalMode, isDetailModalOpen]);
-
-  // 数据处理流程 - 只处理搜索，排序和分页交给 TanStack Table
-  const processedData = useMemo(() => {
-    let data = [...employees];
+    loading,
+    error,
     
-    // 全局模糊搜索 - 使用手动触发的搜索查询
-    if (activeSearchQuery.trim()) {
-      const query = activeSearchQuery.toLowerCase().trim();
-      data = data.filter(employee => {
-        // 搜索所有可能的字段
-        const searchableFields = [
-          employee.employee_name,           // 姓名
-          employee.id_number,           // 身份证号
-          employee.department_name,     // 部门
-          employee.position_name,       // 职位
-          employee.category_name,       // 人员类别
-          employee.employment_status,   // 在职状态
-          employee.mobile_phone,        // 手机号
-          employee.email,               // 邮箱
-          employee.primary_bank_account, // 银行账户
-          employee.bank_name,           // 银行名称
-        ].filter(Boolean); // 过滤掉空值
-        
-        // 检查是否任一字段包含搜索关键词
-        return searchableFields.some(field => 
-          field && field.toLowerCase().includes(query)
-        );
-      });
-    }
+    // 统计信息
+    statistics,
     
-    return data;
-  }, [employees, activeSearchQuery]);
+    // 操作方法
+    createEmployee,
+    updateEmployee,
+    deleteEmployee,
+    batchUpdate,
+    batchDelete,
+    
+    // 表格配置
+    preferences,
+    updateColumnPreference,
+    toggleColumnVisibility,
+    resetPreferences,
+    
+    // 其他信息
+    visibleColumns,
+    searchableFields,
+    currentFilters,
+    refetch,
+  } = useEmployeeTable({
+    enableRowSelection: true,
+    enableActions: true,
+    permissions: ['view', 'create', 'edit', 'delete'],
+    showSensitiveData,
+    statusFilter,
+    // 不使用 JSX 的列覆盖，改用操作按钮
+    columnOverrides: {},
+  });
 
-  // 搜索处理函数 - 手动触发搜索
-  const handleSearch = useCallback(() => {
-    setActiveSearchQuery(searchQuery);
-    // TanStack Table 会自动重置分页到第一页
-    if (tableInstance) {
-      tableInstance.setPageIndex(0);
-    }
-  }, [searchQuery, tableInstance]);
-
-  const handleResetSearch = useCallback(() => {
-    setSearchQuery('');
-    setActiveSearchQuery('');
-    // TanStack Table 会自动重置分页到第一页
-    if (tableInstance) {
-      tableInstance.setPageIndex(0);
-    }
-  }, [tableInstance]);
-
-  // 处理新增员工
-  const handleAddEmployee = () => {
-    setSelectedEmployeeId(null);
-    setModalMode('create');
-    setIsDetailModalOpen(true);
+  // 事件处理
+  const handleViewEmployee = (employee: EmployeeListItem) => {
+    setSelectedEmployee(employee);
+    setIsEmployeeModalOpen(true);
   };
 
-  // 处理模态框关闭
-  const handleModalClose = () => {
-    setIsDetailModalOpen(false);
-    setSelectedEmployeeId(null);
-    setModalMode('view');
+  const handleEditEmployee = (employee: EmployeeListItem) => {
+    setSelectedEmployee(employee);
+    setIsEmployeeModalOpen(true);
   };
 
-  // 处理创建/更新成功
-  const handleModalSuccess = () => {
-    // 成功后会自动刷新数据（通过 TanStack Query）
-    // 模态框会自动关闭
-  };
-
-  // 处理行选择变化
-  const handleRowSelectionChange = useCallback((rowSelection: any) => {
-    const selectedEmployeeIds = Object.keys(rowSelection)
-      .filter(key => rowSelection[key])
-      .map(index => {
-        const rowIndex = parseInt(index);
-        const employee = processedData[rowIndex];
-        return employee?.employee_id;
-      })
-      .filter(Boolean);
-    setSelectedRows(selectedEmployeeIds);
-  }, [processedData]);
-
-  // 准备统计卡片数据
-  const statCards: StatCardProps[] = useMemo(() => {
-    const totalEmployees = employees.length;
-    const activeEmployees = employees.filter(emp => emp.employment_status === 'active').length;
-    const departments = new Set(employees.map(emp => emp.department_name).filter(Boolean)).size;
-    const thisMonthNew = employees.filter(emp => {
-      if (!emp.hire_date) return false;
-      const hireDate = new Date(emp.hire_date);
-      const now = new Date();
-      return hireDate.getFullYear() === now.getFullYear() && hireDate.getMonth() === now.getMonth();
-    }).length;
-
-    return [
-      {
-        title: '总员工数',
-        value: totalEmployees || '--',
-        description: '统计信息',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        ),
-        colorClass: 'text-primary'
-      },
-      {
-        title: '在职员工',
-        value: activeEmployees || '--',
-        description: '活跃状态',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        ),
-        colorClass: 'text-success'
-      },
-      {
-        title: '部门数量',
-        value: departments || '--',
-        description: '组织架构',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
-        ),
-        colorClass: 'text-warning'
-      },
-      {
-        title: '本月新增',
-        value: thisMonthNew || '--',
-        description: '入职统计',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-        ),
-        colorClass: 'text-info'
+  const handleDeleteEmployee = async (employeeId: string) => {
+    if (window.confirm('确定要删除这名员工吗？')) {
+      try {
+        await deleteEmployee(employeeId);
+      } catch (error) {
+        console.error('删除员工失败:', error);
       }
-    ];
-  }, [employees]);
+    }
+  };
 
-  // 处理加载状态
-  const totalLoading = isLoading || metadataLoading;
+  const handleCreateEmployee = () => {
+    setSelectedEmployee(null);
+    setIsEmployeeModalOpen(true);
+  };
 
-  // 错误处理
-  if (isError) {
-    return <div className="alert alert-error">数据加载错误: {(error as Error).message}</div>;
-  }
+  const handleCloseModal = () => {
+    setIsEmployeeModalOpen(false);
+    setSelectedEmployee(null);
+  };
 
-  if (metadataError) {
-    return <div className="alert alert-error">表格配置加载错误: {metadataError}</div>;
-  }
+  const handleSaveEmployee = async (employeeData: any) => {
+    try {
+      if (selectedEmployee) {
+        // 更新现有员工
+        await updateEmployee(selectedEmployee.employee_id, employeeData);
+      } else {
+        // 创建新员工
+        await createEmployee(employeeData);
+      }
+      handleCloseModal();
+    } catch (error) {
+      console.error('保存员工失败:', error);
+    }
+  };
 
-  if (!metadata || !userConfig) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="loading loading-spinner loading-lg"></div>
-        <span className="ml-3">正在加载表格配置...</span>
+  // 统计卡片数据
+  const statCards: StatCardProps[] = useMemo(() => [
+    {
+      title: '总员工数',
+      value: statistics.total,
+      change: '+0',
+      trend: 'stable' as const,
+      icon: '👥',
+    },
+    {
+      title: '在职员工',
+      value: statistics.active,
+      change: '+0',
+      trend: 'stable' as const,
+      icon: '✅',
+    },
+    {
+      title: '离职员工',
+      value: statistics.inactive,
+      change: '+0',
+      trend: 'stable' as const,
+      icon: '❌',
+    },
+    {
+      title: '部门数量',
+      value: statistics.departments,
+      change: '+0',
+      trend: 'stable' as const,
+      icon: '🏢',
+    },
+  ], [statistics]);
+
+  // 页面操作按钮
+  const pageActions = (
+    <div className="flex gap-2">
+      {/* 敏感数据开关 */}
+      <div className="form-control">
+        <label className="label cursor-pointer gap-2">
+          <span className="label-text text-sm">敏感数据</span>
+          <input
+            type="checkbox"
+            className="toggle toggle-sm"
+            checked={showSensitiveData}
+            onChange={(e) => setShowSensitiveData(e.target.checked)}
+          />
+        </label>
       </div>
-    );
-  }
 
+      {/* 状态筛选 */}
+      <select
+        className="select select-sm select-bordered"
+        value={statusFilter}
+        onChange={(e) => setStatusFilter(e.target.value as any)}
+      >
+        <option value="active">在职员工</option>
+        <option value="inactive">离职员工</option>
+        <option value="all">全部员工</option>
+      </select>
+
+      {/* 列配置 */}
+      <div className="dropdown dropdown-end">
+        <label tabIndex={0} className="btn btn-sm btn-ghost">
+          <AdjustmentsHorizontalIcon className="w-4 h-4" />
+          列设置
+        </label>
+        <div className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-52">
+          {visibleColumns?.slice(0, 8).map(column => (
+            <label key={column} className="label cursor-pointer">
+              <span className="label-text text-xs">{column}</span>
+              <input
+                type="checkbox"
+                className="checkbox checkbox-xs"
+                checked={preferences[column]?.visible ?? true}
+                onChange={() => toggleColumnVisibility(column)}
+              />
+            </label>
+          ))}
+          <div className="divider my-1"></div>
+          <button 
+            className="btn btn-xs btn-ghost"
+            onClick={resetPreferences}
+          >
+            重置设置
+          </button>
+        </div>
+      </div>
+
+      {/* 导出功能 */}
+      {tableInstance && (
+        <EmployeeExport 
+          table={tableInstance}
+          fileName="employees"
+        />
+      )}
+
+      {/* 添加员工按钮 */}
+      <ModernButton
+        variant="primary"
+        onClick={handleCreateEmployee}
+        icon={<UserPlusIcon className="w-4 h-4" />}
+      >
+        添加员工
+      </ModernButton>
+    </div>
+  );
 
   return (
-    <ManagementPageLayout
-      title={t('employee:list.title')}
-      subtitle={t('employee:list.description')}
-      statCards={statCards}
-      searchValue={searchQuery}
-      onSearchChange={setSearchQuery}
-      onSearch={handleSearch}
-      onSearchReset={handleResetSearch}
-      searchPlaceholder="搜索员工姓名、身份证号、部门、职位、手机号、邮箱..."
-      searchLoading={totalLoading}
-      showFieldSelector={true}
-      fields={metadata.fields}
-      userConfig={userConfig}
-      onFieldConfigChange={updateUserConfig}
-      onFieldConfigReset={resetToDefault}
-      exportComponent={
-        tableInstance ? (
-          <EmployeeExport 
-            table={tableInstance} 
-            fileName="员工数据"
-          />
-        ) : (
-          <ModernButton
-            variant="primary"
-            size="md"
-            disabled
-            icon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            }
-          >
-            {t('common:common.export')}
-          </ModernButton>
-        )
-      }
-      primaryActions={[
-        <ModernButton
-          key="add-employee"
-          variant="primary"
-          size="md"
-          onClick={handleAddEmployee}
-          icon={
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-          }
-        >
-          添加员工
-        </ModernButton>,
-        // 批量操作按钮（当有选中时显示）
-        ...(selectedRows.length > 0 ? [
-          <div key="batch-actions" className="flex items-center gap-2">
-            <span className="text-sm text-base-content/60">
-              已选择 {selectedRows.length} 项
-            </span>
-            <ModernButton
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                // TODO: 实现批量导出
-                console.log('批量导出:', selectedRows);
-              }}
-            >
-              批量导出
-            </ModernButton>
-            <ModernButton
-              variant="danger"
-              size="sm"
-              onClick={() => {
-                if (confirm(`确定要删除选中的 ${selectedRows.length} 个员工吗？此操作将删除员工的所有相关数据且无法撤销。`)) {
-                  employeeList.actions.batchDelete(selectedRows);
-                  setSelectedRows([]); // 清空选择
-                }
-              }}
-              disabled={loading.isBatchProcessing}
-            >
-              {loading.isBatchProcessing && <span className="loading loading-spinner loading-xs"></span>}
-              批量删除
-            </ModernButton>
-          </div>
-        ] : [])
-      ]}
-      actions={[
-        <RealtimeIndicator key="realtime-indicator" className="mr-2" showText={true} size="sm" />
-      ]}
-      data={processedData}
-      columns={columns}
-      loading={totalLoading}
-      tableInstance={tableInstance || undefined}
-      onTableReady={setTableInstance}
-      initialSorting={[{ id: 'employee_name', desc: false }]}
-      initialPagination={{ pageIndex: 0, pageSize: 75 }}
-      enableExport={false}
-      showGlobalFilter={false}
-      showColumnToggle={false}
-      enableRowSelection={true}
-      onRowSelectionChange={handleRowSelectionChange}
-      modal={
+    <>
+      <ManagementPageLayout
+        title="员工管理"
+        description={`管理 ${statistics.total} 名员工的基本信息、部门分配和状态`}
+        statCards={statCards}
+        primaryActions={[pageActions]}
+        loading={loading}
+        error={error?.message}
+        // 表格数据
+        data={data as EmployeeListItem[]}
+        columns={columns}
+        // 表格配置
+        initialSorting={[{ id: 'employee_name', desc: false }]}
+        initialPagination={{ pageSize: 20, pageIndex: 0 }}
+        enableRowSelection={true}
+        onRowSelectionChange={() => {}}
+        onTableReady={setTableInstance}
+        striped={true}
+      />
+
+      {/* 员工详情/编辑模态框 */}
+      {isEmployeeModalOpen && (
         <EmployeeModal
-          key={`${modalMode}-${selectedEmployeeId}-${isDetailModalOpen}`}
-          mode={modalMode}
-          employeeId={selectedEmployeeId}
-          open={isDetailModalOpen}
-          onClose={handleModalClose}
-          onSuccess={handleModalSuccess}
+          employee={selectedEmployee}
+          isOpen={isEmployeeModalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSaveEmployee}
         />
-      }
-    />
+      )}
+    </>
   );
 }
