@@ -61,7 +61,7 @@ export default function EmployeeListPage() {
     showSensitiveData,
     statusFilter,
     // 不使用 JSX 的列覆盖，改用操作按钮
-    columnOverrides: {},
+    columnTypeOverrides: {},
   });
 
   // 事件处理
@@ -175,8 +175,8 @@ export default function EmployeeListPage() {
           <AdjustmentsHorizontalIcon className="w-4 h-4" />
           列设置
         </label>
-        <div className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-52">
-          {visibleColumns?.slice(0, 8).map(column => (
+        <div className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-64 max-h-80 overflow-y-auto">
+          {visibleColumns?.map(column => (
             <label key={column} className="label cursor-pointer">
               <span className="label-text text-xs">{column}</span>
               <input
@@ -220,7 +220,7 @@ export default function EmployeeListPage() {
     <>
       <ManagementPageLayout
         title="员工管理"
-        description={`管理 ${statistics.total} 名员工的基本信息、部门分配和状态`}
+        subtitle={`管理 ${statistics.total} 名员工的基本信息、部门分配和状态`}
         statCards={statCards}
         primaryActions={[pageActions]}
         loading={loading}
