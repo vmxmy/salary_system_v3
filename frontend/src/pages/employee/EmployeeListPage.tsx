@@ -7,11 +7,11 @@ import { ModernButton } from '@/components/common/ModernButton';
 import { EmployeeModal } from '@/components/employee/EmployeeDetailModal';
 import { EmployeeExport } from '@/components/employee/EmployeeExport';
 import { RealtimeIndicator } from '@/components/common/RealtimeIndicator';
+import { ColumnVisibility } from '@/components/common/DataTable/components/ColumnVisibility';
 import { 
   UserPlusIcon, 
   EyeIcon, 
-  EyeSlashIcon,
-  AdjustmentsHorizontalIcon 
+  EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import type { EmployeeListItem } from '@/types/employee';
 
@@ -110,6 +110,17 @@ export default function EmployeeListPage() {
     }
   };
 
+  // 将Hook系统的用户偏好转换为TanStack Table的VisibilityState格式
+  const initialColumnVisibility = useMemo(() => {
+    const visibility: Record<string, boolean> = {};
+    Object.entries(preferences).forEach(([columnId, pref]) => {
+      if (pref?.visible !== undefined) {
+        visibility[columnId] = pref.visible;
+      }
+    });
+    return visibility;
+  }, [preferences]);
+
   // 统计卡片数据
   const statCards: StatCardProps[] = useMemo(() => [
     {
@@ -169,33 +180,20 @@ export default function EmployeeListPage() {
         <option value="all">全部员工</option>
       </select>
 
-      {/* 列配置 */}
-      <div className="dropdown dropdown-end">
-        <label tabIndex={0} className="btn btn-sm btn-ghost">
-          <AdjustmentsHorizontalIcon className="w-4 h-4" />
-          列设置
-        </label>
-        <div className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-64 max-h-80 overflow-y-auto">
-          {visibleColumns?.map(column => (
-            <label key={column} className="label cursor-pointer">
-              <span className="label-text text-xs">{column}</span>
-              <input
-                type="checkbox"
-                className="checkbox checkbox-xs"
-                checked={preferences[column]?.visible ?? true}
-                onChange={() => toggleColumnVisibility(column)}
-              />
-            </label>
-          ))}
-          <div className="divider my-1"></div>
-          <button 
-            className="btn btn-xs btn-ghost"
-            onClick={resetPreferences}
-          >
-            重置设置
-          </button>
-        </div>
-      </div>
+      {/* 列配置 - 使用TanStack Table标准组件 */}
+      {tableInstance && (
+        <ColumnVisibility 
+          table={tableInstance}
+          onVisibilityChange={(visibility) => {
+            // 同步到Hook系统的用户偏好
+            Object.entries(visibility).forEach(([columnId, isVisible]) => {
+              if (preferences[columnId]?.visible !== isVisible) {
+                toggleColumnVisibility(columnId);
+              }
+            });
+          }}
+        />
+      )}
 
       {/* 导出功能 */}
       {tableInstance && (
@@ -231,6 +229,7 @@ export default function EmployeeListPage() {
         // 表格配置
         initialSorting={[{ id: 'employee_name', desc: false }]}
         initialPagination={{ pageSize: 20, pageIndex: 0 }}
+        initialColumnVisibility={initialColumnVisibility}
         enableRowSelection={true}
         onRowSelectionChange={() => {}}
         onTableReady={setTableInstance}
@@ -240,10 +239,14 @@ export default function EmployeeListPage() {
       {/* 员工详情/编辑模态框 */}
       {isEmployeeModalOpen && (
         <EmployeeModal
-          employee={selectedEmployee}
-          isOpen={isEmployeeModalOpen}
+          mode={selectedEmployee ? 'edit' : 'create'}
+          employeeId={selectedEmployee?.employee_id || null}
+          open={isEmployeeModalOpen}
           onClose={handleCloseModal}
-          onSave={handleSaveEmployee}
+          onSuccess={() => {
+            handleCloseModal();
+            refetch(); // 刷新数据
+          }}
         />
       )}
     </>

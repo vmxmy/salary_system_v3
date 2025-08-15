@@ -50,12 +50,14 @@ export interface ManagementPageLayoutProps {
   data?: any[];
   columns?: any[];
   loading?: boolean;
+  error?: string;
   onTableReady?: (table: Table<any>) => void;
   tableInstance?: Table<any>;
   
   // 表格配置
   initialSorting?: any[];
   initialPagination?: any;
+  initialColumnVisibility?: Record<string, boolean>;
   pageCount?: number;
   currentPage?: number;
   onPaginationChange?: (pagination: any) => void;
@@ -96,9 +98,11 @@ export function ManagementPageLayout({
   data = [],
   columns = [],
   loading = false,
+  error,
   onTableReady,
   initialSorting,
   initialPagination,
+  initialColumnVisibility,
   pageCount,
   currentPage,
   onPaginationChange,
@@ -216,6 +220,7 @@ export function ManagementPageLayout({
             onTableReady={onTableReady}
             initialSorting={initialSorting}
             initialPagination={initialPagination}
+            initialColumnVisibility={initialColumnVisibility}
             pageCount={pageCount}
             currentPage={currentPage}
             onPaginationChange={onPaginationChange}

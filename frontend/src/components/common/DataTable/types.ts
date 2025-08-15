@@ -33,6 +33,7 @@ export interface DataTableProps<TData, TValue> {
   // Initial states
   initialSorting?: SortingState;
   initialPagination?: PaginationState;
+  initialColumnVisibility?: VisibilityState;
   // UI Options
   loading?: boolean;
   emptyMessage?: string;
