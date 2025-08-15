@@ -572,8 +572,8 @@ function PayrollBreakdownSection({
   }, [groupedItems]);
 
   // 定义收入项目表格列
-  const incomeColumns = useMemo<ColumnDef<PayrollItemDetail>[]>(() => [
-    columnHelper.accessor('component_name', {
+  const incomeColumns = useMemo(() => [
+    columnHelper.accessor('component_name' as any, {
       header: '项目名称',
       cell: info => (
         <span className="text-sm font-medium text-base-content">
@@ -581,9 +581,9 @@ function PayrollBreakdownSection({
         </span>
       )
     }),
-    columnHelper.accessor('category_name', {
+    columnHelper.accessor('category_name' as any, {
       header: '分类',
-      cell: info => (
+      cell: (info: any) => (
         <span className="text-xs text-base-content/70">
           {info.row.original.category_name || 
            CATEGORY_DISPLAY_NAMES[info.row.original.component_category] || 
@@ -591,9 +591,9 @@ function PayrollBreakdownSection({
         </span>
       )
     }),
-    columnHelper.accessor('amount', {
+    columnHelper.accessor('amount' as any, {
       header: () => <div className="text-right">金额</div>,
-      cell: info => (
+      cell: (info: any) => (
         <div className="text-right">
           <span className="text-sm font-semibold font-mono text-green-600">
             +{formatCurrency(Math.abs(info.getValue()))}
@@ -601,7 +601,7 @@ function PayrollBreakdownSection({
         </div>
       )
     }),
-    columnHelper.accessor('calculation_method', {
+    columnHelper.accessor('calculation_method' as any, {
       header: '计算方式',
       cell: info => info.getValue() ? (
         <span className="text-xs text-base-content/60">
@@ -611,7 +611,7 @@ function PayrollBreakdownSection({
         <span className="text-xs text-base-content/30">-</span>
       )
     }),
-    columnHelper.accessor('notes', {
+    columnHelper.accessor('notes' as any, {
       header: '备注',
       cell: info => info.getValue() ? (
         <span className="text-xs text-base-content/60">
@@ -625,7 +625,7 @@ function PayrollBreakdownSection({
 
   // 定义扣缴项目表格列
   const deductionColumns = useMemo<ColumnDef<PayrollItemDetail>[]>(() => [
-    columnHelper.accessor('component_name', {
+    columnHelper.accessor('component_name' as any, {
       header: '项目名称',
       cell: info => (
         <span className="text-sm font-medium text-base-content">
@@ -633,9 +633,9 @@ function PayrollBreakdownSection({
         </span>
       )
     }),
-    columnHelper.accessor('category_name', {
+    columnHelper.accessor('category_name' as any, {
       header: '分类',
-      cell: info => (
+      cell: (info: any) => (
         <span className="text-xs text-base-content/70">
           {info.row.original.category_name || 
            CATEGORY_DISPLAY_NAMES[info.row.original.component_category] || 
@@ -643,7 +643,7 @@ function PayrollBreakdownSection({
         </span>
       )
     }),
-    columnHelper.accessor('amount', {
+    columnHelper.accessor('amount' as any, {
       header: () => <div className="text-right">金额</div>,
       cell: info => (
         <div className="text-right">
@@ -653,7 +653,7 @@ function PayrollBreakdownSection({
         </div>
       )
     }),
-    columnHelper.accessor('calculation_method', {
+    columnHelper.accessor('calculation_method' as any, {
       header: '计算方式',
       cell: info => info.getValue() ? (
         <span className="text-xs text-base-content/60">
@@ -663,7 +663,7 @@ function PayrollBreakdownSection({
         <span className="text-xs text-base-content/30">-</span>
       )
     }),
-    columnHelper.accessor('notes', {
+    columnHelper.accessor('notes' as any, {
       header: '备注',
       cell: info => info.getValue() ? (
         <span className="text-xs text-base-content/60">

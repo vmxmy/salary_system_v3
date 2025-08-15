@@ -5,7 +5,7 @@ export interface ModernButtonProps extends React.ButtonHTMLAttributes<HTMLButton
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
-  icon?: React.ReactNode;
+  icon?: React.ReactNode | React.ComponentType<any>;
   iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
   children: React.ReactNode;
@@ -36,6 +36,20 @@ export function ModernButton({
     lg: 'btn-lg'
   };
 
+  // 智能渲染icon - 处理组件引用和JSX元素
+  const renderIcon = () => {
+    if (!icon) return null;
+    
+    // 如果是React组件（函数或类），渲染为JSX元素
+    if (typeof icon === 'function') {
+      const IconComponent = icon;
+      return <IconComponent className="w-4 h-4" />;
+    }
+    
+    // 如果已经是JSX元素或其他React节点，直接返回
+    return icon;
+  };
+
   return (
     <button
       className={cn(
@@ -53,11 +67,11 @@ export function ModernButton({
       ) : (
         <>
           {icon && iconPosition === 'left' && (
-            <span className="inline-flex items-center">{icon}</span>
+            <span className="inline-flex items-center">{renderIcon()}</span>
           )}
           {children}
           {icon && iconPosition === 'right' && (
-            <span className="inline-flex items-center">{icon}</span>
+            <span className="inline-flex items-center">{renderIcon()}</span>
           )}
         </>
       )}
