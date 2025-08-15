@@ -19,9 +19,7 @@ const DepartmentPage = lazy(() => import('@/pages/department/DepartmentManagemen
 const DepartmentPayrollStatsPage = lazy(() => import('@/pages/department/DepartmentPayrollStatsPage'));
 const PositionPage = lazy(() => import('@/pages/organization/PositionPage'));
 const PayrollListPage = lazy(() => import('@/pages/payroll/PayrollListPage'));
-const PayrollMetadataPage = lazy(() => import('@/pages/payroll/PayrollMetadataPage'));
 const PayrollImportPage = lazy(() => import('@/pages/payroll/PayrollImportPage'));
-const MetadataManagementPage = lazy(() => import('@/pages/metadata/MetadataManagementPage'));
 const PayrollDetailPage = lazy(() => import('@/pages/payroll/PayrollDetailPage'));
 const CreateBatchPayrollPage = lazy(() => import('@/pages/payroll/CreateBatchPayrollPage'));
 const PayrollCycleWizardPage = lazy(() => import('@/pages/payroll/PayrollCycleWizardPage'));
@@ -38,6 +36,8 @@ const ValidationTestPage = lazy(() => import('@/pages/ValidationTestPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const DebugPage = lazy(() => import('@/pages/DebugPage'));
+const PayrollHookTestPage = lazy(() => import('@/pages/test/PayrollHookTestPage'));
+const NewTableArchitectureTestPage = lazy(() => import('@/pages/test/NewTableArchitectureTestPage'));
 // Test pages moved to archive
 // const HookTestPage = lazy(() => import('@/pages/test/AuthenticatedHookTestPage'));
 // const EmployeeCreateTestPage = lazy(() => import('@/pages/EmployeeCreateTestPage'));
@@ -99,6 +99,22 @@ export const router = createBrowserRouter([
     element: (
       <Suspense fallback={<LoadingScreen />}>
         <DebugPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/test/payroll-hooks',
+    element: (
+      <Suspense fallback={<LoadingScreen />}>
+        <PayrollHookTestPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/test/new-table-architecture',
+    element: (
+      <Suspense fallback={<LoadingScreen />}>
+        <NewTableArchitectureTestPage />
       </Suspense>
     ),
   },
@@ -173,14 +189,6 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        path: 'metadata',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <MetadataManagementPage />
-          </Suspense>
-        ),
-      },
-      {
         path: 'payroll',
         children: [
           {
@@ -188,14 +196,6 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingScreen />}>
                 <PayrollListPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'metadata',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <PayrollMetadataPage />
               </Suspense>
             ),
           },

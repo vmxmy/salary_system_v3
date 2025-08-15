@@ -7,5 +7,22 @@
  */
 
 // 部门管理
-export { useDepartments, useDepartmentSelector, departmentQueryKeys } from './useDepartments';
-export type { Department, DepartmentTreeNode } from './useDepartments';
+export { 
+  useDepartments,
+  useDepartmentTree,
+  useDepartmentHierarchy,
+  useDepartment,
+  useDepartmentDetail,
+  useDepartmentEmployees,
+  useDepartmentPayrollStats,
+  useDepartmentMutations,
+  useCreateDepartment,
+  useUpdateDepartment,
+  useDeleteDepartment,
+  useMoveDepartment,
+  useDepartmentSearch,
+  useDepartmentList,
+  departmentQueryKeys,
+  DEPARTMENT_KEYS
+} from './useDepartments';
+export type { DepartmentNode } from './useDepartments';

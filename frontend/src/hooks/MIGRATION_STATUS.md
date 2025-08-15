@@ -12,10 +12,16 @@
   - `useEmployeeFullCreate` - 员工完整创建
   - ~~employee.service.ts~~ (已删除)
 
+### 已完成模块 (✅ 100%)
+- **部门管理模块** - 完全迁移到 hooks
+  - `useDepartmentTree` - 部门树结构管理
+  - `useDepartmentHierarchy` - 部门层级管理
+  - `useDepartmentDetail` - 部门详情管理
+  - `useDepartmentEmployees` - 部门员工管理
+  - `useDepartmentPayrollStats` - 部门薪资统计
+  - ~~department.service.ts~~ (已删除)
+
 ### 部分完成 (🔄 进行中)
-- **部门管理** 
-  - ✅ `useDepartments` hook 已创建
-  - ❌ `department.service.ts` 仍在使用
   
 - **薪资管理**
   - ✅ `usePayroll` hook 已创建

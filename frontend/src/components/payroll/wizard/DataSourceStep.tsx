@@ -71,8 +71,7 @@ function CopyModeStep({ sourceData, onSourceDataChange }: { sourceData: any; onS
   // 获取选中月份的薪资数据
   const monthDateRange = getMonthDateRange(selectedMonth);
   const { data: payrollData, isLoading } = usePayrolls({
-    startDate: monthDateRange.startDate,
-    endDate: monthDateRange.endDate,
+    periodId: selectedMonth,
     page: 1,
     pageSize: 1000 // 获取所有数据
   });

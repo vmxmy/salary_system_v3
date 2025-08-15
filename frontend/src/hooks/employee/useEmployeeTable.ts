@@ -12,6 +12,10 @@ export interface EmployeeTableOptions extends Omit<UniversalTableOptions, 'colum
   departmentFilter?: string;
   // 状态筛选
   statusFilter?: 'active' | 'inactive' | 'all';
+  // 操作回调
+  onViewEmployee?: (employee: any) => void;
+  onEditEmployee?: (employee: any) => void;
+  onDeleteEmployee?: (employee: any) => void;
   // 自定义操作
   customActions?: Array<{
     key: string;
@@ -126,6 +130,13 @@ export function useEmployeeTable(options?: EmployeeTableOptions) {
     permissions: options?.permissions ?? ['view', 'edit', 'delete'],
     filters,
     columnOverrides,
+    
+    // 操作回调 - 连接到员工页面的处理函数
+    actionCallbacks: {
+      onView: options?.onViewEmployee,
+      onEdit: options?.onEditEmployee,
+      onDelete: options?.onDeleteEmployee,
+    },
     
     // 员工表特定的默认隐藏列
     defaultHiddenColumns: [

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useEmployeeTable } from '@/hooks/employee/useEmployeeTable';
 import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
@@ -25,6 +25,33 @@ export default function EmployeeListPage() {
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [tableInstance, setTableInstance] = useState<any>(null);
   
+  // 使用ref存储删除函数，避免循环依赖
+  const deleteEmployeeRef = useRef<((id: string) => Promise<void>) | null>(null);
+
+  // 事件处理函数 - 必须在Hook之前定义
+  const handleViewEmployee = useCallback((employee: EmployeeListItem) => {
+    setSelectedEmployee(employee);
+    setIsEmployeeModalOpen(true);
+  }, []);
+
+  const handleEditEmployee = useCallback((employee: EmployeeListItem) => {
+    setSelectedEmployee(employee);
+    setIsEmployeeModalOpen(true);
+  }, []);
+  
+  // 删除操作回调
+  const handleDeleteAction = useCallback(async (employee: any) => {
+    if (window.confirm(`确定要删除员工 ${employee.employee_name} 吗？`)) {
+      try {
+        if (deleteEmployeeRef.current) {
+          await deleteEmployeeRef.current(employee.employee_id);
+        }
+      } catch (error) {
+        console.error('删除员工失败:', error);
+      }
+    }
+  }, []);
+
   // 🚀 使用新架构的员工表格 Hook
   const {
     // 数据和列
@@ -60,22 +87,21 @@ export default function EmployeeListPage() {
     permissions: ['view', 'create', 'edit', 'delete'],
     showSensitiveData,
     statusFilter,
+    // 操作回调
+    onViewEmployee: handleViewEmployee,
+    onEditEmployee: handleEditEmployee,
+    onDeleteEmployee: handleDeleteAction,
     // 不使用 JSX 的列覆盖，改用操作按钮
     columnTypeOverrides: {},
   });
+  
+  // 更新删除函数ref
+  useEffect(() => {
+    deleteEmployeeRef.current = deleteEmployee;
+  }, [deleteEmployee]);
 
-  // 事件处理
-  const handleViewEmployee = (employee: EmployeeListItem) => {
-    setSelectedEmployee(employee);
-    setIsEmployeeModalOpen(true);
-  };
-
-  const handleEditEmployee = (employee: EmployeeListItem) => {
-    setSelectedEmployee(employee);
-    setIsEmployeeModalOpen(true);
-  };
-
-  const handleDeleteEmployee = async (employeeId: string) => {
+  // 其他删除员工的处理逻辑（用于其他地方调用）
+  const handleDeleteEmployee = useCallback(async (employeeId: string) => {
     if (window.confirm('确定要删除这名员工吗？')) {
       try {
         await deleteEmployee(employeeId);
@@ -83,7 +109,7 @@ export default function EmployeeListPage() {
         console.error('删除员工失败:', error);
       }
     }
-  };
+  }, [deleteEmployee]);
 
   const handleCreateEmployee = () => {
     setSelectedEmployee(null);

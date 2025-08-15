@@ -89,7 +89,7 @@ export function DepartmentSidePanel({
       } else if (department) {
         await updateDepartment.mutateAsync({
           id: department.id,
-          updates: formData
+          data: formData
         });
         showSuccess('部门更新成功');
       }

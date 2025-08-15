@@ -117,9 +117,9 @@ export function useEmployeeForm(options: EmployeeFormOptions) {
   const { categories, loading: categoryLoading } = usePersonnelCategories();
   
   // 适配loading状态
-  const isDepartmentsLoading = departmentLoading.isInitialLoading;
-  const isPositionsLoading = positionLoading.isInitialLoading;
-  const isCategoriesLoading = categoryLoading.isInitialLoading;
+  const isDepartmentsLoading = departmentLoading;
+  const isPositionsLoading = positionLoading;
+  const isCategoriesLoading = categoryLoading;
 
   // 表单数据状态
   const [formData, setFormData] = useState<EmployeeFormData>({

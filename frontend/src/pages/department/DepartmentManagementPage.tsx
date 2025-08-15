@@ -24,7 +24,8 @@ import { DepartmentSearchPanel } from '@/components/department/DepartmentSearchP
 import { DepartmentBatchOperations } from '@/components/department/DepartmentBatchOperations';
 import { 
   useDepartmentTree, 
-  useDepartmentPayrollStats 
+  useDepartmentPayrollStats,
+  useLatestPayrollPeriod 
 } from '@/hooks/useDepartments';
 import { filterDepartmentTree } from '@/utils/departmentFilters';
 import type { DepartmentViewMode, DepartmentSearchFilters, DepartmentNode } from '@/types/department';
@@ -53,11 +54,14 @@ export default function DepartmentManagementPage() {
   // 数据查询
   const { data: departmentTree = [], isLoading: isLoadingTree } = useDepartmentTree();
   
-  // 获取当前月份的薪资统计
-  const currentDate = new Date();
+  // 获取最新有数据的薪资周期
+  const { data: latestPeriod } = useLatestPayrollPeriod();
+  
+  // 使用最新薪资周期获取薪资统计
   const { data: payrollStats = [], isLoading: isLoadingStats } = useDepartmentPayrollStats({
-    year: currentDate.getFullYear(),
-    month: currentDate.getMonth() + 1
+    year: latestPeriod?.year,
+    month: latestPeriod?.month,
+    useLatestIfEmpty: true // 如果没有指定年月，自动使用最新数据
   });
 
   // 当部门树数据加载完成时，默认展开所有节点
@@ -98,10 +102,20 @@ export default function DepartmentManagementPage() {
   const stats = useMemo(() => {
     const flatDepartments = flattenTree(filteredDepartments);
     const totalEmployees = flatDepartments.reduce((sum, dept) => sum + (dept.employee_count || 0), 0);
-    const avgSalary = flatDepartments.reduce((sum, dept) => {
+    
+    // 正确计算平均薪资：总薪资除以总员工数
+    let totalGrossPay = 0;
+    let totalPayrollEmployees = 0;
+    
+    flatDepartments.forEach(dept => {
       const stats = payrollStatsMap.get(dept.id);
-      return sum + (stats?.avg_gross_pay || 0);
-    }, 0) / (flatDepartments.length || 1);
+      if (stats) {
+        totalGrossPay += (stats.total_gross_pay || 0);
+        totalPayrollEmployees += (stats.employee_count || 0);
+      }
+    });
+    
+    const avgSalary = totalPayrollEmployees > 0 ? totalGrossPay / totalPayrollEmployees : 0;
 
     return {
       totalDepartments: flatDepartments.length,
@@ -424,6 +438,16 @@ export default function DepartmentManagementPage() {
           <h1 className="text-3xl font-bold text-base-content">部门管理</h1>
           <p className="text-base-content/70 mt-2">管理组织架构，查看部门层级和薪资统计</p>
         </div>
+
+        {/* 数据周期提示 */}
+        {latestPeriod && (
+          <div className="alert alert-info mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>正在显示 {latestPeriod.year}年{latestPeriod.month}月 的薪资统计数据</span>
+          </div>
+        )}
 
         {/* 统计卡片 - 使用 DaisyUI stats 组件 */}
         <div className="stats stats-vertical lg:stats-horizontal shadow w-full">

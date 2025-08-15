@@ -208,12 +208,26 @@ export function useSmartTableColumns(tableName: string, options?: TableOptions) 
         return baseColumnDef;
       });
 
-    // 添加行选择列 - 移除JSX，让组件层处理
+    // 添加行选择列
     if (options?.enableRowSelection) {
       baseColumns.unshift({
         id: 'select',
-        header: '选择',
-        cell: ({ row }) => row.getIsSelected() ? '✓' : '○',
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={table.getIsAllRowsSelected()}
+            onChange={(e) => table.toggleAllRowsSelected(e.target.checked)}
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={row.getIsSelected()}
+            onChange={(e) => row.toggleSelected(e.target.checked)}
+          />
+        ),
         size: 50,
         enableSorting: false,
         enableColumnFilter: false,

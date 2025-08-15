@@ -42,27 +42,40 @@ const formatNumber = (value: any, decimals: number = 2): number => {
   return isNaN(num) ? 0 : parseFloat(num.toFixed(decimals));
 };
 
-// 获取最近有薪资记录的月份
-export const useLatestPayrollMonth = () => {
+// 获取最近有薪资记录的周期
+export const useLatestPayrollPeriod = () => {
   const { handleError } = useErrorHandler();
   
   return useQuery({
     queryKey: payrollQueryKeys.latestMonth(),
-    queryFn: async (): Promise<string | null> => {
+    queryFn: async (): Promise<{ period_id: string; period_name: string } | null> => {
       const { data, error } = await supabase
-        .from('view_payroll_summary')
-        .select('pay_period_start')
-        .order('pay_period_start', { ascending: false })
-        .limit(1);
+        .from('payrolls')
+        .select(`
+          period_id,
+          payroll_periods!inner(
+            id,
+            period_name,
+            period_year,
+            period_month
+          )
+        `)
+        .not('period_id', 'is', null)
+        .order('payroll_periods.period_year', { ascending: false })
+        .order('payroll_periods.period_month', { ascending: false })
+        .limit(1)
+        .single();
 
-      if (error) {
-        handleError(error, { customMessage: '获取最近薪资月份失败' });
+      if (error && error.code !== 'PGRST116') {
+        handleError(error, { customMessage: '获取最近薪资周期失败' });
         throw error;
       }
       
-      if (data && data.length > 0) {
-        // 从pay_period_start中提取年月 (YYYY-MM-DD -> YYYY-MM)
-        return data[0].pay_period_start.substring(0, 7);
+      if (data && data.payroll_periods) {
+        return {
+          period_id: data.period_id,
+          period_name: data.payroll_periods.period_name
+        };
       }
       
       return null;
@@ -75,8 +88,9 @@ export const useLatestPayrollMonth = () => {
 export const usePayrolls = (filters?: {
   status?: PayrollStatusType;
   employeeId?: string;
-  startDate?: string;
-  endDate?: string;
+  periodId?: string;
+  periodYear?: number;
+  periodMonth?: number;
   search?: string;
   page?: number;
   pageSize?: number;
@@ -93,26 +107,35 @@ export const usePayrolls = (filters?: {
       const to = from + pageSize - 1;
 
       let query = supabase
-        .from('view_payroll_summary')
+        .from('payrolls')
         .select(`
-          payroll_id,
+          id,
           pay_date,
-          pay_period_start,
-          pay_period_end,
+          period_id,
           employee_id,
-          employee_name,
-          department_name,
           gross_pay,
           total_deductions,
           net_pay,
           status,
-          id_number
+          employee:employees!inner(
+            id,
+            employee_name,
+            id_number
+          ),
+          period:payroll_periods!inner(
+            id,
+            period_name,
+            period_year,
+            period_month,
+            period_start,
+            period_end
+          )
         `, { count: 'exact' });
 
-      // 搜索条件
+      // 搜索条件 - 注意：status是enum类型，不能使用ilike
       if (searchTerm) {
         query = query.or(
-          `employee_name.ilike.%${searchTerm}%,department_name.ilike.%${searchTerm}%,status.ilike.%${searchTerm}%`
+          `employee.employee_name.ilike.%${searchTerm}%`
         );
       }
 
@@ -123,16 +146,20 @@ export const usePayrolls = (filters?: {
       if (filters?.employeeId) {
         query = query.eq('employee_id', filters.employeeId);
       }
-      if (filters?.startDate) {
-        query = query.gte('pay_period_start', filters.startDate);
+      if (filters?.periodId) {
+        query = query.eq('period_id', filters.periodId);
       }
-      if (filters?.endDate) {
-        query = query.lte('pay_period_start', filters.endDate);
+      if (filters?.periodYear) {
+        query = query.eq('period.period_year', filters.periodYear);
+      }
+      if (filters?.periodMonth) {
+        query = query.eq('period.period_month', filters.periodMonth);
       }
 
       query = query
-        .order('pay_period_start', { ascending: false })
-        .order('payroll_id', { ascending: false })
+        .order('period.period_year', { ascending: false })
+        .order('period.period_month', { ascending: false })
+        .order('id', { ascending: false })
         .range(from, to);
 
       const { data, error, count } = await query;
@@ -144,23 +171,25 @@ export const usePayrolls = (filters?: {
 
       // 转换数据格式
       const transformedData = (data || []).map(item => ({
-        id: item.payroll_id,
-        payroll_id: item.payroll_id,
+        id: item.id,
+        payroll_id: item.id,
         pay_date: item.pay_date,
-        pay_period_start: item.pay_period_start,
-        pay_period_end: item.pay_period_end,
+        period_id: item.period_id,
+        period_name: item.period?.period_name || '',
+        pay_period_start: item.period?.period_start || '',
+        pay_period_end: item.period?.period_end || '',
         employee_id: item.employee_id,
-        employee_name: item.employee_name,
+        employee_name: item.employee?.employee_name || '',
         gross_pay: item.gross_pay,
         total_deductions: item.total_deductions,
         net_pay: item.net_pay,
         status: item.status,
         employee: {
           id: item.employee_id,
-          employee_name: item.employee_name,
-          id_number: item.id_number || null
+          employee_name: item.employee?.employee_name || '',
+          id_number: item.employee?.id_number || null
         },
-        department_name: item.department_name
+        period: item.period
       }));
 
       return {
@@ -307,14 +336,12 @@ export const useCreateBatchPayrolls = () => {
   return useMutation({
     mutationFn: async (params: {
       employeeIds: string[];
-      payPeriodStart: string;
-      payPeriodEnd: string;
+      periodId: string;
       payDate: string;
     }) => {
       const payrolls: PayrollInsert[] = params.employeeIds.map(employeeId => ({
         employee_id: employeeId,
-        pay_period_start: params.payPeriodStart,
-        pay_period_end: params.payPeriodEnd,
+        period_id: params.periodId,
         pay_date: params.payDate,
         status: PayrollStatus.DRAFT,
         gross_pay: 0,
@@ -635,7 +662,7 @@ export function usePayroll(options: UsePayrollOptions = {}) {
 
   // 使用各个子Hook
   const payrollsQuery = usePayrolls(filters);
-  const latestMonthQuery = useLatestPayrollMonth();
+  const latestPeriodQuery = useLatestPayrollPeriod();
   const createPayrollMutation = useCreatePayroll();
   const createBatchPayrollsMutation = useCreateBatchPayrolls();
   const updateStatusMutation = useUpdatePayrollStatus();
@@ -720,20 +747,20 @@ export function usePayroll(options: UsePayrollOptions = {}) {
   return {
     // 查询数据
     payrolls: payrollsQuery.data,
-    latestMonth: latestMonthQuery.data,
+    latestPeriod: latestPeriodQuery.data,
     
     // 加载状态
     loading: {
-      isLoading: payrollsQuery.isLoading || latestMonthQuery.isLoading,
+      isLoading: payrollsQuery.isLoading || latestPeriodQuery.isLoading,
       isLoadingPayrolls: payrollsQuery.isLoading,
-      isLoadingLatestMonth: latestMonthQuery.isLoading,
+      isLoadingLatestPeriod: latestPeriodQuery.isLoading,
     },
 
     // 错误状态
-    error: payrollsQuery.error || latestMonthQuery.error,
+    error: payrollsQuery.error || latestPeriodQuery.error,
     errors: {
       payrollsError: payrollsQuery.error,
-      latestMonthError: latestMonthQuery.error,
+      latestPeriodError: latestPeriodQuery.error,
     },
 
     // Mutations
@@ -750,7 +777,7 @@ export function usePayroll(options: UsePayrollOptions = {}) {
     actions: {
       refresh: refreshAll,
       refreshPayrolls: payrollsQuery.refetch,
-      refreshLatestMonth: latestMonthQuery.refetch,
+      refreshLatestPeriod: latestPeriodQuery.refetch,
     },
 
     // 常量

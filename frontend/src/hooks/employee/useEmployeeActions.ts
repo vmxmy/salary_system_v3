@@ -27,7 +27,7 @@ export interface EmployeeUpdateData extends Partial<EmployeeCreateData> {
  */
 export function useEmployeeActions() {
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
+  const { showSuccess, showError } = useToast();
 
   // 创建员工
   const createMutation = useMutation({
@@ -54,11 +54,11 @@ export function useEmployeeActions() {
       queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
-      showToast('员工创建成功', 'success');
+      showSuccess('员工创建成功');
     },
     onError: (error: any) => {
       console.error('Create employee error:', error);
-      showToast(`创建员工失败: ${error.message}`, 'error');
+      showError(`创建员工失败: ${error.message}`);
     },
   });
 
@@ -88,11 +88,11 @@ export function useEmployeeActions() {
       queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
-      showToast('员工信息更新成功', 'success');
+      showSuccess('员工信息更新成功');
     },
     onError: (error: any) => {
       console.error('Update employee error:', error);
-      showToast(`更新员工失败: ${error.message}`, 'error');
+      showError(`更新员工失败: ${error.message}`);
     },
   });
 
@@ -117,11 +117,11 @@ export function useEmployeeActions() {
       queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
-      showToast('员工删除成功', 'success');
+      showSuccess('员工删除成功');
     },
     onError: (error: any) => {
       console.error('Delete employee error:', error);
-      showToast(`删除员工失败: ${error.message}`, 'error');
+      showError(`删除员工失败: ${error.message}`);
     },
   });
 
@@ -146,11 +146,11 @@ export function useEmployeeActions() {
       queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
-      showToast(`成功删除 ${ids.length} 名员工`, 'success');
+      showSuccess(`成功删除 ${ids.length} 名员工`);
     },
     onError: (error: any) => {
       console.error('Batch delete employees error:', error);
-      showToast(`批量删除失败: ${error.message}`, 'error');
+      showError(`批量删除失败: ${error.message}`);
     },
   });
 
