@@ -17,6 +17,14 @@ import {
   useReactTable,
   type ColumnDef
 } from '@tanstack/react-table';
+import {
+  UserCircleIcon,
+  CurrencyDollarIcon,
+  ShieldCheckIcon,
+  CalculatorIcon,
+  DocumentTextIcon,
+  CreditCardIcon,
+} from '@heroicons/react/24/outline';
 
 // 薪资详情数据类型
 interface PayrollDetailData {
@@ -105,6 +113,9 @@ interface ContributionBase {
   base_last_updated: string;
 }
 
+// Tab类型定义
+type TabType = 'overview' | 'breakdown' | 'insurance' | 'contribution';
+
 // 个人扣缴类分类定义
 const PERSONAL_DEDUCTION_CATEGORIES = ['personal_insurance', 'personal_tax'];
 
@@ -128,7 +139,7 @@ export function PayrollDetailModal({
   onClose 
 }: PayrollDetailModalProps) {
   const { t } = useTranslation(['payroll', 'common']);
-  const [isClosing, setIsClosing] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [payrollData, setPayrollData] = useState<PayrollDetailData | null>(null);
   const [payrollItems, setPayrollItems] = useState<PayrollItemDetail[]>([]);
   const [insuranceDetails, setInsuranceDetails] = useState<InsuranceDetail[]>([]);
@@ -271,229 +282,269 @@ export function PayrollDetailModal({
     }
   }, [open, payrollId, fetchPayrollData]);
 
-  // 处理关闭动画
-  const handleClose = useCallback(() => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
-      onClose();
-    }, 200); // 动画持续时间
-  }, [onClose]);
-
-  // ESC 键关闭
+  // 重置状态
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && open) {
-        handleClose();
-      }
-    };
-
     if (open) {
-      document.addEventListener('keydown', handleEscape);
-      // 防止背景滚动
-      document.body.style.overflow = 'hidden';
+      setActiveTab('overview');
     }
+  }, [open]);
 
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [open, handleClose]);
+  // Tab配置
+  const tabs = [
+    { id: 'overview', label: '薪资概览', icon: CurrencyDollarIcon },
+    { id: 'breakdown', label: '薪资明细', icon: CalculatorIcon },
+    { id: 'insurance', label: '五险一金', icon: ShieldCheckIcon },
+    { id: 'contribution', label: '缴费基数', icon: CreditCardIcon },
+  ];
 
 
-  // 如果模态框未打开，不渲染
+  // 薪资概览Tab - 原来固定在头部的汇总区域
+  const OverviewTab = () => {
+    if (!payrollData) return null;
+    
+    return (
+      <div className="space-y-6">
+        {/* 薪资基本信息 */}
+        <div className="space-y-4">
+          <h5 className="font-semibold text-base flex items-center gap-2 pb-2 border-b border-base-300">
+            <UserCircleIcon className="w-5 h-5 text-primary" />
+            薪资基本信息
+          </h5>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">员工姓名</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
+                {payrollData.employee?.employee_name || '-'}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">身份证号</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
+                {payrollData.employee?.id_number || '-'}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">薪资期间</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
+                {formatDate(payrollData.pay_period_start)} 至 {formatDate(payrollData.pay_period_end)}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">发薪日期</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
+                {formatDate(payrollData.pay_date)}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">薪资状态</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
+                <PayrollStatusBadge status={payrollData.status} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">薪资ID</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg font-mono text-sm">
+                {payrollData.id}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="divider"></div>
+
+        {/* 薪资汇总 */}
+        <div className="space-y-4">
+          <h5 className="font-semibold text-base flex items-center gap-2 pb-2 border-b border-base-300">
+            <CurrencyDollarIcon className="w-5 h-5 text-primary" />
+            薪资汇总
+          </h5>
+          <div className="grid grid-cols-3 gap-4">
+            {/* 应发工资 */}
+            <div className="bg-success/5 rounded-lg p-4 border border-success/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-success/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12s-1.536-.219-2.121-.659c-1.172-.879-1.172-2.303 0-3.182C10.464 7.781 11.232 7.5 12 7.5s1.536.219 2.121.659" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-success/80 font-medium">{String(t('payroll:grossPay'))}</p>
+                  <p className="text-xl font-bold text-success font-mono">
+                    {formatCurrency(payrollData.gross_pay)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* 扣除合计 */}
+            <div className="bg-error/5 rounded-lg p-4 border border-error/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-error/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-error/80 font-medium">{String(t('payroll:totalDeductions'))}</p>
+                  <p className="text-xl font-bold text-error font-mono">
+                    -{formatCurrency(payrollData.total_deductions)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* 实发工资 - 突出显示 */}
+            <div className="bg-primary/5 rounded-lg p-4 border-2 border-primary/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-primary/80 font-medium">{String(t('payroll:netPay'))}</p>
+                  <p className="text-2xl font-bold text-primary font-mono">
+                    {formatCurrency(payrollData.net_pay)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* 现代化背景遮罩 */}
-      <div 
-        className={cn(
-          'fixed inset-0 transition-all duration-300 ease-out',
-          'bg-gradient-to-br from-black/40 via-black/60 to-black/40',
-          'backdrop-blur-sm',
-          isClosing ? 'opacity-0' : 'opacity-100'
-        )}
-        onClick={handleClose}
-      />
-      
-      {/* 现代化模态框容器 */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div 
-          className={cn(
-            'relative w-full max-w-5xl mx-auto',
-            'bg-white rounded-lg shadow-xl overflow-hidden',
-            'border border-base-200 transition-all duration-300 ease-out',
-            isClosing 
-              ? 'opacity-0 scale-95 translate-y-8' 
-              : 'opacity-100 scale-100 translate-y-0'
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          
-          {/* 优化后的模态框头部 */}
-          <header className="px-6 py-4 border-b border-base-200">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h1 className="text-xl font-bold text-base-content">
-                  {payrollData?.employee?.employee_name || String(t('payroll:payrollDetails'))}
-                </h1>
-                <div className="flex items-center gap-4 text-sm text-base-content/60">
-                  {payrollData && (
-                    <>
-                      <span>{formatDate(payrollData.pay_date)}</span>
-                      <PayrollStatusBadge status={payrollData.status} size="sm" />
-                      <span className="font-mono">ID: {payrollData.id}</span>
-                      {payrollData.employee?.id_number && (
-                        <span>{payrollData.employee.id_number}</span>
-                      )}
-                    </>
-                  )}
-                </div>
+    <>
+      <dialog className={cn("modal", { "modal-open": open })}>
+        <div className="modal-box max-w-6xl max-h-[92vh] p-0 overflow-hidden">
+          {/* Enhanced Modal Header */}
+          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6 border-b border-base-300">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-2xl font-bold flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <CurrencyDollarIcon className="w-6 h-6 text-primary" />
+                  </div>
+                  薪资详情
+                </h3>
+                {payrollData && (
+                  <p className="text-sm text-base-content/60 mt-1 ml-13">
+                    {payrollData.employee?.employee_name || String(t('payroll:payrollDetails'))} · {formatDate(payrollData.pay_date)}
+                  </p>
+                )}
               </div>
-              
-              {/* 简化的关闭按钮 */}
-              <ModernButton
-                variant="ghost"
-                size="sm"
-                onClick={handleClose}
-                className="flex-shrink-0"
-                aria-label={String(t('common:close'))}
+              <button
+                className="btn btn-sm btn-circle btn-ghost"
+                onClick={onClose}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </ModernButton>
+                ✕
+              </button>
             </div>
-          </header>
-
-          {/* 薪资汇总固定区域 - 紧凑优化 */}
-          {payrollData && (
-            <section className="px-4 py-3 bg-base-50/50 border-b border-base-200">
-              <div className="grid grid-cols-3 gap-3">
-                {/* 应发工资 */}
-                <div className="bg-white rounded-lg p-3 border border-base-200 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12s-1.536-.219-2.121-.659c-1.172-.879-1.172-2.303 0-3.182C10.464 7.781 11.232 7.5 12 7.5s1.536.219 2.121.659" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-base-content/60">{String(t('payroll:grossPay'))}</p>
-                      <p className="text-base font-semibold text-success font-mono">
-                        {formatCurrency(payrollData.gross_pay)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* 扣除合计 */}
-                <div className="bg-white rounded-lg p-3 border border-base-200 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-error/10 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-base-content/60">{String(t('payroll:totalDeductions'))}</p>
-                      <p className="text-base font-semibold text-error font-mono">
-                        -{formatCurrency(payrollData.total_deductions)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* 实发工资 - 突出显示 */}
-                <div className="bg-primary/5 rounded-lg p-3 border-2 border-primary/20 shadow-md">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-primary/80 font-medium">{String(t('payroll:netPay'))}</p>
-                      <p className="text-lg font-bold text-primary font-mono">
-                        {formatCurrency(payrollData.net_pay)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* 模态框详细内容 - 紧凑优化 */}
-          <div className="max-h-[65vh] overflow-y-auto">
-            {isLoading && <LoadingScreen />}
-            
-            {isError && (
-              <div className="mx-4 mt-4 alert alert-error alert-sm">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-sm">{String(t('common:error.loadFailed'))}: {error?.message}</span>
-              </div>
-            )}
-
-            {payrollData && (
-              <div className="px-4 py-3 form-compact">
-                <PayrollDetailContent 
-                  payroll={payrollData}
-                  payrollItems={payrollItems}
-                  insuranceDetails={insuranceDetails}
-                  contributionBases={contributionBases}
-                />
-              </div>
-            )}
           </div>
 
-          {/* 优化后的底部操作区 - 紧凑优化 */}
-          <footer className="px-4 py-3 border-t border-base-200 bg-base-50/30">
-            <div className="flex items-center justify-end">
-              <ModernButton variant="ghost" size="sm" onClick={handleClose}>
-                {String(t('common:close'))}
-              </ModernButton>
+          {/* Content Area with Sidebar Navigation */}
+          <div className="flex h-[calc(92vh-8rem)]">
+            {/* Sidebar Navigation */}
+            <div className="w-56 bg-base-200/30 border-r border-base-300 p-4">
+              <ul className="space-y-1">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <li key={tab.id}>
+                      <button
+                        className={cn(
+                          "w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-3 transition-all",
+                          "hover:bg-base-300/50",
+                          activeTab === tab.id && "bg-primary/10 text-primary font-medium"
+                        )}
+                        onClick={() => setActiveTab(tab.id as TabType)}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span>{tab.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-          </footer>
+
+            {/* Main Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <span className="loading loading-spinner loading-lg"></span>
+                </div>
+              ) : isError ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <div className="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-error text-lg font-medium mb-2">加载失败</p>
+                  <p className="text-base-content/60 text-sm">{error?.message}</p>
+                </div>
+              ) : (
+                <>
+                  {activeTab === 'overview' && <OverviewTab />}
+                  {activeTab === 'breakdown' && payrollData && (
+                    <PayrollBreakdownTab
+                      payrollItems={payrollItems}
+                      payroll={payrollData}
+                    />
+                  )}
+                  {activeTab === 'insurance' && (
+                    <InsuranceTab insuranceDetails={insuranceDetails} />
+                  )}
+                  {activeTab === 'contribution' && (
+                    <ContributionTab contributionBases={contributionBases} />
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Enhanced Modal Footer */}
+          <div className="border-t border-base-300 p-4 bg-base-200/30">
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-base-content/60">
+                查看薪资详情信息
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={onClose}
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+        
+        {/* 点击背景关闭 */}
+        <form method="dialog" className="modal-backdrop">
+          <button type="button" onClick={onClose}>关闭</button>
+        </form>
+      </dialog>
+    </>
   );
 }
 
-// 薪资详情内容组件接口
-interface PayrollDetailContentProps {
-  payroll: PayrollDetailData;
+// 薪资明细Tab组件
+interface PayrollBreakdownTabProps {
   payrollItems: PayrollItemDetail[];
-  insuranceDetails: InsuranceDetail[];
-  contributionBases: ContributionBase[];
+  payroll: PayrollDetailData;
 }
 
-function PayrollDetailContent({ 
-  payroll, 
-  payrollItems, 
-  insuranceDetails,
-  contributionBases
-}: PayrollDetailContentProps) {
+function PayrollBreakdownTab({ payrollItems, payroll }: PayrollBreakdownTabProps) {
   const { t } = useTranslation(['payroll', 'common']);
-  // 优化默认展开状态：默认不展开任何手风琴，用户按需展开
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set());
-
-  const toggleSection = (sectionId: string) => {
-    setOpenSections(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(sectionId)) {
-        newSet.delete(sectionId);
-      } else {
-        newSet.add(sectionId);
-      }
-      return newSet;
-    });
-  };
-
+  
   // 按 category 分组薪资项目
   const groupedItems = payrollItems.reduce((acc, item) => {
     const category = item.category;
@@ -504,34 +555,6 @@ function PayrollDetailContent({
     return acc;
   }, {} as Record<string, PayrollItemDetail[]>);
 
-
-  // 增强调试信息
-  console.log('PayrollDetailContent 详细调试信息:', {
-    payrollId: payroll.id,
-    payrollItemsLength: payrollItems.length,
-    payrollItemsRaw: payrollItems,
-    groupedItemsKeys: Object.keys(groupedItems),
-    groupedItemsDetail: groupedItems,
-    // 检查 component_type 的值分布
-    componentTypes: payrollItems.map(item => item.component_type),
-    uniqueComponentTypes: [...new Set(payrollItems.map(item => item.component_type))],
-    // 检查分类的值
-    componentCategories: payrollItems.map(item => item.category),
-    uniqueComponentCategories: [...new Set(payrollItems.map(item => item.category))],
-    categoryNames: payrollItems.map(item => item.category),
-    uniqueCategoryNames: [...new Set(payrollItems.map(item => item.category))],
-    // 检查是否有earning和deduction项目
-    earningItems: payrollItems.filter(item => item.component_type === 'earning'),
-    allDeductionItems: payrollItems.filter(item => item.component_type === 'deduction'),
-    personalDeductionItems: payrollItems.filter(item => 
-      item.component_type === 'deduction' && 
-      PERSONAL_DEDUCTION_CATEGORIES.includes(item.category)
-    ),
-    filteredDeductionCategories: [...new Set(payrollItems
-      .filter(item => item.component_type === 'deduction' && PERSONAL_DEDUCTION_CATEGORIES.includes(item.category))
-      .map(item => item.category))]
-  });
-
   // 计算各类别小计
   const categoryTotals = Object.entries(groupedItems).map(([category, items]) => ({
     category,
@@ -540,65 +563,38 @@ function PayrollDetailContent({
   }));
 
   return (
-    <div className="space-y-4">
-      {/* 薪资明细手风琴 */}
-      <AccordionSection
-        id="breakdown"
-        icon={
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-          </svg>
-        }
-        title={String(t('payroll:payrollBreakdown'))}
-        isOpen={openSections.has('breakdown')}
-        onToggle={toggleSection}
-        variant="form"
-        className="compact-accordion"
-      >
-        <PayrollBreakdownSection
-          groupedItems={groupedItems}
-          categoryTotals={categoryTotals}
-          payroll={payroll}
-        />
-      </AccordionSection>
+    <div className="space-y-6">
+      <PayrollBreakdownSection
+        groupedItems={groupedItems}
+        categoryTotals={categoryTotals}
+        payroll={payroll}
+      />
+    </div>
+  );
+}
 
-      {/* 五险一金手风琴 */}
-      <AccordionSection
-        id="insurance"
-        icon={
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-        }
-        title={String(t('payroll:sections.insurance'))}
-        isOpen={openSections.has('insurance')}
-        onToggle={toggleSection}
-        variant="form"
-        className="compact-accordion"
-      >
-        <InsuranceDetailsSection
-          insuranceDetails={insuranceDetails}
-        />
-      </AccordionSection>
+// 五险一金Tab组件
+interface InsuranceTabProps {
+  insuranceDetails: InsuranceDetail[];
+}
 
-      {/* 缴费基数手风琴 */}
-      <AccordionSection
-        id="contribution"
-        icon={
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        }
-        title={String(t('payroll:sections.contributionBase'))}
-        isOpen={openSections.has('contribution')}
-        onToggle={toggleSection}
-        variant="form"
-        className="compact-accordion"
-      >
-        <ContributionBaseSection
-          contributionBases={contributionBases}
-        />
-      </AccordionSection>
+function InsuranceTab({ insuranceDetails }: InsuranceTabProps) {
+  return (
+    <div className="space-y-6">
+      <InsuranceDetailsSection insuranceDetails={insuranceDetails} />
+    </div>
+  );
+}
+
+// 缴费基数Tab组件
+interface ContributionTabProps {
+  contributionBases: ContributionBase[];
+}
+
+function ContributionTab({ contributionBases }: ContributionTabProps) {
+  return (
+    <div className="space-y-6">
+      <ContributionBaseSection contributionBases={contributionBases} />
     </div>
   );
 }
