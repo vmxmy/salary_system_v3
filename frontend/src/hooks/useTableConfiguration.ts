@@ -156,10 +156,10 @@ export function useTableConfiguration(
 
     // 根据用户配置的列顺序生成数据列
     userConfig.visibleColumns.forEach(fieldName => {
-      if (!metadata.fieldLabels[fieldName]) return;
+      if (!(metadata.fieldLabels as any)[fieldName]) return;
 
-      const fieldType = metadata.fieldTypes?.[fieldName] || 'text';
-      const label = metadata.fieldLabels[fieldName];
+      const fieldType = (metadata.fieldTypes as any)?.[fieldName] || 'text';
+      const label = (metadata.fieldLabels as any)[fieldName];
 
       const column: ColumnDef<any> = {
         id: fieldName,

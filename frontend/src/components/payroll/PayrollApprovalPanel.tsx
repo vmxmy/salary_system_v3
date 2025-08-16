@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { usePayrollApprovalV2 } from '@/hooks/payroll/usePayrollApprovalV2';
+import { usePayrollApproval } from '@/hooks/payroll/usePayrollApproval';
 import { formatCurrency } from '@/lib/format';
 import { formatDate } from '@/lib/dateUtils';
-import type { PayrollApprovalSummary } from '@/hooks/payroll/usePayrollApprovalV2';
+import type { PayrollApprovalSummary } from '@/hooks/payroll/usePayrollApproval';
 
 interface PayrollApprovalPanelProps {
   periodId?: string;
@@ -20,7 +20,7 @@ export function PayrollApprovalPanel({ periodId, onClose }: PayrollApprovalPanel
     actions,
     loading,
     utils,
-  } = usePayrollApprovalV2();
+  } = usePayrollApproval();
 
   // 状态管理
   const [selectedIds, setSelectedIds] = useState<string[]>([]);

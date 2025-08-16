@@ -54,7 +54,7 @@ export function useEmployeeFullCreate() {
       const departments: LookupOption[] = (departmentsResponse.data || []).map(dept => ({
         id: dept.id,
         name: dept.name,
-        description: undefined // departments表没有description字段
+        description: null // departments表没有description字段
       }));
 
       const positions: LookupOption[] = (positionsResponse.data || []).map(pos => ({
@@ -434,7 +434,7 @@ export function useEmployeeFormOptions() {
         departments: (departmentsResponse.data || []).map(dept => ({
           id: dept.id,
           name: dept.name,
-          description: undefined // departments表没有description字段
+          description: null // departments表没有description字段
         })),
         positions: (positionsResponse.data || []).map(pos => ({
           id: pos.id,

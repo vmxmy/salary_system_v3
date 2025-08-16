@@ -13,7 +13,7 @@
 
 // 内部导入 - 用于 usePayrollManagement
 import { usePayroll as usePayrollHook } from './usePayroll';
-import { usePayrollCalculation as useCalculationHook } from './usePayrollCalculation';
+// import { usePayrollCalculation as useCalculationHook } from './usePayrollCalculation'; // 已删除
 import { usePayrollImportExport as useImportExportHook } from './usePayrollImportExport';
 import { usePayrollApproval as useApprovalHook } from './usePayrollApproval';
 import { usePayrollAnalytics as useAnalyticsHook } from './usePayrollAnalytics';
@@ -46,15 +46,15 @@ export {
   type BatchOperationResult
 } from './usePayroll';
 
-// 薪资计算
-export {
-  usePayrollCalculation,
-  calculationQueryKeys,
-  type CalculationResult,
-  type PreviewCalculationParams,
-  type BatchCalculationParams,
-  type CalculationProgress
-} from './usePayrollCalculation';
+// 薪资计算 - 已删除，功能迁移到 Supabase 存储函数
+// export {
+//   usePayrollCalculation,
+//   calculationQueryKeys,
+//   type CalculationResult,
+//   type PreviewCalculationParams,
+//   type BatchCalculationParams,
+//   type CalculationProgress
+// } from './usePayrollCalculation';
 
 // 导入导出
 export {
@@ -67,25 +67,15 @@ export {
   type ExcelDataRow
 } from './usePayrollImportExport';
 
-// 审批流程
+// 审批流程 - 轻量级单级审批
 export {
   usePayrollApproval,
-  ApprovalFlow,
-  approvalQueryKeys,
-  type ApprovalRecord,
-  type ApprovalParams,
-  type RejectParams,
-  type BatchApprovalResult,
-  type ApprovalFlowConfig
-} from './usePayrollApproval';
-
-// 审批流程V2 - 轻量级单级审批
-export {
-  usePayrollApprovalV2,
   type PayrollApprovalSummary,
   type ApprovalLog,
-  type BatchResult
-} from './usePayrollApprovalV2';
+  type BatchResult,
+  type ApprovalParams,
+  type RejectParams
+} from './usePayrollApproval';
 
 // 统计分析
 export {
@@ -125,7 +115,7 @@ export * from './usePayrollStatistics';
  */
 export function usePayrollManagement(periodId?: string) {
   const payroll = usePayrollHook({ filters: { periodId } });
-  const calculation = useCalculationHook();
+  // const calculation = useCalculationHook(); // 已删除，功能迁移到 Supabase
   const importExport = useImportExportHook();
   const approval = useApprovalHook();
   const analytics = useAnalyticsHook();
@@ -137,7 +127,7 @@ export function usePayrollManagement(periodId?: string) {
     // 加载状态
     loading: {
       payrolls: payroll.loading.isLoading,
-      calculation: calculation.loading.batch,
+      // calculation: calculation.loading.batch, // 已删除
       import: importExport.loading.import,
       export: importExport.loading.export,
       approval: approval.loading.isProcessing
@@ -149,9 +139,9 @@ export function usePayrollManagement(periodId?: string) {
       createPayroll: payroll.mutations.createPayroll.mutate,
       deletePayroll: payroll.mutations.deletePayroll.mutate,
       
-      // 计算
-      calculate: calculation.actions.batchCalculate,
-      preview: calculation.actions.preview,
+      // 计算功能已迁移到 Supabase 存储函数
+      // calculate: calculation.actions.batchCalculate,
+      // preview: calculation.actions.preview,
       
       // 导入导出
       importExcel: importExport.actions.importExcel,
@@ -160,7 +150,7 @@ export function usePayrollManagement(periodId?: string) {
       // 审批
       approve: approval.actions.approve,
       reject: approval.actions.reject,
-      markAsPaid: approval.actions.markAsPaid
+      markAsPaid: approval.actions.markPaid
     },
     
     // 分析

@@ -48,7 +48,9 @@ export function DepartmentCardGrid({
     const map = new Map<string, DepartmentPayrollStatistics>();
     if (Array.isArray(payrollStats)) {
       payrollStats.forEach(stat => {
-        map.set(stat.department_id, stat as any);
+        if (stat.department_id) {
+          map.set(stat.department_id, stat as any);
+        }
       });
     }
     return map;

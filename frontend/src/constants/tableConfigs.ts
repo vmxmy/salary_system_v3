@@ -128,7 +128,7 @@ export const TABLE_CONFIGS = {
       'period_name': 'text'
     }
   }
-} as const;
+};
 
 export type TableConfigKey = keyof typeof TABLE_CONFIGS;
 export type TableConfig = typeof TABLE_CONFIGS[TableConfigKey];

@@ -119,7 +119,7 @@ function ApprovalStats({
           <div key={action} className="stat bg-base-200 rounded-lg p-4">
             <div className="stat-title text-xs">{config.label}</div>
             <div className={`stat-value text-2xl text-${config.color}`}>
-              {count}
+              {typeof count === 'number' ? count : 0}
             </div>
           </div>
         );

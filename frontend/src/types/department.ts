@@ -16,22 +16,22 @@ export interface DepartmentHierarchy {
 
 // Department payroll statistics view type
 export interface DepartmentPayrollStatistics {
-  department_id: string;
-  department_name: string;
-  period_code?: string;
-  period_name?: string;
-  pay_year: number;
-  pay_month: number;
-  employee_count: number;
-  total_gross_pay: number;
-  total_deductions: number;
-  total_net_pay: number;
-  avg_gross_pay: number;
-  avg_net_pay: number;
-  min_gross_pay: number;
-  max_gross_pay: number;
-  dept_gross_pay_percentage?: number;
-  dept_employee_percentage?: number;
+  department_id: string | null;
+  department_name: string | null;
+  period_code?: string | null;
+  period_name?: string | null;
+  pay_year: number | null;
+  pay_month: number | null;
+  employee_count: number | null;
+  total_gross_pay: number | null;
+  total_deductions: number | null;
+  total_net_pay: number | null;
+  avg_gross_pay: number | null;
+  avg_net_pay: number | null;
+  min_gross_pay: number | null;
+  max_gross_pay: number | null;
+  dept_gross_pay_percentage?: number | null;
+  dept_employee_percentage?: number | null;
   // Computed fields
   pay_month_string?: string;
   pay_period_start?: string;
@@ -131,9 +131,9 @@ export interface DepartmentImportResult {
   total_rows: number;
   successful_imports: number;
   failed_imports: number;
-  errors: Array<{
+  errors?: Array<{
     row: number;
-    field: string;
+    field?: string;
     message: string;
   }>;
   imported_departments: Department[];

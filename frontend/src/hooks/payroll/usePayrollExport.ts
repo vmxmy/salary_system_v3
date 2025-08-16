@@ -116,7 +116,7 @@ export function usePayrollExport() {
         query = query.in('employee_id', config.employeeIds);
       }
       if (config.status) {
-        query = query.eq('payroll_status', config.status);
+        query = query.eq('payroll_status', config.status as any);
       }
 
       const { data, error } = await query;

@@ -9,7 +9,7 @@ import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatMonth } from '@/lib/format';
 import { getMonthDateRange, getPreviousMonth } from '@/lib/dateUtils';
-import { salaryComponentFieldsService, type SalaryComponentCategory } from '@/services/salary-component-fields.service';
+import { salaryComponentFieldsService, type SalaryComponentCategory, type SalaryFieldStatistic } from '@/_archived_services/services/salary-component-fields.service';
 import { ValidationStep } from '@/components/payroll/wizard/ValidationStep';
 import { ConfirmationStep as EnhancedConfirmationStep } from '@/components/payroll/wizard/ConfirmationStep';
 
@@ -544,8 +544,8 @@ function CopyModeStepInline({ sourceData, onSourceDataChange }: { sourceData: So
         setCategories(data);
         // 设置默认选中的分类（推荐配置）
         const defaultSelected = data
-          .filter(cat => ['basic_salary', 'allowances', 'deductions', 'personal_insurance', 'personal_benefits'].includes(cat.category))
-          .map(cat => cat.category);
+          .filter((cat: SalaryComponentCategory) => ['basic_salary', 'allowances', 'deductions', 'personal_insurance', 'personal_benefits'].includes(cat.category))
+          .map((cat: SalaryComponentCategory) => cat.category);
         setSelectedCategories(defaultSelected);
       } catch (error) {
         console.error('Failed to load salary component categories:', error);
@@ -750,7 +750,7 @@ function CopyModeStepInline({ sourceData, onSourceDataChange }: { sourceData: So
                         checked={selectedCategories.includes(category.category)}
                         onChange={(checked) => handleCategoryChange(category.category, checked)}
                         variant={salaryComponentFieldsService.getCategoryVariant(category.category)}
-                        fieldsData={category.fields.map(field => ({
+                        fieldsData={category.fields.map((field: SalaryFieldStatistic) => ({
                           name: field.field_name,
                           displayName: field.field_display_name,
                           recordCount: field.record_count,

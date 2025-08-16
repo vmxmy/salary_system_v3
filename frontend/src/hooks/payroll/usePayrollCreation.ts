@@ -34,6 +34,7 @@ export interface PayrollCreationResult {
   createdCount: number;
   updatedCount: number;
   skippedCount: number;
+  total?: number;
   errors: Array<{
     employeeId: string;
     employeeName: string;
@@ -85,13 +86,12 @@ export function usePayrollCreation() {
     } else if (config.departmentIds && config.departmentIds.length > 0) {
       // 先获取部门的员工分配
       const { data: assignments } = await supabase
-        .from('employee_assignments')
+        .from('employee_job_history' as any)
         .select('employee_id')
-        .in('department_id', config.departmentIds)
-        .eq('is_current', true);
+        .in('department_id', config.departmentIds);
       
       if (assignments) {
-        const employeeIds = assignments.map(a => a.employee_id).filter(Boolean) as string[];
+        const employeeIds = assignments.map((a: any) => a.employee_id).filter(Boolean) as string[];
         if (employeeIds.length > 0) {
           query = query.in('id', employeeIds);
         }
@@ -207,8 +207,8 @@ export function usePayrollCreation() {
           setCreationProgress(prev => ({
             ...prev,
             processed: i + 1,
-            currentEmployee: employee.employee_name,
-            message: `正在创建 ${employee.employee_name} 的薪资...`
+            currentEmployee: employee.employee_name || '',
+            message: `正在创建 ${employee.employee_name || '未知员工'} 的薪资...`
           }));
 
           // 检查是否已存在
@@ -232,7 +232,7 @@ export function usePayrollCreation() {
             } catch (error) {
               result.errors.push({
                 employeeId: employee.id,
-                employeeName: employee.employee_name,
+                employeeName: employee.employee_name || '未知',
                 error: error instanceof Error ? error.message : '创建失败'
               });
             }

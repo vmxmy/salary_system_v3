@@ -4,14 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
 import type { Database } from '@/types/supabase';
 
-// 数据组枚举
-export enum ImportDataGroup {
-  EARNINGS = 'earnings',
-  CONTRIBUTION_BASES = 'contribution_bases', 
-  CATEGORY_ASSIGNMENT = 'category_assignment',
-  JOB_ASSIGNMENT = 'job_assignment',
-  ALL = 'all'
-}
+// 导入数据分组类型 - 与 payroll-import.ts 保持一致
+import { ImportDataGroup } from '@/types/payroll-import';
 
 // 字段映射类型
 export interface FieldMapping {

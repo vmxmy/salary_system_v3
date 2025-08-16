@@ -108,8 +108,8 @@ export default function DepartmentPayrollStatsPage() {
           bVal = b.employee_count || 0;
           break;
         case 'dept_name':
-          aVal = a.department_name;
-          bVal = b.department_name;
+          aVal = a.department_name ?? '';
+          bVal = b.department_name ?? '';
           break;
         default:
           aVal = a.avg_gross_pay || 0;
@@ -365,7 +365,7 @@ export default function DepartmentPayrollStatsPage() {
                   </h3>
                   <DepartmentSalaryComparison
                     departments={sortedPayrollStats.slice(0, 10).map(stat => ({
-                      name: stat.department_name,
+                      name: stat.department_name ?? '未知部门',
                       payrollStats: stat
                     }))}
                   />

@@ -208,7 +208,7 @@ export function PayrollDetailModal({
 
         // 获取缴费基数信息（基于薪资期间）
         if (payroll.employee_id) {
-          const yearMonth = payroll.pay_period_start.substring(0, 7); // YYYY-MM
+          const yearMonth = payroll.pay_period_start?.substring(0, 7) || new Date().toISOString().substring(0, 7); // YYYY-MM
           const [year, month] = yearMonth.split('-');
           const { data: bases, error: baseError } = await supabase
             .from('view_employee_insurance_base_monthly_latest')

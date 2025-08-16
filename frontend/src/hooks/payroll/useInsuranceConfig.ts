@@ -620,7 +620,7 @@ export const useApplicablePolicies = (employeeId: string, effectiveDate: string)
       // 这里需要复杂的业务逻辑来确定适用的政策
       // 可能需要创建一个数据库函数或视图来处理
       // 暂时返回空数组，需要根据实际业务需求实现
-      const { data, error } = await supabase.rpc('get_applicable_policies', {
+      const { data, error } = await (supabase as any).rpc('get_applicable_policies', {
         p_employee_id: employeeId,
         p_effective_date: effectiveDate
       });

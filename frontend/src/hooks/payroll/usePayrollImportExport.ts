@@ -100,7 +100,7 @@ export function usePayrollImportExport() {
       queryKey: importExportQueryKeys.templates(),
       queryFn: async () => {
         const { data, error } = await supabase
-          .from('import_templates')
+          .from('import_templates' as any)
           .select('*')
           .eq('category', 'payroll')
           .eq('is_active', true)
@@ -282,7 +282,7 @@ export function usePayrollImportExport() {
         // 批量插入薪资项
         if (earningItems.length > 0) {
           await supabase
-            .from('payroll_items')
+            .from('payroll_items' as any)
             .insert(earningItems);
         }
         
@@ -476,7 +476,7 @@ export function usePayrollImportExport() {
       }
       
       // 生成Excel
-      const buffer = await generateExcelBuffer(data || [], params);
+      const buffer = await generateExcelBuffer((data || []) as any[], params);
       
       // 创建下载链接
       const blob = new Blob([buffer], { 
@@ -498,7 +498,7 @@ export function usePayrollImportExport() {
     mutationFn: async (templateId: string) => {
       // 获取模板配置
       const { data: template, error } = await supabase
-        .from('import_templates')
+        .from('import_templates' as any)
         .select('*')
         .eq('id', templateId)
         .single();
@@ -510,22 +510,22 @@ export function usePayrollImportExport() {
       
       // 生成模板Excel
       const wb = XLSX.utils.book_new();
-      const wsData = template.sample_data || [];
+      const wsData = (template as any).sample_data || [];
       const ws = XLSX.utils.json_to_sheet(wsData);
       
       // 设置列宽
-      if (template.column_widths) {
-        ws['!cols'] = template.column_widths;
+      if ((template as any).column_widths) {
+        ws['!cols'] = (template as any).column_widths;
       }
       
       XLSX.utils.book_append_sheet(wb, ws, '数据模板');
       
       // 添加说明工作表
-      if (template.instructions) {
+      if ((template as any).instructions) {
         const instructionWs = XLSX.utils.aoa_to_sheet([
           ['导入说明'],
           [''],
-          ...template.instructions.split('\n').map((line: string) => [line])
+          ...(template as any).instructions.split('\n').map((line: string) => [line])
         ]);
         XLSX.utils.book_append_sheet(wb, instructionWs, '说明');
       }
@@ -538,7 +538,7 @@ export function usePayrollImportExport() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${template.name}_模板.xlsx`;
+      link.download = `${(template as any).name || 'template'}_模板.xlsx`;
       link.click();
       window.URL.revokeObjectURL(url);
       

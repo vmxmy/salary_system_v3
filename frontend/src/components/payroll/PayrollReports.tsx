@@ -61,13 +61,23 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
     updateUserConfig,
     resetToDefault,
   } = useTableConfiguration('payroll', {
-    onViewDetail: (row) => {
-      const payrollId = row.payroll_id || row.id;
-      if (payrollId) {
-        setSelectedPayrollId(payrollId);
-        setIsDetailModalOpen(true);
-      }
-    },
+    key: 'actions',
+    title: '操作',
+    width: 100,
+    render: (row: any) => (
+      <button 
+        className="btn btn-sm btn-ghost"
+        onClick={() => {
+          const payrollId = row.payroll_id || row.id;
+          if (payrollId) {
+            setSelectedPayrollId(payrollId);
+            setIsDetailModalOpen(true);
+          }
+        }}
+      >
+        查看详情
+      </button>
+    )
   });
 
   // 状态管理
@@ -334,7 +344,7 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
             </ModernButton> */}
             
             {/* 清空本月按钮 */}
-            {can('PAYROLL_CLEAR') && (
+            {can.deletePayroll() && (
               <ModernButton
                 onClick={() => setIsClearModalOpen(true)}
                 variant="danger"
@@ -429,7 +439,7 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
           </div>
 
           {/* 字段配置器 */}
-          {metadata?.fields && metadata.fields.length > 0 && (
+          {metadata?.defaultFields && metadata.defaultFields.length > 0 && (
             <div className="dropdown dropdown-end">
               <ModernButton
                 variant="secondary"
@@ -448,26 +458,30 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
               <div className="dropdown-content menu p-4 mt-2 w-80 z-50 bg-base-100 border border-base-200 rounded-xl shadow-lg max-h-96 overflow-y-auto">
                 <h4 className="font-medium text-base-content mb-3">显示字段配置</h4>
                 <div className="space-y-2">
-                  {metadata.fields.map((field) => {
-                    const columnConfig = userConfig?.columns.find(c => c.field === field.name);
-                    const isVisible = columnConfig?.visible !== false;
+                  {metadata.defaultFields.map((field: string) => {
+                    const columnConfig = userConfig?.visibleColumns.includes(field);
+                    const isVisible = columnConfig;
                     
                     return (
-                      <label key={field.name} className="flex items-center gap-2 cursor-pointer hover:bg-base-200 p-2 rounded">
+                      <label key={field} className="flex items-center gap-2 cursor-pointer hover:bg-base-200 p-2 rounded">
                         <input
                           type="checkbox"
                           className="checkbox checkbox-sm"
                           checked={isVisible}
                           onChange={(e) => {
-                            const newColumns = userConfig?.columns.map(c => 
-                              c.field === field.name 
-                                ? { ...c, visible: e.target.checked }
-                                : c
-                            ) || [];
-                            updateUserConfig({ ...userConfig, columns: newColumns });
+                            const currentVisible = userConfig?.visibleColumns || metadata.defaultFields;
+                            const newVisible = e.target.checked 
+                              ? [...currentVisible.filter(f => f !== field), field]
+                              : currentVisible.filter(f => f !== field);
+                            updateUserConfig({ 
+                              ...userConfig, 
+                              visibleColumns: newVisible,
+                              columnOrder: userConfig?.columnOrder || metadata.defaultFields,
+                              columnWidths: userConfig?.columnWidths || {}
+                            });
                           }}
                         />
-                        <span className="text-sm">{field.label}</span>
+                        <span className="text-sm">{(metadata.fieldLabels as any)?.[field] || field}</span>
                       </label>
                     );
                   })}

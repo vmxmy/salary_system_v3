@@ -35,7 +35,7 @@ const ValidationTestPage = lazy(() => import('@/pages/ValidationTestPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const DebugPage = lazy(() => import('@/pages/DebugPage'));
-const PayrollHookTestPage = lazy(() => import('@/pages/PayrollHooksTestPage'));
+// const PayrollHookTestPage = lazy(() => import('@/pages/PayrollHooksTestPage')); // 已删除
 const NewTableArchitectureTestPage = lazy(() => import('@/pages/test/NewTableArchitectureTestPage'));
 const TestMetadata = lazy(() => import('@/pages/test/TestMetadata'));
 // Test pages moved to archive
@@ -102,14 +102,14 @@ export const router = createBrowserRouter([
       </Suspense>
     ),
   },
-  {
-    path: '/test/payroll-hooks',
-    element: (
-      <Suspense fallback={<LoadingScreen />}>
-        <PayrollHookTestPage />
-      </Suspense>
-    ),
-  },
+  // {
+  //   path: '/test/payroll-hooks',
+  //   element: (
+  //     <Suspense fallback={<LoadingScreen />}>
+  //       <PayrollHookTestPage />
+  //     </Suspense>
+  //   ),
+  // }, // 已删除
   {
     path: '/test/new-table-architecture',
     element: (

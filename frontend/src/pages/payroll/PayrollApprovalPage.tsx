@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PayrollApprovalPanel, PayrollDetailModal, ApprovalHistoryModal } from '@/components/payroll';
-import { usePayrollApprovalV2 } from '@/hooks/payroll';
+import { usePayrollApproval } from '@/hooks/payroll';
 import { useCurrentPayrollPeriod } from '@/hooks/payroll/usePayrollPeriod';
 import { formatCurrency } from '@/lib/format';
 import { PayrollPeriodSelector } from '@/components/common/PayrollPeriodSelector';
@@ -14,7 +14,7 @@ export default function PayrollApprovalPage() {
   const [selectedPayrollId, setSelectedPayrollId] = useState<string | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const { queries, utils } = usePayrollApprovalV2();
+  const { queries, utils } = usePayrollApproval();
   
   // 获取当前活跃周期
   const { data: currentPeriod } = useCurrentPayrollPeriod();

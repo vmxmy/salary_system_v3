@@ -229,7 +229,7 @@ export const useEmployeePositionHistory = (employeeId: string) => {
         periodIds.length > 0 ? supabase
           .from('payroll_periods')
           .select('id, period_name, period_year, period_month')
-          .in('id', periodIds) : { data: [] }
+          .in('id', periodIds.filter(id => id !== null) as string[]) : { data: [] }
       ]);
       
       // Create lookup maps

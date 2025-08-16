@@ -37,7 +37,7 @@ export function useAvailablePayrollMonths(enabled: boolean = true) {
             if (!monthDataMap.has(monthString)) {
               monthDataMap.set(monthString, { 
                 employeeSet: new Set<string>(),
-                periodId: row.period_id
+                periodId: row.period_id || undefined
               });
             }
             const monthData = monthDataMap.get(monthString)!;

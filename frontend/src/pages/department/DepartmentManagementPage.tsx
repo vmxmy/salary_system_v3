@@ -59,8 +59,8 @@ export default function DepartmentManagementPage() {
   
   // 使用最新薪资周期获取薪资统计
   const { data: payrollStats = [], isLoading: isLoadingStats } = useDepartmentPayrollStats({
-    year: latestPeriod?.year,
-    month: latestPeriod?.month,
+    year: latestPeriod?.year ?? undefined,
+    month: latestPeriod?.month ?? undefined,
     useLatestIfEmpty: true // 如果没有指定年月，自动使用最新数据
   });
 

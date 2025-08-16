@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { usePayrollApprovalV2 } from '@/hooks/payroll/usePayrollApprovalV2';
+import { usePayrollApproval } from '@/hooks/payroll/usePayrollApproval';
 import type { Database } from '@/types/supabase';
 
 type PayrollStatus = Database['public']['Enums']['payroll_status'];
@@ -21,7 +21,7 @@ export function PayrollApprovalActions({
   onSuccess,
   className = ''
 }: PayrollApprovalActionsProps) {
-  const { actions, loading, utils } = usePayrollApprovalV2();
+  const { actions, loading, utils } = usePayrollApproval();
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showApproveModal, setShowApproveModal] = useState(false);
