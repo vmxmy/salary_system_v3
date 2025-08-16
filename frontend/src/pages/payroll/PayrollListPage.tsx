@@ -55,7 +55,65 @@ export default function PayrollListPage() {
   const { t } = useTranslation(['common', 'payroll']);
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
-  const { can, hasPermission } = usePermission();
+  const { hasPermission } = usePermission();
+
+  // 处理查看详情
+  const handleViewDetail = useCallback((row: PayrollData) => {
+    const payrollId = row.payroll_id || row.id;
+    if (payrollId) {
+      setSelectedPayrollId(payrollId);
+      setIsDetailModalOpen(true);
+    }
+  }, []);
+
+  // 处理编辑详情 (目前与查看相同，因为模态框包含编辑功能)
+  const handleEditDetail = useCallback((row: PayrollData) => {
+    handleViewDetail(row);
+  }, [handleViewDetail]);
+
+  // 检查权限状态
+  const canUpdate = hasPermission(PERMISSIONS.PAYROLL_UPDATE);
+
+  // 定义操作列配置
+  const actionsConfig = useMemo(() => ({
+    key: 'actions',
+    title: '操作',
+    width: 150,
+    render: (record: PayrollData) => (
+      <div className="flex gap-1">
+        <button
+          className="btn btn-ghost btn-xs text-primary"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleViewDetail(record);
+          }}
+          title="查看详情"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+        </button>
+        {canUpdate && (
+          <button
+            className="btn btn-ghost btn-xs text-secondary"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditDetail(record);
+            }}
+            title="编辑薪资详情"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+        )}
+      </div>
+    )
+  }), [handleViewDetail, handleEditDetail, canUpdate]);
 
   // 表格配置管理
   const {
@@ -66,16 +124,7 @@ export default function PayrollListPage() {
     columns,
     updateUserConfig,
     resetToDefault,
-  } = useTableConfiguration('payroll');
-  
-  // 处理查看详情
-  const handleViewDetail = useCallback((row: PayrollData) => {
-    const payrollId = row.payroll_id || row.id;
-    if (payrollId) {
-      setSelectedPayrollId(payrollId);
-      setIsDetailModalOpen(true);
-    }
-  }, []);
+  } = useTableConfiguration('payroll', actionsConfig);
 
   // 状态管理
   const [searchQuery, setSearchQuery] = useState('');
@@ -201,15 +250,6 @@ export default function PayrollListPage() {
     
     return processedItems;
   }, [data?.data, statusFilter, activeSearchQuery]);
-
-  // 处理行点击 - 使用模态框替代导航
-  const handleRowClick = useCallback((payroll: PayrollData) => {
-    const payrollId = payroll.id || payroll.payroll_id;
-    if (payrollId) {
-      setSelectedPayrollId(payrollId);
-      setIsDetailModalOpen(true);
-    }
-  }, []);
 
   // 关闭模态框
   const handleCloseModal = useCallback(() => {
@@ -469,7 +509,7 @@ export default function PayrollListPage() {
                   onlyWithData={false}
                   showCountBadge={true}
                   placeholder="选择薪资周期"
-                  className="w-64"
+                  className="flex-shrink-0"
                   size="sm"
                 />
 

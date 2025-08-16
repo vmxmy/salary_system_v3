@@ -13,8 +13,8 @@ export function usePermission() {
   const hasPermission = useCallback((permission: Permission): boolean => {
     if (!user) return false;
 
-    // 从用户元数据或用户配置中获取角色
-    const userRole = user.user_metadata?.role || user.app_metadata?.role || 'employee';
+    // 直接使用AuthUser对象的role属性
+    const userRole = user.role || 'employee';
     
     // 获取角色对应的权限列表
     const rolePermissions = ROLE_PERMISSIONS[userRole as Role] || [];
@@ -41,7 +41,7 @@ export function usePermission() {
   // 获取用户角色
   const getUserRole = useCallback((): Role => {
     if (!user) return 'employee';
-    return (user.user_metadata?.role || user.app_metadata?.role || 'employee') as Role;
+    return (user.role || 'employee') as Role;
   }, [user]);
 
   // 获取用户所有权限

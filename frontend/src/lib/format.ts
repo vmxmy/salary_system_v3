@@ -42,7 +42,14 @@ export function formatDate(
   date: string | Date,
   format: 'full' | 'long' | 'medium' | 'short' = 'medium'
 ): string {
+  if (!date) return '';
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // 检查日期是否有效
+  if (isNaN(dateObj.getTime())) {
+    return '';
+  }
   
   const formatOptions: Record<string, Intl.DateTimeFormatOptions> = {
     full: { 
@@ -70,7 +77,12 @@ export function formatDate(
   
   const options = formatOptions[format];
 
-  return new Intl.DateTimeFormat('zh-CN', options).format(dateObj);
+  try {
+    return new Intl.DateTimeFormat('zh-CN', options).format(dateObj);
+  } catch (error) {
+    console.warn('Date formatting error:', error, 'for date:', date);
+    return '';
+  }
 }
 
 /**
@@ -80,7 +92,14 @@ export function formatDateTime(
   date: string | Date,
   includeSeconds = false
 ): string {
+  if (!date) return '';
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // 检查日期是否有效
+  if (isNaN(dateObj.getTime())) {
+    return '';
+  }
   
   const options: Intl.DateTimeFormatOptions = {
     year: 'numeric',
@@ -91,7 +110,12 @@ export function formatDateTime(
     ...(includeSeconds && { second: '2-digit' })
   };
 
-  return new Intl.DateTimeFormat('zh-CN', options).format(dateObj);
+  try {
+    return new Intl.DateTimeFormat('zh-CN', options).format(dateObj);
+  } catch (error) {
+    console.warn('DateTime formatting error:', error, 'for date:', date);
+    return '';
+  }
 }
 
 /**
