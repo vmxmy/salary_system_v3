@@ -3,8 +3,8 @@ import { useTableMetadata } from '@/hooks/core/useTableMetadata';
 import { useSmartTableColumns } from '@/hooks/core/useSmartTableColumns';
 
 export default function TestMetadata() {
-  const { data: metadata, isLoading, error } = useTableMetadata('view_employees_with_details');
-  const smartColumns = useSmartTableColumns('view_employees_with_details', {
+  const { data: metadata, isLoading, error } = useTableMetadata('view_employee_basic_info');
+  const smartColumns = useSmartTableColumns('view_employee_basic_info', {
     enableRowSelection: true,
     enableActions: true,
   });

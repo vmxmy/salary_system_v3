@@ -58,7 +58,7 @@ export const TABLE_CONFIGS: Record<string, TableConfiguration> = {
     },
   },
 
-  'view_employees_with_details': {
+  'view_employee_basic_info': {
     displayName: '员工详情列表',
     description: '包含部门、职位等详细信息的员工列表',
     defaultSort: { field: 'employee_name', direction: 'asc' },
