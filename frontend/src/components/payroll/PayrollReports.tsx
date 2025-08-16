@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
-import { usePayrolls, useCreateBatchPayrolls, useUpdateBatchPayrollStatus, useCalculatePayrolls, useLatestPayrollPeriod } from '@/hooks/payroll';
+import { usePayrolls, useUpdateBatchPayrollStatus, useCalculatePayrolls, useLatestPayrollPeriod } from '@/hooks/payroll';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
 import { useTableConfiguration } from '@/hooks/useTableConfiguration';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
@@ -13,7 +13,7 @@ import { PayrollStatus, type PayrollStatusType } from '@/hooks/payroll';
 import { useToast } from '@/contexts/ToastContext';
 import { getMonthDateRange, getCurrentYearMonth, formatMonth } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/format';
-import { PayrollCreationService } from '@/services/payroll-creation.service';
+import { usePayrollCreation } from '@/hooks/payroll/usePayrollCreation';
 import { usePermission } from '@/hooks/usePermission';
 import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
 import type { PaginationState, Table } from '@tanstack/react-table';
@@ -123,7 +123,6 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
   const { data: statistics, isLoading: statsLoading } = usePayrollStatistics(selectedMonth);
 
   // Mutations
-  const createBatchPayrolls = useCreateBatchPayrolls();
   const updateBatchStatus = useUpdateBatchPayrollStatus();
   const calculatePayrolls = useCalculatePayrolls();
 
@@ -244,44 +243,32 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
     }
   }, [selectedIds, updateBatchStatus, t, refetch, showSuccess, showError]);
 
-  // 创建新的薪资批次
-  const handleCreateBatch = useCallback(() => {
-    navigate('/payroll/create-cycle');
-  }, [navigate]);
+  // 创建新的薪资批次 - 功能已移除
+  // const handleCreateBatch = useCallback(() => {
+  //   navigate('/payroll/create-cycle');
+  // }, [navigate]);
 
-  // 清空本月数据
+  // 清空本月数据 - 需要使用新的 hook 或 API
   const handleClearCurrentMonth = useCallback(async () => {
     try {
-      // 调用清空薪资数据服务
-      const monthDateRange = getMonthDateRange(selectedMonth);
-      const result = await PayrollCreationService.clearPayrollDataByPeriod(
-        monthDateRange.startDate,
-        monthDateRange.endDate,
-        'CLEAR_PAYROLL_CONFIRMED'
-      );
-
-      if (result.success) {
-        if (result.deleted_summary) {
-          const summary = result.deleted_summary;
-          showSuccess(
-            `${formatMonth(selectedMonth)} 的薪资数据已清空\n` +
-            `删除薪资记录: ${summary.deleted_payrolls} 条\n` +
-            `删除薪资项目: ${summary.deleted_items} 条\n` +
-            `涉及员工: ${summary.affected_employees} 人`
-          );
-        } else {
-          showSuccess(`${formatMonth(selectedMonth)} 的薪资数据已清空`);
-        }
-        refetch();
-      } else {
-        showError(`清空数据失败: ${result.error_message || '未知错误'}`);
-      }
+      // TODO: 需要实现清空薪资数据的 hook 或直接调用 API
+      showError('清空功能暂时不可用，需要迁移到新的 hook 架构');
+      
+      // 原实现已注释，待迁移
+      // const monthDateRange = getMonthDateRange(selectedMonth);
+      // const result = await PayrollCreationService.clearPayrollDataByPeriod(
+      //   monthDateRange.startDate,
+      //   monthDateRange.endDate,
+      //   'CLEAR_PAYROLL_CONFIRMED'
+      // );
+      
+      refetch();
     } catch (error) {
       showError(`清空数据失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setIsClearModalOpen(false);
     }
-  }, [selectedMonth, showSuccess, showError, refetch]);
+  }, [selectedMonth, showError, refetch]);
 
   // 处理加载状态
   const totalLoading = isLoading || statsLoading || latestMonthLoading || metadataLoading;
@@ -331,8 +318,8 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
           
           {/* 操作按钮组 */}
           <div className="flex items-center gap-2">
-            {/* 创建批次按钮 */}
-            <ModernButton
+            {/* 创建批次按钮 - 功能已移除 */}
+            {/* <ModernButton
               onClick={handleCreateBatch}
               variant="primary"
               size="sm"
@@ -344,7 +331,7 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
               }
             >
               {t('payroll:createBatch')}
-            </ModernButton>
+            </ModernButton> */}
             
             {/* 清空本月按钮 */}
             {can('PAYROLL_CLEAR') && (
@@ -509,7 +496,6 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
           onMarkPaid={handleBatchMarkPaid}
           onExport={() => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id)), 'payroll-selected')}
           loading={
-            createBatchPayrolls.isPending ||
             updateBatchStatus.isPending ||
             calculatePayrolls.isPending
           }

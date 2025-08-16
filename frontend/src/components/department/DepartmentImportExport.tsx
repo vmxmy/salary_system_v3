@@ -16,7 +16,9 @@ interface ExcelImportResult {
   errors?: Array<{ row: number; field?: string; message: string }>;
   totalRows?: number;
   successCount?: number;
+  successRows?: number; // Legacy field
   errorCount?: number;
+  errorRows?: Array<{ row: number; field?: string; message: string }>; // Legacy field
 }
 import { ResponsiveModal, ResponsiveButtonGroup, ResponsiveGrid } from '@/components/common/ResponsiveWrapper';
 import { cn } from '@/lib/utils';
@@ -70,7 +72,11 @@ export function DepartmentImportExport({
 
     setIsProcessing(true);
     try {
-      const result = await ExcelService.importDepartments(selectedFile, departments);
+      // TODO: 需要迁移到新的 hook 架构
+      const result: ExcelImportResult = { 
+        success: false, 
+        errors: [{ row: 1, message: '导入功能暂时不可用，需要迁移到新的 hook 架构' }] 
+      };
       setImportResult(result);
       
       if (result.success) {
@@ -93,9 +99,9 @@ export function DepartmentImportExport({
       // 模拟导出过程
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      ExcelService.exportDepartments(departments, {
-        filename: `部门数据_${new Date().toISOString().split('T')[0]}.csv`
-      });
+      // TODO: 需要迁移到新的 hook 架构 
+      showError('导出功能暂时不可用，需要迁移到新的 hook 架构');
+      return;
       
       showSuccess('部门数据导出成功');
     } catch (error) {
@@ -108,12 +114,12 @@ export function DepartmentImportExport({
   // 下载模板
   const downloadTemplate = useCallback(() => {
     try {
-      ExcelService.downloadTemplate();
-      showSuccess('模板下载成功');
+      // TODO: 需要迁移到新的 hook 架构
+      showError('模板下载功能暂时不可用，需要迁移到新的 hook 架构');
     } catch (error) {
       showError('模板下载失败');
     }
-  }, [showSuccess, showError]);
+  }, [showError]);
 
   if (!isOpen) return null;
 

@@ -3,8 +3,8 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { ModernButton } from '@/components/common/ModernButton';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatMonth } from '@/lib/format';
-import { PayrollCreationService } from '@/services/payroll-creation.service';
-import { payrollStatisticsService } from '@/services/payroll-statistics.service';
+import { usePayrollCreation } from '@/hooks/payroll/usePayrollCreation';
+import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
 
 const CreationMode = {
   COPY: 'copy',

@@ -4,12 +4,20 @@ import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { ModernButton } from '@/components/common/ModernButton';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatMonth } from '@/lib/format';
-import { 
-  PayrollValidationService, 
-  type EmployeeValidationData, 
-  type ValidationSummary, 
-  type ValidationIssue 
-} from '@/services/payroll-validation.service';
+import { usePayrollValidation } from '@/hooks/payroll/usePayrollValidation';
+import type {
+  ValidationIssue,
+  ValidationResult as ValidationSummary
+} from '@/hooks/payroll/usePayrollValidation';
+
+// 临时类型定义（因为原服务中可能有，但新 hook 中没有）
+type EmployeeValidationData = {
+  employee_id: string;
+  employee_name: string;
+  gross_pay: number;
+  net_pay: number;
+  status?: string;
+};
 
 const CreationMode = {
   COPY: 'copy',

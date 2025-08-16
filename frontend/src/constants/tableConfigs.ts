@@ -82,6 +82,51 @@ export const TABLE_CONFIGS = {
       'gender': 'select',
       'birth_date': 'date'
     }
+  },
+  'payroll': {
+    displayName: '薪资管理',
+    primaryKey: 'payroll_id',
+    defaultSort: { field: 'actual_pay_date', direction: 'desc' as const },
+    defaultFields: [
+      'employee_name', 
+      'department_name', 
+      'position_name',
+      'actual_pay_date',
+      'gross_pay', 
+      'total_deductions',
+      'net_pay',
+      'status'
+    ],
+    fieldLabels: {
+      'payroll_id': '薪资ID',
+      'employee_name': '员工姓名',
+      'department_name': '部门',
+      'position_name': '职位',
+      'actual_pay_date': '实际发薪日期',
+      'scheduled_pay_date': '计划发薪日期',
+      'pay_date': '支付日期',
+      'gross_pay': '应发工资',
+      'total_deductions': '扣除合计',
+      'net_pay': '实发工资',
+      'status': '薪资状态',
+      'period_code': '薪资周期',
+      'period_name': '周期名称'
+    },
+    fieldTypes: {
+      'payroll_id': 'text',
+      'employee_name': 'text',
+      'department_name': 'text',
+      'position_name': 'text',
+      'actual_pay_date': 'date',
+      'scheduled_pay_date': 'date',
+      'pay_date': 'date',
+      'gross_pay': 'currency',
+      'total_deductions': 'currency',
+      'net_pay': 'currency',
+      'status': 'select',
+      'period_code': 'text',
+      'period_name': 'text'
+    }
   }
 } as const;
 

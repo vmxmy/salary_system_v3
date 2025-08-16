@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ImportDataGroup } from '@/types/payroll-import';
-import { PayrollExportService } from '@/services/payroll-export.service';
-import type { PayrollPeriod, ExportConfig } from '@/services/payroll-export.service';
+import { usePayrollExport } from '@/hooks/payroll/usePayrollExport';
 import { useToast, ToastContainer } from '@/components/common/Toast';
 import { InfoIcon, XCircleIcon, RefreshIcon } from '@/components/common/Icons';
 import { MonthPicker } from '@/components/common/MonthPicker';
@@ -15,7 +14,7 @@ interface HistoryDataExporterProps {
 
 export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClose }) => {
   const { messages, removeToast, toast } = useToast();
-  const [exporting, setExporting] = useState(false);
+  const { exportToExcel, loading } = usePayrollExport();
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedGroups, setSelectedGroups] = useState<ImportDataGroup[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -71,34 +70,25 @@ export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClos
       return;
     }
 
-    setExporting(true);
     setError(null);
 
     try {
-      // 解析选中的月份
-      const [year, month] = selectedMonth.split('-').map(Number);
+      // 查找选中月份的数据
+      const monthData = availableMonths?.find(m => m.month === selectedMonth);
       
-      // 获取该月份的第一天和最后一天
-      // 注意：JavaScript Date构造函数中月份是从0开始的
-      const startDate = new Date(year, month - 1, 1); // month-1 因为JS月份从0开始
-      const endDate = new Date(year, month, 0); // 下个月的第0天 = 本月最后一天
-      
-      const config: ExportConfig = {
-        payPeriod: {
-          start: startDate,
-          end: endDate
-        },
-        dataGroups: selectedGroups,
-        includeHeaders: true
+      const exportConfig = {
+        periodId: monthData?.periodId, // 使用实际的周期ID
+        includeDetails: selectedGroups.includes(ImportDataGroup.EARNINGS) || 
+                       selectedGroups.includes(ImportDataGroup.CONTRIBUTION_BASES),
+        includeInsurance: selectedGroups.includes(ImportDataGroup.CONTRIBUTION_BASES),
+        filename: `薪资数据_${selectedMonth}.xlsx`
       };
 
-      await PayrollExportService.exportPayrollData(config);
+      await exportToExcel(exportConfig);
       toast.success('数据导出成功！');
     } catch (err) {
       setError(err instanceof Error ? err.message : '导出失败');
       toast.error(err instanceof Error ? err.message : '导出失败');
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -223,10 +213,10 @@ export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClos
           <button
             className="btn btn-primary"
             onClick={handleExport}
-            disabled={exporting || !selectedMonth || selectedGroups.length === 0}
+            disabled={loading.isExporting || !selectedMonth || selectedGroups.length === 0}
           >
-            {exporting && <span className="loading loading-spinner"></span>}
-            {exporting ? '导出中...' : '导出数据'}
+            {loading.isExporting && <span className="loading loading-spinner"></span>}
+            {loading.isExporting ? '导出中...' : '导出数据'}
           </button>
         </div>
 
