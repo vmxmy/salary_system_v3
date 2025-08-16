@@ -368,10 +368,11 @@ export function EmployeeModal({
           await employeeDetail.actions.addBankAccount({
             bank_name: account.bank_name!,
             account_number: account.account_number!,
-            branch_name: account.branch_name,
+            branch_name: account.branch_name || null,
             is_primary: account.is_primary || false,
             account_holder_name: formData.employee_name,
-            effective_start_date: new Date().toISOString().split('T')[0]
+            effective_start_date: new Date().toISOString().split('T')[0],
+            effective_end_date: null
           });
         }
       }
@@ -407,8 +408,9 @@ export function EmployeeModal({
           await employeeDetail.actions.addEducation({
             institution_name: education.institution_name!,
             degree: education.degree!,
-            field_of_study: education.field_of_study || '',
-            graduation_date: education.graduation_date || ''
+            field_of_study: education.field_of_study || null,
+            graduation_date: education.graduation_date || null,
+            notes: null
           });
         }
       }

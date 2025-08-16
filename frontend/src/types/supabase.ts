@@ -5285,7 +5285,7 @@ export type Database = {
         | "contract"
         | "intern"
         | "consultant"
-      payroll_status: "draft" | "approved" | "paid" | "cancelled"
+      payroll_status: "draft" | "calculating" | "calculated" | "approved" | "paid" | "cancelled"
       personnel_category_chinese:
         | "公务员"
         | "参照公务员管理"
@@ -5555,7 +5555,7 @@ export const Constants = {
         "intern",
         "consultant",
       ],
-      payroll_status: ["draft", "approved", "paid", "cancelled"],
+      payroll_status: ["draft", "calculating", "calculated", "approved", "paid", "cancelled"],
       personnel_category_chinese: [
         "公务员",
         "参照公务员管理",

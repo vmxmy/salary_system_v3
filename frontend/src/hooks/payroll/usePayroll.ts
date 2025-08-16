@@ -134,7 +134,7 @@ export const useLatestPayrollPeriod = () => {
       const { data: periodData, error: periodError } = await supabase
         .from('payroll_periods')
         .select('id, period_name, period_year, period_month')
-        .in('id', periodIds)
+        .in('id', periodIds.filter(id => id !== null) as string[])
         .order('period_year', { ascending: false })
         .order('period_month', { ascending: false })
         .limit(1);
@@ -367,7 +367,7 @@ export const useCostAnalysis = (params: {
     queryKey: payrollQueryKeys.costAnalysis(params),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('view_payroll_cost_analysis')
+        .from('view_payroll_trend_unified' as any)
         .select('*')
         .gte('pay_month_string', params.startMonth)
         .lte('pay_month_string', params.endMonth)
@@ -526,7 +526,7 @@ export const useCalculatePayrolls = () => {
 
   return useMutation({
     mutationFn: async (payrollIds: string[]) => {
-      const { data, error } = await supabase.rpc('calculate_payrolls', {
+      const { data, error } = await (supabase as any).rpc('calculate_payrolls', {
         payroll_ids: payrollIds
       });
 

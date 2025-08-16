@@ -22,6 +22,14 @@ export interface LoadingState {
   isExporting: boolean;
   /** 验证操作加载状态 */
   isValidating: boolean;
+  /** 预览操作加载状态 */
+  isPreviewing: boolean;
+  /** 计算操作加载状态 */
+  isCalculating: boolean;
+  /** 下载操作加载状态 */
+  isDownloading: boolean;
+  /** 修复操作加载状态 */
+  isFixing: boolean;
   /** 自定义操作加载状态 */
   customLoading: Record<string, boolean>;
 }
@@ -56,6 +64,10 @@ const DEFAULT_LOADING_STATE: LoadingState = {
   isImporting: false,
   isExporting: false,
   isValidating: false,
+  isPreviewing: false,
+  isCalculating: false,
+  isDownloading: false,
+  isFixing: false,
   customLoading: {}
 };
 

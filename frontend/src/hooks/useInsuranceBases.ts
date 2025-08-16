@@ -165,8 +165,8 @@ export function useUpdateEmployeeBase() {
         employee_id: config.employeeId,
         insurance_type_id: config.insuranceTypeId,
         contribution_base: config.newBase,
-        effective_date: config.effectiveDate,
-        notes: config.reason,
+        // effective_date 字段不存在于表中
+        // notes: config.reason, // notes 字段也不存在
       };
 
       const { data, error } = await supabase
@@ -264,7 +264,7 @@ export function useCopyPreviousMonthBases() {
     }) => {
       // 这里需要实现复制逻辑
       // 可能需要创建一个 RPC 函数来处理复杂的复制逻辑
-      const { data, error } = await supabase.rpc('copy_previous_month_bases', {
+      const { data, error } = await (supabase as any).rpc('copy_previous_month_bases', {
         employee_ids: params.employeeIds,
         target_month: params.targetMonth,
         copy_strategy: params.strategy

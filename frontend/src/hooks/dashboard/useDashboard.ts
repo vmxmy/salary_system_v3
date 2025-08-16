@@ -17,7 +17,7 @@ export interface DashboardStats {
   lastPayrollTotal: number;
   lastPayrollDate: string | null;
   lastPayrollEmployeeCount: number;
-  nextPayrollDate: string;
+  nextPayrollDate: string | null;
   daysUntilNextPayroll: number;
 }
 
@@ -25,7 +25,7 @@ export interface DashboardStats {
  * 最近活动类型
  */
 export interface RecentActivity {
-  activityType: 'new_employee' | 'payroll_completed' | 'department_created';
+  activityType: string; // 更宽松的类型定义以适应数据库数据
   entityName: string;
   activityDate: string;
   additionalInfo: string | null;
@@ -104,9 +104,9 @@ export function useDashboard(options: UseDashboardOptions = {}) {
         newDepartmentsThisMonth: data?.new_departments_this_month || 0,
         totalPositions: data?.total_positions || 0,
         lastPayrollTotal: data?.last_payroll_total || 0,
-        lastPayrollDate: data?.last_payroll_date,
+        lastPayrollDate: data?.last_payroll_date || null,
         lastPayrollEmployeeCount: data?.last_payroll_employee_count || 0,
-        nextPayrollDate: data?.next_payroll_date,
+        nextPayrollDate: data?.next_payroll_date || null,
         daysUntilNextPayroll: data?.days_until_next_payroll || 0,
       };
     },
@@ -134,12 +134,14 @@ export function useDashboard(options: UseDashboardOptions = {}) {
         throw error;
       }
 
-      return (data || []).map(activity => ({
-        activityType: activity.activity_type,
-        entityName: activity.entity_name,
-        activityDate: activity.activity_date,
-        additionalInfo: activity.additional_info,
-      }));
+      return (data || [])
+        .filter(activity => activity.activity_type && activity.entity_name && activity.activity_date)
+        .map(activity => ({
+          activityType: activity.activity_type!,
+          entityName: activity.entity_name!,
+          activityDate: activity.activity_date!,
+          additionalInfo: activity.additional_info || '',
+        }));
     },
     refetchInterval: refetchInterval * 2, // 活动数据刷新频率减半
     staleTime: 60000, // 1分钟缓存

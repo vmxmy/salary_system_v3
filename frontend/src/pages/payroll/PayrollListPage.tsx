@@ -438,7 +438,7 @@ export default function PayrollListPage() {
       searchPlaceholder="搜索员工姓名、部门名称、状态..."
       searchLoading={totalLoading}
       showFieldSelector={true}
-      fields={metadata?.fields || []}
+      fields={metadata?.defaultFields || []}
       userConfig={userConfig}
       onFieldConfigChange={updateUserConfig}
       onFieldConfigReset={resetToDefault}

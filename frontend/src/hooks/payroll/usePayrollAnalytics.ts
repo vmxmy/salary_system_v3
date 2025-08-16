@@ -118,7 +118,7 @@ export function usePayrollAnalytics() {
     return useQuery({
       queryKey: analyticsQueryKeys.statistics(targetPeriod),
       queryFn: async (): Promise<PayrollStatistics> => {
-        const { data, error } = await supabase.rpc('get_payroll_statistics', {
+        const { data, error } = await (supabase as any).rpc('get_payroll_statistics', {
           p_period: targetPeriod
         });
 
@@ -146,8 +146,8 @@ export function usePayrollAnalytics() {
             acc.totalDeductions += item.total_deductions || 0;
             acc.totalNetPay += item.net_pay || 0;
             
-            if (item.status in acc.statusCounts) {
-              acc.statusCounts[item.status as keyof typeof acc.statusCounts]++;
+            if (item.payroll_status && item.payroll_status in acc.statusCounts) {
+              acc.statusCounts[item.payroll_status as keyof typeof acc.statusCounts]++;
             }
             
             return acc;
@@ -175,7 +175,7 @@ export function usePayrollAnalytics() {
             stats.averageNetPay = stats.totalNetPay / stats.totalEmployees;
           }
 
-          return stats;
+          return stats as PayrollStatistics;
         }
 
         return data;
@@ -206,7 +206,7 @@ export function usePayrollAnalytics() {
         const total = (data || []).reduce((sum, dept) => sum + (dept.total_gross_pay || 0), 0);
 
         return (data || []).map(dept => ({
-          departmentId: dept.department_id,
+          departmentId: dept.department_id || '',
           departmentName: dept.department_name || '未分配',
           employeeCount: dept.employee_count || 0,
           totalGrossPay: dept.total_gross_pay || 0,
@@ -253,9 +253,9 @@ export function usePayrollAnalytics() {
           const yearAgoData = yearAgoIndex >= 0 ? data![yearAgoIndex] : null;
           
           const trend: PayrollTrend = {
-            period: current.pay_month,
-            year: current.pay_year,
-            month: current.pay_month_number,
+            period: current.pay_month || '',
+            year: current.period_year || new Date().getFullYear(),
+            month: current.period_month || 1,
             totalGrossPay: current.total_gross_pay || 0,
             totalDeductions: current.total_deductions || 0,
             totalNetPay: current.total_net_pay || 0,
@@ -270,9 +270,9 @@ export function usePayrollAnalytics() {
           }
           
           // 计算同比增长率
-          if (yearAgoData && yearAgoData.total_gross_pay > 0) {
+          if (yearAgoData && yearAgoData.total_gross_pay && yearAgoData.total_gross_pay > 0) {
             trend.yearOverYear = 
-              ((trend.totalGrossPay - yearAgoData.total_gross_pay) / yearAgoData.total_gross_pay) * 100;
+              ((trend.totalGrossPay - (yearAgoData.total_gross_pay || 0)) / (yearAgoData.total_gross_pay || 1)) * 100;
           }
           
           previousTotal = trend.totalGrossPay;
@@ -292,7 +292,7 @@ export function usePayrollAnalytics() {
     return useQuery({
       queryKey: analyticsQueryKeys.components(targetPeriod),
       queryFn: async (): Promise<ComponentAnalysis[]> => {
-        const { data, error } = await supabase.rpc('analyze_payroll_components', {
+        const { data, error } = await (supabase as any).rpc('analyze_payroll_components', {
           p_period: targetPeriod
         });
 
@@ -328,7 +328,7 @@ export function usePayrollAnalytics() {
             }
             
             const component = componentMap.get(key)!;
-            component.totalAmount += item.item_amount || 0;
+            component.totalAmount += item.amount || 0;
             component.employeeCount++;
           });
 
@@ -345,10 +345,10 @@ export function usePayrollAnalytics() {
               : 0;
           });
 
-          return components.sort((a, b) => b.totalAmount - a.totalAmount);
+          return components.sort((a, b) => b.totalAmount - a.totalAmount) as ComponentAnalysis[];
         }
 
-        return data || [];
+        return (data || []) as ComponentAnalysis[];
       },
       staleTime: 15 * 60 * 1000 // 15分钟缓存
     });
@@ -418,7 +418,7 @@ export function usePayrollAnalytics() {
   // 生成报表
   const generateReport = async (config: ReportConfig) => {
     try {
-      const { data, error } = await supabase.rpc('generate_payroll_report', {
+      const { data, error } = await (supabase as any).rpc('generate_payroll_report', {
         p_report_type: config.type,
         p_period_start: config.periodStart,
         p_period_end: config.periodEnd,

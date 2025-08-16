@@ -8,6 +8,7 @@ export interface QueryPerformanceMetric {
   timestamp: Date;
   error?: string;
   details?: Record<string, any>;
+  context?: string;
 }
 
 export interface PerformanceSummary {

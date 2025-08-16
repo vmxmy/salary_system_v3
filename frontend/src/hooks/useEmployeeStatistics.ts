@@ -85,7 +85,7 @@ export const useEmployeeStatistics = (params?: StatisticsQueryParams) => {
       const { data: educations, error: educationError } = await supabase
         .from('employee_education')
         .select('employee_id, degree')
-        .in('employee_id', employeeIds);
+        .in('employee_id', employeeIds.filter(id => id !== null) as string[]);
         
       if (educationError) throw educationError;
       
@@ -129,7 +129,7 @@ export const useEmployeeStatistics = (params?: StatisticsQueryParams) => {
       
       // 遍历员工进行统计
       employees?.forEach(employee => {
-        const education = educationMap.get(employee.employee_id);
+        const education = employee.employee_id ? educationMap.get(employee.employee_id) : null;
         
         // 按类别统计
         if (employee.category_name) {
@@ -151,7 +151,7 @@ export const useEmployeeStatistics = (params?: StatisticsQueryParams) => {
         }
         
         // 按学历统计
-        const educationGroup = getEducationGroup(education);
+        const educationGroup = getEducationGroup(education || undefined);
         statistics.byEducation[educationGroup]++;
         
         // 按部门统计
@@ -173,7 +173,7 @@ export const useEmployeeStatistics = (params?: StatisticsQueryParams) => {
         }
         
         // 按年龄段统计
-        const ageGroup = getAgeGroup(employee.date_of_birth);
+        const ageGroup = getAgeGroup(employee.date_of_birth || undefined);
         statistics.byAgeGroup[ageGroup]++;
       });
       
@@ -291,7 +291,7 @@ export const useEmployeeTrends = (months: number = 12) => {
 // 内部服务函数：获取员工统计数据（不是Hook）
 const fetchEmployeeStatistics = async (params: StatisticsQueryParams = {}): Promise<EmployeeStatistics> => {
   const { data: employees, error } = await supabase
-    .from('v_employees_with_details')
+    .from('v_employees_with_details' as any)
     .select('*')
     .eq('is_active', true);
 

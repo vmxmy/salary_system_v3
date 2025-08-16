@@ -2,4 +2,4 @@
 
 export { default as PayrollListPage } from './PayrollListPage';
 export { default as PayrollDetailPage } from './PayrollDetailPage';
-export { default as CreateBatchPayrollPage } from './CreateBatchPayrollPage';
+// export { default as CreateBatchPayrollPage } from './CreateBatchPayrollPage'; // 已删除

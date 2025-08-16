@@ -249,7 +249,7 @@ export function DepartmentCard({
       </div>
 
       {/* 迷你薪资趋势图（占位符，未来可以添加真实的图表） */}
-      {showPayrollStats && payrollStats && payrollStats.employee_count > 0 && (
+      {showPayrollStats && payrollStats && (payrollStats.employee_count || 0) > 0 && (
         <div className="mt-4 pt-3 border-t border-border-subtle">
           <div className="h-8 bg-gradient-to-r from-background-tertiary via-primary/20 to-background-tertiary rounded-md relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse" />

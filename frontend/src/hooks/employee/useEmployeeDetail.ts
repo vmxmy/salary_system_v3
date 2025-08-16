@@ -65,7 +65,7 @@ export function useEmployeeDetail(employeeId: string) {
         if (error.code === 'PGRST116') return null; // 员工不存在
         throw error;
       }
-      return data;
+      return data as any;
     },
     enabled: !!employeeId,
     staleTime: 2 * 60 * 1000, // 2分钟缓存
@@ -87,7 +87,7 @@ export function useEmployeeDetail(employeeId: string) {
         .order('contact_type');
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as any;
     },
     enabled: !!employeeId,
     staleTime: 5 * 60 * 1000,
@@ -109,7 +109,7 @@ export function useEmployeeDetail(employeeId: string) {
         .order('is_primary', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as any;
     },
     enabled: !!employeeId,
     staleTime: 5 * 60 * 1000,
@@ -131,7 +131,7 @@ export function useEmployeeDetail(employeeId: string) {
         .order('graduation_date', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as any;
     },
     enabled: !!employeeId,
     staleTime: 10 * 60 * 1000,

@@ -3,7 +3,8 @@ import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 
 type PayrollPeriod = Database['public']['Tables']['payroll_periods']['Row'];
-type PayrollResult = Database['public']['Tables']['payroll_results']['Row'];
+// payroll_results 表在v3中不存在，使用 payrolls 表替代
+type PayrollResult = Database['public']['Tables']['payrolls']['Row'];
 
 // 获取薪资期间列表
 export function usePayrollPeriods() {
@@ -45,13 +46,13 @@ export function usePayrollResults(periodId?: string) {
     queryKey: ['payroll-results', periodId],
     queryFn: async () => {
       let query = supabase
-        .from('payroll_results')
+        .from('payroll_results' as any)
         .select(`
           *,
           employee:employees(
             id,
             employee_name,
-            employee_no,
+            id_number,
             id_number,
             department:departments(name),
             position:positions(name)
@@ -79,16 +80,16 @@ export function usePayrollStatistics(periodId?: string) {
       if (!periodId) return null;
 
       const { data, error } = await supabase
-        .from('payroll_results')
-        .select('gross_salary, net_salary, total_deductions')
+        .from('view_payroll_summary' as any)
+        .select('gross_pay, net_pay, total_deductions')
         .eq('period_id', periodId);
 
       if (error) throw error;
 
       // 计算统计数据
-      const stats = data.reduce((acc, curr) => ({
-        totalGross: acc.totalGross + (curr.gross_salary || 0),
-        totalNet: acc.totalNet + (curr.net_salary || 0),
+      const stats = (data || []).reduce((acc, curr: any) => ({
+        totalGross: acc.totalGross + (curr.gross_pay || 0),
+        totalNet: acc.totalNet + (curr.net_pay || 0),
         totalDeductions: acc.totalDeductions + (curr.total_deductions || 0),
         count: acc.count + 1,
       }), {
@@ -122,10 +123,16 @@ export function useCreatePayrollPeriod() {
     }) => {
       const { data: result, error } = await supabase
         .from('payroll_periods')
-        .insert([{
-          ...data,
-          status: 'active',
-        }])
+        .insert({
+          period_code: `${data.year}-${String(data.month).padStart(2, '0')}`,
+          period_name: data.name,
+          period_year: data.year,
+          period_month: data.month,
+          period_start: data.start_date,
+          period_end: data.end_date,
+          status: 'draft' as any,
+          pay_date: data.end_date // 默认发薪日为周期结束日
+        })
         .select()
         .single();
 
@@ -147,7 +154,7 @@ export function useRunPayrollCalculation() {
     mutationFn: async (periodId: string) => {
       // 调用数据库函数来触发薪资计算
       const { data, error } = await supabase
-        .rpc('calculate_payroll_for_period', { period_id: periodId });
+        .rpc('calculate_payroll_for_period' as any, { period_id: periodId });
 
       if (error) throw error;
       return data;
@@ -191,14 +198,14 @@ export function useExportPayroll(periodId: string) {
     queryKey: ['export-payroll', periodId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('payroll_results')
+        .from('view_payroll_summary' as any)
         .select(`
           *,
           employee:employees(
             employee_name,
-            employee_no,
             id_number,
-            bank_account,
+            id_number,
+            // bank_account 字段不存在，需要从 employee_bank_accounts 表获取
             department:departments(name),
             position:positions(name)
           )

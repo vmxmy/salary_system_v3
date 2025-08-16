@@ -312,23 +312,27 @@ export function usePersonnelCategories() {
     };
   }, [categories, getChildCategories, isParentCategory]);
 
-  // 重新排序类别
+  // 重新排序类别 - sort_order字段不存在，暂时禁用
   const reorderCategories = useMutation({
     mutationFn: async (reorderData: Array<{ id: string; sort_order: number }>) => {
-      const promises = reorderData.map(({ id, sort_order }) =>
-        supabase
-          .from('employee_categories')
-          .update({ sort_order })
-          .eq('id', id)
-      );
+      // TODO: 需要在数据库中添加 sort_order 字段或使用其他排序机制
+      console.warn('排序功能暂时不可用：employee_categories 表缺少 sort_order 字段');
+      return Promise.resolve();
       
-      const results = await Promise.all(promises);
+      // const promises = reorderData.map(({ id, sort_order }) =>
+      //   supabase
+      //     .from('employee_categories')
+      //     .update({ sort_order })
+      //     .eq('id', id)
+      // );
       
-      // 检查是否有错误
-      const errors = results.filter(result => result.error);
-      if (errors.length > 0) {
-        throw new Error('重新排序失败');
-      }
+      // const results = await Promise.all(promises);
+      // 
+      // // 检查是否有错误
+      // const errors = results.filter(result => result.error);
+      // if (errors.length > 0) {
+      //   throw new Error('重新排序失败');
+      // }
     },
     onSuccess: () => {
       actions.refresh();

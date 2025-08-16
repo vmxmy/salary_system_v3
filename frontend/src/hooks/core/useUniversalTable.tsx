@@ -150,7 +150,7 @@ function useTableData(tableName: string, options?: UniversalTableOptions) {
   return useQuery({
     queryKey: ['table-data', tableName, options?.filters, options?.sorting, options?.pagination],
     queryFn: async () => {
-      let query = supabase.from(tableName).select('*');
+      let query = supabase.from(tableName as any).select('*');
 
       // 应用筛选
       if (options?.filters) {

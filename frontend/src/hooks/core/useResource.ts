@@ -83,7 +83,7 @@ function createSupabaseService<T>(config: SupabaseTableConfig<T>): ResourceServi
 
   return {
     async getAll(): Promise<T[]> {
-      let query = supabase.from(queryTable).select(selectFields);
+      let query = supabase.from(queryTable as any).select(selectFields);
       
       if (orderBy) {
         query = query.order(orderBy.column, { ascending: orderBy.ascending ?? true });
@@ -97,7 +97,7 @@ function createSupabaseService<T>(config: SupabaseTableConfig<T>): ResourceServi
 
     async getById(id: string): Promise<T | null> {
       const { data, error } = await supabase
-        .from(queryTable)
+        .from(queryTable as any)
         .select(selectFields)
         .eq(idField, id)
         .single();
@@ -112,7 +112,7 @@ function createSupabaseService<T>(config: SupabaseTableConfig<T>): ResourceServi
 
     async create(createData: Partial<T>): Promise<T> {
       const { data, error } = await supabase
-        .from(tableName)
+        .from(tableName as any)
         .insert(createData)
         .select(selectFields)
         .single();
@@ -123,7 +123,7 @@ function createSupabaseService<T>(config: SupabaseTableConfig<T>): ResourceServi
 
     async update(id: string, updateData: Partial<T>): Promise<T> {
       const { data, error } = await supabase
-        .from(tableName)
+        .from(tableName as any)
         .update(updateData)
         .eq(idField, id)
         .select(selectFields)
@@ -135,7 +135,7 @@ function createSupabaseService<T>(config: SupabaseTableConfig<T>): ResourceServi
 
     async delete(id: string): Promise<void> {
       const { error } = await supabase
-        .from(tableName)
+        .from(tableName as any)
         .delete()
         .eq(idField, id);
       

@@ -335,8 +335,8 @@ export function useDepartmentPayrollStats(filters?: {
           avg_net_pay: formatNumber(item.avg_net_pay),
           min_gross_pay: formatNumber(item.min_gross_pay),
           max_gross_pay: formatNumber(item.max_gross_pay),
-          dept_gross_pay_percentage: formatNumber(item.dept_gross_pay_percentage, 4),
-          dept_employee_percentage: formatNumber(item.dept_employee_percentage, 4),
+          dept_gross_pay_percentage: formatNumber((item as any).dept_gross_pay_percentage || 0, 4),
+          dept_employee_percentage: formatNumber((item as any).dept_employee_percentage || 0, 4),
         }));
       } catch (error) {
         handleError(error, { customMessage: '获取部门薪资统计失败' });

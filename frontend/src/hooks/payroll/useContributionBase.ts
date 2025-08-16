@@ -4,11 +4,12 @@ import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
 import type { Database } from '@/types/supabase';
 
-// 类型定义 - 临时使用 any 类型，等待数据库类型更新
-type EmployeeContributionBase = any; // Database['public']['Tables']['employee_contribution_bases']['Row'];
-type ContributionBaseInsert = any; // Database['public']['Tables']['employee_contribution_bases']['Insert'];
-type ContributionBaseUpdate = any; // Database['public']['Tables']['employee_contribution_bases']['Update'];
-type InsuranceType = any; // Database['public']['Tables']['insurance_types']['Row'];
+// 类型定义 - 基于实际数据库结构
+type EmployeeContributionBase = Database['public']['Tables']['employee_contribution_bases']['Row'];
+type ContributionBaseInsert = Database['public']['Tables']['employee_contribution_bases']['Insert'];
+type ContributionBaseUpdate = Database['public']['Tables']['employee_contribution_bases']['Update'];
+type InsuranceType = Database['public']['Tables']['insurance_types']['Row'];
+type PayrollPeriod = Database['public']['Tables']['payroll_periods']['Row'];
 
 // 查询键管理
 export const contributionBaseQueryKeys = {
@@ -23,7 +24,7 @@ export const contributionBaseQueryKeys = {
   batchValidation: (params: any) => [...contributionBaseQueryKeys.all, 'validation', params] as const,
 };
 
-// 缴费基数接口
+// 缴费基数接口 - 基于实际数据库结构
 export interface ContributionBase {
   id: string;
   employee_id: string;
@@ -31,16 +32,17 @@ export interface ContributionBase {
   insurance_type_id: string;
   insurance_type_name: string;
   insurance_type_key: string;
-  period_id: string;
+  period_id: string | null;
   period_name?: string;
   contribution_base: number;
-  adjusted_base?: number; // 调整后基数
-  adjustment_reason?: string; // 调整原因
-  effective_date: string; // 兼容性保留
-  end_date?: string | null; // 兼容性保留
-  is_active: boolean;
-  notes?: string;
-  // 保险规则相关
+  // v3数据库中不存在的字段（向后兼容）
+  adjusted_base?: number; // 在v3中固定为undefined
+  adjustment_reason?: string; // 在v3中固定为undefined
+  effective_date: string; // 兼容性字段，在v3中为空字符串
+  end_date?: string | null; // 兼容性字段，在v3中为null
+  is_active: boolean; // 在v3中固定为true
+  notes?: string; // 在v3中固定为undefined
+  // 保险规则相关（从insurance_types表获取）
   insurance_rules?: {
     employee_rate: number;
     employer_rate: number;
@@ -152,12 +154,12 @@ export const useEmployeeContributionBasesByPeriod = (employeeId: string, periodI
         period_id: item.period_id,
         period_name: (item.period as any)?.period_name || '',
         contribution_base: item.contribution_base || 0,
-        adjusted_base: undefined, // Field doesn't exist in v3 DB
-        adjustment_reason: undefined, // Field doesn't exist in v3 DB
-        effective_date: '', // 新结构中没有日期字段
-        end_date: null,
-        is_active: true,
-        notes: undefined, // Field doesn't exist in v3 DB
+        adjusted_base: undefined, // v3数据库不支持此字段
+        adjustment_reason: undefined, // v3数据库不支持此字段
+        effective_date: '', // v3使用period替代日期管理
+        end_date: null, // v3使用period替代日期管理
+        is_active: true, // v3中默认为激活状态
+        notes: undefined, // v3数据库不支持此字段
         insurance_rules: item.insurance_type ? {
           employee_rate: 0.08, // 默认员工缴费率
           employer_rate: 0.16, // 默认单位缴费率
@@ -242,12 +244,12 @@ export const useEmployeeContributionBasesHistory = (employeeId: string) => {
         period_id: item.period_id,
         period_name: (item.period as any)?.period_name || '',
         contribution_base: item.contribution_base || 0,
-        adjusted_base: undefined, // Field doesn't exist in v3 DB
-        adjustment_reason: undefined, // Field doesn't exist in v3 DB
-        effective_date: '', // 新结构中用period代替
-        end_date: null,
-        is_active: true,
-        notes: undefined, // Field doesn't exist in v3 DB
+        adjusted_base: undefined, // v3数据库不支持此字段
+        adjustment_reason: undefined, // v3数据库不支持此字段
+        effective_date: '', // v3使用period替代日期管理
+        end_date: null, // v3使用period替代日期管理
+        is_active: true, // v3中默认为激活状态
+        notes: undefined, // v3数据库不支持此字段
         insurance_rules: item.insurance_type ? {
           employee_rate: 0.08, // 默认员工缴费率
           employer_rate: 0.16, // 默认单位缴费率
@@ -322,11 +324,13 @@ export const useSetContributionBase = () => {
       insuranceTypeId: string;
       periodId: string;
       contributionBase: number;
+      // v3数据库中不支持的字段（保留接口兼容性）
       adjustedBase?: number;
       adjustmentReason?: string;
       notes?: string;
     }) => {
-      const { employeeId, insuranceTypeId, periodId, contributionBase, adjustedBase, adjustmentReason, notes } = params;
+      const { employeeId, insuranceTypeId, periodId, contributionBase } = params;
+      // adjustedBase, adjustmentReason, notes 在v3数据库中不支持，忽略这些参数
       
       // 检查该员工在该周期是否已有该保险类型的基数
       const { data: existing } = await supabase
@@ -343,7 +347,7 @@ export const useSetContributionBase = () => {
           .from('employee_contribution_bases')
           .update({
             contribution_base: contributionBase
-            // adjusted_base, adjustment_reason, notes fields don't exist in v3 DB
+            // v3数据库不支持adjusted_base, adjustment_reason, notes字段
           })
           .eq('id', existing.id)
           .select()
@@ -363,7 +367,7 @@ export const useSetContributionBase = () => {
             insurance_type_id: insuranceTypeId,
             period_id: periodId,
             contribution_base: contributionBase
-            // adjusted_base, adjustment_reason, notes fields don't exist in v3 DB
+            // v3数据库不支持adjusted_base, adjustment_reason, notes字段
           })
           .select()
           .single();
@@ -401,6 +405,7 @@ export const useBatchSetContributionBases = () => {
         insuranceTypeId: string;
         periodId: string;
         contributionBase: number;
+        // v3数据库中不支持的字段（保留接口兼容性）
         adjustedBase?: number;
         adjustmentReason?: string;
         notes?: string;
@@ -414,7 +419,7 @@ export const useBatchSetContributionBases = () => {
         insurance_type_id: base.insuranceTypeId,
         period_id: base.periodId,
         contribution_base: base.contributionBase
-        // adjusted_base, adjustment_reason, notes fields don't exist in v3 DB
+        // v3数据库不支持adjusted_base, adjustment_reason, notes字段
       }));
       
       const { data, error } = await supabase
@@ -500,12 +505,13 @@ export const useCalculateContributionBases = () => {
       const calculatedBases: ContributionBase[] = (insuranceTypes || []).map(type => {
         let contributionBase = calculationBase;
         
-        // 应用最小值和最大值限制
-        if (type.min_base && contributionBase < type.min_base) {
-          contributionBase = type.min_base;
+        // 应用最小值和最大值限制 (v3数据库中这些字段不存在，使用类型断言)
+        const typeWithFields = type as any;
+        if (typeWithFields.min_base && contributionBase < typeWithFields.min_base) {
+          contributionBase = typeWithFields.min_base;
         }
-        if (type.max_base && contributionBase > type.max_base) {
-          contributionBase = type.max_base;
+        if (typeWithFields.max_base && contributionBase > typeWithFields.max_base) {
+          contributionBase = typeWithFields.max_base;
         }
         
         return {
@@ -520,11 +526,11 @@ export const useCalculateContributionBases = () => {
           end_date: null,
           is_active: true,
           insurance_rules: {
-            employee_rate: type.employee_rate || 0,
-            employer_rate: type.employer_rate || 0,
-            min_base: type.min_base || 0,
-            max_base: type.max_base || 0,
-            is_mandatory: type.is_mandatory || false
+            employee_rate: typeWithFields.employee_rate || 0,
+            employer_rate: typeWithFields.employer_rate || 0,
+            min_base: typeWithFields.min_base || 0,
+            max_base: typeWithFields.max_base || 0,
+            is_mandatory: typeWithFields.is_mandatory || false
           }
         };
       });
@@ -566,18 +572,19 @@ export const useValidateContributionBases = () => {
         const insuranceType = insuranceTypes?.find(t => t.id === base.insuranceTypeId);
         if (!insuranceType) continue;
         
-        // 检查最小值
-        if (insuranceType.min_base && base.contributionBase < insuranceType.min_base) {
-          errors.push(`${insuranceType.name}缴费基数不能低于${insuranceType.min_base}元`);
+        // 检查最小值 (v3数据库中这些字段不存在，使用类型断言)
+        const typeWithFields = insuranceType as any;
+        if (typeWithFields.min_base && base.contributionBase < typeWithFields.min_base) {
+          errors.push(`${insuranceType.name}缴费基数不能低于${typeWithFields.min_base}元`);
         }
         
         // 检查最大值
-        if (insuranceType.max_base && base.contributionBase > insuranceType.max_base) {
-          errors.push(`${insuranceType.name}缴费基数不能高于${insuranceType.max_base}元`);
+        if (typeWithFields.max_base && base.contributionBase > typeWithFields.max_base) {
+          errors.push(`${insuranceType.name}缴费基数不能高于${typeWithFields.max_base}元`);
         }
         
         // 检查是否为必须的保险类型
-        if (insuranceType.is_mandatory && base.contributionBase <= 0) {
+        if (typeWithFields.is_mandatory && base.contributionBase <= 0) {
           errors.push(`${insuranceType.name}是必须的保险类型，缴费基数必须大于0`);
         }
       }
@@ -781,7 +788,8 @@ export function useContributionBase(options: UseContributionBaseOptions = {}) {
       // 计算总缴费金额
       calculateTotalContribution: (bases: ContributionBase[]) => {
         return bases.reduce((total, base) => {
-          const effectiveBase = base.contribution_base; // adjusted_base doesn't exist in v3 DB
+          // v3数据库只有contribution_base字段，不使用adjusted_base
+          const effectiveBase = base.contribution_base;
           const employeeAmount = effectiveBase * (base.insurance_rules?.employee_rate || 0);
           const employerAmount = effectiveBase * (base.insurance_rules?.employer_rate || 0);
           return {
@@ -794,7 +802,8 @@ export function useContributionBase(options: UseContributionBaseOptions = {}) {
       
       // 验证基数是否在有效范围内
       isBaseValid: (base: ContributionBase) => {
-        const effectiveBase = base.contribution_base; // adjusted_base doesn't exist in v3 DB
+        // v3数据库只有contribution_base字段，不使用adjusted_base
+        const effectiveBase = base.contribution_base;
         const rules = base.insurance_rules;
         if (!rules) return true;
         

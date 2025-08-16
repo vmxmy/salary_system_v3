@@ -1,17 +1,19 @@
 // 基于真实 Supabase 数据库结构的员工类型定义
 
+// 完全匹配Supabase数据库schema
 export interface Employee {
   id: string;
-  user_id?: string;
-  employee_name: string;
-  id_number?: string;
+  user_id: string | null;
+  employee_name: string | null;
+  id_number: string | null;
   hire_date: string;
-  termination_date?: string;
-  employment_status: 'active' | 'inactive' | 'terminated';
-  gender?: 'male' | 'female' | 'other';
-  date_of_birth?: string;
+  termination_date: string | null;
+  employment_status: string; // 使用数据库的实际枚举值
+  gender: string | null; // 使用数据库的实际枚举值
+  date_of_birth: string | null;
   created_at: string;
   updated_at: string;
+  manager_id: string | null;
 }
 
 // 员工基本信息视图类型（view_employee_basic_info）
@@ -55,24 +57,24 @@ export interface EmployeeCurrentStatus {
   employee_id: string;
   employee_name: string;
   employment_status: string;
-  department_name?: string;
-  position_name?: string;
-  rank_name?: string;
-  job_start_date?: string;
-  category_name?: string;
-  category_start_date?: string;
-  has_occupational_pension?: string;
+  department_name: string | null;
+  position_name: string | null;
+  rank_name: string | null;
+  job_start_date: string | null;
+  category_name: string | null;
+  category_start_date: string | null;
+  has_occupational_pension: string | null;
 }
 
-// 员工联系方式类型
+// 员工联系方式类型 - 完全匹配数据库枚举值
 export interface EmployeeContact {
   id: string;
   employee_id: string;
-  contact_type: 'mobile_phone' | 'email' | 'landline' | 'address';
+  contact_type: 'personal_email' | 'work_email' | 'mobile_phone' | 'home_phone' | 'address';
   contact_details: string;
-  is_primary: boolean;
-  created_at: string;
-  updated_at: string;
+  is_primary: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 // 员工银行账户类型
@@ -82,23 +84,23 @@ export interface EmployeeBankAccount {
   account_holder_name: string;
   account_number: string;
   bank_name: string;
-  branch_name?: string;
-  is_primary: boolean;
+  branch_name: string | null;
+  is_primary: boolean | null;
   effective_start_date: string;
-  effective_end_date?: string;
-  created_at: string;
-  updated_at: string;
+  effective_end_date: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 // 员工教育背景类型
 export interface EmployeeEducation {
   id: string;
   employee_id: string;
-  institution_name: string;
+  institution_name: string | null;
   degree: string;
-  field_of_study: string;
-  graduation_date: string;
-  notes?: string;
+  field_of_study: string | null;
+  graduation_date: string | null;
+  notes: string | null;
   created_at: string;
 }
 
@@ -110,8 +112,8 @@ export interface EmployeeJobHistory {
   position_id: string;
   rank_id: string;
   effective_start_date: string;
-  effective_end_date?: string;
-  notes?: string;
+  effective_end_date: string | null;
+  notes: string | null;
   created_at: string;
 }
 
@@ -132,10 +134,10 @@ export interface EmployeeDocument {
   employee_id: string;
   document_type: string;
   document_name: string;
-  file_path?: string;
-  file_url?: string;
+  file_path: string | null;
+  file_url: string | null;
   upload_date: string;
-  notes?: string;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -147,8 +149,8 @@ export interface EmployeeSpecialDeduction {
   deduction_type: string;
   deduction_amount: string;
   effective_start_date: string;
-  effective_end_date?: string;
-  notes?: string;
+  effective_end_date: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -169,39 +171,39 @@ export interface EmployeeListItem {
   id: string;
   employee_id: string;
   employee_name: string;
-  id_number?: string; // 身份证号
-  hire_date?: string;
-  termination_date?: string; // 离职日期
-  gender?: string; // 性别
-  date_of_birth?: string; // 出生日期
+  id_number: string | null;
+  hire_date: string | null;
+  termination_date: string | null;
+  gender: string | null;
+  date_of_birth: string | null;
   employment_status: string;
-  current_status: 'active' | 'inactive' | 'terminated'; // 添加当前状态字段
-  manager_id?: string; // 上级主管ID
-  department_id?: string; // 部门ID
-  department_name?: string;
-  position_id?: string; // 职位ID
-  position_name?: string;
-  rank_id?: string; // 职级ID
-  rank_name?: string; // 职级名称
-  job_start_date?: string; // 任职开始日期
-  category_id?: string; // 人员类别ID
-  category_name?: string;
-  category_start_date?: string; // 类别开始日期
-  has_occupational_pension?: string; // 是否有职业年金
-  mobile_phone?: string;
-  email?: string;
-  work_email?: string; // 工作邮箱
-  personal_email?: string; // 个人邮箱
-  primary_bank_account?: string; // 主要银行账户号码
-  bank_name?: string; // 银行名称
-  branch_name?: string; // 支行名称
-  latest_institution?: string; // 最新教育机构
-  latest_degree?: string; // 最新学位
-  latest_field_of_study?: string; // 最新专业
-  latest_graduation_date?: string; // 最新毕业日期
-  created_at?: string; // 创建时间
-  updated_at?: string; // 更新时间
-  base_salary?: number; // 添加基本工资字段
+  current_status: string; // 使用数据库实际枚举值
+  manager_id: string | null;
+  department_id: string | null;
+  department_name: string | null;
+  position_id: string | null;
+  position_name: string | null;
+  rank_id: string | null;
+  rank_name: string | null;
+  job_start_date: string | null;
+  category_id: string | null;
+  category_name: string | null;
+  category_start_date: string | null;
+  has_occupational_pension: string | null;
+  mobile_phone: string | null;
+  email: string | null;
+  work_email: string | null;
+  personal_email: string | null;
+  primary_bank_account: string | null;
+  bank_name: string | null;
+  branch_name: string | null;
+  latest_institution: string | null;
+  latest_degree: string | null;
+  latest_field_of_study: string | null;
+  latest_graduation_date: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  base_salary: number | null;
 }
 
 // 员工创建/更新请求类型（基础版本）
@@ -286,7 +288,7 @@ export interface EmployeeCreateResult {
 export interface LookupOption {
   id: string;
   name: string;
-  description?: string;
+  description: string | null;
 }
 
 export interface EmployeeFormOptions {

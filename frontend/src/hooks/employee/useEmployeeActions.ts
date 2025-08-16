@@ -32,12 +32,25 @@ export function useEmployeeActions() {
   // 创建员工
   const createMutation = useMutation({
     mutationFn: async (employeeData: EmployeeCreateData) => {
+      // 映射前端字段到数据库字段
+      const dbData = {
+        employee_name: employeeData.employee_name,
+        id_number: employeeData.id_number || null,
+        phone: employeeData.phone || null,
+        email: employeeData.email || null,
+        hire_date: employeeData.hire_date || null,
+        date_of_birth: employeeData.birth_date || null, // 映射 birth_date 到 date_of_birth
+        gender: employeeData.gender || null,
+        department_id: employeeData.department_id || null,
+        position_id: employeeData.position_id || null,
+        personnel_category_id: employeeData.personnel_category_id || null,
+        employment_status: employeeData.is_active !== false ? 'active' : 'inactive',
+        created_at: new Date().toISOString(),
+      };
+      
       const { data, error } = await supabase
         .from('employees')
-        .insert({
-          ...employeeData,
-          created_at: new Date().toISOString(),
-        })
+        .insert(dbData as any)
         .select()
         .single();
 

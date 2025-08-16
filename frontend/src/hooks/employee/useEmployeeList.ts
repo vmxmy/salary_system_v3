@@ -3,7 +3,7 @@ import { useCallback, useMemo, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandlerWithToast } from '@/hooks/core/useErrorHandlerWithToast';
 import { useLoadingState } from '@/hooks/core/useLoadingState';
-import type { EmployeeListItem, CreateEmployeeRequest, FullEmployeeCreateRequest } from '@/types/employee';
+import type { EmployeeListItem, CreateEmployeeRequest, FullEmployeeCreateRequest, Employee } from '@/types/employee';
 import { useEmployeeFullCreate } from './useEmployeeFullCreate';
 
 /**
@@ -66,16 +66,16 @@ export function useEmployeeList() {
       if (error) throw error;
 
       return (data || []).map(emp => ({
-        id: emp.employee_id,
-        employee_id: emp.employee_id,
-        employee_name: emp.employee_name,
+        id: emp.employee_id || '',
+        employee_id: emp.employee_id || '',
+        employee_name: emp.employee_name || '',
         id_number: emp.id_number,
         hire_date: emp.hire_date,
         termination_date: emp.termination_date,
         gender: emp.gender,
         date_of_birth: emp.date_of_birth,
-        employment_status: emp.employment_status,
-        current_status: emp.employment_status as 'active' | 'inactive' | 'terminated',
+        employment_status: emp.employment_status || 'active',
+        current_status: (emp.employment_status || 'active') as 'active' | 'inactive' | 'terminated',
         manager_id: emp.manager_id,
         department_id: emp.department_id,
         department_name: emp.department_name,
@@ -87,7 +87,7 @@ export function useEmployeeList() {
         category_id: emp.category_id,
         category_name: emp.category_name,
         category_start_date: emp.category_start_date,
-        has_occupational_pension: emp.has_occupational_pension,
+        has_occupational_pension: emp.has_occupational_pension ? String(emp.has_occupational_pension) : null,
         mobile_phone: emp.mobile_phone,
         email: emp.email,
         work_email: emp.work_email,
@@ -101,6 +101,7 @@ export function useEmployeeList() {
         latest_graduation_date: emp.latest_graduation_date,
         created_at: emp.created_at,
         updated_at: emp.updated_at,
+        base_salary: null, // 基本工资字段暂时为null
       }));
     },
     staleTime: 5 * 60 * 1000 // 5分钟内认为数据是新鲜的
@@ -179,7 +180,7 @@ export function useEmployeeList() {
 
   // 创建员工
   const createEmployee = useMutation({
-    mutationFn: async (employeeData: CreateEmployeeRequest): Promise<EmployeeListItem> => {
+    mutationFn: async (employeeData: CreateEmployeeRequest): Promise<Employee> => {
       setLoading('isCreating', true);
       
       // 直接调用Supabase，不通过Service层
@@ -201,7 +202,7 @@ export function useEmployeeList() {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as Employee;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: employeeQueryKeys.list() });
@@ -223,7 +224,7 @@ export function useEmployeeList() {
     }: { 
       employeeId: string; 
       updates: Partial<CreateEmployeeRequest> 
-    }) => {
+    }): Promise<Employee> => {
       setLoading('isUpdating', true);
       
       const { data, error } = await supabase
@@ -234,7 +235,7 @@ export function useEmployeeList() {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as Employee;
     },
     onSuccess: (_, { employeeId }) => {
       queryClient.invalidateQueries({ queryKey: employeeQueryKeys.list() });

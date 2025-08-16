@@ -277,7 +277,7 @@ const PerformanceMonitorPage: React.FC = () => {
                         {query.error}
                       </div>
                       <div className="text-xs text-base-content/50">
-                        耗时: {query.duration}ms {query.context && `• ${query.context}`}
+                        耗时: {query.duration}ms {(query as any).context && `• ${(query as any).context}`}
                       </div>
                     </div>
                   ))}

@@ -194,7 +194,7 @@ export default function PayrollDetailPage() {
       {/* 薪资详情 */}
       <PayrollDetailView
         payroll={payroll}
-        details={details}
+        details={details as any}
         loading={detailsLoading}
       />
     </div>

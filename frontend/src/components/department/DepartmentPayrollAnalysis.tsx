@@ -276,11 +276,11 @@ export function DepartmentPayrollAnalysis({
               payrollStats={{
                 department_id: department.id,
                 department_name: department.name,
-                employee_count: currentDeptStats.employee_count,
-                min_total_salary: currentDeptStats.min_gross_pay,
-                max_total_salary: currentDeptStats.max_gross_pay,
-                average_total_salary: currentDeptStats.avg_gross_pay,
-                total_salary_expense: currentDeptStats.total_gross_pay
+                employee_count: currentDeptStats.employee_count || 0,
+                min_total_salary: currentDeptStats.min_gross_pay || 0,
+                max_total_salary: currentDeptStats.max_gross_pay || 0,
+                average_total_salary: currentDeptStats.avg_gross_pay || 0,
+                total_salary_expense: currentDeptStats.total_gross_pay || 0
               }}
               variant="detailed"
               showValues
@@ -313,7 +313,7 @@ export function DepartmentPayrollAnalysis({
                 </h4>
                 <DepartmentSalaryComparison
                   departments={benchmarkStats.slice(0, 8).map(stat => ({
-                    name: stat.department_name,
+                    name: stat.department_name || '未知部门',
                     payrollStats: stat
                   }))}
                 />

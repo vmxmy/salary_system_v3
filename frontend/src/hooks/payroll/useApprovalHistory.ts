@@ -42,7 +42,7 @@ export interface ApprovalHistoryFilters {
 
 // 获取审批历史数据
 async function fetchApprovalHistory(filters: ApprovalHistoryFilters = {}): Promise<ApprovalHistoryItem[]> {
-  let query = supabase
+  let query = (supabase as any)
     .from('view_approval_history')
     .select('*');
 
@@ -85,12 +85,12 @@ async function fetchApprovalHistory(filters: ApprovalHistoryFilters = {}): Promi
     throw error;
   }
 
-  return data || [];
+  return (data || []) as ApprovalHistoryItem[];
 }
 
 // 获取审批历史统计信息
 async function fetchApprovalHistoryStats(filters: ApprovalHistoryFilters = {}) {
-  let query = supabase
+  let query = (supabase as any)
     .from('view_approval_history')
     .select('action', { count: 'exact' });
 

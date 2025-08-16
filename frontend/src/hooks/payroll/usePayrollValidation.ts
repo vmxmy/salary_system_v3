@@ -234,7 +234,7 @@ export function usePayrollValidation() {
           const issues = validatePayroll(payroll, rules);
           if (issues.length > 0) {
             allIssues.push(...issues);
-            invalidPayrollIds.add(payroll.payroll_id);
+            invalidPayrollIds.add(payroll.payroll_id || '');
           }
         });
 

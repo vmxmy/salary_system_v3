@@ -20,12 +20,12 @@ export function usePermission() {
     const rolePermissions = ROLE_PERMISSIONS[userRole as Role] || [];
     
     // 超级管理员拥有所有权限
-    if (rolePermissions.includes('*')) {
+    if ((rolePermissions as any).includes('*')) {
       return true;
     }
     
     // 检查是否有特定权限
-    return rolePermissions.includes(permission);
+    return (rolePermissions as any).includes(permission);
   }, [user]);
 
   // 检查用户是否有任一权限
@@ -50,11 +50,11 @@ export function usePermission() {
     const rolePermissions = ROLE_PERMISSIONS[userRole] || [];
     
     // 如果是超级管理员，返回所有权限
-    if (rolePermissions.includes('*')) {
+    if ((rolePermissions as any).includes('*')) {
       return Object.values(PERMISSIONS);
     }
     
-    return rolePermissions;
+    return [...rolePermissions] as Permission[];
   }, [getUserRole]);
 
   // 检查是否是管理员角色

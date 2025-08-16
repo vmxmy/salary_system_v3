@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ValidationStep } from '@/components/payroll/wizard/ValidationStep';
+// import { ValidationStep } from '@/components/payroll/wizard/ValidationStep'; // 已删除
 
 // 模拟向导状态用于测试
 const mockWizardState = {
@@ -71,11 +71,10 @@ export default function ValidationTestPage() {
         </div>
       )}
 
-      {/* ValidationStep组件 */}
-      <ValidationStep
-        wizardState={mockWizardState}
-        onValidationComplete={handleValidationComplete}
-      />
+      {/* ValidationStep组件 - 已删除 */}
+      <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg">
+        <p className="text-warning">ValidationStep 组件已删除，此页面仅用于测试框架</p>
+      </div>
 
       {/* 调试信息 */}
       <div className="mt-8 p-4 bg-base-200 rounded-lg">

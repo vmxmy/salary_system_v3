@@ -223,7 +223,7 @@ export default function EmployeeListPage() {
         loading={loading}
         error={error?.message}
         // 表格数据
-        data={data as EmployeeListItem[]}
+        data={data as unknown as EmployeeListItem[]}
         columns={columns}
         // 表格配置
         initialSorting={[{ id: 'employee_name', desc: false }]}

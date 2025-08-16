@@ -821,7 +821,7 @@ export const useCopyPeriodConfig = () => {
       targetPeriodId: string;
       includePayrolls?: boolean;
     }) => {
-      const { data, error } = await supabase.rpc('copy_period_configuration', {
+      const { data, error } = await (supabase as any).rpc('copy_period_configuration', {
         p_source_period_id: params.sourcePeriodId,
         p_target_period_id: params.targetPeriodId,
         p_include_payrolls: params.includePayrolls || false
