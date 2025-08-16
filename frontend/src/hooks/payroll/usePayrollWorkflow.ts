@@ -386,12 +386,15 @@ export function usePayrollWorkflow(options: UsePayrollWorkflowOptions = {}) {
       setWorkflowState(prev => ({ ...prev, isProcessing: true }));
 
       try {
-        const positionAssignments = assignments.map(assignment => ({
-          ...assignment,
-          periodId
-        }));
-
-        await positionHook.mutations.assignPosition.mutateAsync({ assignments: positionAssignments });
+        // Process each assignment individually
+        for (const assignment of assignments) {
+          await positionHook.mutations.assignPosition.mutateAsync({
+            employeeId: assignment.employeeId,
+            positionId: assignment.positionId,
+            departmentId: assignment.departmentId,
+            periodId: periodId
+          });
+        }
         result.success = assignments.length;
       } catch (error) {
         result.failed = assignments.length;

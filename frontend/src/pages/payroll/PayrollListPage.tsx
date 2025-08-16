@@ -14,7 +14,7 @@ import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
 import { useTableConfiguration } from '@/hooks/useTableConfiguration';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
 import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
-import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
+import { DataTable } from '@/components/common/DataTable';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { ModernButton } from '@/components/common/ModernButton';
 import { useToast } from '@/contexts/ToastContext';
@@ -89,6 +89,15 @@ export default function PayrollListPage() {
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
   const monthDateRange = getMonthDateRange(selectedMonth);
+  
+  // 解析年月
+  const parseYearMonth = (yearMonth: string) => {
+    if (!yearMonth) return { year: undefined, month: undefined };
+    const [year, month] = yearMonth.split('-').map(Number);
+    return { year, month };
+  };
+  
+  const { year: periodYear, month: periodMonth } = parseYearMonth(selectedMonth);
 
   // 获取最近有薪资记录的月份
   const { data: latestMonth, isLoading: latestMonthLoading } = useLatestPayrollPeriod();
@@ -96,7 +105,7 @@ export default function PayrollListPage() {
   // 自动设置为最近有记录的月份
   useEffect(() => {
     if (latestMonth && !latestMonthLoading) {
-      setSelectedMonth(latestMonth.period_name || `${latestMonth.year}-${latestMonth.month.toString().padStart(2, '0')}`);
+      setSelectedMonth(latestMonth.period_name || `${latestMonth.year}-${latestMonth.month?.toString().padStart(2, '0')}`);
     }
   }, [latestMonth, latestMonthLoading]);
 
@@ -120,8 +129,8 @@ export default function PayrollListPage() {
 
   // 查询薪资列表 - 获取指定月份的所有数据
   const { data, isLoading, refetch } = usePayrolls({
-    periodYear: monthDateRange.year,
-    periodMonth: monthDateRange.month,
+    periodYear,
+    periodMonth,
     // 不传递分页参数，获取所有数据
     pageSize: 1000 // 设置一个较大的值来获取所有数据
   });
@@ -162,7 +171,7 @@ export default function PayrollListPage() {
         // 搜索所有可能的字段
         const searchableFields = [
           payroll.employee_name,        // 员工姓名
-          payroll.employee?.department_name,     // 部门名称
+          (payroll as any).department_name,      // 部门名称 (直接从视图获取)
           payroll.status,               // 状态
           payroll.pay_date,             // 支付日期
           payroll.gross_pay?.toString(), // 应发工资

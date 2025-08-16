@@ -191,7 +191,7 @@ export default function NewTableArchitectureTestPage() {
                   pageIndex: 0,
                 }}
                 // 默认排序
-                sorting={currentTable.defaultSorting}
+                initialSorting={currentTable.defaultSorting}
               />
             </div>
           </div>

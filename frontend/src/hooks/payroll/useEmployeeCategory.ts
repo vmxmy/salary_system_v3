@@ -5,7 +5,7 @@ import { useErrorHandler } from '@/hooks/core/useErrorHandler';
 import type { Database } from '@/types/supabase';
 
 // 类型定义
-type PersonnelCategory = Database['public']['Tables']['personnel_categories']['Row'];
+type PersonnelCategory = Database['public']['Tables']['employee_categories']['Row'];
 type EmployeeCategoryAssignment = Database['public']['Tables']['employee_category_assignments']['Row'];
 
 // 查询键管理
@@ -60,16 +60,15 @@ interface CategoryRules {
 }
 
 // 获取所有人员类别
-export const usePersonnelCategories = () => {
+export const useEmployeeCategories = () => {
   const { handleError } = useErrorHandler();
   
   return useQuery({
     queryKey: employeeCategoryQueryKeys.categories(),
     queryFn: async (): Promise<PersonnelCategory[]> => {
       const { data, error } = await supabase
-        .from('personnel_categories')
+        .from('employee_categories')
         .select('*')
-        .order('sort_order', { ascending: true })
         .order('name', { ascending: true });
 
       if (error) {
@@ -99,10 +98,9 @@ export const useEmployeeCategoryByPeriod = (employeeId: string, periodId?: strin
           period_id,
           notes,
           created_at,
-          personnel_category:personnel_categories(
+          personnel_category:employee_categories(
             id,
             name,
-            code,
             description
           )
         `)
@@ -114,10 +112,10 @@ export const useEmployeeCategoryByPeriod = (employeeId: string, periodId?: strin
       
       query = query
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      const { data, error } = await query;
+      const { data: queryData, error } = await query.single();
+      const data = queryData as any;
 
       if (error && error.code !== 'PGRST116') {
         handleError(error, { customMessage: '获取员工类别失败' });
@@ -126,6 +124,8 @@ export const useEmployeeCategoryByPeriod = (employeeId: string, periodId?: strin
       
       if (!data || !data.personnel_category) return null;
       
+      const category = Array.isArray(data.personnel_category) ? data.personnel_category[0] : data.personnel_category;
+      
       // 获取类别规则
       const rulesData = await getCategoryRules(data.employee_category_id);
       
@@ -133,8 +133,8 @@ export const useEmployeeCategoryByPeriod = (employeeId: string, periodId?: strin
         id: data.id,
         employee_id: data.employee_id,
         category_id: data.employee_category_id,
-        category_name: data.personnel_category.name,
-        category_code: data.personnel_category.code,
+        category_name: category?.name || '',
+        category_code: undefined, // v3数据库没有code字段
         effective_date: '', // 新结构中没有日期字段
         end_date: null,
         period_id: data.period_id,
@@ -168,10 +168,9 @@ export const useEmployeeCategoryHistory = (employeeId: string) => {
           period_id,
           notes,
           created_at,
-          personnel_category:personnel_categories(
+          personnel_category:employee_categories(
             id,
             name,
-            code,
             description
           ),
           period:payroll_periods(
@@ -189,21 +188,23 @@ export const useEmployeeCategoryHistory = (employeeId: string) => {
         throw error;
       }
       
-      const history = await Promise.all((data || []).map(async (item) => {
+      const history = await Promise.all((data || []).map(async (item: any) => {
         if (!item.personnel_category) return null;
         
+        const category = Array.isArray(item.personnel_category) ? item.personnel_category[0] : item.personnel_category;
+        const period = Array.isArray(item.period) ? item.period[0] : item.period;
         const rulesData = await getCategoryRules(item.employee_category_id);
         
         return {
           id: item.id,
           employee_id: item.employee_id,
           category_id: item.employee_category_id,
-          category_name: item.personnel_category.name,
-          category_code: item.personnel_category.code,
+          category_name: category?.name || '',
+          category_code: undefined, // v3数据库没有code字段
           effective_date: '', // 新结构中用period代替
           end_date: null,
           period_id: item.period_id,
-          period_name: item.period?.period_name || '',
+          period_name: period?.period_name || '',
           is_active: true,
           salary_rules: rulesData
         };
@@ -217,10 +218,10 @@ export const useEmployeeCategoryHistory = (employeeId: string) => {
 };
 
 // 获取类别薪资规则（内部函数）
-const getCategoryRules = async (categoryId: string): Promise<CategoryRules['salary_rules']> => {
+const getCategoryRules = async (categoryId: string): Promise<EmployeeCategory['salary_rules']> => {
   // 从 lookup_values 表获取类别相关的配置
   // 这里简化处理，实际应该从配置表读取
-  const categoryDefaults: Record<string, CategoryRules['salary_rules']> = {
+  const categoryDefaults: Record<string, EmployeeCategory['salary_rules']> = {
     'full_time': {
       has_social_insurance: true,
       has_housing_fund: true,
@@ -253,12 +254,23 @@ const getCategoryRules = async (categoryId: string): Promise<CategoryRules['sala
   
   // 获取类别信息以确定类型
   const { data: category } = await supabase
-    .from('personnel_categories')
-    .select('code')
+    .from('employee_categories')
+    .select('name')
     .eq('id', categoryId)
     .single();
   
-  const code = category?.code || 'full_time';
+  // v3数据库没有code字段，使用name来判断类型
+  const name = category?.name?.toLowerCase() || '';
+  let code = 'full_time'; // 默认全职
+  
+  if (name.includes('合同') || name.includes('contract')) {
+    code = 'contract';
+  } else if (name.includes('临时') || name.includes('temporary')) {
+    code = 'temporary';
+  } else if (name.includes('实习') || name.includes('intern')) {
+    code = 'intern';
+  }
+  
   return categoryDefaults[code] || categoryDefaults['full_time'];
 };
 
@@ -475,7 +487,7 @@ export function useEmployeeCategory(options: UseEmployeeCategoryOptions = {}) {
   const queryClient = useQueryClient();
 
   // 使用各个子Hook
-  const categoriesQuery = usePersonnelCategories();
+  const categoriesQuery = useEmployeeCategories();
   const currentCategoryQuery = useCurrentEmployeeCategory(employeeId || '');
   const categoryHistoryQuery = useEmployeeCategoryHistory(employeeId || '');
   const updateCategoryMutation = useUpdateEmployeeCategory();

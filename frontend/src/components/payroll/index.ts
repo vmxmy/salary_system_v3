@@ -7,3 +7,5 @@ export * from './PayrollDetailView';
 export * from './PayrollDetailModal';
 export * from './PayrollList';
 export * from './PayrollBatchActions';
+export * from './PayrollApprovalPanel';
+export * from './PayrollApprovalActions';

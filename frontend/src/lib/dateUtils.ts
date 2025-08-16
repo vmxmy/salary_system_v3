@@ -110,3 +110,36 @@ export function formatMonth(month: number | string): string {
   const monthNum = typeof month === 'string' ? parseInt(month) : month;
   return `${monthNum}月`;
 }
+
+/**
+ * 格式化日期为中文显示
+ * @param date 日期字符串或Date对象
+ * @param format 格式化方式 'date' | 'datetime' | 'time'
+ * @returns 格式化后的日期字符串
+ */
+export function formatDate(date: string | Date | null | undefined, format: 'date' | 'datetime' | 'time' = 'datetime'): string {
+  if (!date) return '';
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  if (isNaN(dateObj.getTime())) {
+    return '';
+  }
+  
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const hours = String(dateObj.getHours()).padStart(2, '0');
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+  const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+  
+  switch (format) {
+    case 'date':
+      return `${year}-${month}-${day}`;
+    case 'time':
+      return `${hours}:${minutes}:${seconds}`;
+    case 'datetime':
+    default:
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }
+}

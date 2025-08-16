@@ -13,12 +13,15 @@ type EmployeePayrollConfigUpdate = any;
 
 // 薪资分类枚举
 export const SalaryCategories = {
+  // 收入项分类
   BASIC_SALARY: 'basic_salary',           // 基本薪酬
-  BENEFITS_ALLOWANCE: 'benefits_allowance', // 福利津贴
-  PERSONAL_INSURANCE: 'personal_insurance', // 个人五险一金
-  EMPLOYER_INSURANCE: 'employer_insurance', // 单位五险一金
-  INCOME_TAX: 'income_tax',              // 个税
-  OTHER_DEDUCTIONS: 'other_deductions'    // 其他扣缴
+  BENEFITS: 'benefits',                   // 福利津贴
+  
+  // 扣除项分类
+  PERSONAL_INSURANCE: 'personal_insurance', // 个人五险一金（员工扣除项）
+  EMPLOYER_INSURANCE: 'employer_insurance', // 单位五险一金（雇主扣除项）
+  PERSONAL_TAX: 'personal_tax',          // 个人所得税
+  OTHER_DEDUCTIONS: 'other_deductions'    // 其他扣除项
 } as const;
 
 export type SalaryCategoryType = typeof SalaryCategories[keyof typeof SalaryCategories];

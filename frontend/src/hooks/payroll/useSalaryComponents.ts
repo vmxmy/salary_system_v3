@@ -34,6 +34,76 @@ export const useSalaryComponents = (filters?: {
   });
 };
 
+// 获取所有扣除项（包含三个分类）
+export const useDeductionComponents = () => {
+  return useQuery({
+    queryKey: [...COMPONENT_KEYS.lists(), 'deductions'],
+    queryFn: async () => {
+      const components = await SalaryComponentsService.getSalaryComponents({
+        type: 'deduction'
+      });
+      
+      // 按分类组织扣除项
+      const grouped = {
+        personal_insurance: [] as any[],  // 员工扣除项（个人五险一金）
+        employer_insurance: [] as any[],  // 雇主扣除项（单位五险一金）
+        personal_tax: [] as any[],        // 个人所得税
+        other_deductions: [] as any[]     // 其他扣除项
+      };
+      
+      components.forEach(comp => {
+        if (comp.category && grouped[comp.category as keyof typeof grouped]) {
+          grouped[comp.category as keyof typeof grouped].push(comp);
+        }
+      });
+      
+      return {
+        all: components,
+        grouped,
+        // 便捷访问
+        personalInsurance: grouped.personal_insurance,
+        employerInsurance: grouped.employer_insurance,
+        personalTax: grouped.personal_tax,
+        otherDeductions: grouped.other_deductions
+      };
+    },
+    staleTime: 30 * 60 * 1000,
+  });
+};
+
+// 获取收入项
+export const useSalaryEarningComponents = () => {
+  return useQuery({
+    queryKey: [...COMPONENT_KEYS.lists(), 'earnings'],
+    queryFn: async () => {
+      const components = await SalaryComponentsService.getSalaryComponents({
+        type: 'earning'
+      });
+      
+      // 按分类组织收入项
+      const grouped = {
+        basic_salary: [] as any[],  // 基本薪酬
+        benefits: [] as any[]        // 福利津贴
+      };
+      
+      components.forEach(comp => {
+        if (comp.category && grouped[comp.category as keyof typeof grouped]) {
+          grouped[comp.category as keyof typeof grouped].push(comp);
+        }
+      });
+      
+      return {
+        all: components,
+        grouped,
+        // 便捷访问
+        basicSalary: grouped.basic_salary,
+        benefits: grouped.benefits
+      };
+    },
+    staleTime: 30 * 60 * 1000,
+  });
+};
+
 // 获取薪资组件分类统计
 export const useSalaryComponentCategories = () => {
   return useQuery({

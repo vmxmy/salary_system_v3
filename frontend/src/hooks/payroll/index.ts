@@ -1,39 +1,114 @@
 /**
- * Payroll Hooks
- * 薪资管理相关的 React Hooks
+ * Payroll Hooks 统一导出文件
+ * 
+ * 该模块提供了完整的薪资管理功能，包括：
+ * - 薪资核心管理 (CRUD, 状态管理)
+ * - 薪资计算 (预览、批量计算、公式管理)
+ * - 导入导出 (Excel处理、模板管理)
+ * - 审批流程 (状态流转、批量审批)
+ * - 统计分析 (趋势分析、部门统计、成本分析)
+ * - 周期管理 (薪资周期、状态控制)
+ * - 工作流 (多步骤薪资创建流程)
  */
 
-// 导出主Hook和类型
+// 内部导入 - 用于 usePayrollManagement
+import { usePayroll as usePayrollHook } from './usePayroll';
+import { usePayrollCalculation as useCalculationHook } from './usePayrollCalculation';
+import { usePayrollImportExport as useImportExportHook } from './usePayrollImportExport';
+import { usePayrollApproval as useApprovalHook } from './usePayrollApproval';
+import { usePayrollAnalytics as useAnalyticsHook } from './usePayrollAnalytics';
+
+// 核心薪资管理
 export {
   usePayroll,
-  PayrollStatus,
-  type PayrollStatusType,
-  payrollQueryKeys,
-  payrollFormatters,
-} from './usePayroll';
-
-// 导出独立的查询Hooks
-export {
   usePayrolls,
   usePayrollDetails,
   useLatestPayrollPeriod,
   usePayrollStatisticsByParams,
   useCostAnalysis,
-  useEmployeeInsuranceDetails,
-  useEmployeeMonthlyContributionBases,
-  useEmployeeContributionBases,
-  useInsuranceTypes,
-} from './usePayroll';
-
-// 导出Mutation Hooks
-export {
   useCreatePayroll,
   useCreateBatchPayrolls,
   useUpdatePayrollStatus,
   useUpdateBatchPayrollStatus,
   useCalculatePayrolls,
   useDeletePayroll,
+  useEmployeeInsuranceDetails,
+  useEmployeeMonthlyContributionBases,
+  useEmployeeContributionBases,
+  useInsuranceTypes,
+  payrollFormatters,
+  PayrollStatus,
+  payrollQueryKeys,
+  type PayrollStatusType,
+  type PayrollFilters,
+  type PayrollSummary,
+  type PayrollDetail,
+  type BatchOperationResult
 } from './usePayroll';
+
+// 薪资计算
+export {
+  usePayrollCalculation,
+  calculationQueryKeys,
+  type CalculationResult,
+  type PreviewCalculationParams,
+  type BatchCalculationParams,
+  type CalculationProgress
+} from './usePayrollCalculation';
+
+// 导入导出
+export {
+  usePayrollImportExport,
+  importExportQueryKeys,
+  type ImportConfig,
+  type ImportResult,
+  type ExportConfig,
+  type ImportProgress,
+  type ExcelDataRow
+} from './usePayrollImportExport';
+
+// 审批流程
+export {
+  usePayrollApproval,
+  ApprovalFlow,
+  approvalQueryKeys,
+  type ApprovalRecord,
+  type ApprovalParams,
+  type RejectParams,
+  type BatchApprovalResult,
+  type ApprovalFlowConfig
+} from './usePayrollApproval';
+
+// 审批流程V2 - 轻量级单级审批
+export {
+  usePayrollApprovalV2,
+  type PayrollApprovalSummary,
+  type ApprovalLog,
+  type BatchResult
+} from './usePayrollApprovalV2';
+
+// 统计分析
+export {
+  usePayrollAnalytics,
+  analyticsQueryKeys,
+  type PayrollStatistics,
+  type DepartmentStatistics,
+  type PayrollTrend,
+  type ComponentAnalysis,
+  type ComparisonParams,
+  type ComparisonResult,
+  type ReportConfig
+} from './usePayrollAnalytics';
+
+// 薪资周期管理
+export * from './usePayrollPeriod';
+export * from './usePayrollWorkflow';
+
+// 其他专门的 Hooks
+export * from './usePayrollEarnings';
+export * from './useContributionBase';
+export * from './useEmployeeCategory';
+export * from './useEmployeePosition';
 
 // 保险配置
 export * from './useInsuranceConfig';
@@ -43,3 +118,56 @@ export * from './useSalaryComponents';
 
 // 薪资统计
 export * from './usePayrollStatistics';
+
+/**
+ * 便捷的组合 Hook
+ * 提供统一的薪资管理接口
+ */
+export function usePayrollManagement(periodId?: string) {
+  const payroll = usePayrollHook({ filters: { periodId } });
+  const calculation = useCalculationHook();
+  const importExport = useImportExportHook();
+  const approval = useApprovalHook();
+  const analytics = useAnalyticsHook();
+  
+  return {
+    // 数据
+    payrolls: payroll.payrolls,
+    
+    // 加载状态
+    loading: {
+      payrolls: payroll.loading.isLoading,
+      calculation: calculation.loading.batch,
+      import: importExport.loading.import,
+      export: importExport.loading.export,
+      approval: approval.loading.isProcessing
+    },
+    
+    // 操作
+    actions: {
+      // 薪资管理
+      createPayroll: payroll.mutations.createPayroll.mutate,
+      deletePayroll: payroll.mutations.deletePayroll.mutate,
+      
+      // 计算
+      calculate: calculation.actions.batchCalculate,
+      preview: calculation.actions.preview,
+      
+      // 导入导出
+      importExcel: importExport.actions.importExcel,
+      exportExcel: importExport.actions.exportExcel,
+      
+      // 审批
+      approve: approval.actions.approve,
+      reject: approval.actions.reject,
+      markAsPaid: approval.actions.markAsPaid
+    },
+    
+    // 分析
+    analytics: {
+      statistics: analytics.queries.usePayrollStatistics,
+      departments: analytics.queries.useDepartmentStatistics,
+      trends: analytics.queries.usePayrollTrends
+    }
+  };
+}
