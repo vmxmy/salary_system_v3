@@ -8,7 +8,7 @@ import type { Database } from '@/types/supabase';
 type PayrollItem = Database['public']['Tables']['payroll_items']['Row'];
 type PayrollItemInsert = Database['public']['Tables']['payroll_items']['Insert'];
 type PayrollItemUpdate = Database['public']['Tables']['payroll_items']['Update'];
-type PayrollComponent = Database['public']['Tables']['payroll_components']['Row'];
+type PayrollComponent = Database['public']['Tables']['salary_components']['Row'];
 
 // 查询键管理
 export const payrollEarningsQueryKeys = {
@@ -85,11 +85,10 @@ export const useEarningComponents = () => {
     queryKey: payrollEarningsQueryKeys.earningComponents(),
     queryFn: async (): Promise<PayrollComponent[]> => {
       const { data, error } = await supabase
-        .from('payroll_components')
+        .from('salary_components')
         .select('*')
-        .eq('component_type', 'earning')
+        .eq('type', 'earning')
         .order('category', { ascending: true })
-        .order('sort_order', { ascending: true })
         .order('name', { ascending: true });
 
       if (error) {
@@ -103,13 +102,14 @@ export const useEarningComponents = () => {
   });
 };
 
-// 获取薪资收入明细
-export const usePayrollEarnings = (payrollId: string) => {
+// 获取薪资收入明细（基础版本）
+export const usePayrollEarningsBasic = (payrollId: string) => {
   const { handleError } = useErrorHandler();
   
   return useQuery({
     queryKey: payrollEarningsQueryKeys.payrollEarnings(payrollId),
     queryFn: async (): Promise<PayrollEarning[]> => {
+      // 先获取所有项目，然后在客户端过滤
       const { data, error } = await supabase
         .from('payroll_items')
         .select(`
@@ -119,41 +119,46 @@ export const usePayrollEarnings = (payrollId: string) => {
           amount,
           notes,
           period_id,
-          component:payroll_components!inner(
+          component:salary_components(
             id,
             name,
-            component_type,
+            type,
             category,
-            is_taxable,
-            is_social_insurance_base,
-            is_housing_fund_base,
-            calculation_method,
-            calculation_config
+            is_taxable
           )
         `)
-        .eq('payroll_id', payrollId)
-        .eq('component.component_type', 'earning')
-        .order('component.sort_order', { ascending: true })
-        .order('component.name', { ascending: true });
+        .eq('payroll_id', payrollId);
 
       if (error) {
         handleError(error, { customMessage: '获取薪资收入明细失败' });
         throw error;
       }
       
-      return (data || []).map(item => ({
+      // 客户端过滤，只保留 earning 类型
+      const filteredData = (data || []).filter((item: any) => (item.component as any)?.type === 'earning');
+      
+      // 客户端排序
+      const sortedData = filteredData.sort((a: any, b: any) => {
+        // 先按类别排序
+        const categoryOrder = ((a.component as any)?.category || '').localeCompare((b.component as any)?.category || '');
+        if (categoryOrder !== 0) return categoryOrder;
+        // 再按名称排序
+        return ((a.component as any)?.name || '').localeCompare((b.component as any)?.name || '');
+      });
+      
+      return sortedData.map((item: any) => ({
         id: item.id,
         payroll_id: item.payroll_id,
         component_id: item.component_id,
-        component_name: item.component?.name || '',
+        component_name: (item.component as any)?.name || '',
         component_type: 'earning' as const,
-        category: item.component?.category as PayrollEarning['category'],
+        category: (item.component as any)?.category as PayrollEarning['category'],
         amount: item.amount || 0,
-        is_taxable: item.component?.is_taxable || false,
-        is_social_insurance_base: item.component?.is_social_insurance_base || false,
-        is_housing_fund_base: item.component?.is_housing_fund_base || false,
-        calculation_method: item.component?.calculation_method as PayrollEarning['calculation_method'],
-        calculation_config: item.component?.calculation_config,
+        is_taxable: (item.component as any)?.is_taxable || false,
+        is_social_insurance_base: false, // v3数据库没有此字段，默认为false
+        is_housing_fund_base: false, // v3数据库没有此字段，默认为false
+        calculation_method: 'fixed' as PayrollEarning['calculation_method'], // v3数据库没有此字段，默认为fixed
+        calculation_config: undefined, // v3数据库没有此字段
         notes: item.notes,
         period_id: item.period_id
       }));
@@ -185,21 +190,20 @@ export const useEmployeeEarningHistory = (employeeId: string, periodId?: string)
             pay_date,
             status
           ),
-          component:payroll_components!inner(
+          component:salary_components(
             id,
             name,
-            component_type,
+            type,
             category
           )
         `)
-        .eq('payroll.employee_id', employeeId)
-        .eq('component.component_type', 'earning');
+        .eq('payroll.employee_id', employeeId);
       
       if (periodId) {
         query = query.eq('period_id', periodId);
       }
       
-      query = query.order('payroll.pay_date', { ascending: false });
+      query = query.order('payroll(pay_date)', { ascending: false });
 
       const { data, error } = await query;
 
@@ -208,7 +212,9 @@ export const useEmployeeEarningHistory = (employeeId: string, periodId?: string)
         throw error;
       }
       
-      return data || [];
+      // 客户端过滤，只保留 earning 类型
+      const filteredData = (data || []).filter((item: any) => (item.component as any)?.type === 'earning');
+      return filteredData;
     },
     enabled: !!employeeId,
     staleTime: 10 * 60 * 1000,
@@ -345,7 +351,7 @@ export const useDeleteEarning = () => {
 
 // 计算总收入
 export const useCalculateGrossPay = (payrollId: string) => {
-  const earningsQuery = usePayrollEarnings(payrollId);
+  const earningsQuery = usePayrollEarningsBasic(payrollId);
   
   return {
     ...earningsQuery,
@@ -355,12 +361,9 @@ export const useCalculateGrossPay = (payrollId: string) => {
       taxableIncome: earningsQuery.data
         .filter(item => item.is_taxable)
         .reduce((sum, item) => sum + item.amount, 0),
-      socialInsuranceBase: earningsQuery.data
-        .filter(item => item.is_social_insurance_base)
-        .reduce((sum, item) => sum + item.amount, 0),
-      housingFundBase: earningsQuery.data
-        .filter(item => item.is_housing_fund_base)
-        .reduce((sum, item) => sum + item.amount, 0)
+      // v3数据库没有这些字段，使用总收入作为基数
+      socialInsuranceBase: earningsQuery.data.reduce((sum, item) => sum + item.amount, 0),
+      housingFundBase: earningsQuery.data.reduce((sum, item) => sum + item.amount, 0)
     } : null
   };
 };
@@ -504,7 +507,7 @@ export function usePayrollEarnings(options: UsePayrollEarningsOptions = {}) {
 
   // 使用各个子Hook
   const componentsQuery = useEarningComponents();
-  const earningsQuery = usePayrollEarnings(payrollId || '');
+  const earningsQuery = usePayrollEarningsBasic(payrollId || '');
   const employeeHistoryQuery = useEmployeeEarningHistory(employeeId || '', periodId);
   const grossPayCalculation = useCalculateGrossPay(payrollId || '');
   const taxDeductionsQuery = useTaxDeductions();

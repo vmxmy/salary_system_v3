@@ -68,7 +68,7 @@ interface PositionSalaryRange {
 }
 
 // 获取所有职位
-export const usePositions = () => {
+export const useEmployeePositions = () => {
   const { handleError } = useErrorHandler();
   
   return useQuery({
@@ -76,11 +76,7 @@ export const usePositions = () => {
     queryFn: async (): Promise<Position[]> => {
       const { data, error } = await supabase
         .from('positions')
-        .select(`
-          *,
-          department:departments(id, name)
-        `)
-        .order('level', { ascending: true })
+        .select('*')
         .order('name', { ascending: true });
 
       if (error) {
@@ -101,6 +97,7 @@ export const useEmployeePositionByPeriod = (employeeId: string, periodId?: strin
   return useQuery({
     queryKey: employeePositionQueryKeys.employeePosition(employeeId),
     queryFn: async (): Promise<EmployeePosition | null> => {
+      // Step 1: Get the basic job history record
       let query = supabase
         .from('employee_job_history')
         .select(`
@@ -110,18 +107,7 @@ export const useEmployeePositionByPeriod = (employeeId: string, periodId?: strin
           department_id,
           period_id,
           notes,
-          created_at,
-          position:positions(
-            id,
-            name,
-            level,
-            description
-          ),
-          department:departments(
-            id,
-            name,
-            code
-          )
+          created_at
         `)
         .eq('employee_id', employeeId);
       
@@ -131,32 +117,54 @@ export const useEmployeePositionByPeriod = (employeeId: string, periodId?: strin
       
       query = query
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      const { data, error } = await query;
+      const { data: queryData, error: jobError } = await query;
+      const jobHistory = queryData?.[0] as any;
 
-      if (error && error.code !== 'PGRST116') {
-        handleError(error, { customMessage: '获取员工职位失败' });
-        throw error;
+      if (jobError) {
+        handleError(jobError, { customMessage: '获取员工职位失败' });
+        throw jobError;
       }
       
-      if (!data || !data.position || !data.department) return null;
+      if (!jobHistory) return null;
       
-      // 获取职位薪资标准
-      const salaryGrade = await getPositionSalaryGrade(data.position_id);
+      // Step 2: Get position details separately
+      const { data: position, error: positionError } = await supabase
+        .from('positions')
+        .select('id, name, description')
+        .eq('id', jobHistory?.position_id)
+        .single();
+      
+      if (positionError) {
+        console.warn('Failed to get position details:', positionError);
+      }
+      
+      // Step 3: Get department details separately
+      const { data: department, error: departmentError } = await supabase
+        .from('departments')
+        .select('id, name')
+        .eq('id', jobHistory?.department_id)
+        .single();
+      
+      if (departmentError) {
+        console.warn('Failed to get department details:', departmentError);
+      }
+      
+      // Step 4: Get salary grade
+      const salaryGrade = await getPositionSalaryGrade(jobHistory?.position_id);
       
       return {
-        id: data.id,
-        employee_id: data.employee_id,
-        position_id: data.position_id,
-        position_name: data.position.name,
-        position_level: data.position.level,
-        department_id: data.department_id,
-        department_name: data.department.name,
+        id: jobHistory?.id || '',
+        employee_id: jobHistory?.employee_id || '',
+        position_id: jobHistory?.position_id || '',
+        position_name: position?.name || '',
+        position_level: undefined, // v3 doesn't have level field
+        department_id: jobHistory?.department_id || '',
+        department_name: department?.name || '',
         effective_date: '', // 新结构中没有日期字段
         end_date: null,
-        period_id: data.period_id,
+        period_id: jobHistory?.period_id || '',
         is_primary: true, // 当前只支持主职位
         is_active: true,
         salary_grade: salaryGrade
@@ -179,7 +187,8 @@ export const useEmployeePositionHistory = (employeeId: string) => {
   return useQuery({
     queryKey: employeePositionQueryKeys.positionHistory(employeeId),
     queryFn: async (): Promise<EmployeePosition[]> => {
-      const { data, error } = await supabase
+      // Step 1: Get job history records
+      const { data: jobHistoryData, error } = await supabase
         .from('employee_job_history')
         .select(`
           id,
@@ -188,24 +197,7 @@ export const useEmployeePositionHistory = (employeeId: string) => {
           department_id,
           period_id,
           notes,
-          created_at,
-          position:positions(
-            id,
-            name,
-            level,
-            description
-          ),
-          department:departments(
-            id,
-            name,
-            code
-          ),
-          period:payroll_periods(
-            id,
-            period_name,
-            period_year,
-            period_month
-          )
+          created_at
         `)
         .eq('employee_id', employeeId)
         .order('created_at', { ascending: false });
@@ -215,8 +207,46 @@ export const useEmployeePositionHistory = (employeeId: string) => {
         throw error;
       }
       
-      const history = await Promise.all((data || []).map(async (item) => {
-        if (!item.position || !item.department) return null;
+      if (!jobHistoryData || jobHistoryData.length === 0) {
+        return [];
+      }
+      
+      // Step 2: Get unique position and department IDs
+      const positionIds = [...new Set(jobHistoryData.map(item => item.position_id))];
+      const departmentIds = [...new Set(jobHistoryData.map(item => item.department_id))];
+      const periodIds = [...new Set(jobHistoryData.map(item => item.period_id).filter(Boolean))];
+      
+      // Step 3: Fetch related data in parallel
+      const [positionsData, departmentsData, periodsData] = await Promise.all([
+        supabase
+          .from('positions')
+          .select('id, name, description')
+          .in('id', positionIds),
+        supabase
+          .from('departments')
+          .select('id, name')
+          .in('id', departmentIds),
+        periodIds.length > 0 ? supabase
+          .from('payroll_periods')
+          .select('id, period_name, period_year, period_month')
+          .in('id', periodIds) : { data: [] }
+      ]);
+      
+      // Create lookup maps
+      const positionsMap = new Map((positionsData.data || []).map(p => [p.id, p]));
+      const departmentsMap = new Map((departmentsData.data || []).map(d => [d.id, d]));
+      const periodsMap = new Map((periodsData.data || []).map(p => [p.id, p]));
+      
+      // Step 4: Process and combine data
+      const history = await Promise.all(jobHistoryData.map(async (item: any) => {
+        const position = positionsMap.get(item.position_id);
+        const department = departmentsMap.get(item.department_id);
+        const period = item.period_id ? periodsMap.get(item.period_id) : null;
+        
+        if (!position || !department) {
+          console.warn(`Missing related data for job history ${item.id}`);
+          return null;
+        }
         
         const salaryGrade = await getPositionSalaryGrade(item.position_id);
         
@@ -224,14 +254,14 @@ export const useEmployeePositionHistory = (employeeId: string) => {
           id: item.id,
           employee_id: item.employee_id,
           position_id: item.position_id,
-          position_name: item.position.name,
-          position_level: item.position.level,
+          position_name: position.name,
+          position_level: undefined, // v3 doesn't have level field
           department_id: item.department_id,
-          department_name: item.department.name,
+          department_name: department.name,
           effective_date: '', // 新结构中用period代替
           end_date: null,
           period_id: item.period_id,
-          period_name: item.period?.period_name || '',
+          period_name: period?.period_name || '',
           is_primary: true,
           is_active: true,
           salary_grade: salaryGrade
@@ -252,25 +282,15 @@ export const useDepartmentPositions = (departmentId: string) => {
   return useQuery({
     queryKey: employeePositionQueryKeys.departmentPositions(departmentId),
     queryFn: async () => {
-      // 获取部门下的所有员工职位分配
-      const { data, error } = await supabase
+      // Step 1: Get job history records for this department
+      const { data: jobHistoryData, error } = await supabase
         .from('employee_job_history')
         .select(`
           id,
           employee_id,
           position_id,
           period_id,
-          created_at,
-          employee:employees(
-            id,
-            employee_name,
-            employee_no
-          ),
-          position:positions(
-            id,
-            name,
-            level
-          )
+          created_at
         `)
         .eq('department_id', departmentId)
         .order('created_at', { ascending: false });
@@ -280,7 +300,53 @@ export const useDepartmentPositions = (departmentId: string) => {
         throw error;
       }
       
-      return data || [];
+      if (!jobHistoryData || jobHistoryData.length === 0) {
+        return [];
+      }
+      
+      // Step 2: Get unique employee and position IDs
+      const employeeIds = [...new Set(jobHistoryData.map(item => item.employee_id))];
+      const positionIds = [...new Set(jobHistoryData.map(item => item.position_id))];
+      
+      // Step 3: Fetch related data in parallel
+      const [employeesData, positionsData] = await Promise.all([
+        supabase
+          .from('employees')
+          .select('id, employee_name')
+          .in('id', employeeIds),
+        supabase
+          .from('positions')
+          .select('id, name')
+          .in('id', positionIds)
+      ]);
+      
+      // Create lookup maps
+      const employeesMap = new Map((employeesData.data || []).map(e => [e.id, e]));
+      const positionsMap = new Map((positionsData.data || []).map(p => [p.id, p]));
+      
+      // Step 4: Combine data
+      const result = jobHistoryData.map((item: any) => {
+        const employee = employeesMap.get(item.employee_id);
+        const position = positionsMap.get(item.position_id);
+        
+        return {
+          id: item.id,
+          employee_id: item.employee_id,
+          position_id: item.position_id,
+          period_id: item.period_id,
+          created_at: item.created_at,
+          employee: employee ? {
+            id: employee.id,
+            employee_name: employee.employee_name
+          } : null,
+          position: position ? {
+            id: position.id,
+            name: position.name
+          } : null
+        };
+      });
+      
+      return result;
     },
     enabled: !!departmentId,
     staleTime: 10 * 60 * 1000,
@@ -291,13 +357,8 @@ export const useDepartmentPositions = (departmentId: string) => {
 const getPositionSalaryGrade = async (positionId: string): Promise<EmployeePosition['salary_grade']> => {
   // 这里简化处理，实际应该从配置表读取
   // 可以根据职位级别设置不同的薪资范围
-  const { data: position } = await supabase
-    .from('positions')
-    .select('level')
-    .eq('id', positionId)
-    .single();
-  
-  const level = position?.level || 'P1';
+  // v3 数据库中 positions 表没有 level 字段，使用默认值
+  const level = 'P1';
   
   // 根据级别设置薪资范围
   const salaryRanges: Record<string, EmployeePosition['salary_grade']> = {
@@ -364,12 +425,14 @@ export const useAssignEmployeePosition = () => {
       const { employeeId, positionId, departmentId, periodId, notes } = params;
       
       // 检查该员工在该周期是否已有职位分配
-      const { data: existing } = await supabase
+      const { data: existingData } = await supabase
         .from('employee_job_history')
         .select('id')
         .eq('employee_id', employeeId)
         .eq('period_id', periodId)
-        .single();
+        .limit(1);
+      
+      const existing = existingData?.[0];
       
       if (existing) {
         // 更新现有记录
@@ -611,7 +674,7 @@ export function useEmployeePosition(options: UseEmployeePositionOptions = {}) {
   const queryClient = useQueryClient();
 
   // 使用各个子Hook
-  const positionsQuery = usePositions();
+  const positionsQuery = useEmployeePositions();
   const currentPositionQuery = useCurrentEmployeePosition(employeeId || '');
   const positionHistoryQuery = useEmployeePositionHistory(employeeId || '');
   const departmentPositionsQuery = useDepartmentPositions(departmentId || '');

@@ -102,25 +102,17 @@ export const useEmployeeContributionBasesByPeriod = (employeeId: string, periodI
           insurance_type_id,
           period_id,
           contribution_base,
-          adjusted_base,
-          adjustment_reason,
-          notes,
           created_at,
           employee:employees(
             id,
-            employee_name,
-            employee_no
+            employee_name
           ),
           insurance_type:insurance_types(
             id,
             system_key,
             name,
             description,
-            employee_rate,
-            employer_rate,
-            min_base,
-            max_base,
-            is_mandatory
+            is_active
           ),
           period:payroll_periods(
             id,
@@ -135,8 +127,7 @@ export const useEmployeeContributionBasesByPeriod = (employeeId: string, periodI
         query = query.eq('period_id', periodId);
       }
       
-      query = query.order('insurance_type.system_key', { ascending: true });
-
+      // Cannot order by nested field in Supabase, will sort client-side
       const { data, error } = await query;
 
       if (error) {
@@ -144,28 +135,35 @@ export const useEmployeeContributionBasesByPeriod = (employeeId: string, periodI
         throw error;
       }
       
-      return (data || []).map(item => ({
+      // Sort by insurance type system_key client-side
+      const sortedData = (data || []).sort((a, b) => {
+        const keyA = (a.insurance_type as any)?.system_key || '';
+        const keyB = (b.insurance_type as any)?.system_key || '';
+        return keyA.localeCompare(keyB);
+      });
+      
+      return sortedData.map(item => ({
         id: item.id,
         employee_id: item.employee_id,
-        employee_name: item.employee?.employee_name || '',
+        employee_name: (item.employee as any)?.employee_name || '',
         insurance_type_id: item.insurance_type_id,
-        insurance_type_name: item.insurance_type?.name || '',
-        insurance_type_key: item.insurance_type?.system_key || '',
+        insurance_type_name: (item.insurance_type as any)?.name || '',
+        insurance_type_key: (item.insurance_type as any)?.system_key || '',
         period_id: item.period_id,
-        period_name: item.period?.period_name || '',
+        period_name: (item.period as any)?.period_name || '',
         contribution_base: item.contribution_base || 0,
-        adjusted_base: item.adjusted_base || undefined,
-        adjustment_reason: item.adjustment_reason || undefined,
+        adjusted_base: undefined, // Field doesn't exist in v3 DB
+        adjustment_reason: undefined, // Field doesn't exist in v3 DB
         effective_date: '', // 新结构中没有日期字段
         end_date: null,
         is_active: true,
-        notes: item.notes,
+        notes: undefined, // Field doesn't exist in v3 DB
         insurance_rules: item.insurance_type ? {
-          employee_rate: item.insurance_type.employee_rate || 0,
-          employer_rate: item.insurance_type.employer_rate || 0,
-          min_base: item.insurance_type.min_base || 0,
-          max_base: item.insurance_type.max_base || 0,
-          is_mandatory: item.insurance_type.is_mandatory || false
+          employee_rate: 0.08, // 默认员工缴费率
+          employer_rate: 0.16, // 默认单位缴费率
+          min_base: 3000, // 默认最低基数
+          max_base: 30000, // 默认最高基数
+          is_mandatory: (item.insurance_type as any)?.is_active || false
         } : undefined
       }));
     },
@@ -194,25 +192,17 @@ export const useEmployeeContributionBasesHistory = (employeeId: string) => {
           insurance_type_id,
           period_id,
           contribution_base,
-          adjusted_base,
-          adjustment_reason,
-          notes,
           created_at,
           employee:employees(
             id,
-            employee_name,
-            employee_no
+            employee_name
           ),
           insurance_type:insurance_types(
             id,
             system_key,
             name,
             description,
-            employee_rate,
-            employer_rate,
-            min_base,
-            max_base,
-            is_mandatory
+            is_active
           ),
           period:payroll_periods(
             id,
@@ -221,38 +211,49 @@ export const useEmployeeContributionBasesHistory = (employeeId: string) => {
             period_month
           )
         `)
-        .eq('employee_id', employeeId)
-        .order('period.period_year', { ascending: false })
-        .order('period.period_month', { ascending: false })
-        .order('insurance_type.system_key', { ascending: true });
+        .eq('employee_id', employeeId);
 
       if (error) {
         handleError(error, { customMessage: '获取缴费基数历史失败' });
         throw error;
       }
       
-      return (data || []).map(item => ({
+      // 客户端排序
+      const sortedData = (data || []).sort((a, b) => {
+        // 先按年份降序
+        const yearDiff = ((b.period as any)?.period_year || 0) - ((a.period as any)?.period_year || 0);
+        if (yearDiff !== 0) return yearDiff;
+        
+        // 再按月份降序
+        const monthDiff = ((b.period as any)?.period_month || 0) - ((a.period as any)?.period_month || 0);
+        if (monthDiff !== 0) return monthDiff;
+        
+        // 最后按保险类型键排序
+        return ((a.insurance_type as any)?.system_key || '').localeCompare((b.insurance_type as any)?.system_key || '');
+      });
+      
+      return sortedData.map(item => ({
         id: item.id,
         employee_id: item.employee_id,
-        employee_name: item.employee?.employee_name || '',
+        employee_name: (item.employee as any)?.employee_name || '',
         insurance_type_id: item.insurance_type_id,
-        insurance_type_name: item.insurance_type?.name || '',
-        insurance_type_key: item.insurance_type?.system_key || '',
+        insurance_type_name: (item.insurance_type as any)?.name || '',
+        insurance_type_key: (item.insurance_type as any)?.system_key || '',
         period_id: item.period_id,
-        period_name: item.period?.period_name || '',
+        period_name: (item.period as any)?.period_name || '',
         contribution_base: item.contribution_base || 0,
-        adjusted_base: item.adjusted_base || undefined,
-        adjustment_reason: item.adjustment_reason || undefined,
+        adjusted_base: undefined, // Field doesn't exist in v3 DB
+        adjustment_reason: undefined, // Field doesn't exist in v3 DB
         effective_date: '', // 新结构中用period代替
         end_date: null,
         is_active: true,
-        notes: item.notes,
+        notes: undefined, // Field doesn't exist in v3 DB
         insurance_rules: item.insurance_type ? {
-          employee_rate: item.insurance_type.employee_rate || 0,
-          employer_rate: item.insurance_type.employer_rate || 0,
-          min_base: item.insurance_type.min_base || 0,
-          max_base: item.insurance_type.max_base || 0,
-          is_mandatory: item.insurance_type.is_mandatory || false
+          employee_rate: 0.08, // 默认员工缴费率
+          employer_rate: 0.16, // 默认单位缴费率
+          min_base: 3000, // 默认最低基数
+          max_base: 30000, // 默认最高基数
+          is_mandatory: (item.insurance_type as any)?.is_active || false
         } : undefined
       }));
     },
@@ -275,13 +276,9 @@ export const usePeriodContributionBases = (periodId: string) => {
           employee_id,
           insurance_type_id,
           contribution_base,
-          adjusted_base,
-          adjustment_reason,
-          notes,
           employee:employees(
             id,
-            employee_name,
-            employee_no
+            employee_name
           ),
           insurance_type:insurance_types(
             id,
@@ -290,16 +287,24 @@ export const usePeriodContributionBases = (periodId: string) => {
             description
           )
         `)
-        .eq('period_id', periodId)
-        .order('employee.employee_name', { ascending: true })
-        .order('insurance_type.system_key', { ascending: true });
+        .eq('period_id', periodId);
 
       if (error) {
         handleError(error, { customMessage: '获取周期缴费基数失败' });
         throw error;
       }
       
-      return data || [];
+      // Sort client-side since Supabase doesn't support nested field ordering
+      const sortedData = (data || []).sort((a, b) => {
+        // First sort by employee name
+        const nameCompare = ((a.employee as any)?.employee_name || '').localeCompare((b.employee as any)?.employee_name || '');
+        if (nameCompare !== 0) return nameCompare;
+        
+        // Then sort by insurance type system key
+        return ((a.insurance_type as any)?.system_key || '').localeCompare((b.insurance_type as any)?.system_key || '');
+      });
+      
+      return sortedData;
     },
     enabled: !!periodId,
     staleTime: 5 * 60 * 1000,
@@ -337,10 +342,8 @@ export const useSetContributionBase = () => {
         const { data, error } = await supabase
           .from('employee_contribution_bases')
           .update({
-            contribution_base: contributionBase,
-            adjusted_base: adjustedBase,
-            adjustment_reason: adjustmentReason,
-            notes
+            contribution_base: contributionBase
+            // adjusted_base, adjustment_reason, notes fields don't exist in v3 DB
           })
           .eq('id', existing.id)
           .select()
@@ -359,10 +362,8 @@ export const useSetContributionBase = () => {
             employee_id: employeeId,
             insurance_type_id: insuranceTypeId,
             period_id: periodId,
-            contribution_base: contributionBase,
-            adjusted_base: adjustedBase,
-            adjustment_reason: adjustmentReason,
-            notes
+            contribution_base: contributionBase
+            // adjusted_base, adjustment_reason, notes fields don't exist in v3 DB
           })
           .select()
           .single();
@@ -412,10 +413,8 @@ export const useBatchSetContributionBases = () => {
         employee_id: base.employeeId,
         insurance_type_id: base.insuranceTypeId,
         period_id: base.periodId,
-        contribution_base: base.contributionBase,
-        adjusted_base: base.adjustedBase,
-        adjustment_reason: base.adjustmentReason,
-        notes: base.notes
+        contribution_base: base.contributionBase
+        // adjusted_base, adjustment_reason, notes fields don't exist in v3 DB
       }));
       
       const { data, error } = await supabase
@@ -782,7 +781,7 @@ export function useContributionBase(options: UseContributionBaseOptions = {}) {
       // 计算总缴费金额
       calculateTotalContribution: (bases: ContributionBase[]) => {
         return bases.reduce((total, base) => {
-          const effectiveBase = base.adjusted_base || base.contribution_base;
+          const effectiveBase = base.contribution_base; // adjusted_base doesn't exist in v3 DB
           const employeeAmount = effectiveBase * (base.insurance_rules?.employee_rate || 0);
           const employerAmount = effectiveBase * (base.insurance_rules?.employer_rate || 0);
           return {
@@ -795,7 +794,7 @@ export function useContributionBase(options: UseContributionBaseOptions = {}) {
       
       // 验证基数是否在有效范围内
       isBaseValid: (base: ContributionBase) => {
-        const effectiveBase = base.adjusted_base || base.contribution_base;
+        const effectiveBase = base.contribution_base; // adjusted_base doesn't exist in v3 DB
         const rules = base.insurance_rules;
         if (!rules) return true;
         

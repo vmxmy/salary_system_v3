@@ -90,10 +90,7 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
   // 自动设置为最近有记录的月份
   useEffect(() => {
     if (latestMonth && !latestMonthLoading) {
-      onMonthChange({
-        period_id: latestMonth.period_id,
-        period_name: latestMonth.period_name
-      });
+      onMonthChange(latestMonth.period_name || `${latestMonth.year}-${latestMonth.month?.toString().padStart(2, '0')}`);
     }
   }, [latestMonth, latestMonthLoading, onMonthChange]);
 

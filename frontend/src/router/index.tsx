@@ -23,6 +23,7 @@ const PayrollImportPage = lazy(() => import('@/pages/payroll/PayrollImportPage')
 const PayrollDetailPage = lazy(() => import('@/pages/payroll/PayrollDetailPage'));
 const CreateBatchPayrollPage = lazy(() => import('@/pages/payroll/CreateBatchPayrollPage'));
 const PayrollCycleWizardPage = lazy(() => import('@/pages/payroll/PayrollCycleWizardPage'));
+const PayrollApprovalPage = lazy(() => import('@/pages/payroll/PayrollApprovalPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const ThemeShowcasePage = lazy(() => import('@/pages/ThemeShowcasePage'));
@@ -36,7 +37,7 @@ const ValidationTestPage = lazy(() => import('@/pages/ValidationTestPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const DebugPage = lazy(() => import('@/pages/DebugPage'));
-const PayrollHookTestPage = lazy(() => import('@/pages/test/PayrollHookTestPage'));
+const PayrollHookTestPage = lazy(() => import('@/pages/PayrollHooksTestPage'));
 const NewTableArchitectureTestPage = lazy(() => import('@/pages/test/NewTableArchitectureTestPage'));
 const TestMetadata = lazy(() => import('@/pages/test/TestMetadata'));
 // Test pages moved to archive
@@ -229,6 +230,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingScreen />}>
                 <PayrollCycleWizardPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'approval',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PayrollApprovalPage />
               </Suspense>
             ),
           },

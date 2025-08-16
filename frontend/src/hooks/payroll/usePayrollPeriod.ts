@@ -4,9 +4,10 @@ import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
 import type { Database } from '@/types/supabase';
 
-// 类型定义
-type PayrollPeriod = Database['public']['Tables']['payroll_periods']['Row'];
-type PayrollPeriodInsert = Database['public']['Tables']['payroll_periods']['Insert'];
+// 类型定义 - 直接使用数据库类型
+export type PayrollPeriod = Database['public']['Tables']['payroll_periods']['Row'];
+export type PayrollPeriodInsert = Database['public']['Tables']['payroll_periods']['Insert'];
+
 type PayrollPeriodUpdate = Database['public']['Tables']['payroll_periods']['Update'];
 
 // 周期状态枚举
@@ -28,6 +29,9 @@ export const payrollPeriodQueryKeys = {
   byMonth: (yearMonth: string) => [...payrollPeriodQueryKeys.all, 'month', yearMonth] as const,
   current: () => [...payrollPeriodQueryKeys.all, 'current'] as const,
   statistics: (periodId: string) => [...payrollPeriodQueryKeys.all, 'statistics', periodId] as const,
+  upcoming: () => [...payrollPeriodQueryKeys.all, 'upcoming'] as const,
+  recent: (limit: number) => [...payrollPeriodQueryKeys.all, 'recent', limit] as const,
+  yearSummary: (year: number) => [...payrollPeriodQueryKeys.all, 'year-summary', year] as const,
 };
 
 // 获取所有薪资周期
@@ -96,7 +100,7 @@ export const useCurrentPayrollPeriod = () => {
       const { data, error } = await supabase
         .from('payroll_periods')
         .select('*')
-        .eq('status', PeriodStatus.OPEN)
+        .eq('status', PeriodStatus.DRAFT)
         .order('period_year', { ascending: false })
         .order('period_month', { ascending: false })
         .limit(1)
@@ -232,9 +236,13 @@ export const useCreatePayrollPeriod = () => {
       const { data: result, error } = await supabase
         .from('payroll_periods')
         .insert({
-          ...data,
-          period_code: `${data.period_year}-${String(data.period_month).padStart(2, '0')}`,
-          period_name: `${data.period_year}年${data.period_month}月`,
+          period_code: data.period_code,
+          period_name: data.period_name,
+          period_year: data.period_year,
+          period_month: data.period_month,
+          period_start: data.period_start,
+          period_end: data.period_end,
+          pay_date: data.pay_date,
           status: data.status || PeriodStatus.DRAFT
         })
         .select()
@@ -559,11 +567,371 @@ export function usePayrollPeriod(options: UsePayrollPeriodOptions = {}) {
         return `${period.period_year}年${period.period_month}月`;
       },
       isPeriodLocked: (period: PayrollPeriod) => {
-        return !!period.locked_at || period.status === PeriodStatus.CLOSED || period.status === PeriodStatus.ARCHIVED;
+        return period.status === PeriodStatus.CLOSED || period.status === PeriodStatus.ARCHIVED;
       },
       canEditPeriod: (period: PayrollPeriod) => {
-        return !period.locked_at && period.status === PeriodStatus.OPEN;
+        return period.status === PeriodStatus.OPEN;
       }
     }
   };
 }
+
+// ============ 增强功能 ============
+
+/**
+ * 获取即将到来的薪资周期
+ */
+export const useUpcomingPayrollPeriods = (limit = 3) => {
+  const { handleError } = useErrorHandler();
+  
+  return useQuery({
+    queryKey: payrollPeriodQueryKeys.upcoming(),
+    queryFn: async () => {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      
+      const { data, error } = await supabase
+        .from('payroll_periods')
+        .select('*')
+        .or(`period_year.gt.${currentYear},and(period_year.eq.${currentYear},period_month.gte.${currentMonth})`)
+        .in('status', [PeriodStatus.DRAFT, PeriodStatus.OPEN])
+        .order('period_year', { ascending: true })
+        .order('period_month', { ascending: true })
+        .limit(limit);
+
+      if (error) {
+        handleError(error, { customMessage: '获取即将到来的薪资周期失败' });
+        throw error;
+      }
+      
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * 获取最近的薪资周期（包括已完成的）
+ */
+export const useRecentPayrollPeriods = (limit = 6) => {
+  const { handleError } = useErrorHandler();
+  
+  return useQuery({
+    queryKey: payrollPeriodQueryKeys.recent(limit),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payroll_periods')
+        .select('*')
+        .order('period_year', { ascending: false })
+        .order('period_month', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        handleError(error, { customMessage: '获取最近薪资周期失败' });
+        throw error;
+      }
+      
+      return data || [];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+};
+
+/**
+ * 获取年度周期汇总
+ */
+export const useYearPayrollSummary = (year: number) => {
+  const { handleError } = useErrorHandler();
+  
+  return useQuery({
+    queryKey: payrollPeriodQueryKeys.yearSummary(year),
+    queryFn: async () => {
+      // 获取该年度所有周期
+      const { data: periods, error: periodError } = await supabase
+        .from('payroll_periods')
+        .select('*')
+        .eq('period_year', year)
+        .order('period_month', { ascending: true });
+
+      if (periodError) {
+        handleError(periodError, { customMessage: '获取年度周期失败' });
+        throw periodError;
+      }
+
+      // 获取每个周期的薪资统计
+      const summaries = await Promise.all(
+        (periods || []).map(async (period) => {
+          const { data: payrolls } = await supabase
+            .from('payrolls')
+            .select('gross_pay, total_deductions, net_pay, status')
+            .eq('period_id', period.id);
+
+          const stats = {
+            period,
+            totalEmployees: payrolls?.length || 0,
+            totalGrossPay: payrolls?.reduce((sum, p) => sum + (p.gross_pay || 0), 0) || 0,
+            totalDeductions: payrolls?.reduce((sum, p) => sum + (p.total_deductions || 0), 0) || 0,
+            totalNetPay: payrolls?.reduce((sum, p) => sum + (p.net_pay || 0), 0) || 0,
+            paidCount: payrolls?.filter(p => p.status === 'paid').length || 0,
+            completionRate: payrolls?.length ? 
+              (payrolls.filter(p => p.status === 'paid').length / payrolls.length) * 100 : 0
+          };
+
+          return stats;
+        })
+      );
+
+      // 计算年度汇总
+      const yearTotal = summaries.reduce((acc, month) => ({
+        totalEmployees: acc.totalEmployees + month.totalEmployees,
+        totalGrossPay: acc.totalGrossPay + month.totalGrossPay,
+        totalDeductions: acc.totalDeductions + month.totalDeductions,
+        totalNetPay: acc.totalNetPay + month.totalNetPay,
+        totalPaidCount: acc.totalPaidCount + month.paidCount,
+      }), {
+        totalEmployees: 0,
+        totalGrossPay: 0,
+        totalDeductions: 0,
+        totalNetPay: 0,
+        totalPaidCount: 0,
+      });
+
+      return {
+        year,
+        months: summaries,
+        yearTotal,
+        averageMonthlyGrossPay: yearTotal.totalGrossPay / (summaries.length || 1),
+        averageMonthlyNetPay: yearTotal.totalNetPay / (summaries.length || 1),
+        completedMonths: summaries.filter(s => s.period.status === PeriodStatus.CLOSED).length,
+        totalMonths: summaries.length,
+      };
+    },
+    enabled: !!year,
+    staleTime: 30 * 60 * 1000, // 30分钟缓存
+  });
+};
+
+/**
+ * 批量生成周期
+ */
+export const useGeneratePayrollPeriods = () => {
+  const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
+
+  return useMutation({
+    mutationFn: async (params: {
+      startYear: number;
+      startMonth: number;
+      endYear: number;
+      endMonth: number;
+      payDay?: number;
+    }) => {
+      const periods: PayrollPeriodInsert[] = [];
+      const { payDay = 5 } = params;
+      
+      let currentYear = params.startYear;
+      let currentMonth = params.startMonth;
+      
+      while (
+        currentYear < params.endYear || 
+        (currentYear === params.endYear && currentMonth <= params.endMonth)
+      ) {
+        // 检查是否已存在
+        const { data: existing } = await supabase
+          .from('payroll_periods')
+          .select('id')
+          .eq('period_year', currentYear)
+          .eq('period_month', currentMonth)
+          .single();
+        
+        if (!existing) {
+          const startDate = new Date(currentYear, currentMonth - 1, 1);
+          const endDate = new Date(currentYear, currentMonth, 0);
+          const payDate = new Date(currentYear, currentMonth, payDay);
+          
+          periods.push({
+            period_code: `${currentYear}-${String(currentMonth).padStart(2, '0')}`,
+            period_name: `${currentYear}年${currentMonth}月`,
+            period_year: currentYear,
+            period_month: currentMonth,
+            period_start: startDate.toISOString().split('T')[0],
+            period_end: endDate.toISOString().split('T')[0],
+            pay_date: payDate.toISOString().split('T')[0],
+            status: PeriodStatus.DRAFT
+          });
+        }
+        
+        // 移到下一个月
+        currentMonth++;
+        if (currentMonth > 12) {
+          currentMonth = 1;
+          currentYear++;
+        }
+      }
+      
+      if (periods.length > 0) {
+        const { error } = await supabase
+          .from('payroll_periods')
+          .insert(periods);
+        
+        if (error) {
+          handleError(error, { customMessage: '批量生成周期失败' });
+          throw error;
+        }
+      }
+      
+      return {
+        created: periods.length,
+        skipped: 
+          ((params.endYear - params.startYear) * 12 + 
+           (params.endMonth - params.startMonth + 1)) - periods.length
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: payrollPeriodQueryKeys.all });
+    },
+  });
+};
+
+/**
+ * 复制周期配置
+ */
+export const useCopyPeriodConfig = () => {
+  const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
+
+  return useMutation({
+    mutationFn: async (params: {
+      sourcePeriodId: string;
+      targetPeriodId: string;
+      includePayrolls?: boolean;
+    }) => {
+      const { data, error } = await supabase.rpc('copy_period_configuration', {
+        p_source_period_id: params.sourcePeriodId,
+        p_target_period_id: params.targetPeriodId,
+        p_include_payrolls: params.includePayrolls || false
+      });
+
+      if (error) {
+        handleError(error, { customMessage: '复制周期配置失败' });
+        throw error;
+      }
+      
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ 
+        queryKey: payrollPeriodQueryKeys.detail(variables.targetPeriodId) 
+      });
+    },
+  });
+};
+
+/**
+ * 周期对比分析
+ */
+export const usePeriodComparison = (periodIds: string[]) => {
+  const { handleError } = useErrorHandler();
+  
+  return useQuery({
+    queryKey: ['period-comparison', periodIds],
+    queryFn: async () => {
+      if (periodIds.length < 2) {
+        throw new Error('至少需要选择两个周期进行对比');
+      }
+      
+      const comparisons = await Promise.all(
+        periodIds.map(async (periodId) => {
+          const { data: period } = await supabase
+            .from('payroll_periods')
+            .select('*')
+            .eq('id', periodId)
+            .single();
+          
+          const { data: payrolls } = await supabase
+            .from('payrolls')
+            .select('gross_pay, total_deductions, net_pay, status')
+            .eq('period_id', periodId);
+          
+          return {
+            period,
+            stats: {
+              totalEmployees: payrolls?.length || 0,
+              totalGrossPay: payrolls?.reduce((sum, p) => sum + (p.gross_pay || 0), 0) || 0,
+              totalDeductions: payrolls?.reduce((sum, p) => sum + (p.total_deductions || 0), 0) || 0,
+              totalNetPay: payrolls?.reduce((sum, p) => sum + (p.net_pay || 0), 0) || 0,
+              averageGrossPay: payrolls?.length ? 
+                payrolls.reduce((sum, p) => sum + (p.gross_pay || 0), 0) / payrolls.length : 0,
+              averageNetPay: payrolls?.length ? 
+                payrolls.reduce((sum, p) => sum + (p.net_pay || 0), 0) / payrolls.length : 0,
+            }
+          };
+        })
+      );
+      
+      // 计算对比数据
+      const baseStats = comparisons[0].stats;
+      const comparisonResults = comparisons.slice(1).map(comp => ({
+        period: comp.period,
+        stats: comp.stats,
+        changes: {
+          employeeChange: comp.stats.totalEmployees - baseStats.totalEmployees,
+          employeeChangePercent: baseStats.totalEmployees > 0 ? 
+            ((comp.stats.totalEmployees - baseStats.totalEmployees) / baseStats.totalEmployees) * 100 : 0,
+          grossPayChange: comp.stats.totalGrossPay - baseStats.totalGrossPay,
+          grossPayChangePercent: baseStats.totalGrossPay > 0 ? 
+            ((comp.stats.totalGrossPay - baseStats.totalGrossPay) / baseStats.totalGrossPay) * 100 : 0,
+          netPayChange: comp.stats.totalNetPay - baseStats.totalNetPay,
+          netPayChangePercent: baseStats.totalNetPay > 0 ? 
+            ((comp.stats.totalNetPay - baseStats.totalNetPay) / baseStats.totalNetPay) * 100 : 0,
+        }
+      }));
+      
+      return {
+        base: comparisons[0],
+        comparisons: comparisonResults
+      };
+    },
+    enabled: periodIds.length >= 2,
+    staleTime: 15 * 60 * 1000,
+  });
+};
+
+/**
+ * 周期状态统计
+ */
+export const usePeriodStatusStats = () => {
+  const { handleError } = useErrorHandler();
+  
+  return useQuery({
+    queryKey: ['period-status-stats'],
+    queryFn: async () => {
+      const { data: periods, error } = await supabase
+        .from('payroll_periods')
+        .select('status');
+      
+      if (error) {
+        handleError(error, { customMessage: '获取周期状态统计失败' });
+        throw error;
+      }
+      
+      const stats = {
+        draft: 0,
+        open: 0,
+        closed: 0,
+        archived: 0,
+        total: periods?.length || 0
+      };
+      
+      periods?.forEach(period => {
+        if (period.status in stats) {
+          stats[period.status as keyof typeof stats]++;
+        }
+      });
+      
+      return stats;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};

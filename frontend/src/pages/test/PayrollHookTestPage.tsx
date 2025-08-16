@@ -387,31 +387,47 @@ export default function PayrollHookTestPage() {
                   <div className="space-y-3">
                     <div className="text-sm space-y-1">
                       <p>明细项数: {payrollDetails.data.length}</p>
+                      {/* 调试：显示第一个扣除项的结构 */}
+                      {payrollDetails.data.find(item => item.component_type === 'deduction') && (
+                        <div className="text-xs bg-warning/20 p-2 rounded">
+                          <p>调试信息 - 第一个扣除项结构:</p>
+                          <pre>{JSON.stringify(
+                            payrollDetails.data.find(item => item.component_type === 'deduction'),
+                            null, 2
+                          ).substring(0, 500)}</pre>
+                        </div>
+                      )}
                       <p>总收入: {payrollFormatters.currency(
                         payrollDetails.data
                           .filter(item => item.component_type === 'earning')
-                          .reduce((sum, item) => sum + (item.amount || 0), 0)
+                          .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
                       )}</p>
                       <p>个人扣除: {payrollFormatters.currency(
                         payrollDetails.data
-                          .filter(item => item.component_type === 'deduction' && 
-                                 (item.category_name === 'personal_insurance' || item.category_name === 'personal_tax'))
-                          .reduce((sum, item) => sum + (item.amount || 0), 0)
+                          .filter(item => {
+                            // 调试：打印每个扣除项的信息
+                            if (item.component_type === 'deduction') {
+                              console.log('Deduction item:', item.component_name, 'category:', item.category, 'amount:', item.amount, 'type:', typeof item.amount);
+                            }
+                            return item.component_type === 'deduction' && 
+                                   (item.category === 'personal_insurance' || item.category === 'personal_tax');
+                          })
+                          .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
                       )}</p>
                       <p>单位扣除: {payrollFormatters.currency(
                         payrollDetails.data
                           .filter(item => item.component_type === 'deduction' && 
-                                 item.category_name === 'employer_insurance')
-                          .reduce((sum, item) => sum + (item.amount || 0), 0)
+                                 item.category === 'employer_insurance')
+                          .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
                       )}</p>
                       <p className="font-medium text-primary">实发工资: {payrollFormatters.currency(
                         payrollDetails.data
                           .filter(item => item.component_type === 'earning')
-                          .reduce((sum, item) => sum + (item.amount || 0), 0) -
+                          .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0) -
                         payrollDetails.data
                           .filter(item => item.component_type === 'deduction' && 
-                                 (item.category_name === 'personal_insurance' || item.category_name === 'personal_tax'))
-                          .reduce((sum, item) => sum + (item.amount || 0), 0)
+                                 (item.category === 'personal_insurance' || item.category === 'personal_tax'))
+                          .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
                       )}</p>
                     </div>
                     
@@ -436,7 +452,7 @@ export default function PayrollHookTestPage() {
                               {payrollFormatters.currency(
                                 payrollDetails.data
                                   .filter(item => item.component_type === 'earning')
-                                  .reduce((sum, item) => sum + item.amount, 0)
+                                  .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
                               )}
                             </span>
                           </div>
@@ -452,7 +468,7 @@ export default function PayrollHookTestPage() {
                             <div className="space-y-1 pl-2">
                               {payrollDetails.data
                                 .filter(item => item.component_type === 'deduction' && 
-                                       (item.category_name === 'personal_insurance' || item.category_name === 'personal_tax'))
+                                       (item.category === 'personal_insurance' || item.category === 'personal_tax'))
                                 .map((item, idx) => (
                                   <div key={`personal-${idx}`} className="flex justify-between text-xs">
                                     <span className="truncate">{item.component_name.replace('个人应缴费额', '')}</span>
@@ -467,8 +483,8 @@ export default function PayrollHookTestPage() {
                                   -{payrollFormatters.currency(
                                     payrollDetails.data
                                       .filter(item => item.component_type === 'deduction' && 
-                                             (item.category_name === 'personal_insurance' || item.category_name === 'personal_tax'))
-                                      .reduce((sum, item) => sum + item.amount, 0)
+                                             (item.category === 'personal_insurance' || item.category === 'personal_tax'))
+                                      .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
                                   )}
                                 </span>
                               </div>
@@ -481,7 +497,7 @@ export default function PayrollHookTestPage() {
                             <div className="space-y-1 pl-2">
                               {payrollDetails.data
                                 .filter(item => item.component_type === 'deduction' && 
-                                       item.category_name === 'employer_insurance')
+                                       item.category === 'employer_insurance')
                                 .map((item, idx) => (
                                   <div key={`employer-${idx}`} className="flex justify-between text-xs">
                                     <span className="truncate">{item.component_name.replace('单位应缴费额', '')}</span>
@@ -496,8 +512,8 @@ export default function PayrollHookTestPage() {
                                   -{payrollFormatters.currency(
                                     payrollDetails.data
                                       .filter(item => item.component_type === 'deduction' && 
-                                             item.category_name === 'employer_insurance')
-                                      .reduce((sum, item) => sum + item.amount, 0)
+                                             item.category === 'employer_insurance')
+                                      .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
                                   )}
                                 </span>
                               </div>
@@ -511,7 +527,7 @@ export default function PayrollHookTestPage() {
                               -{payrollFormatters.currency(
                                 payrollDetails.data
                                   .filter(item => item.component_type === 'deduction')
-                                  .reduce((sum, item) => sum + item.amount, 0)
+                                  .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
                               )}
                             </span>
                           </div>
@@ -526,11 +542,11 @@ export default function PayrollHookTestPage() {
                         {payrollFormatters.currency(
                           payrollDetails.data
                             .filter(item => item.component_type === 'earning')
-                            .reduce((sum, item) => sum + item.amount, 0) -
+                            .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0) -
                           payrollDetails.data
                             .filter(item => item.component_type === 'deduction' && 
-                                   (item.category_name === 'personal_insurance' || item.category_name === 'personal_tax'))
-                            .reduce((sum, item) => sum + item.amount, 0)
+                                   (item.category === 'personal_insurance' || item.category === 'personal_tax'))
+                            .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
                         )}
                       </span>
                     </div>

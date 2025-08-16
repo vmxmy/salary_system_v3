@@ -1097,7 +1097,7 @@ function ContributionBaseSection({
         const value = info.getValue();
         return value ? (
           <span className="text-sm text-base-content/60">
-            {formatDate(value)}
+            {formatDate(String(value))}
           </span>
         ) : (
           <span className="badge badge-sm badge-success">当前有效</span>

@@ -108,8 +108,7 @@ export default function CreateBatchPayrollPage() {
     try {
       await createBatchPayrolls.mutateAsync({
         employeeIds: selectedEmployeeIds,
-        payPeriodStart: payPeriod.startDate,
-        payPeriodEnd: payPeriod.endDate,
+        periodId: 'temp-period-id', // TODO: Should get actual period ID
         payDate: payDate
       });
       

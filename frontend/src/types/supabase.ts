@@ -108,11 +108,10 @@ export interface Database {
         Row: {
           id: string
           user_id: string | null
-          full_name: string
+          employee_name: string | null
+          id_number: string | null
           gender: string | null
           date_of_birth: string | null
-          id_number_encrypted: string | null
-          id_number_nonce: string | null
           hire_date: string
           termination_date: string | null
           employment_status: string
@@ -123,11 +122,10 @@ export interface Database {
         Insert: {
           id?: string
           user_id?: string | null
-          full_name: string
+          employee_name?: string | null
+          id_number?: string | null
           gender?: string | null
           date_of_birth?: string | null
-          id_number_encrypted?: string | null
-          id_number_nonce?: string | null
           hire_date: string
           termination_date?: string | null
           employment_status?: string
@@ -138,11 +136,10 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string | null
-          full_name?: string
+          employee_name?: string | null
+          id_number?: string | null
           gender?: string | null
           date_of_birth?: string | null
-          id_number_encrypted?: string | null
-          id_number_nonce?: string | null
           hire_date?: string
           termination_date?: string | null
           employment_status?: string
@@ -398,33 +395,63 @@ export interface Database {
       payroll_periods: {
         Row: {
           id: string
-          year: number
-          month: number
-          start_date: string
-          end_date: string
+          period_code: string
+          period_name: string
+          period_year: number
+          period_month: number
+          period_start: string
+          period_end: string
+          pay_date: string
           status: string
+          description?: string
+          employee_count?: number
+          total_gross_pay?: number
+          total_net_pay?: number
+          created_by?: string
           created_at: string
           updated_at: string
+          locked_at?: string
+          locked_by?: string
         }
         Insert: {
           id?: string
-          year: number
-          month: number
-          start_date: string
-          end_date: string
+          period_code: string
+          period_name: string
+          period_year: number
+          period_month: number
+          period_start: string
+          period_end: string
+          pay_date: string
           status?: string
+          description?: string
+          employee_count?: number
+          total_gross_pay?: number
+          total_net_pay?: number
+          created_by?: string
           created_at?: string
           updated_at?: string
+          locked_at?: string
+          locked_by?: string
         }
         Update: {
           id?: string
-          year?: number
-          month?: number
-          start_date?: string
-          end_date?: string
+          period_code?: string
+          period_name?: string
+          period_year?: number
+          period_month?: number
+          period_start?: string
+          period_end?: string
+          pay_date?: string
           status?: string
+          description?: string
+          employee_count?: number
+          total_gross_pay?: number
+          total_net_pay?: number
+          created_by?: string
           created_at?: string
           updated_at?: string
+          locked_at?: string
+          locked_by?: string
         }
       }
 

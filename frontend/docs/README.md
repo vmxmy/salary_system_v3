@@ -1,155 +1,331 @@
-# 薪资管理系统 - 组件库文档
+# 薪资管理 Hooks 系统文档
 
-## 概述
+## 📖 文档目录
 
-本文档提供了薪资管理系统前端组件库的完整使用指南。我们的组件库基于现代化设计原则，采用 React 19 + TypeScript 5.8 + Tailwind CSS 4 + DaisyUI 5 技术栈构建。
+本目录包含薪资管理 Hooks 系统的完整文档，帮助开发者快速理解和使用现代化的薪资管理解决方案。
+
+### 核心文档
+
+| 文档 | 描述 | 适合人群 |
+|------|------|----------|
+| [🔧 API 参考文档](./PAYROLL_HOOKS_API.md) | 完整的 Hook API 参考和使用示例 | 开发者、架构师 |
+| [📋 迁移指南](./MIGRATION_GUIDE.md) | 从 Service 架构迁移到 Hook 架构的详细指南 | 项目维护者、开发团队 |
+| [🧪 测试指南](./HOOK_TESTING_GUIDE.md) | 全面的测试策略和测试用例 | 测试工程师、质量保证 |
+
+## 🚀 快速开始
+
+### 基础使用
+
+```typescript
+import { usePayrollManagement } from '@/hooks/payroll';
+
+function PayrollPage() {
+  const { payrolls, loading, actions } = usePayrollManagement('period-001');
+  
+  if (loading.isLoading) return <div>加载中...</div>;
+  
+  return (
+    <div>
+      <h2>薪资管理</h2>
+      {payrolls?.map(payroll => (
+        <div key={payroll.id}>
+          {payroll.employee_name}: {payroll.net_pay}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### 高级功能
+
+```typescript
+// 完整工作流执行
+const handleCompleteWorkflow = async () => {
+  await actions.executeCompleteWorkflow({
+    periodId: 'period-001',
+    employeeIds: selectedEmployees,
+    options: {
+      autoApprove: false,
+      generateReports: true
+    }
+  });
+};
+```
 
 ## 核心特性
 
-✨ **现代化设计**: 基于孔雀屏设计模式，提供优雅的用户界面  
-🚀 **高性能**: 硬件加速动画，优化的渲染性能  
-📱 **响应式**: 移动优先的自适应设计  
-🎨 **主题化**: 完整的设计令牌系统  
-♿ **可访问性**: 遵循 WCAG 2.1 标准  
-🧩 **模块化**: 组件解耦，易于维护和扩展  
+✨ **现代化 Hook 架构**: 基于 React Query 和 Supabase 的响应式数据管理  
+🚀 **高性能**: 智能缓存、实时同步、批量操作优化  
+📱 **完整类型安全**: TypeScript 严格模式，减少运行时错误  
+🎨 **统一错误处理**: 集成的错误管理和用户友好提示  
+♿ **实时数据同步**: WebSocket 自动连接管理和重连机制  
+🧩 **模块化设计**: Hook 组合模式，灵活扩展和维护
 
-## 目录结构
+## 🏗️ 系统架构
+
+### Hook 生态系统
 
 ```
-docs/
-├── README.md                 # 总览文档
-├── design-system/           # 设计系统文档
-│   ├── overview.md          # 设计系统概述
-│   ├── design-tokens.md     # 设计令牌
-│   ├── typography.md        # 排版系统
-│   ├── colors.md           # 颜色系统
-│   └── spacing.md          # 间距系统
-├── components/             # 组件文档
-│   ├── common/            # 通用组件
-│   │   ├── ModernButton.md
-│   │   ├── DataTable.md
-│   │   ├── LoadingScreen.md
-│   │   ├── AccordionSection.md
-│   │   ├── FinancialCard.md
-│   │   └── MonthPicker.md
-│   ├── employee/          # 员工管理组件
-│   │   └── EmployeeDetailModal.md
-│   └── payroll/           # 薪资管理组件
-│       └── PayrollDetailModal.md
-├── styles/                # 样式系统文档
-│   ├── modern-effects.md  # 现代化效果
-│   ├── performance.md     # 性能优化
-│   └── responsive.md      # 响应式设计
-├── patterns/              # 设计模式文档
-│   ├── peacock-screen.md  # 孔雀屏模式
-│   ├── modal-patterns.md  # 模态框模式
-│   └── data-display.md    # 数据展示模式
-└── guides/               # 使用指南
-    ├── getting-started.md # 快速开始
-    ├── development.md     # 开发指南
-    ├── testing.md         # 测试指南
-    └── deployment.md      # 部署指南
+薪资管理 Hook 系统
+├── 📊 usePayrollPeriod      # 薪资周期管理
+├── 🧮 usePayrollCalculation # 薪资计算
+├── 📥 usePayrollImportExport # 导入导出
+├── ✅ usePayrollApproval    # 审批流程
+├── 📈 usePayrollAnalytics   # 统计分析
+└── 🔄 usePayrollManagement  # 统一管理
 ```
 
-## 技术栈
+### 技术栈
 
-### 核心技术
-- **React 19**: 最新的 React 版本，支持并发特性
-- **TypeScript 5.8**: 严格的类型检查和增强的开发体验
-- **Vite 7**: 快速的构建工具和热模块替换
-- **Tailwind CSS 4**: 实用工具优先的 CSS 框架
-- **DaisyUI 5**: 基于 Tailwind CSS 的组件库
+- **React Query** - 状态管理和数据缓存
+- **Supabase** - 数据库和实时订阅
+- **TypeScript** - 类型安全
+- **xlsx** - Excel 处理
 
-### 状态管理
-- **TanStack Query**: 服务器状态管理和缓存
-- **Zustand**: 客户端状态管理（特定功能）
-- **React Context**: 全局状态（认证、主题等）
+## 📋 功能特性
 
-### 开发工具
-- **ESLint**: 代码质量检查
-- **Prettier**: 代码格式化
-- **Supabase**: 后端即服务平台
+### ✨ 核心功能
 
-## 设计原则
+- **🔄 实时数据同步** - 基于 Supabase 实时订阅
+- **⚡ 智能缓存管理** - React Query 自动优化
+- **🛡️ 类型安全保障** - 完整的 TypeScript 支持
+- **📊 批量操作支持** - 高效的批量处理能力
+- **🔍 进度跟踪** - 实时操作进度监控
+- **❌ 统一错误处理** - 集成的错误管理机制
 
-### 1. 孔雀屏设计模式 🦚
-我们的核心设计模式，特点包括：
-- **分层展示**: 信息按重要性分层显示
-- **渐进式披露**: 用户可以逐步深入了解详情
-- **视觉层次**: 清晰的视觉引导和信息架构
-- **优雅动画**: 流畅的展开收起效果
+### 🎯 业务功能
 
-### 2. 性能优先 ⚡
-- **硬件加速**: 使用 GPU 加速的动画和变换
-- **虚拟化**: 大数据集的高效渲染
-- **懒加载**: 按需加载组件和资源
-- **缓存策略**: 智能的数据缓存和更新
+- **薪资周期管理** - 创建、更新、锁定薪资周期
+- **薪资计算引擎** - 预览、批量、单项计算
+- **Excel 导入导出** - 灵活的数据交换
+- **多级审批流程** - 可配置的审批工作流
+- **统计分析报表** - 全面的数据分析
 
-### 3. 用户体验 🎯
-- **直观导航**: 清晰的信息架构
-- **即时反馈**: 实时的状态更新和加载提示
-- **错误处理**: 友好的错误提示和恢复机制
-- **键盘导航**: 完整的键盘操作支持
+## 📊 性能特点
 
-## 快速开始
+### 查询优化
+- 智能缓存策略 (5-30分钟不等)
+- 条件查询避免无效请求
+- 分页和虚拟化支持
 
-### 安装依赖
-```bash
-npm install
+### 实时同步
+- WebSocket 连接自动管理
+- 选择性数据订阅
+- 自动重连和错误恢复
+
+### 批量操作
+- 服务端批量处理
+- 进度跟踪和错误恢复
+- 可中断和重试机制
+
+## 🧪 测试覆盖
+
+### 测试体系
+- **单元测试** - Hook 逻辑和工具函数
+- **集成测试** - Hook 组合和 Supabase 集成
+- **端到端测试** - 完整用户流程
+- **综合测试页面** - 可视化测试界面
+
+### 覆盖率目标
+- 函数覆盖率: **90%+**
+- 分支覆盖率: **85%+**
+- 行覆盖率: **90%+**
+
+## 🔧 开发工具
+
+### 调试和监控
+```typescript
+// 启用 React Query DevTools
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
+function App() {
+  return (
+    <>
+      <YourApp />
+      <ReactQueryDevtools initialIsOpen={false} />
+    </>
+  );
+}
 ```
 
-### 启动开发服务器
-```bash
-npm run dev
+### 错误追踪
+```typescript
+// 使用内置错误处理
+const { handleError } = useErrorHandler();
+
+try {
+  await someOperation();
+} catch (error) {
+  handleError(error, { 
+    customMessage: '操作失败',
+    showToast: true 
+  });
+}
 ```
 
-### 构建生产版本
-```bash
-npm run build
+## 📈 最佳实践
+
+### 1. Hook 组合使用
+```typescript
+function ComplexPayrollPage() {
+  // 组合多个 Hook
+  const periodHook = usePayrollPeriod();
+  const calculationHook = usePayrollCalculation();
+  const approvalHook = usePayrollApproval();
+  
+  // 或使用统一 Hook
+  const management = usePayrollManagement(periodId);
+  
+  return <div>{/* 使用组合数据 */}</div>;
+}
 ```
 
-## 主要组件概览
+### 2. 性能优化
+```typescript
+// 条件查询
+const { data } = usePayrollDetail(payrollId, {
+  enabled: !!payrollId // 只有当 ID 存在时才查询
+});
 
-### 通用组件
-- **ModernButton**: 现代化按钮组件，支持多种变体和状态
-- **DataTable**: 高性能数据表格，支持排序、筛选、分页
-- **LoadingScreen**: 优雅的加载状态组件
-- **AccordionSection**: 手风琴折叠组件
-- **FinancialCard**: 金融数据展示卡片
-- **MonthPicker**: 月份选择器
+// 缓存配置
+const { data } = useQuery({
+  queryKey: ['payrolls', filters],
+  queryFn: fetchPayrolls,
+  staleTime: 10 * 60 * 1000, // 10分钟缓存
+  enabled: filters.periodId !== null
+});
+```
 
-### 业务组件
-- **EmployeeDetailModal**: 员工详情模态框
-- **PayrollDetailModal**: 薪资详情模态框
-- **PayrollStatusBadge**: 薪资状态徽章
+### 3. 错误边界处理
+```typescript
+function PayrollErrorBoundary({ children }) {
+  return (
+    <ErrorBoundary
+      fallback={<div>薪资数据加载失败，请刷新页面</div>}
+      onError={(error) => console.error('Payroll error:', error)}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+```
 
-### 样式系统
-- **modern-effects**: 现代化视觉效果
-- **performance-animations**: 性能优化的动画
-- **typography**: 排版系统
-- **design-tokens**: 设计令牌
+## 🔍 故障排除
 
-## 贡献指南
+### 常见问题
 
-1. **代码规范**: 遵循 ESLint 和 Prettier 配置
-2. **组件开发**: 使用 TypeScript 严格模式
-3. **文档更新**: 新组件必须包含使用文档
-4. **测试覆盖**: 确保组件有相应的测试用例
-5. **性能考量**: 使用性能优化的最佳实践
+**Q: Hook 数据不更新？**
+```typescript
+// 检查实时订阅配置
+const hook = usePayrollPeriod({
+  enableRealtime: true // ✅ 确保启用
+});
 
-## 更新日志
+// 手动刷新数据
+await hook.actions.refresh();
+```
 
-### v3.0.0 (2025-01-26)
-- 🎉 全新的孔雀屏设计系统
-- ⚡ 性能优化的动画系统
-- 📱 完整的响应式设计
-- 🔧 薪资管理模块重构
-- 📊 五险一金管理功能
+**Q: 批量操作失败？**
+```typescript
+// 检查进度和错误信息
+const { progress, loading } = usePayrollCalculation();
 
-## 许可证
+console.log('进度:', progress);
+console.log('加载状态:', loading);
 
-本项目采用 MIT 许可证。详见 [LICENSE](../LICENSE) 文件。
+// 查看具体错误
+progress.errors.forEach(error => {
+  console.error(`员工 ${error.employeeName}: ${error.error}`);
+});
+```
 
-## 联系我们
+**Q: TypeScript 类型错误？**
+```typescript
+// 使用正确的数据库类型
+import type { Database } from '@/types/supabase';
 
-如有问题或建议，请联系开发团队或提交 Issue。
+type PayrollRow = Database['public']['Tables']['payrolls']['Row'];
+type PayrollInsert = Database['public']['Tables']['payrolls']['Insert'];
+```
+
+### 调试技巧
+
+```typescript
+// 启用调试模式
+const hook = usePayrollPeriod({ debug: true });
+
+// 监听查询状态变化
+const queryClient = useQueryClient();
+queryClient.getQueryCache().subscribe(event => {
+  console.log('Query event:', event);
+});
+
+// 检查缓存状态
+const cacheData = queryClient.getQueryData(['payrolls']);
+console.log('Cache data:', cacheData);
+```
+
+## 📝 更新日志
+
+### v1.0.0 (2025-01-15)
+- ✅ 完整的薪资管理 Hook 系统发布
+- ✅ 支持 React Query 和 Supabase 集成
+- ✅ 实时数据同步功能
+- ✅ 批量操作和进度跟踪
+- ✅ Excel 导入导出功能
+- ✅ 多级审批流程
+- ✅ 统计分析和报表生成
+- ✅ 完整的 TypeScript 类型安全
+- ✅ 综合测试页面和测试用例
+
+### 计划功能
+- 🔄 移动端响应式适配
+- 🔄 离线模式支持
+- 🔄 更多报表模板
+- 🔄 工作流可视化编辑器
+- 🔄 国际化支持扩展
+
+## 🤝 贡献指南
+
+### 开发流程
+1. Fork 项目并创建功能分支
+2. 编写代码并添加测试用例
+3. 确保所有测试通过
+4. 提交 Pull Request
+
+### 代码规范
+- 使用 TypeScript 严格模式
+- 遵循 ESLint 和 Prettier 配置
+- 编写完整的 JSDoc 注释
+- 测试覆盖率达到 90% 以上
+
+### 提交规范
+```
+type(scope): description
+
+feat(hooks): add new payroll calculation feature
+fix(period): resolve period creation bug
+docs(api): update hook documentation
+test(calculation): add unit tests for calculation hook
+```
+
+## 📞 技术支持
+
+### 获取帮助
+- 📖 [查看 API 文档](./PAYROLL_HOOKS_API.md)
+- 🔄 [阅读迁移指南](./MIGRATION_GUIDE.md)
+- 🧪 [参考测试指南](./HOOK_TESTING_GUIDE.md)
+- 🐛 [提交 Issue](https://github.com/yourorg/salary-system/issues)
+- 💬 [讨论区](https://github.com/yourorg/salary-system/discussions)
+
+### 联系方式
+- 📧 Email: dev-team@yourcompany.com
+- 💬 企业微信: DevTeam-HR-System
+- 📞 技术热线: 400-xxx-xxxx
+
+---
+
+**🎉 感谢使用薪资管理 Hooks 系统！**
+
+*本文档会根据系统更新持续维护，最后更新时间: 2025年1月15日*

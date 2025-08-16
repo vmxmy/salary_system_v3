@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
 import type { Database } from '@/types/supabase';
 
 // 类型定义
+type Payroll = Database['public']['Tables']['payrolls']['Row'];
 type PayrollInsert = Database['public']['Tables']['payrolls']['Insert'];
 type PayrollUpdate = Database['public']['Tables']['payrolls']['Update'];
 
@@ -13,26 +14,86 @@ export const PayrollStatus = {
   DRAFT: 'draft',
   CALCULATING: 'calculating',
   CALCULATED: 'calculated',
-  APPROVED: 'approved', 
+  APPROVED: 'approved',
   PAID: 'paid',
   CANCELLED: 'cancelled'
 } as const;
 
 export type PayrollStatusType = typeof PayrollStatus[keyof typeof PayrollStatus];
 
+// 查询过滤条件
+export interface PayrollFilters {
+  status?: PayrollStatusType;
+  employeeId?: string;
+  periodId?: string;
+  departmentId?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+// 薪资汇总视图类型
+export interface PayrollSummary {
+  payroll_id: string;
+  employee_id: string;
+  employee_name: string;
+  department_name?: string;
+  position_name?: string;
+  pay_date: string;
+  pay_period_start?: string;  // 从period表获取，可选
+  pay_period_end?: string;    // 从period表获取，可选
+  gross_pay: number;
+  total_deductions: number;
+  net_pay: number;
+  status: PayrollStatusType;
+  period_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// 薪资详情视图类型
+export interface PayrollDetail {
+  payroll_id: string;
+  payroll_item_id?: string;
+  employee_id: string;
+  employee_name: string;
+  component_id?: string;
+  component_name?: string;
+  component_type?: string;
+  category_name?: string;
+  item_amount?: number;
+  item_notes?: string;
+  gross_pay: number;
+  total_deductions: number;
+  net_pay: number;
+  status: PayrollStatusType;
+}
+
+// 批量操作结果
+export interface BatchOperationResult {
+  success: number;
+  failed: number;
+  errors: Array<{
+    id: string;
+    error: string;
+  }>;
+}
+
 // 查询键管理
 export const payrollQueryKeys = {
   all: ['payrolls'] as const,
   lists: () => [...payrollQueryKeys.all, 'list'] as const,
-  list: (filters?: any) => [...payrollQueryKeys.lists(), filters] as const,
+  list: (filters?: PayrollFilters) => [...payrollQueryKeys.lists(), filters] as const,
   detail: (id: string) => [...payrollQueryKeys.all, 'detail', id] as const,
-  statistics: (params: any) => [...payrollQueryKeys.all, 'statistics', params] as const,
-  costAnalysis: (params: any) => [...payrollQueryKeys.all, 'cost-analysis', params] as const,
-  latestMonth: () => [...payrollQueryKeys.all, 'latest-month'] as const,
+  items: (payrollId: string) => [...payrollQueryKeys.all, 'items', payrollId] as const,
+  statistics: (periodId?: string) => [...payrollQueryKeys.all, 'statistics', periodId] as const,
   insurance: (payrollId: string) => [...payrollQueryKeys.all, 'insurance', payrollId] as const,
-  contributionBases: (employeeId: string, yearMonth: string) => 
-    [...payrollQueryKeys.all, 'contribution-bases', employeeId, yearMonth] as const,
+  latestMonth: () => [...payrollQueryKeys.all, 'latest-month'] as const,
   insuranceTypes: () => [...payrollQueryKeys.all, 'insurance-types'] as const,
+  costAnalysis: (params?: any) => [...payrollQueryKeys.all, 'cost-analysis', params] as const,
+  contributionBases: (employeeId?: string, yearMonth?: string) => [...payrollQueryKeys.all, 'contribution-bases', employeeId, yearMonth] as const,
 };
 
 // 数值格式化工具函数
@@ -48,33 +109,46 @@ export const useLatestPayrollPeriod = () => {
   
   return useQuery({
     queryKey: payrollQueryKeys.latestMonth(),
-    queryFn: async (): Promise<{ period_id: string; period_name: string } | null> => {
-      const { data, error } = await supabase
+    queryFn: async (): Promise<{ period_id: string; period_name: string; year?: number; month?: number } | null> => {
+      // 直接从 payroll_periods 表获取有薪资记录的最新周期
+      const { data: payrollData, error: payrollError } = await supabase
         .from('payrolls')
-        .select(`
-          period_id,
-          payroll_periods!inner(
-            id,
-            period_name,
-            period_year,
-            period_month
-          )
-        `)
-        .not('period_id', 'is', null)
-        .order('payroll_periods.period_year', { ascending: false })
-        .order('payroll_periods.period_month', { ascending: false })
-        .limit(1)
-        .single();
+        .select('period_id')
+        .not('period_id', 'is', null);
 
-      if (error && error.code !== 'PGRST116') {
-        handleError(error, { customMessage: '获取最近薪资周期失败' });
-        throw error;
+      if (payrollError) {
+        handleError(payrollError, { customMessage: '获取薪资记录失败' });
+        throw payrollError;
+      }
+
+      if (!payrollData || payrollData.length === 0) {
+        return null;
+      }
+
+      // 获取唯一的周期ID列表
+      const periodIds = [...new Set(payrollData.map(p => p.period_id))];
+
+      // 获取这些周期的详细信息
+      const { data: periodData, error: periodError } = await supabase
+        .from('payroll_periods')
+        .select('id, period_name, period_year, period_month')
+        .in('id', periodIds)
+        .order('period_year', { ascending: false })
+        .order('period_month', { ascending: false })
+        .limit(1);
+
+      if (periodError) {
+        handleError(periodError, { customMessage: '获取周期信息失败' });
+        throw periodError;
       }
       
-      if (data && data.payroll_periods) {
+      if (periodData && periodData.length > 0) {
+        const period = periodData[0];
         return {
-          period_id: data.period_id,
-          period_name: data.payroll_periods.period_name
+          period_id: period.id,
+          period_name: period.period_name,
+          year: period.period_year,
+          month: period.period_month
         };
       }
       
@@ -134,9 +208,8 @@ export const usePayrolls = (filters?: {
 
       // 搜索条件 - 注意：status是enum类型，不能使用ilike
       if (searchTerm) {
-        query = query.or(
-          `employee.employee_name.ilike.%${searchTerm}%`
-        );
+        // 对于嵌套关系，需要使用正确的过滤语法
+        query = query.filter('employee.employee_name', 'ilike', `%${searchTerm}%`);
       }
 
       // 过滤条件
@@ -149,16 +222,10 @@ export const usePayrolls = (filters?: {
       if (filters?.periodId) {
         query = query.eq('period_id', filters.periodId);
       }
-      if (filters?.periodYear) {
-        query = query.eq('period.period_year', filters.periodYear);
-      }
-      if (filters?.periodMonth) {
-        query = query.eq('period.period_month', filters.periodMonth);
-      }
-
+      
+      // 由于Supabase不支持嵌套字段过滤，需要在客户端过滤
+      // 先获取数据，然后在客户端处理
       query = query
-        .order('period.period_year', { ascending: false })
-        .order('period.period_month', { ascending: false })
         .order('id', { ascending: false })
         .range(from, to);
 
@@ -169,25 +236,50 @@ export const usePayrolls = (filters?: {
         throw error;
       }
 
+      // 客户端过滤周期年月
+      let filteredData = data || [];
+      if (filters?.periodYear) {
+        filteredData = filteredData.filter((item: any) => 
+          (item.period as any)?.period_year === filters.periodYear
+        );
+      }
+      if (filters?.periodMonth) {
+        filteredData = filteredData.filter((item: any) => 
+          (item.period as any)?.period_month === filters.periodMonth
+        );
+      }
+
+      // 客户端排序 - 按周期年月降序
+      filteredData.sort((a: any, b: any) => {
+        const yearDiff = ((b.period as any)?.period_year || 0) - ((a.period as any)?.period_year || 0);
+        if (yearDiff !== 0) return yearDiff;
+        
+        const monthDiff = ((b.period as any)?.period_month || 0) - ((a.period as any)?.period_month || 0);
+        if (monthDiff !== 0) return monthDiff;
+        
+        // 如果年月相同，按ID降序
+        return b.id.localeCompare(a.id);
+      });
+
       // 转换数据格式
-      const transformedData = (data || []).map(item => ({
+      const transformedData = filteredData.map((item: any) => ({
         id: item.id,
         payroll_id: item.id,
         pay_date: item.pay_date,
         period_id: item.period_id,
-        period_name: item.period?.period_name || '',
-        pay_period_start: item.period?.period_start || '',
-        pay_period_end: item.period?.period_end || '',
+        period_name: (item.period as any)?.period_name || '',
+        pay_period_start: (item.period as any)?.period_start || '',
+        pay_period_end: (item.period as any)?.period_end || '',
         employee_id: item.employee_id,
-        employee_name: item.employee?.employee_name || '',
+        employee_name: (item.employee as any)?.employee_name || '',
         gross_pay: item.gross_pay,
         total_deductions: item.total_deductions,
         net_pay: item.net_pay,
         status: item.status,
         employee: {
           id: item.employee_id,
-          employee_name: item.employee?.employee_name || '',
-          id_number: item.employee?.id_number || null
+          employee_name: (item.employee as any)?.employee_name || '',
+          id_number: (item.employee as any)?.id_number || null
         },
         period: item.period
       }));
@@ -215,21 +307,25 @@ export const usePayrollDetails = (payrollId: string) => {
         .from('view_payroll_unified')
         .select('*')
         .eq('payroll_id', payrollId)
-        .not('payroll_item_id', 'is', null)
-        .order('category_sort_order', { ascending: true })
-        .order('component_name', { ascending: true });
+        .not('item_id', 'is', null);
 
       if (error) {
         handleError(error, { customMessage: '获取薪资详情失败' });
         throw error;
       }
       
-      // 统一字段名映射
-      return (data || []).map(item => ({
-        ...item,
-        amount: item.item_amount,
-        item_notes: item.item_notes
-      }));
+      // 客户端排序 - 视图中没有 category_sort_order 字段，使用 category 进行排序
+      const sortedData = (data || []).sort((a, b) => {
+        // 先按类别排序
+        const categoryOrder = (a.category || '').localeCompare(b.category || '');
+        if (categoryOrder !== 0) return categoryOrder;
+        
+        // 再按组件名称排序
+        return (a.component_name || '').localeCompare(b.component_name || '');
+      });
+      
+      // 统一字段名映射（视图字段已经是 amount 和 item_notes）
+      return sortedData;
     },
     enabled: !!payrollId,
     staleTime: 5 * 60 * 1000,
@@ -245,7 +341,7 @@ export const usePayrollStatisticsByParams = (params: {
   const { handleError } = useErrorHandler();
   
   return useQuery({
-    queryKey: payrollQueryKeys.statistics(params),
+    queryKey: payrollQueryKeys.statistics(JSON.stringify(params)),
     queryFn: async () => {
       let query = supabase
         .from('view_department_payroll_statistics')
@@ -577,16 +673,13 @@ export const useEmployeeMonthlyContributionBases = (
           insurance_type_id,
           insurance_type_name,
           insurance_type_key,
-          month,
-          month_string,
-          year,
-          month_number,
-          contribution_base,
-          effective_start_date,
-          effective_end_date
+          latest_contribution_base,
+          base_period_display,
+          base_period_year,
+          base_period_month,
+          base_last_updated
         `)
         .eq('employee_id', employeeId)
-        .eq('month_string', yearMonth)
         .order('insurance_type_key');
 
       if (error) {
@@ -594,10 +687,21 @@ export const useEmployeeMonthlyContributionBases = (
         throw error;
       }
       
-      // 处理数据格式，确保缴费基数保持2位小数
+      // 处理数据格式，映射字段名并确保缴费基数保持2位小数
       const processedData = (data || []).map(item => ({
-        ...item,
-        contribution_base: formatNumber(item.contribution_base, 2)
+        employee_id: item.employee_id,
+        employee_name: item.employee_name,
+        id_number: item.id_number,
+        employment_status: item.employment_status,
+        insurance_type_id: item.insurance_type_id,
+        insurance_type_name: item.insurance_type_name,
+        insurance_type_key: item.insurance_type_key,
+        month_string: item.base_period_display,
+        year: item.base_period_year,
+        month_number: item.base_period_month,
+        contribution_base: formatNumber(item.latest_contribution_base, 2),
+        effective_start_date: item.base_last_updated,
+        effective_end_date: null
       }));
       
       return processedData;
@@ -640,6 +744,9 @@ interface UsePayrollOptions {
   filters?: {
     status?: PayrollStatusType;
     employeeId?: string;
+    periodId?: string;
+    periodYear?: number;
+    periodMonth?: number;
     startDate?: string;
     endDate?: string;
     search?: string;
@@ -813,10 +920,27 @@ export const payrollFormatters = {
   },
 
   // 格式化日期为月份
-  monthString: (dateStr: string) => {
-    if (!dateStr) return '-';
-    const [year, month] = dateStr.substring(0, 7).split('-');
-    return `${year}年${parseInt(month)}月`;
+  monthString: (input: string | { period_name?: string; year?: number; month?: number } | null) => {
+    if (!input) return '-';
+    
+    // 如果是对象类型（来自 useLatestPayrollPeriod）
+    if (typeof input === 'object') {
+      if (input.period_name) {
+        return input.period_name;
+      }
+      if (input.year && input.month) {
+        return `${input.year}年${input.month}月`;
+      }
+      return '-';
+    }
+    
+    // 如果是字符串类型
+    if (typeof input === 'string') {
+      const [year, month] = input.substring(0, 7).split('-');
+      return `${year}年${parseInt(month)}月`;
+    }
+    
+    return '-';
   },
 
   // 格式化日期
