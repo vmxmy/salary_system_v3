@@ -148,6 +148,117 @@ export function usePayrollImportExport() {
     });
   }, []);
 
+  // 定义验证规则接口
+  interface ValidationRule {
+    field: string;
+    required?: boolean;
+    type?: 'string' | 'number' | 'date' | 'email' | 'idcard';
+    pattern?: RegExp;
+    min?: number;
+    max?: number;
+    customValidator?: (value: any, row: ExcelDataRow) => string | null;
+  }
+
+  // 定义各数据组的验证规则
+  const validationRules: Record<string, ValidationRule[]> = {
+    earnings: [
+      { field: '员工姓名', required: true },
+      { field: '基本工资', type: 'number', min: 0, max: 1000000 },
+      { field: '岗位工资', type: 'number', min: 0, max: 1000000 },
+      { field: '绩效奖金', type: 'number', min: 0, max: 1000000 },
+      { field: '加班费', type: 'number', min: 0 },
+      { field: '津贴', type: 'number', min: 0 },
+      { field: '补贴', type: 'number', min: 0 }
+    ],
+    deductions: [
+      { field: '员工姓名', required: true },
+      { field: '养老保险', type: 'number', min: 0, max: 50000 },
+      { field: '医疗保险', type: 'number', min: 0, max: 50000 },
+      { field: '失业保险', type: 'number', min: 0, max: 50000 },
+      { field: '工伤保险', type: 'number', min: 0, max: 50000 },
+      { field: '生育保险', type: 'number', min: 0, max: 50000 },
+      { field: '住房公积金', type: 'number', min: 0, max: 50000 },
+      { field: '个人所得税', type: 'number', min: 0, max: 100000 }
+    ],
+    contribution_bases: [
+      { field: '员工姓名', required: true },
+      { field: '养老基数', type: 'number', min: 0, max: 100000 },
+      { field: '医疗基数', type: 'number', min: 0, max: 100000 },
+      { field: '失业基数', type: 'number', min: 0, max: 100000 },
+      { field: '工伤基数', type: 'number', min: 0, max: 100000 },
+      { field: '生育基数', type: 'number', min: 0, max: 100000 },
+      { field: '公积金基数', type: 'number', min: 0, max: 100000 }
+    ],
+    category_assignment: [
+      { field: '员工姓名', required: true },
+      { field: '人员类别', required: true }
+    ],
+    job_assignment: [
+      { field: '员工姓名', required: true },
+      { field: '部门', required: true },
+      { field: '职位', required: true }
+    ]
+  };
+
+  // 验证单个字段
+  const validateField = (value: any, rule: ValidationRule): string | null => {
+    // 检查必填
+    if (rule.required && (!value || value === '')) {
+      return `${rule.field}不能为空`;
+    }
+
+    // 如果值为空且非必填，跳过后续验证
+    if (!value || value === '') return null;
+
+    // 类型验证
+    switch (rule.type) {
+      case 'number':
+        const numValue = Number(value);
+        if (isNaN(numValue)) {
+          return `${rule.field}必须是有效的数字`;
+        }
+        if (rule.min !== undefined && numValue < rule.min) {
+          return `${rule.field}不能小于${rule.min}`;
+        }
+        if (rule.max !== undefined && numValue > rule.max) {
+          return `${rule.field}不能大于${rule.max}`;
+        }
+        break;
+      
+      case 'date':
+        if (!Date.parse(value)) {
+          return `${rule.field}必须是有效的日期格式`;
+        }
+        break;
+      
+      case 'email':
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(value)) {
+          return `${rule.field}必须是有效的邮箱地址`;
+        }
+        break;
+      
+      case 'idcard':
+        const idCardPattern = /^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}(\d|X)$/i;
+        if (!idCardPattern.test(value)) {
+          return `${rule.field}必须是有效的身份证号码`;
+        }
+        break;
+    }
+
+    // 正则表达式验证
+    if (rule.pattern && !rule.pattern.test(value)) {
+      return `${rule.field}格式不正确`;
+    }
+
+    // 自定义验证
+    if (rule.customValidator) {
+      return rule.customValidator(value, {} as ExcelDataRow);
+    }
+
+    return null;
+  };
+
   // 验证导入数据
   const validateImportData = useCallback(async (
     data: ExcelDataRow[],
@@ -156,40 +267,68 @@ export function usePayrollImportExport() {
     const errors: any[] = [];
     const warnings: any[] = [];
     
-    // 基础验证
-    data.forEach((row, index) => {
-      // 检查必填字段
-      if (!row['员工姓名'] && !row['employee_name']) {
-        errors.push({
-          row: index + 2, // Excel行号从2开始（1是表头）
-          field: '员工姓名',
-          message: '员工姓名不能为空'
+    // 根据选择的数据组进行验证
+    config.dataGroups.forEach(group => {
+      const groupName = group.toLowerCase().replace('_', '');
+      const rules = validationRules[groupName] || validationRules[group] || [];
+      
+      data.forEach((row, index) => {
+        rules.forEach(rule => {
+          // 支持多个可能的字段名
+          const possibleFields = [
+            rule.field,
+            rule.field.replace('_', ''),
+            rule.field.toLowerCase(),
+            // 英文字段名映射
+            rule.field === '员工姓名' ? 'employee_name' : null,
+            rule.field === '基本工资' ? 'basic_salary' : null,
+            rule.field === '岗位工资' ? 'position_salary' : null,
+            rule.field === '绩效奖金' ? 'performance_bonus' : null,
+            rule.field === '人员类别' ? 'category_name' : null,
+            rule.field === '部门' ? 'department_name' : null,
+            rule.field === '职位' ? 'position_name' : null,
+          ].filter(Boolean);
+          
+          let value = null;
+          let fieldName = rule.field;
+          
+          for (const field of possibleFields) {
+            if (field && row[field] !== undefined) {
+              value = row[field];
+              fieldName = field;
+              break;
+            }
+          }
+          
+          const error = validateField(value, rule);
+          if (error) {
+            errors.push({
+              row: index + 2,
+              field: fieldName,
+              message: error
+            });
+          }
         });
-      }
-      
-      // 检查数值字段
-      const numericFields = ['基本工资', '岗位工资', '绩效奖金', 'basic_salary', 'position_salary', 'performance_bonus'];
-      numericFields.forEach(field => {
-        if (row[field] && isNaN(Number(row[field]))) {
-          errors.push({
-            row: index + 2,
-            field,
-            message: `${field}必须是有效的数字`
-          });
-        }
-      });
-      
-      // 检查日期字段
-      const dateFields = ['入职日期', 'hire_date'];
-      dateFields.forEach(field => {
-        if (row[field] && !Date.parse(row[field])) {
-          warnings.push({
-            row: index + 2,
-            message: `${field}格式可能不正确`
-          });
-        }
       });
     });
+    
+    // 添加一些警告信息
+    if (data.length > 1000) {
+      warnings.push({
+        row: 0,
+        message: `数据量较大（${data.length}条），导入可能需要较长时间`
+      });
+    }
+    
+    // 检查是否有重复的员工
+    const employeeNames = data.map(row => row['员工姓名'] || row['employee_name']).filter(Boolean);
+    const duplicates = employeeNames.filter((name, index) => employeeNames.indexOf(name) !== index);
+    if (duplicates.length > 0) {
+      warnings.push({
+        row: 0,
+        message: `发现重复的员工：${[...new Set(duplicates)].join(', ')}`
+      });
+    }
     
     return {
       isValid: errors.length === 0,
@@ -299,14 +438,322 @@ export function usePayrollImportExport() {
     return results;
   }, []);
 
+  // 导入社保基数数据
+  const importContributionBases = useCallback(async (
+    data: ExcelDataRow[],
+    periodId: string
+  ) => {
+    const results = [];
+    
+    for (const row of data) {
+      try {
+        // 查找员工
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id')
+          .or(`employee_name.eq.${row['员工姓名']},employee_name.eq.${row['employee_name']}`)
+          .single();
+        
+        if (!employee) {
+          throw new Error(`找不到员工: ${row['员工姓名'] || row['employee_name']}`);
+        }
+        
+        // 社保基数字段映射
+        const baseFields = [
+          { field: '养老基数', baseType: 'pension_base' },
+          { field: '医疗基数', baseType: 'medical_base' },
+          { field: '失业基数', baseType: 'unemployment_base' },
+          { field: '工伤基数', baseType: 'work_injury_base' },
+          { field: '生育基数', baseType: 'maternity_base' },
+          { field: '公积金基数', baseType: 'housing_fund_base' }
+        ];
+        
+        // 准备基数数据
+        const baseData: any = {
+          employee_id: employee.id,
+          period_id: periodId,
+          effective_date: new Date().toISOString().split('T')[0]
+        };
+        
+        for (const { field, baseType } of baseFields) {
+          const value = row[field] || row[baseType];
+          if (value && Number(value) > 0) {
+            baseData[baseType] = Number(value);
+          }
+        }
+        
+        // 插入或更新社保基数
+        const { error } = await supabase
+          .from('employee_contribution_bases')
+          .upsert(baseData, {
+            onConflict: 'employee_id,period_id'
+          });
+        
+        if (error) throw error;
+        
+        results.push({ row, success: true });
+      } catch (error) {
+        results.push({ 
+          row, 
+          success: false, 
+          error: error instanceof Error ? error.message : '未知错误' 
+        });
+      }
+    }
+    
+    return results;
+  }, []);
+
+  // 导入人员类别分配
+  const importCategoryAssignments = useCallback(async (
+    data: ExcelDataRow[],
+    periodId: string
+  ) => {
+    const results = [];
+    
+    for (const row of data) {
+      try {
+        // 查找员工
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id')
+          .or(`employee_name.eq.${row['员工姓名']},employee_name.eq.${row['employee_name']}`)
+          .single();
+        
+        if (!employee) {
+          throw new Error(`找不到员工: ${row['员工姓名'] || row['employee_name']}`);
+        }
+        
+        const categoryName = row['人员类别'] || row['category_name'] || row['personnel_category'];
+        if (!categoryName) {
+          throw new Error('人员类别不能为空');
+        }
+        
+        // 查找人员类别
+        const { data: category } = await supabase
+          .from('employee_categories')
+          .select('id')
+          .eq('category_name', categoryName)
+          .single();
+        
+        if (!category) {
+          throw new Error(`找不到人员类别: ${categoryName}`);
+        }
+        
+        // 插入或更新员工的人员类别分配
+        const { error } = await supabase
+          .from('employee_category_assignments')
+          .upsert({
+            employee_id: employee.id,
+            employee_category_id: category.id,
+            assigned_at: new Date().toISOString()
+          }, {
+            onConflict: 'employee_id'
+          });
+        
+        if (error) throw error;
+        
+        results.push({ row, success: true });
+      } catch (error) {
+        results.push({ 
+          row, 
+          success: false, 
+          error: error instanceof Error ? error.message : '未知错误' 
+        });
+      }
+    }
+    
+    return results;
+  }, []);
+
+  // 导入岗位分配数据
+  const importJobAssignments = useCallback(async (
+    data: ExcelDataRow[],
+    periodId: string
+  ) => {
+    const results = [];
+    
+    for (const row of data) {
+      try {
+        // 查找员工
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id')
+          .or(`employee_name.eq.${row['员工姓名']},employee_name.eq.${row['employee_name']}`)
+          .single();
+        
+        if (!employee) {
+          throw new Error(`找不到员工: ${row['员工姓名'] || row['employee_name']}`);
+        }
+        
+        // 准备岗位分配数据
+        const assignmentData: any = {
+          employee_id: employee.id,
+          period_id: periodId,
+          created_at: new Date().toISOString()
+        };
+        
+        // 查找部门
+        const departmentName = row['部门'] || row['department_name'];
+        if (departmentName) {
+          const { data: department } = await supabase
+            .from('departments')
+            .select('id')
+            .eq('name', departmentName)
+            .single();
+          
+          if (department) {
+            assignmentData.department_id = department.id;
+          }
+        }
+        
+        // 查找职位
+        const positionName = row['职位'] || row['position_name'];
+        if (positionName) {
+          const { data: position } = await supabase
+            .from('positions')
+            .select('id')
+            .eq('name', positionName)
+            .single();
+          
+          if (position) {
+            assignmentData.position_id = position.id;
+          }
+        }
+        
+        // 查找职级
+        const rankName = row['职级'] || row['rank_name'];
+        if (rankName) {
+          const { data: rank } = await supabase
+            .from('job_ranks')
+            .select('id')
+            .eq('name', rankName)
+            .single();
+          
+          if (rank) {
+            assignmentData.rank_id = rank.id;
+          }
+        }
+        
+        // 插入岗位分配记录
+        const { error } = await supabase
+          .from('employee_job_history')
+          .insert(assignmentData);
+        
+        if (error) throw error;
+        
+        results.push({ row, success: true });
+      } catch (error) {
+        results.push({ 
+          row, 
+          success: false, 
+          error: error instanceof Error ? error.message : '未知错误' 
+        });
+      }
+    }
+    
+    return results;
+  }, []);
+
   // 导入扣除项数据
   const importDeductions = useCallback(async (
     data: ExcelDataRow[],
     periodId: string
   ) => {
-    // 实现类似importEarnings的逻辑，处理扣除项
-    const results: ImportResult[] = [];
-    // ... 扣除项导入逻辑
+    const results = [];
+    
+    for (const row of data) {
+      try {
+        // 查找员工
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id')
+          .or(`employee_name.eq.${row['员工姓名']},employee_name.eq.${row['employee_name']}`)
+          .single();
+        
+        if (!employee) {
+          throw new Error(`找不到员工: ${row['员工姓名'] || row['employee_name']}`);
+        }
+        
+        // 查找或创建薪资记录
+        let payrollId;
+        const { data: existingPayroll } = await supabase
+          .from('payrolls')
+          .select('id')
+          .eq('employee_id', employee.id)
+          .eq('period_id', periodId)
+          .single();
+        
+        if (existingPayroll) {
+          payrollId = existingPayroll.id;
+        } else {
+          const { data: newPayroll } = await supabase
+            .from('payrolls')
+            .insert({
+              employee_id: employee.id,
+              period_id: periodId,
+              pay_date: new Date().toISOString().split('T')[0],
+              status: 'draft',
+              gross_pay: 0,
+              total_deductions: 0,
+              net_pay: 0
+            })
+            .select()
+            .single();
+          
+          payrollId = newPayroll?.id;
+        }
+        
+        // 导入扣除项
+        const deductionItems = [];
+        const deductionFields = [
+          { field: '养老保险', componentKey: 'pension_insurance' },
+          { field: '医疗保险', componentKey: 'medical_insurance' },
+          { field: '失业保险', componentKey: 'unemployment_insurance' },
+          { field: '工伤保险', componentKey: 'work_injury_insurance' },
+          { field: '生育保险', componentKey: 'maternity_insurance' },
+          { field: '住房公积金', componentKey: 'housing_fund' },
+          { field: '个人所得税', componentKey: 'income_tax' }
+        ];
+        
+        for (const { field, componentKey } of deductionFields) {
+          const amount = row[field] || row[componentKey];
+          if (amount && Number(amount) > 0) {
+            // 查找组件ID
+            const { data: component } = await supabase
+              .from('salary_components')
+              .select('id')
+              .eq('system_key', componentKey)
+              .single();
+            
+            if (component) {
+              deductionItems.push({
+                payroll_id: payrollId,
+                component_id: component.id,
+                amount: Number(amount),
+                period_id: periodId
+              });
+            }
+          }
+        }
+        
+        // 批量插入薪资项
+        if (deductionItems.length > 0) {
+          await supabase
+            .from('payroll_items' as any)
+            .insert(deductionItems);
+        }
+        
+        results.push({ row, success: true });
+      } catch (error) {
+        results.push({ 
+          row, 
+          success: false, 
+          error: error instanceof Error ? error.message : '未知错误' 
+        });
+      }
+    }
+    
     return results;
   }, []);
 
@@ -349,19 +796,83 @@ export function usePayrollImportExport() {
         // 3. 导入数据
         setImportProgress(prev => ({ ...prev, phase: 'importing' }));
         
-        if (params.config.dataGroups.includes('earnings')) {
+        // 导入收入项
+        if (params.config.dataGroups.includes('earnings') || 
+            params.config.dataGroups.includes('EARNINGS')) {
           const earningsResults = await importEarnings(excelData, params.periodId);
           earningsResults.forEach(r => {
             if (r.success) result.successCount++;
-            else result.failedCount++;
+            else {
+              result.failedCount++;
+              result.errors.push({
+                row: excelData.indexOf(r.row) + 2,
+                message: r.error || '导入失败'
+              });
+            }
           });
         }
         
-        if (params.config.dataGroups.includes('deductions')) {
+        // 导入扣除项
+        if (params.config.dataGroups.includes('deductions') || 
+            params.config.dataGroups.includes('DEDUCTIONS')) {
           const deductionsResults = await importDeductions(excelData, params.periodId);
           deductionsResults.forEach(r => {
             if (r.success) result.successCount++;
-            else result.failedCount++;
+            else {
+              result.failedCount++;
+              result.errors.push({
+                row: excelData.indexOf(r.row) + 2,
+                message: r.error || '导入失败'
+              });
+            }
+          });
+        }
+        
+        // 导入社保基数
+        if (params.config.dataGroups.includes('contribution_bases') || 
+            params.config.dataGroups.includes('CONTRIBUTION_BASES')) {
+          const basesResults = await importContributionBases(excelData, params.periodId);
+          basesResults.forEach(r => {
+            if (r.success) result.successCount++;
+            else {
+              result.failedCount++;
+              result.errors.push({
+                row: excelData.indexOf(r.row) + 2,
+                message: r.error || '导入失败'
+              });
+            }
+          });
+        }
+        
+        // 导入人员类别
+        if (params.config.dataGroups.includes('category_assignment') || 
+            params.config.dataGroups.includes('CATEGORY_ASSIGNMENT')) {
+          const categoryResults = await importCategoryAssignments(excelData, params.periodId);
+          categoryResults.forEach(r => {
+            if (r.success) result.successCount++;
+            else {
+              result.failedCount++;
+              result.errors.push({
+                row: excelData.indexOf(r.row) + 2,
+                message: r.error || '导入失败'
+              });
+            }
+          });
+        }
+        
+        // 导入岗位分配
+        if (params.config.dataGroups.includes('job_assignment') || 
+            params.config.dataGroups.includes('JOB_ASSIGNMENT')) {
+          const jobResults = await importJobAssignments(excelData, params.periodId);
+          jobResults.forEach(r => {
+            if (r.success) result.successCount++;
+            else {
+              result.failedCount++;
+              result.errors.push({
+                row: excelData.indexOf(r.row) + 2,
+                message: r.error || '导入失败'
+              });
+            }
           });
         }
         

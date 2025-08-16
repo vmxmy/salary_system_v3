@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TemplateDownloader } from './TemplateDownloader';
 import { HistoryDataExporter } from './HistoryDataExporter';
 import { ImportDataGroup, ImportMode } from '@/types/payroll-import';
@@ -7,13 +7,16 @@ import { usePayrollImportExport } from '@/hooks/payroll/usePayrollImportExport';
 import { DataGroupSelector } from '@/components/common/DataGroupSelector';
 import { DataGroupSelectAllController } from '@/components/common/DataGroupSelectAllController';
 import { MonthPicker } from '@/components/common/MonthPicker';
+import { useAvailablePayrollMonths } from '@/hooks/payroll';
 import * as XLSX from 'xlsx';
-import { useToast, ToastContainer } from '@/components/common/Toast';
+import { useToast } from '@/contexts/ToastContext';
+import { supabase } from '@/lib/supabase';
 import { DownloadIcon, UploadIcon, FolderIcon, CheckCircleIcon, CloseIcon } from '@/components/common/Icons';
 
 export const PayrollImportPage: React.FC = () => {
-  const { messages, removeToast, toast } = useToast();
-  const { mutations, importProgress, resetImportProgress } = usePayrollImportExport();
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
+  const { mutations, resetImportProgress } = usePayrollImportExport();
+  const { data: availableMonths } = useAvailablePayrollMonths(true);
   const [activeTab, setActiveTab] = useState<'template' | 'import' | 'export'>('template');
   const [importing, setImporting] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -38,6 +41,60 @@ export const PayrollImportPage: React.FC = () => {
   });
   const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [importProgress, setImportProgress] = useState<{
+    current: number;
+    total: number;
+    currentGroup: string;
+    percentage: number;
+  }>({ current: 0, total: 0, currentGroup: '', percentage: 0 });
+  const [failedRows, setFailedRows] = useState<ExcelDataRow[]>([]);
+  const [retryMode, setRetryMode] = useState(false);
+
+  // 获取或创建薪资周期
+  const getOrCreatePeriod = async (month: string): Promise<string | null> => {
+    try {
+      // 首先检查是否已有周期
+      const monthData = availableMonths?.find(m => m.month === month);
+      if (monthData?.periodId) {
+        return monthData.periodId;
+      }
+      
+      // 如果没有，创建新周期
+      const [year, monthNum] = month.split('-');
+      const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
+      
+      const { data, error } = await supabase
+        .from('payroll_periods')
+        .insert({
+          period_code: month,
+          period_year: parseInt(year),
+          period_month: parseInt(monthNum),
+          period_name: `${year}年${monthNum}月薪资`,
+          period_start: startDate.toISOString().split('T')[0],
+          period_end: endDate.toISOString().split('T')[0],
+          pay_date: endDate.toISOString().split('T')[0],
+          status: 'draft',
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('创建薪资周期失败:', error);
+        showError('创建薪资周期失败: ' + error.message);
+        return null;
+      }
+      
+      return data?.id || null;
+    } catch (error) {
+      console.error('获取或创建周期失败:', error);
+      showError('获取或创建周期失败');
+      return null;
+    }
+  };
 
   // 处理月份选择
   const handleMonthChange = (month: string) => {
@@ -50,6 +107,10 @@ export const PayrollImportPage: React.FC = () => {
       ...prev,
       payPeriod: { start, end }
     }));
+    
+    // 查找对应的周期ID
+    const monthData = availableMonths?.find(m => m.month === month);
+    setSelectedPeriodId(monthData?.periodId || null);
   };
 
   // 处理数据组选择（多选模式）
@@ -149,59 +210,165 @@ export const PayrollImportPage: React.FC = () => {
         
       } catch (error) {
         console.error('文件解析失败:', error);
-        toast.error('文件解析失败，请检查文件格式');
+        showError('文件解析失败，请检查文件格式');
       }
     };
     
     reader.readAsArrayBuffer(file);
   };
 
-  // 执行导入
-  const handleImport = async () => {
+  // 显示导入预览
+  const handleShowPreview = () => {
     if (!parsedData.length) {
-      toast.warning('没有可导入的数据');
+      showWarning('没有可导入的数据');
       return;
     }
 
     if (selectedDataGroups.length === 0) {
-      toast.warning('请选择要导入的数据类型');
+      showWarning('请选择要导入的数据类型');
+      return;
+    }
+
+    setShowPreviewModal(true);
+  };
+
+  // 执行导入
+  const handleImport = async () => {
+    if (!parsedData.length) {
+      showWarning('没有可导入的数据');
+      return;
+    }
+
+    if (selectedDataGroups.length === 0) {
+      showWarning('请选择要导入的数据类型');
       return;
     }
 
     if (!uploadedFile) {
-      toast.warning('请上传文件');
+      showWarning('请上传文件');
       return;
     }
 
     setImporting(true);
     setImportResult(null);
+    setShowPreviewModal(false);
     resetImportProgress();
 
+    // 初始化进度
+    const totalGroups = selectedDataGroups.length;
+    const rowsPerGroup = parsedData.length;
+    const totalRows = totalGroups * rowsPerGroup;
+    
+    setImportProgress({
+      current: 0,
+      total: totalRows,
+      currentGroup: '',
+      percentage: 0
+    });
+
     try {
-      // 构建导入配置
-      const importConfi = {
-        mode: importConfig.mode === ImportMode.UPSERT ? 'update' : 'append' as 'append' | 'update' | 'replace',
-        validateBeforeImport: importConfig.options?.validateBeforeImport || true,
-        skipDuplicates: importConfig.options?.skipInvalidRows || false,
-        dataGroups: selectedDataGroups.map(g => g.toString()),
-        fieldMappings: {}
+      // 获取或创建周期ID
+      let periodId = selectedPeriodId;
+      if (!periodId) {
+        periodId = await getOrCreatePeriod(selectedMonth);
+        if (!periodId) {
+          showError('无法创建薪资周期，请重试');
+          setImporting(false);
+          return;
+        }
+        setSelectedPeriodId(periodId);
+      }
+      
+      // 逐个数据组导入并更新进度
+      let processedRows = 0;
+      const results = {
+        success: true,
+        successCount: 0,
+        failedCount: 0,
+        skippedCount: 0,
+        totalRows: parsedData.length,
+        errors: [] as any[],
+        warnings: [] as any[]
       };
+
+      const dataToImport = retryMode ? failedRows : parsedData;
+      const failedRowsInThisImport: ExcelDataRow[] = [];
+
+      for (let i = 0; i < selectedDataGroups.length; i++) {
+        const group = selectedDataGroups[i];
+        const groupName = getDataGroupLabel(group);
+        
+        // 更新当前处理的数据组
+        setImportProgress(prev => ({
+          ...prev,
+          currentGroup: groupName,
+          percentage: Math.round((processedRows / totalRows) * 100)
+        }));
+
+        try {
+          // 构建导入配置
+          const importConfi = {
+            mode: importConfig.mode === ImportMode.UPSERT ? 'update' : 'append' as 'append' | 'update' | 'replace',
+            validateBeforeImport: importConfig.options?.validateBeforeImport || true,
+            skipDuplicates: importConfig.options?.skipInvalidRows || false,
+            dataGroups: [group.toString()],
+            fieldMappings: {}
+          };
+          
+          const groupResult = await mutations.importExcel.mutateAsync({
+            file: uploadedFile,
+            config: importConfi,
+            periodId: periodId
+          });
+
+          // 合并结果
+          results.successCount += groupResult.successCount || 0;
+          results.failedCount += groupResult.failedCount || 0;
+          results.skippedCount += groupResult.skippedCount || 0;
+          if (groupResult.errors) {
+            results.errors.push(...groupResult.errors);
+            // 收集失败的行用于重试
+            groupResult.errors.forEach((error: any) => {
+              if (error.row && dataToImport[error.row - 1]) {
+                failedRowsInThisImport.push(dataToImport[error.row - 1]);
+              }
+            });
+          }
+          if (groupResult.warnings) results.warnings.push(...groupResult.warnings);
+          
+          processedRows += rowsPerGroup;
+          
+          // 更新进度
+          setImportProgress(prev => ({
+            ...prev,
+            current: processedRows,
+            percentage: Math.round((processedRows / totalRows) * 100)
+          }));
+          
+        } catch (error) {
+          console.error(`导入 ${groupName} 失败:`, error);
+          results.failedCount += rowsPerGroup;
+          results.errors.push({
+            row: 0,
+            message: `${groupName} 导入失败: ${error instanceof Error ? error.message : '未知错误'}`
+          });
+          // 批量失败时，将所有行标记为失败
+          failedRowsInThisImport.push(...dataToImport);
+        }
+      }
       
-      // 获取周期ID（可以根据选中的月份查询）
-      const periodId = `${selectedMonth}-01`; // 这里需要根据实际情况获取
+      // 保存失败的行以供重试
+      setFailedRows(failedRowsInThisImport);
+      setRetryMode(false);
       
-      const result = await mutations.importExcel.mutateAsync({
-        file: uploadedFile,
-        config: importConfi,
-        periodId: periodId
-      });
+      setImportResult(results);
       
-      setImportResult(result);
-      
-      if (result.success) {
-        toast.success(`导入成功！成功 ${result.successCount} 条，失败 ${result.failedCount} 条`);
+      if (results.failedCount === 0) {
+        showSuccess(`导入成功！成功 ${results.successCount} 条`);
+      } else if (results.successCount > 0) {
+        showWarning(`导入完成，但有错误。成功 ${results.successCount} 条，失败 ${results.failedCount} 条`);
       } else {
-        toast.warning(`导入完成，但有错误。成功 ${result.successCount} 条，失败 ${result.failedCount} 条`);
+        showError(`导入失败，所有数据都未能成功导入`);
       }
     } catch (error) {
       // 开发环境下才输出错误日志
@@ -209,9 +376,32 @@ export const PayrollImportPage: React.FC = () => {
         console.error('导入失败:', error);
       }
       const errorMessage = error instanceof Error ? error.message : '未知错误';
-      toast.error('导入失败: ' + errorMessage);
+      showError('导入失败: ' + errorMessage);
     } finally {
       setImporting(false);
+      // 重置进度
+      setImportProgress({
+        current: 0,
+        total: 0,
+        currentGroup: '',
+        percentage: 0
+      });
+    }
+  };
+
+  // 获取数据组标签
+  const getDataGroupLabel = (group: ImportDataGroup): string => {
+    switch(group) {
+      case ImportDataGroup.EARNINGS:
+        return '薪资收入';
+      case ImportDataGroup.CONTRIBUTION_BASES:
+        return '缴费基数';
+      case ImportDataGroup.CATEGORY_ASSIGNMENT:
+        return '人员类别';
+      case ImportDataGroup.JOB_ASSIGNMENT:
+        return '岗位分配';
+      default:
+        return '未知类型';
     }
   };
 
@@ -220,14 +410,28 @@ export const PayrollImportPage: React.FC = () => {
     setUploadedFile(null);
     setParsedData([]);
     setImportResult(null);
+    setFailedRows([]);
+    setRetryMode(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
+  // 重试失败的行
+  const handleRetryFailed = () => {
+    if (failedRows.length === 0) {
+      showWarning('没有失败的行可以重试');
+      return;
+    }
+    
+    setRetryMode(true);
+    setParsedData(failedRows);
+    setImportResult(null);
+    showInfo(`准备重试 ${failedRows.length} 条失败的记录`);
+  };
+
   return (
     <div className="container mx-auto p-6">
-      <ToastContainer messages={messages} onClose={removeToast} />
       <h1 className="text-2xl font-bold">薪资数据导入导出</h1>
       <div className="divider"></div>
 
@@ -464,6 +668,13 @@ export const PayrollImportPage: React.FC = () => {
                         重新上传
                       </button>
                       <button
+                        className="btn btn-outline btn-primary"
+                        onClick={handleShowPreview}
+                        disabled={importing || parsedData.length === 0 || selectedDataGroups.length === 0}
+                      >
+                        预览导入
+                      </button>
+                      <button
                         className="btn btn-primary"
                         onClick={handleImport}
                         disabled={importing || parsedData.length === 0 || selectedDataGroups.length === 0}
@@ -472,6 +683,24 @@ export const PayrollImportPage: React.FC = () => {
                         {importing ? '导入中...' : selectedDataGroups.length === 0 ? '请选择数据类型' : `开始导入 (${parsedData.length} 条)`}
                       </button>
                     </div>
+
+                    {/* 导入进度条 */}
+                    {importing && importProgress.total > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>正在导入: {importProgress.currentGroup}</span>
+                          <span>{importProgress.percentage}%</span>
+                        </div>
+                        <progress 
+                          className="progress progress-primary w-full" 
+                          value={importProgress.percentage} 
+                          max="100"
+                        ></progress>
+                        <div className="text-sm text-base-content/60">
+                          已处理 {importProgress.current} / {importProgress.total} 条记录
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -552,6 +781,31 @@ export const PayrollImportPage: React.FC = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* 失败重试按钮 */}
+                  {failedRows.length > 0 && (
+                    <div className="mt-4 flex justify-end gap-2">
+                      <button 
+                        className="btn btn-outline btn-error"
+                        onClick={() => {
+                          setFailedRows([]);
+                          showInfo('已清除失败记录');
+                        }}
+                      >
+                        清除失败记录
+                      </button>
+                      <button 
+                        className="btn btn-primary"
+                        onClick={handleRetryFailed}
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        重试失败的 {failedRows.length} 条记录
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -574,6 +828,135 @@ export const PayrollImportPage: React.FC = () => {
           <HistoryDataExporter />
         </div>
       </div>
+
+      {/* 导入预览模态框 */}
+      {showPreviewModal && (
+        <dialog className="modal modal-open">
+          <div className="modal-box max-w-4xl">
+            <h3 className="font-bold text-lg mb-4">导入数据预览</h3>
+            
+            {/* 数据汇总 */}
+            <div className="stats shadow w-full mb-4">
+              <div className="stat">
+                <div className="stat-title">数据行数</div>
+                <div className="stat-value text-primary">{parsedData.length}</div>
+              </div>
+              <div className="stat">
+                <div className="stat-title">选择的数据类型</div>
+                <div className="stat-value text-secondary">{selectedDataGroups.length}</div>
+              </div>
+              <div className="stat">
+                <div className="stat-title">导入模式</div>
+                <div className="stat-value text-sm">
+                  {importConfig.mode === ImportMode.CREATE ? '仅创建' : 
+                   importConfig.mode === ImportMode.UPDATE ? '仅更新' :
+                   importConfig.mode === ImportMode.UPSERT ? '更新或创建' : '追加'}
+                </div>
+              </div>
+            </div>
+
+            {/* 选择的数据组 */}
+            <div className="mb-4">
+              <h4 className="font-semibold mb-2">将导入以下数据类型：</h4>
+              <div className="flex flex-wrap gap-2">
+                {selectedDataGroups.map(group => (
+                  <span key={group} className="badge badge-primary">
+                    {getDataGroupLabel(group)}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* 数据预览表格 */}
+            <div className="mb-4">
+              <h4 className="font-semibold mb-2">数据样本（前10行）：</h4>
+              <div className="overflow-x-auto max-h-96">
+                <table className="table table-xs table-zebra">
+                  <thead>
+                    <tr>
+                      <th>行号</th>
+                      <th>员工编号</th>
+                      <th>员工姓名</th>
+                      <th>部门</th>
+                      <th>基本工资</th>
+                      <th>更多字段</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsedData.slice(0, 10).map((row, index) => (
+                      <tr key={index}>
+                        <td>{row.rowNumber}</td>
+                        <td>{row['员工编号'] || '-'}</td>
+                        <td>{row['员工姓名'] || '-'}</td>
+                        <td>{row['部门'] || '-'}</td>
+                        <td>{row['基本工资'] || '-'}</td>
+                        <td>
+                          <span className="badge badge-ghost badge-sm">
+                            {Object.keys(row).length - 5} 个字段
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {parsedData.length > 10 && (
+                <div className="text-sm text-base-content/60 mt-2">
+                  还有 {parsedData.length - 10} 行未显示...
+                </div>
+              )}
+            </div>
+
+            {/* 导入选项确认 */}
+            <div className="alert alert-info mb-4">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <div className="font-semibold">导入设置</div>
+                <ul className="text-sm mt-1">
+                  <li>• 导入前验证: {importConfig.options.validateBeforeImport ? '✓ 已启用' : '✗ 已禁用'}</li>
+                  <li>• 跳过无效行: {importConfig.options.skipInvalidRows ? '✓ 已启用' : '✗ 已禁用'}</li>
+                  <li>• 批处理大小: {importConfig.options.batchSize} 行/批</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 警告信息 */}
+            {parsedData.length > 1000 && (
+              <div className="alert alert-warning mb-4">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>数据量较大（{parsedData.length} 行），导入可能需要较长时间</span>
+              </div>
+            )}
+
+            {/* 操作按钮 */}
+            <div className="modal-action">
+              <button 
+                className="btn btn-ghost" 
+                onClick={() => setShowPreviewModal(false)}
+              >
+                取消
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleImport}
+                disabled={importing}
+              >
+                {importing && <span className="loading loading-spinner"></span>}
+                确认导入
+              </button>
+            </div>
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setShowPreviewModal(false)}>close</button>
+          </form>
+        </dialog>
+      )}
     </div>
   );
 };
