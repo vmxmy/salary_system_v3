@@ -214,8 +214,9 @@ export const usePayrollPeriodStatistics = (periodId: string) => {
         totalNetPay: payrolls?.reduce((sum, p) => sum + (p.net_pay || 0), 0) || 0,
         statusCounts: {
           draft: payrolls?.filter(p => p.status === 'draft').length || 0,
-          calculating: payrolls?.filter(p => p.status === 'calculating').length || 0,
-          calculated: payrolls?.filter(p => p.status === 'calculated').length || 0,
+          // calculating 和 calculated 状态不在数据库中，设为0
+          calculating: 0,
+          calculated: 0,
           approved: payrolls?.filter(p => p.status === 'approved').length || 0,
           paid: payrolls?.filter(p => p.status === 'paid').length || 0,
         }

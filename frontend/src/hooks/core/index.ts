@@ -43,3 +43,8 @@ export type { TableOptions } from './useSmartTableColumns';
 // 通用表格功能
 export { useUniversalTable, universalTableKeys } from './useUniversalTable';
 export type { UniversalTableOptions, TableAction } from './useUniversalTable';
+
+// 新迁移的核心工具
+export { useTableConfiguration } from './useTableConfiguration';
+export { usePermission, PERMISSIONS } from './usePermission';
+export { useConfirmDialog } from './useConfirmDialog';

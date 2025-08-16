@@ -4,11 +4,13 @@ import { useEmployeeTable } from '@/hooks/employee/useEmployeeTable';
 import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
 import { DataTable } from '@/components/common/DataTable';
 import { ModernButton } from '@/components/common/ModernButton';
-import { EmployeeModal } from '@/components/employee/EmployeeDetailModal';
+import { EmployeeDetailModalPro as EmployeeModal } from '@/components/employee/EmployeeDetailModalPro';
 import { EmployeeExport } from '@/components/employee/EmployeeExport';
 import { RealtimeIndicator } from '@/components/common/RealtimeIndicator';
 import { ColumnVisibility } from '@/components/common/DataTable/components/ColumnVisibility';
 import { AdvancedSearch } from '@/components/common/AdvancedSearch';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { useConfirmDialog } from '@/hooks/core';
 import { 
   UserPlusIcon
 } from '@heroicons/react/24/outline';
@@ -16,10 +18,12 @@ import type { EmployeeListItem } from '@/types/employee';
 
 export default function EmployeeListPage() {
   const { t } = useTranslation(['employee', 'common']);
+  const { dialogState, loading: confirmLoading, hideConfirm, confirmDelete } = useConfirmDialog();
   
   // 页面状态
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'view' | 'edit' | 'create'>('view');
   const [tableInstance, setTableInstance] = useState<any>(null);
   
   // 使用ref存储删除函数，避免循环依赖
@@ -28,26 +32,29 @@ export default function EmployeeListPage() {
   // 事件处理函数 - 必须在Hook之前定义
   const handleViewEmployee = useCallback((employee: EmployeeListItem) => {
     setSelectedEmployee(employee);
+    setModalMode('view');
     setIsEmployeeModalOpen(true);
   }, []);
 
   const handleEditEmployee = useCallback((employee: EmployeeListItem) => {
     setSelectedEmployee(employee);
+    setModalMode('edit');
     setIsEmployeeModalOpen(true);
   }, []);
   
   // 删除操作回调
   const handleDeleteAction = useCallback(async (employee: any) => {
-    if (window.confirm(`确定要删除员工 ${employee.employee_name} 吗？`)) {
+    await confirmDelete(`员工 "${employee.employee_name}"`, async () => {
       try {
         if (deleteEmployeeRef.current) {
           await deleteEmployeeRef.current(employee.employee_id);
         }
       } catch (error) {
         console.error('删除员工失败:', error);
+        throw error; // Re-throw to keep dialog open
       }
-    }
-  }, []);
+    });
+  }, [confirmDelete]);
 
   // 🚀 使用新架构的员工表格 Hook
   const {
@@ -98,17 +105,19 @@ export default function EmployeeListPage() {
 
   // 其他删除员工的处理逻辑（用于其他地方调用）
   const handleDeleteEmployee = useCallback(async (employeeId: string) => {
-    if (window.confirm('确定要删除这名员工吗？')) {
+    await confirmDelete('这名员工', async () => {
       try {
         await deleteEmployee(employeeId);
       } catch (error) {
         console.error('删除员工失败:', error);
+        throw error;
       }
-    }
-  }, [deleteEmployee]);
+    });
+  }, [deleteEmployee, confirmDelete]);
 
   const handleCreateEmployee = () => {
     setSelectedEmployee(null);
+    setModalMode('create');
     setIsEmployeeModalOpen(true);
   };
 
@@ -238,7 +247,7 @@ export default function EmployeeListPage() {
       {/* 员工详情/编辑模态框 */}
       {isEmployeeModalOpen && (
         <EmployeeModal
-          mode={selectedEmployee ? 'edit' : 'create'}
+          mode={modalMode}
           employeeId={selectedEmployee?.employee_id || null}
           open={isEmployeeModalOpen}
           onClose={handleCloseModal}
@@ -248,6 +257,19 @@ export default function EmployeeListPage() {
           }}
         />
       )}
+
+      {/* 确认对话框 */}
+      <ConfirmDialog
+        open={dialogState.open}
+        title={dialogState.title}
+        message={dialogState.message}
+        confirmText={dialogState.confirmText}
+        cancelText={dialogState.cancelText}
+        confirmVariant={dialogState.confirmVariant}
+        onConfirm={dialogState.onConfirm || (() => {})}
+        onCancel={hideConfirm}
+        loading={confirmLoading}
+      />
     </>
   );
 }

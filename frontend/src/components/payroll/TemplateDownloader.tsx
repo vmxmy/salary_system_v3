@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { ImportDataGroup } from '@/types/payroll-import';
-import useExcelTemplate from '@/hooks/useExcelTemplate';
+import { useExcelTemplate } from '@/hooks/payroll';
 import { useToast, ToastContainer } from '@/components/common/Toast';
 import { InfoIcon, XCircleIcon } from '@/components/common/Icons';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { DataGroupSelector } from '@/components/common/DataGroupSelector';
 import { DataGroupSelectAllController } from '@/components/common/DataGroupSelectAllController';
-import { useAvailablePayrollMonths } from '@/hooks/useAvailablePayrollMonths';
+import { useAvailablePayrollMonths } from '@/hooks/payroll';
 
 interface TemplateDownloaderProps {
   onClose?: () => void;

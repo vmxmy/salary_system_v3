@@ -9,7 +9,7 @@ type Payroll = Database['public']['Tables']['payrolls']['Row'];
 type PayrollInsert = Database['public']['Tables']['payrolls']['Insert'];
 type PayrollUpdate = Database['public']['Tables']['payrolls']['Update'];
 
-// 薪资状态枚举
+// 薪资状态枚举 - 与数据库枚举保持一致
 export const PayrollStatus = {
   DRAFT: 'draft',
   CALCULATING: 'calculating',

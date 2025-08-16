@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { ModernButton } from '@/components/common/ModernButton';
 import { MonthPicker } from '@/components/common/MonthPicker';
-import { useDepartmentPayrollStats } from '@/hooks/useDepartments';
+import { useDepartmentPayrollStats } from '@/hooks/department';
 import { DepartmentSalaryChart, DepartmentSalaryComparison } from './DepartmentSalaryChart';
 import { cn } from '@/lib/utils';
 import type { DepartmentNode } from '@/types/department';

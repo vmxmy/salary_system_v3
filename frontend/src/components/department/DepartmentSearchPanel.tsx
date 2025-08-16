@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import { ModernButton } from '@/components/common/ModernButton';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useDebouncedValue } from '@/hooks/useDebounce';
 import type { DepartmentSearchFilters } from '@/types/department';
 
 interface DepartmentSearchPanelProps {

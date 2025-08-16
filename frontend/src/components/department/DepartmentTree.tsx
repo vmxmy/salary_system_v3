@@ -3,7 +3,7 @@ import { MagnifyingGlassIcon, FolderOpenIcon, FolderIcon } from '@heroicons/reac
 import { DepartmentTreeNode } from './DepartmentTreeNode';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { ModernButton } from '@/components/common/ModernButton';
-import { useDepartmentTree } from '@/hooks/useDepartments';
+import { useDepartmentTree } from '@/hooks/department';
 import { cn } from '@/lib/utils';
 import type { DepartmentNode } from '@/types/department';
 

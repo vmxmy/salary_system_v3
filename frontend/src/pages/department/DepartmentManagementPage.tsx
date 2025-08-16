@@ -24,9 +24,9 @@ import { DepartmentSearchPanel } from '@/components/department/DepartmentSearchP
 import { DepartmentBatchOperations } from '@/components/department/DepartmentBatchOperations';
 import { 
   useDepartmentTree, 
-  useDepartmentPayrollStats,
-  useLatestPayrollPeriod 
-} from '@/hooks/useDepartments';
+  useDepartmentPayrollStats
+} from '@/hooks/department';
+import { useLatestPayrollPeriod } from '@/hooks/payroll';
 import { filterDepartmentTree } from '@/utils/departmentFilters';
 import type { DepartmentViewMode, DepartmentSearchFilters, DepartmentNode } from '@/types/department';
 

@@ -12,7 +12,7 @@ import {
 import { DataTable } from '@/components/common/DataTable/DataTable';
 import { ModernButton } from '@/components/common/ModernButton';
 import { useToast } from '@/contexts/ToastContext';
-import { useDepartmentEmployees } from '@/hooks/useDepartments';
+import { useDepartmentEmployees } from '@/hooks/department';
 import { cn } from '@/lib/utils';
 import type { DepartmentNode, DepartmentEmployee } from '@/types/department';
 

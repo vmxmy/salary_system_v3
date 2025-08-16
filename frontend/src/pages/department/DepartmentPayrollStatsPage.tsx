@@ -11,7 +11,7 @@ import {
 import { PageHeader, PageContent } from '@/components/layout/PageLayout';
 import { ModernButton } from '@/components/common/ModernButton';
 import { MonthPicker } from '@/components/common/MonthPicker';
-import { useDepartmentTree, useDepartmentPayrollStats } from '@/hooks/useDepartments';
+import { useDepartmentTree, useDepartmentPayrollStats } from '@/hooks/department';
 import { DepartmentSalaryComparison, DepartmentSalaryChart } from '@/components/department/DepartmentSalaryChart';
 import { DepartmentPayrollAnalysis } from '@/components/department/DepartmentPayrollAnalysis';
 import { useToast } from '@/contexts/ToastContext';

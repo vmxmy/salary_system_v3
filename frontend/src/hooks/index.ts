@@ -42,8 +42,7 @@ export { dashboardQueryKeys } from './dashboard/useDashboard';
 // 这些Hook将在下个版本中标记为deprecated
 export { useAuth } from './useAuth';
 export { useTranslation } from './useTranslation';
-export { useDebounce } from './useDebounce';
-export { useDebouncedValue } from './useDebouncedValue';
+export { useDebounce, useDebouncedValue, useDebouncedCallback } from './useDebounce';
 export { useRealtimeConnection } from './useRealtimeConnection';
 export { default as usePerformanceMonitor } from './usePerformanceMonitor';
 

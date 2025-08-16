@@ -84,7 +84,7 @@ export function useEmployeeActions() {
           ...employeeData,
           updated_at: new Date().toISOString(),
         })
-        .eq('employee_id', id)
+        .eq('id', id)
         .select()
         .single();
 
@@ -109,16 +109,23 @@ export function useEmployeeActions() {
     },
   });
 
-  // 删除员工
+  // 软删除员工
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      // 软删除：更新 deleted_at 字段和 employment_status
       const { error } = await supabase
         .from('employees')
-        .delete()
-        .eq('employee_id', id);
+        .update({
+          deleted_at: new Date().toISOString(),
+          employment_status: 'terminated',
+          termination_date: new Date().toISOString().split('T')[0],
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .is('deleted_at', null); // 只删除未被删除的记录
 
       if (error) {
-        console.error('Failed to delete employee:', error);
+        console.error('Failed to soft delete employee:', error);
         throw error;
       }
 
@@ -130,24 +137,31 @@ export function useEmployeeActions() {
       queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
-      showSuccess('员工删除成功');
+      showSuccess('员工已移除');
     },
     onError: (error: any) => {
-      console.error('Delete employee error:', error);
-      showError(`删除员工失败: ${error.message}`);
+      console.error('Soft delete employee error:', error);
+      showError(`移除员工失败: ${error.message}`);
     },
   });
 
-  // 批量删除员工
+  // 批量软删除员工
   const batchDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
+      // 批量软删除：更新 deleted_at 字段和 employment_status
       const { error } = await supabase
         .from('employees')
-        .delete()
-        .in('employee_id', ids);
+        .update({
+          deleted_at: new Date().toISOString(),
+          employment_status: 'terminated',
+          termination_date: new Date().toISOString().split('T')[0],
+          updated_at: new Date().toISOString(),
+        })
+        .in('id', ids)
+        .is('deleted_at', null); // 只删除未被删除的记录
 
       if (error) {
-        console.error('Failed to batch delete employees:', error);
+        console.error('Failed to batch soft delete employees:', error);
         throw error;
       }
 
@@ -159,11 +173,90 @@ export function useEmployeeActions() {
       queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
-      showSuccess(`成功删除 ${ids.length} 名员工`);
+      showSuccess(`成功移除 ${ids.length} 名员工`);
     },
     onError: (error: any) => {
-      console.error('Batch delete employees error:', error);
-      showError(`批量删除失败: ${error.message}`);
+      console.error('Batch soft delete employees error:', error);
+      showError(`批量移除失败: ${error.message}`);
+    },
+  });
+
+  // 恢复软删除的员工
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('employees')
+        .update({
+          deleted_at: null,
+          employment_status: 'active',
+          termination_date: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .not('deleted_at', 'is', null); // 只恢复已删除的记录
+
+      if (error) {
+        console.error('Failed to restore employee:', error);
+        throw error;
+      }
+
+      return id;
+    },
+    onSuccess: () => {
+      // 清除相关缓存
+      queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
+      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-table'] });
+      
+      showSuccess('员工已恢复');
+    },
+    onError: (error: any) => {
+      console.error('Restore employee error:', error);
+      showError(`恢复员工失败: ${error.message}`);
+    },
+  });
+
+  // 永久删除员工（物理删除）
+  const permanentDeleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // 先检查是否已经软删除
+      const { data: employee, error: checkError } = await supabase
+        .from('employees')
+        .select('deleted_at')
+        .eq('id', id)
+        .single();
+
+      if (checkError) {
+        throw new Error('无法验证员工状态');
+      }
+
+      if (!employee?.deleted_at) {
+        throw new Error('只能永久删除已经软删除的员工');
+      }
+
+      // 执行物理删除
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Failed to permanently delete employee:', error);
+        throw error;
+      }
+
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
+      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-table'] });
+      
+      showSuccess('员工记录已永久删除');
+    },
+    onError: (error: any) => {
+      console.error('Permanent delete employee error:', error);
+      showError(`永久删除失败: ${error.message}`);
     },
   });
 
@@ -174,17 +267,23 @@ export function useEmployeeActions() {
       updateMutation.mutateAsync({ id, employeeData }),
     delete: (id: string) => deleteMutation.mutateAsync(id),
     batchDelete: (ids: string[]) => batchDeleteMutation.mutateAsync(ids),
+    restore: (id: string) => restoreMutation.mutateAsync(id),
+    permanentDelete: (id: string) => permanentDeleteMutation.mutateAsync(id),
 
     // 加载状态
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isBatchDeleting: batchDeleteMutation.isPending,
+    isRestoring: restoreMutation.isPending,
+    isPermanentDeleting: permanentDeleteMutation.isPending,
 
     // 操作状态
     createError: createMutation.error,
     updateError: updateMutation.error,
     deleteError: deleteMutation.error,
     batchDeleteError: batchDeleteMutation.error,
+    restoreError: restoreMutation.error,
+    permanentDeleteError: permanentDeleteMutation.error,
   };
 }
