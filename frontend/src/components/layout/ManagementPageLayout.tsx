@@ -165,7 +165,7 @@ export function ManagementPageLayout({
     return (
       <FieldSelector
         fields={fields}
-        userConfig={userConfig}
+        userConfig={userConfig || { columns: [] }}
         onChange={onFieldConfigChange || (() => {})}
         onReset={onFieldConfigReset || (() => {})}
       />
