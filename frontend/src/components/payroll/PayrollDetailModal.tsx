@@ -117,7 +117,6 @@ interface ContributionBase {
 type TabType = 'overview' | 'breakdown' | 'insurance' | 'contribution';
 
 // 个人扣缴类分类定义
-const PERSONAL_DEDUCTION_CATEGORIES = ['personal_insurance', 'personal_tax'];
 
 // 薪资类别显示名称映射
 const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
@@ -212,6 +211,7 @@ export function PayrollDetailModal({
             )
           `)
           .eq('payroll_id', payrollId)
+          .not('insurance_type_id', 'is', null)
           .order('insurance_type_id');
         
         if (insuranceError) throw insuranceError;
@@ -292,7 +292,7 @@ export function PayrollDetailModal({
   // Tab配置
   const tabs = [
     { id: 'overview', label: '薪资概览', icon: CurrencyDollarIcon },
-    { id: 'breakdown', label: '薪资明细', icon: CalculatorIcon },
+    { id: 'breakdown', label: '收入明细', icon: CalculatorIcon },
     { id: 'insurance', label: '五险一金', icon: ShieldCheckIcon },
     { id: 'contribution', label: '缴费基数', icon: CreditCardIcon },
   ];
@@ -625,14 +625,6 @@ function PayrollBreakdownSection({
       .flatMap(([, items]) => items);
   }, [groupedItems]);
 
-  const deductionItems = useMemo(() => {
-    return Object.entries(groupedItems)
-      .filter(([category, items]) => 
-        items[0]?.component_type === 'deduction' && 
-        PERSONAL_DEDUCTION_CATEGORIES.includes(category)
-      )
-      .flatMap(([, items]) => items);
-  }, [groupedItems]);
 
   // 定义收入项目表格列
   const incomeColumns = useMemo(() => [
@@ -684,55 +676,6 @@ function PayrollBreakdownSection({
     })
   ], []);
 
-  // 定义扣缴项目表格列
-  const deductionColumns = useMemo<ColumnDef<PayrollItemDetail>[]>(() => [
-    columnHelper.accessor('component_name' as any, {
-      header: '项目名称',
-      cell: info => (
-        <span className="text-sm font-medium text-base-content">
-          {info.getValue() as React.ReactNode}
-        </span>
-      )
-    }),
-    columnHelper.accessor('category' as any, {
-      header: '分类',
-      cell: (info: any) => (
-        <span className="text-xs text-base-content/70">
-          {info.row.original.category || '未知分类'}
-        </span>
-      )
-    }),
-    columnHelper.accessor('amount' as any, {
-      header: () => <div className="text-right">金额</div>,
-      cell: info => (
-        <div className="text-right">
-          <span className="text-sm font-semibold font-mono text-red-600">
-            -{formatCurrency(Math.abs(info.getValue() as number))}
-          </span>
-        </div>
-      )
-    }),
-    columnHelper.accessor('calculation_method' as any, {
-      header: '计算方式',
-      cell: info => info.getValue() ? (
-        <span className="text-xs text-base-content/60">
-          {info.getValue() as React.ReactNode}
-        </span>
-      ) : (
-        <span className="text-xs text-base-content/30">-</span>
-      )
-    }),
-    columnHelper.accessor('notes' as any, {
-      header: '备注',
-      cell: info => info.getValue() ? (
-        <span className="text-xs text-base-content/60">
-          {info.getValue() as React.ReactNode}
-        </span>
-      ) : (
-        <span className="text-xs text-base-content/30">-</span>
-      )
-    })
-  ], []);
 
   // 创建收入表格实例
   const incomeTable = useReactTable({
@@ -741,12 +684,6 @@ function PayrollBreakdownSection({
     getCoreRowModel: getCoreRowModel(),
   });
 
-  // 创建扣缴表格实例
-  const deductionTable = useReactTable({
-    data: deductionItems,
-    columns: deductionColumns,
-    getCoreRowModel: getCoreRowModel(),
-  });
 
   // 计算汇总
   const incomeTotal = useMemo(() => 
@@ -754,10 +691,6 @@ function PayrollBreakdownSection({
     [incomeItems]
   );
 
-  const deductionTotal = useMemo(() => 
-    deductionItems.reduce((sum, item) => sum + Math.abs(item.amount), 0),
-    [deductionItems]
-  );
 
   if (Object.keys(groupedItems).length === 0) {
     return (
@@ -830,56 +763,6 @@ function PayrollBreakdownSection({
         </div>
       )}
 
-      {/* 扣缴项目表格 */}
-      {deductionItems.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                </svg>
-              </div>
-              <h3 className="text-sm font-semibold text-red-700">个人扣缴项目</h3>
-            </div>
-            <div className="text-sm font-semibold text-red-600">
-              合计: -{formatCurrency(deductionTotal)}
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="table table-sm w-full">
-              <thead>
-                {deductionTable.getHeaderGroups().map(headerGroup => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map(header => (
-                      <th key={header.id} className="text-xs font-medium">
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody>
-                {deductionTable.getRowModel().rows.map(row => (
-                  <tr key={row.id} className="hover:bg-base-100/50">
-                    {row.getVisibleCells().map(cell => (
-                      <td key={cell.id} className="py-2">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -899,7 +782,8 @@ function InsuranceDetailsSection({
 
   // 定义表格列
   const insuranceColumns = useMemo(() => [
-    insuranceColumnHelper.accessor('insurance_type.name' as keyof InsuranceDetail, {
+    insuranceColumnHelper.accessor(row => row.insurance_type?.name, {
+      id: 'insurance_type_name',
       header: '保险类型',
       cell: info => (
         <span className="text-sm font-medium text-base-content">
