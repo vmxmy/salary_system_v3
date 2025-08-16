@@ -67,7 +67,6 @@
 - PerformanceDashboard.tsx
 - PerformanceMonitorPage.tsx
 - ConfirmationStep.tsx
-- SalaryComponentDemoPage.tsx
 - DepartmentImportExport.tsx
 
 这些组件需要逐步迁移到新的 Hook 架构。

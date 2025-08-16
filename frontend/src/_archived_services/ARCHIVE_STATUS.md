@@ -92,7 +92,6 @@
 ### 低优先级（演示/测试）
 - [ ] PerformanceDashboard.tsx
 - [ ] PerformanceMonitorPage.tsx
-- [ ] SalaryComponentDemoPage.tsx
 
 ## 清理建议
 
