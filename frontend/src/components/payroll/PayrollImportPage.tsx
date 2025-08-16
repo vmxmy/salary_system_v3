@@ -51,6 +51,30 @@ export const PayrollImportPage: React.FC = () => {
   }>({ current: 0, total: 0, currentGroup: '', percentage: 0 });
   const [failedRows, setFailedRows] = useState<ExcelDataRow[]>([]);
   const [retryMode, setRetryMode] = useState(false);
+  const [parseResult, setParseResult] = useState<{
+    sheets: {
+      name: string;
+      rowCount: number;
+      columnCount: number;
+      headers: string[];
+      isEmpty: boolean;
+      hasData: boolean;
+    }[];
+    expectedSheets: string[];
+    missingSheets: string[];
+    unexpectedSheets: string[];
+    totalRows: number;
+    validRows: number;
+    emptyRows: number;
+    duplicateEmployees: string[];
+    dataConsistency: {
+      allSheetsHaveSameRowCount: boolean;
+      rowCountVariance: number[];
+      employeeListConsistent: boolean;
+      missingInSheets: { employee: string; sheets: string[] }[];
+    };
+    warnings: string[];
+  } | null>(null);
 
   // 获取或创建薪资周期
   const getOrCreatePeriod = async (month: string): Promise<string | null> => {
@@ -161,6 +185,7 @@ export const PayrollImportPage: React.FC = () => {
 
     setUploadedFile(file);
     setImportResult(null);
+    setParseResult(null);
 
     // 读取Excel文件
     const reader = new FileReader();
@@ -169,12 +194,34 @@ export const PayrollImportPage: React.FC = () => {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         
-        // 解析所有工作表
+        // 定义期望的工作表
+        const expectedSheets = ['基本信息', '薪资收入', '缴费基数', '人员类别', '岗位信息'];
+        const foundSheets: string[] = [];
+        const missingSheets: string[] = [];
+        const unexpectedSheets: string[] = [];
+        
+        // 解析结果详情
+        const sheetDetails: any[] = [];
         const allData: ExcelDataRow[] = [];
+        const employeesBySheet: { [sheetName: string]: Set<string> } = {};
+        const rowCountBySheet: { [sheetName: string]: number } = {};
+        let totalEmptyRows = 0;
         let rowNumber = 1;
         
+        // 分析每个工作表
         workbook.SheetNames.forEach(sheetName => {
-          if (sheetName === '使用说明') return; // 跳过说明表
+          if (sheetName === '使用说明') {
+            // 跳过说明表但记录
+            sheetDetails.push({
+              name: sheetName,
+              rowCount: 0,
+              columnCount: 0,
+              headers: [],
+              isEmpty: true,
+              hasData: false
+            });
+            return;
+          }
           
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
@@ -182,35 +229,171 @@ export const PayrollImportPage: React.FC = () => {
             defval: '' 
           });
           
+          // 记录sheet信息
+          const headers = jsonData.length > 0 ? (jsonData[0] as string[]).filter(h => h) : [];
+          const dataRows = jsonData.length > 1 ? jsonData.slice(1) : [];
+          const validDataRows = dataRows.filter((row) => {
+            const rowData = row as any[];
+            return rowData.some(cell => cell !== null && cell !== undefined && cell !== '');
+          });
+          
+          sheetDetails.push({
+            name: sheetName,
+            rowCount: validDataRows.length,
+            columnCount: headers.length,
+            headers: headers,
+            isEmpty: validDataRows.length === 0,
+            hasData: validDataRows.length > 0
+          });
+          
+          // 检查是否是期望的sheet
+          if (expectedSheets.includes(sheetName)) {
+            foundSheets.push(sheetName);
+          } else {
+            unexpectedSheets.push(sheetName);
+          }
+          
+          // 收集员工信息用于一致性检查
+          employeesBySheet[sheetName] = new Set();
+          rowCountBySheet[sheetName] = validDataRows.length;
+          
+          // 解析数据行
           if (jsonData.length > 1) {
-            const headers = jsonData[0] as string[];
-            
             for (let i = 1; i < jsonData.length; i++) {
               const row = jsonData[i] as any[];
-              const rowData: ExcelDataRow = { rowNumber: rowNumber++ };
+              const rowData: ExcelDataRow = { 
+                rowNumber: rowNumber++,
+                _sheetName: sheetName // 记录来源sheet
+              };
               
+              let isEmptyRow = true;
               headers.forEach((header, index) => {
-                rowData[header] = row[index];
+                const value = row[index];
+                rowData[header] = value;
+                if (value && value !== '') {
+                  isEmptyRow = false;
+                }
+                
+                // 收集员工姓名或编号
+                if ((header === '员工姓名' || header === '姓名' || header === 'employee_name') && value) {
+                  employeesBySheet[sheetName].add(String(value));
+                }
               });
               
               // 只添加非空行
-              if (Object.values(rowData).some(v => v && v !== '')) {
+              if (!isEmptyRow) {
                 allData.push(rowData);
+              } else {
+                totalEmptyRows++;
               }
             }
           }
         });
         
+        // 找出缺失的期望sheet
+        missingSheets.push(...expectedSheets.filter(sheet => !foundSheets.includes(sheet)));
+        
+        // 检查数据一致性
+        const allEmployees = new Set<string>();
+        const employeeSheetCount: { [employee: string]: string[] } = {};
+        
+        Object.entries(employeesBySheet).forEach(([sheetName, employees]) => {
+          employees.forEach(emp => {
+            allEmployees.add(emp);
+            if (!employeeSheetCount[emp]) {
+              employeeSheetCount[emp] = [];
+            }
+            employeeSheetCount[emp].push(sheetName);
+          });
+        });
+        
+        // 找出不一致的员工（没有出现在所有sheet中）
+        const missingInSheets: { employee: string; sheets: string[] }[] = [];
+        const dataSheets = Object.keys(employeesBySheet).filter(s => s !== '使用说明');
+        
+        allEmployees.forEach(emp => {
+          const appearInSheets = employeeSheetCount[emp] || [];
+          const missingFromSheets = dataSheets.filter(s => !appearInSheets.includes(s));
+          if (missingFromSheets.length > 0) {
+            missingInSheets.push({
+              employee: emp,
+              sheets: missingFromSheets
+            });
+          }
+        });
+        
+        // 检查行数一致性
+        const rowCounts = Object.values(rowCountBySheet).filter(c => c > 0);
+        const allSheetsHaveSameRowCount = rowCounts.length > 0 && 
+          rowCounts.every(count => count === rowCounts[0]);
+        
+        // 查找重复的员工
+        const employeeCounts: { [name: string]: number } = {};
+        allData.forEach(row => {
+          const name = row['员工姓名'] || row['姓名'] || row['employee_name'];
+          if (name) {
+            employeeCounts[name] = (employeeCounts[name] || 0) + 1;
+          }
+        });
+        const duplicateEmployees = Object.entries(employeeCounts)
+          .filter(([_, count]) => count > 1)
+          .map(([name, _]) => name);
+        
+        // 生成警告信息
+        const warnings: string[] = [];
+        if (missingSheets.length > 0) {
+          warnings.push(`缺少期望的工作表: ${missingSheets.join(', ')}`);
+        }
+        if (unexpectedSheets.length > 0 && unexpectedSheets.filter(s => s !== '使用说明').length > 0) {
+          warnings.push(`发现非标准工作表: ${unexpectedSheets.filter(s => s !== '使用说明').join(', ')}`);
+        }
+        if (!allSheetsHaveSameRowCount && rowCounts.length > 1) {
+          warnings.push(`各工作表数据行数不一致: ${JSON.stringify(rowCountBySheet)}`);
+        }
+        if (duplicateEmployees.length > 0) {
+          warnings.push(`发现重复的员工: ${duplicateEmployees.slice(0, 5).join(', ')}${duplicateEmployees.length > 5 ? '...' : ''}`);
+        }
+        if (missingInSheets.length > 0) {
+          warnings.push(`部分员工数据不完整，未出现在所有工作表中`);
+        }
+        if (totalEmptyRows > 10) {
+          warnings.push(`文件包含 ${totalEmptyRows} 个空行，建议清理后重新上传`);
+        }
+        
+        // 设置解析结果
+        setParseResult({
+          sheets: sheetDetails,
+          expectedSheets,
+          missingSheets,
+          unexpectedSheets,
+          totalRows: allData.length,
+          validRows: allData.length,
+          emptyRows: totalEmptyRows,
+          duplicateEmployees,
+          dataConsistency: {
+            allSheetsHaveSameRowCount,
+            rowCountVariance: rowCounts,
+            employeeListConsistent: missingInSheets.length === 0,
+            missingInSheets: missingInSheets.slice(0, 10) // 只显示前10个
+          },
+          warnings
+        });
+        
         setParsedData(allData);
         
-        // 显示预览 - 开发环境下才输出日志
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`成功解析 ${allData.length} 行数据`);
+        // 如果有严重问题，显示警告
+        if (missingSheets.length > 0) {
+          showWarning(`文件缺少必要的工作表，可能影响导入完整性`);
+        } else if (warnings.length > 0) {
+          showInfo(`文件解析成功，但发现 ${warnings.length} 个潜在问题`);
+        } else {
+          showSuccess(`文件解析成功，共 ${allData.length} 条有效数据`);
         }
         
       } catch (error) {
         console.error('文件解析失败:', error);
         showError('文件解析失败，请检查文件格式');
+        setParseResult(null);
       }
     };
     
@@ -410,6 +593,7 @@ export const PayrollImportPage: React.FC = () => {
     setUploadedFile(null);
     setParsedData([]);
     setImportResult(null);
+    setParseResult(null);
     setFailedRows([]);
     setRetryMode(false);
     if (fileInputRef.current) {
@@ -621,6 +805,160 @@ export const PayrollImportPage: React.FC = () => {
                         <CloseIcon className="w-5 h-5" />
                       </button>
                     </div>
+
+                    {/* 解析结果详情 */}
+                    {parseResult && (
+                      <div className="card bg-base-200">
+                        <div className="card-body">
+                          <h3 className="card-title text-base">解析结果分析</h3>
+                          
+                          {/* Sheet分析 */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <h4 className="font-semibold mb-2">工作表信息</h4>
+                              <div className="space-y-1 text-sm">
+                                {parseResult.sheets.map((sheet, idx) => (
+                                  <div key={idx} className="flex justify-between items-center">
+                                    <span className={`${sheet.isEmpty ? 'opacity-50' : ''}`}>
+                                      {sheet.name}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      {sheet.isEmpty ? (
+                                        <span className="badge badge-ghost badge-sm">空表</span>
+                                      ) : (
+                                        <>
+                                          <span className="badge badge-info badge-sm">{sheet.rowCount} 行</span>
+                                          <span className="badge badge-secondary badge-sm">{sheet.columnCount} 列</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <h4 className="font-semibold mb-2">数据统计</h4>
+                              <div className="stats stats-vertical shadow-sm">
+                                <div className="stat py-2">
+                                  <div className="stat-title text-xs">有效数据行</div>
+                                  <div className="stat-value text-lg">{parseResult.validRows}</div>
+                                </div>
+                                <div className="stat py-2">
+                                  <div className="stat-title text-xs">空行数量</div>
+                                  <div className="stat-value text-lg">{parseResult.emptyRows}</div>
+                                </div>
+                                <div className="stat py-2">
+                                  <div className="stat-title text-xs">重复员工</div>
+                                  <div className="stat-value text-lg">{parseResult.duplicateEmployees.length}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Sheet匹配状态 */}
+                          <div className="mb-4">
+                            <h4 className="font-semibold mb-2">工作表匹配状态</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {parseResult.expectedSheets.map(sheet => {
+                                const isMissing = parseResult.missingSheets.includes(sheet);
+                                return (
+                                  <span 
+                                    key={sheet}
+                                    className={`badge ${isMissing ? 'badge-error' : 'badge-success'}`}
+                                  >
+                                    {isMissing && '✗ '}{!isMissing && '✓ '}{sheet}
+                                  </span>
+                                );
+                              })}
+                              {parseResult.unexpectedSheets.filter(s => s !== '使用说明').map(sheet => (
+                                <span key={sheet} className="badge badge-warning">
+                                  ? {sheet}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* 数据一致性检查 */}
+                          <div className="mb-4">
+                            <h4 className="font-semibold mb-2">数据一致性</h4>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex items-center gap-2">
+                                {parseResult.dataConsistency.allSheetsHaveSameRowCount ? (
+                                  <>
+                                    <CheckCircleIcon className="w-4 h-4 text-success" />
+                                    <span className="text-success">各工作表行数一致</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-4 h-4 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                    <span className="text-warning">
+                                      各工作表行数不一致 ({parseResult.dataConsistency.rowCountVariance.join(', ')})
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                {parseResult.dataConsistency.employeeListConsistent ? (
+                                  <>
+                                    <CheckCircleIcon className="w-4 h-4 text-success" />
+                                    <span className="text-success">所有员工数据完整</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-4 h-4 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                    <span className="text-warning">
+                                      {parseResult.dataConsistency.missingInSheets.length} 个员工数据不完整
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              
+                              {parseResult.duplicateEmployees.length > 0 && (
+                                <div className="flex items-start gap-2">
+                                  <svg className="w-4 h-4 text-info mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <div className="text-info">
+                                    <div>发现重复员工：</div>
+                                    <div className="text-xs opacity-80">
+                                      {parseResult.duplicateEmployees.slice(0, 3).join(', ')}
+                                      {parseResult.duplicateEmployees.length > 3 && ` 等${parseResult.duplicateEmployees.length}人`}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* 警告信息 */}
+                          {parseResult.warnings.length > 0 && (
+                            <div className="alert alert-warning">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                              </svg>
+                              <div>
+                                <div className="font-semibold">发现 {parseResult.warnings.length} 个问题</div>
+                                <ul className="text-sm mt-1">
+                                  {parseResult.warnings.map((warning, idx) => (
+                                    <li key={idx}>• {warning}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* 数据预览 */}
                     {parsedData.length > 0 && (
