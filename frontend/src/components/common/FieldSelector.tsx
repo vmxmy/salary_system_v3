@@ -56,7 +56,7 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
 
   // 按可见性和顺序排序的字段配置
   const sortedColumns = useMemo(() => {
-    const configMap = new Map(userConfig.columns.map((col: ColumnConfig) => [col.field, col]));
+    const configMap = new Map(((userConfig.columns || []) || []).map((col: ColumnConfig) => [col.field, col]));
     
     // 为所有字段创建配置，包括动态获取的字段
     const allColumns = fields.map(field => {
@@ -82,12 +82,12 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
       }
       return a.order - b.order;
     });
-  }, [fields, userConfig.columns]);
+  }, [fields, (userConfig.columns || [])]);
 
   // 切换字段可见性
   const toggleFieldVisibility = useCallback((fieldName: string) => {
-    const existingColumnIndex = userConfig.columns.findIndex(col => col.field === fieldName);
-    let newColumns = [...userConfig.columns];
+    const existingColumnIndex = (userConfig.columns || []).findIndex(col => col.field === fieldName);
+    let newColumns = [...(userConfig.columns || [])];
 
     if (existingColumnIndex >= 0) {
       // 更新现有字段
@@ -123,7 +123,7 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (newIndex < 0 || newIndex >= sortedColumns.length) return;
 
-    const newColumns = [...userConfig.columns];
+    const newColumns = [...(userConfig.columns || [])];
     let currentCol = newColumns.find(col => col.field === fieldName);
     let targetCol = newColumns.find(col => col.field === sortedColumns[newIndex].field);
 
@@ -172,7 +172,7 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
   // 全选/全不选功能
   const toggleSelectAll = useCallback(() => {
     const allVisible = sortedColumns.every(col => col.visible);
-    const newColumns = [...userConfig.columns];
+    const newColumns = [...(userConfig.columns || [])];
     
     // 遍历所有字段，确保每个字段都有配置项
     fields.forEach(field => {
