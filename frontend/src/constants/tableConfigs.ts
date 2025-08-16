@@ -43,7 +43,7 @@ export const TABLE_CONFIGS = {
       'period_name': 'text'
     }
   },
-  'view_employees_with_details': {
+  'view_employee_basic_info': {
     displayName: '员工管理',
     primaryKey: 'employee_id',
     defaultSort: { field: 'employee_name', direction: 'asc' as const },

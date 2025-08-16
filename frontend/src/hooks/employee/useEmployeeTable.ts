@@ -155,7 +155,7 @@ export function useEmployeeTable(options?: EmployeeTableOptions) {
   };
 
   // 使用通用表格 Hook
-  const universalTable = useUniversalTable('view_employees_with_details', universalTableOptions);
+  const universalTable = useUniversalTable('view_employee_basic_info', universalTableOptions);
 
   // 员工特定的操作方法
   const createEmployee = useCallback(async (employeeData: any) => {

@@ -320,13 +320,6 @@ export type Database = {
             referencedRelation: "view_employees_deleted"
             referencedColumns: ["employee_id"]
           },
-          {
-            foreignKeyName: "employee_bank_accounts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
-            referencedColumns: ["employee_id"]
-          },
         ]
       }
       employee_categories: {
@@ -447,13 +440,6 @@ export type Database = {
             referencedColumns: ["employee_id"]
           },
           {
-            foreignKeyName: "employee_category_assignments_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
-            referencedColumns: ["employee_id"]
-          },
-          {
             foreignKeyName: "employee_category_assignments_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -559,13 +545,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_contacts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
             referencedColumns: ["employee_id"]
           },
         ]
@@ -701,13 +680,6 @@ export type Database = {
             referencedRelation: "view_employees_deleted"
             referencedColumns: ["employee_id"]
           },
-          {
-            foreignKeyName: "fk_employee_contribution_bases_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
-            referencedColumns: ["employee_id"]
-          },
         ]
       }
       employee_documents: {
@@ -783,13 +755,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_documents_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
             referencedColumns: ["employee_id"]
           },
         ]
@@ -873,13 +838,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_education_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
             referencedColumns: ["employee_id"]
           },
         ]
@@ -992,13 +950,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
             referencedColumns: ["employee_id"]
           },
           {
@@ -1162,13 +1113,6 @@ export type Database = {
             referencedRelation: "view_employees_deleted"
             referencedColumns: ["employee_id"]
           },
-          {
-            foreignKeyName: "fk_employee_special_deductions_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
-            referencedColumns: ["employee_id"]
-          },
         ]
       }
       employees: {
@@ -1265,13 +1209,6 @@ export type Database = {
             columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
             referencedColumns: ["employee_id"]
           },
         ]
@@ -1596,6 +1533,51 @@ export type Database = {
           },
         ]
       }
+      import_templates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          field_mappings: Json
+          id: string
+          is_active: boolean
+          sample_data: Json | null
+          template_name: string
+          template_type: string
+          template_version: string
+          updated_at: string | null
+          validation_rules: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          field_mappings: Json
+          id?: string
+          is_active?: boolean
+          sample_data?: Json | null
+          template_name: string
+          template_type: string
+          template_version?: string
+          updated_at?: string | null
+          validation_rules?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          field_mappings?: Json
+          id?: string
+          is_active?: boolean
+          sample_data?: Json | null
+          template_name?: string
+          template_type?: string
+          template_version?: string
+          updated_at?: string | null
+          validation_rules?: Json | null
+        }
+        Relationships: []
+      }
       insurance_calculation_logs: {
         Row: {
           adjusted_base: number | null
@@ -1696,13 +1678,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_employee"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
             referencedColumns: ["employee_id"]
           },
           {
@@ -2339,13 +2314,6 @@ export type Database = {
             referencedColumns: ["employee_id"]
           },
           {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
-            referencedColumns: ["employee_id"]
-          },
-          {
             foreignKeyName: "payrolls_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -2475,13 +2443,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "personal_income_tax_calculation_logs_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
             referencedColumns: ["employee_id"]
           },
           {
@@ -3228,13 +3189,6 @@ export type Database = {
             referencedRelation: "view_employees_deleted"
             referencedColumns: ["employee_id"]
           },
-          {
-            foreignKeyName: "user_profiles_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
-            referencedColumns: ["employee_id"]
-          },
         ]
       }
       user_roles: {
@@ -3425,85 +3379,49 @@ export type Database = {
           work_email: string | null
           years_of_service: number | null
         }
-        Insert: {
-          bank_account_number?: never
-          bank_name?: never
-          branch_name?: never
-          category_id?: never
-          category_name?: never
-          category_start_date?: never
-          created_at?: string | null
-          date_of_birth?: string | null
-          department_id?: never
-          department_name?: never
-          email?: never
-          employee_id?: string | null
-          employee_name?: string | null
-          employment_status?: string | null
-          gender?: string | null
-          has_occupational_pension?: never
-          hire_date?: string | null
-          id_number?: string | null
-          is_active?: never
-          job_start_date?: never
-          latest_degree?: never
-          latest_field_of_study?: never
-          latest_graduation_date?: never
-          latest_institution?: never
-          manager_id?: string | null
-          mobile_phone?: never
-          personal_email?: never
-          position_id?: never
-          position_name?: never
-          primary_bank_account?: never
-          rank_id?: never
-          rank_name?: never
-          status_display?: never
-          termination_date?: string | null
-          updated_at?: string | null
-          work_email?: never
-          years_of_service?: never
-        }
-        Update: {
-          bank_account_number?: never
-          bank_name?: never
-          branch_name?: never
-          category_id?: never
-          category_name?: never
-          category_start_date?: never
-          created_at?: string | null
-          date_of_birth?: string | null
-          department_id?: never
-          department_name?: never
-          email?: never
-          employee_id?: string | null
-          employee_name?: string | null
-          employment_status?: string | null
-          gender?: string | null
-          has_occupational_pension?: never
-          hire_date?: string | null
-          id_number?: string | null
-          is_active?: never
-          job_start_date?: never
-          latest_degree?: never
-          latest_field_of_study?: never
-          latest_graduation_date?: never
-          latest_institution?: never
-          manager_id?: string | null
-          mobile_phone?: never
-          personal_email?: never
-          position_id?: never
-          position_name?: never
-          primary_bank_account?: never
-          rank_id?: never
-          rank_name?: never
-          status_display?: never
-          termination_date?: string | null
-          updated_at?: string | null
-          work_email?: never
-          years_of_service?: never
-        }
         Relationships: [
+          {
+            foreignKeyName: "employee_category_assignments_employee_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "employee_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_job_history_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_job_history_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "view_department_payroll_statistics"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "employee_job_history_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_job_history_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "view_positions_with_details"
+            referencedColumns: ["position_id"]
+          },
+          {
+            foreignKeyName: "employee_job_history_rank_id_fkey"
+            columns: ["rank_id"]
+            isOneToOne: false
+            referencedRelation: "job_ranks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
@@ -3551,13 +3469,6 @@ export type Database = {
             columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
             referencedColumns: ["employee_id"]
           },
         ]
@@ -3895,13 +3806,6 @@ export type Database = {
             referencedRelation: "view_employees_deleted"
             referencedColumns: ["employee_id"]
           },
-          {
-            foreignKeyName: "fk_employee_contribution_bases_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
-            referencedColumns: ["employee_id"]
-          },
         ]
       }
       view_employees_active: {
@@ -4000,13 +3904,6 @@ export type Database = {
             referencedRelation: "view_employees_deleted"
             referencedColumns: ["employee_id"]
           },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
-            referencedColumns: ["employee_id"]
-          },
         ]
       }
       view_employees_all: {
@@ -4095,183 +3992,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      view_employees_with_details: {
-        Row: {
-          bank_account_number: string | null
-          bank_name: string | null
-          branch_name: string | null
-          category_id: string | null
-          category_name: string | null
-          category_start_date: string | null
-          created_at: string | null
-          date_of_birth: string | null
-          department_id: string | null
-          department_name: string | null
-          email: string | null
-          employee_id: string | null
-          employee_name: string | null
-          employment_status: string | null
-          gender: string | null
-          has_occupational_pension: boolean | null
-          hire_date: string | null
-          id_number: string | null
-          is_active: boolean | null
-          job_start_date: string | null
-          latest_degree: string | null
-          latest_field_of_study: string | null
-          latest_graduation_date: string | null
-          latest_institution: string | null
-          manager_id: string | null
-          mobile_phone: string | null
-          personal_email: string | null
-          position_id: string | null
-          position_name: string | null
-          primary_bank_account: string | null
-          rank_id: string | null
-          rank_name: string | null
-          status_display: string | null
-          termination_date: string | null
-          updated_at: string | null
-          work_email: string | null
-          years_of_service: number | null
-        }
-        Insert: {
-          bank_account_number?: never
-          bank_name?: never
-          branch_name?: never
-          category_id?: never
-          category_name?: never
-          category_start_date?: never
-          created_at?: string | null
-          date_of_birth?: string | null
-          department_id?: never
-          department_name?: never
-          email?: never
-          employee_id?: string | null
-          employee_name?: string | null
-          employment_status?: string | null
-          gender?: string | null
-          has_occupational_pension?: never
-          hire_date?: string | null
-          id_number?: string | null
-          is_active?: never
-          job_start_date?: never
-          latest_degree?: never
-          latest_field_of_study?: never
-          latest_graduation_date?: never
-          latest_institution?: never
-          manager_id?: string | null
-          mobile_phone?: never
-          personal_email?: never
-          position_id?: never
-          position_name?: never
-          primary_bank_account?: never
-          rank_id?: never
-          rank_name?: never
-          status_display?: never
-          termination_date?: string | null
-          updated_at?: string | null
-          work_email?: never
-          years_of_service?: never
-        }
-        Update: {
-          bank_account_number?: never
-          bank_name?: never
-          branch_name?: never
-          category_id?: never
-          category_name?: never
-          category_start_date?: never
-          created_at?: string | null
-          date_of_birth?: string | null
-          department_id?: never
-          department_name?: never
-          email?: never
-          employee_id?: string | null
-          employee_name?: string | null
-          employment_status?: string | null
-          gender?: string | null
-          has_occupational_pension?: never
-          hire_date?: string | null
-          id_number?: string | null
-          is_active?: never
-          job_start_date?: never
-          latest_degree?: never
-          latest_field_of_study?: never
-          latest_graduation_date?: never
-          latest_institution?: never
-          manager_id?: string | null
-          mobile_phone?: never
-          personal_email?: never
-          position_id?: never
-          position_name?: never
-          primary_bank_account?: never
-          rank_id?: never
-          rank_name?: never
-          status_display?: never
-          termination_date?: string | null
-          updated_at?: string | null
-          work_email?: never
-          years_of_service?: never
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_active"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_all"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
-            referencedColumns: ["employee_id"]
-          },
-        ]
       }
       view_insurance_base_monthly_summary: {
         Row: {
@@ -4431,13 +4151,6 @@ export type Database = {
             referencedColumns: ["employee_id"]
           },
           {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
-            referencedColumns: ["employee_id"]
-          },
-          {
             foreignKeyName: "payrolls_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -4561,13 +4274,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
             referencedColumns: ["employee_id"]
           },
           {
@@ -4734,13 +4440,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_with_details"
             referencedColumns: ["employee_id"]
           },
         ]

@@ -64,7 +64,7 @@ export function useEmployeeActions() {
     onSuccess: () => {
       // 清除相关缓存
       queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
+      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
       showSuccess('员工创建成功');
@@ -98,7 +98,7 @@ export function useEmployeeActions() {
     onSuccess: () => {
       // 清除相关缓存
       queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
+      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
       showSuccess('员工信息更新成功');
@@ -134,7 +134,7 @@ export function useEmployeeActions() {
     onSuccess: () => {
       // 清除相关缓存
       queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
+      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
       showSuccess('员工已移除');
@@ -170,7 +170,7 @@ export function useEmployeeActions() {
     onSuccess: (ids) => {
       // 清除相关缓存
       queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
+      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
       showSuccess(`成功移除 ${ids.length} 名员工`);
@@ -205,7 +205,7 @@ export function useEmployeeActions() {
     onSuccess: () => {
       // 清除相关缓存
       queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
+      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
       showSuccess('员工已恢复');
@@ -249,7 +249,7 @@ export function useEmployeeActions() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employees_with_details'] });
+      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
       queryClient.invalidateQueries({ queryKey: ['employee-table'] });
       
       showSuccess('员工记录已永久删除');

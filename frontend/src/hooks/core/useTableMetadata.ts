@@ -166,7 +166,7 @@ function isSystemColumn(columnName: string): boolean {
 function generateDisplayName(tableName: string): string {
   const displayNameMap: Record<string, string> = {
     'employees': '员工管理',
-    'view_employees_with_details': '员工详情',
+    'view_employee_basic_info': '员工详情',
     'departments': '部门管理', 
     'positions': '职位管理',
     'personnel_categories': '人员类别',
