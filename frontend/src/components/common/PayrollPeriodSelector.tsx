@@ -128,12 +128,12 @@ export function PayrollPeriodSelector({
   };
   
   return (
-    <div ref={containerRef} className={cn("relative", className)}>
+    <div ref={containerRef} className={cn("relative w-full min-w-80", className)}>
       {/* 选择器输入框 */}
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={cn(
-          'input input-bordered',
+          'input input-bordered w-full',
           getSizeClass(),
           'cursor-pointer flex items-center justify-between',
           disabled && 'input-disabled',

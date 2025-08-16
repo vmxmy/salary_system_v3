@@ -41,19 +41,23 @@ interface PayrollDetailData {
 
 // 薪资明细项数据类型
 interface PayrollItemDetail {
+  item_id: string;
   payroll_id: string;
+  employee_id: string;
+  employee_name: string;
+  period_code: string;
+  period_name: string;
+  period_start: string;
+  period_end: string;
   component_id: string;
   component_name: string;
   component_type: 'earning' | 'deduction';
-  component_category: 'basic_salary' | 'benefits' | 'personal_insurance' | 'employer_insurance' | 'personal_tax';
   category: string;
-  category_display_name?: string;
-  category_name: string;
-  category_sort_order: number;
   amount: number;
-  calculation_method?: string;
-  notes?: string;
   item_notes?: string;
+  gross_pay: number;
+  net_pay: number;
+  total_deductions: number;
 }
 
 // 五险一金详情数据类型
@@ -88,13 +92,17 @@ interface ContributionBase {
   insurance_type_id: string;
   insurance_type_name: string;
   insurance_type_key: string;
-  month: string;
-  month_string: string;
-  year: number;
-  month_number: number;
-  contribution_base: number;
-  effective_start_date: string;
-  effective_end_date?: string;
+  base_period_year: number;
+  base_period_month: number;
+  base_period_display: string;
+  latest_contribution_base: number;
+  latest_is_applicable: boolean;
+  latest_adjusted_base: number;
+  latest_employee_rate: number;
+  latest_employer_rate: number;
+  latest_employee_amount: number;
+  latest_employer_amount: number;
+  base_last_updated: string;
 }
 
 // 个人扣缴类分类定义
@@ -201,11 +209,13 @@ export function PayrollDetailModal({
         // 获取缴费基数信息（基于薪资期间）
         if (payroll.employee_id) {
           const yearMonth = payroll.pay_period_start.substring(0, 7); // YYYY-MM
+          const [year, month] = yearMonth.split('-');
           const { data: bases, error: baseError } = await supabase
             .from('view_employee_insurance_base_monthly_latest')
             .select('*')
             .eq('employee_id', payroll.employee_id)
-            .eq('month_string', yearMonth)
+            .eq('base_period_year', parseInt(year))
+            .eq('base_period_month', parseInt(month))
             .order('insurance_type_key');
           
           if (baseError) throw baseError;
@@ -220,8 +230,8 @@ export function PayrollDetailModal({
           .from('view_payroll_unified')
           .select('*')
           .eq('payroll_id', payrollId)
-          .not('payroll_item_id', 'is', null)
-          .order('category_sort_order', { ascending: true })
+          .not('item_id', 'is', null)
+          .order('category', { ascending: true })
           .order('component_name', { ascending: true });
         
         if (itemsError) throw itemsError;
@@ -234,7 +244,7 @@ export function PayrollDetailModal({
             sampleValues: {
               component_type: items[0]?.component_type,
               category: items[0]?.category,
-              category_display_name: items[0]?.category_display_name,
+              category_display_name: items[0]?.category,
               component_name: items[0]?.component_name,
               amount: items[0]?.amount
             }
@@ -484,9 +494,9 @@ function PayrollDetailContent({
     });
   };
 
-  // 按 component_category 分组薪资项目
+  // 按 category 分组薪资项目
   const groupedItems = payrollItems.reduce((acc, item) => {
-    const category = item.component_category || item.category;
+    const category = item.category;
     if (!acc[category]) {
       acc[category] = [];
     }
@@ -506,20 +516,20 @@ function PayrollDetailContent({
     componentTypes: payrollItems.map(item => item.component_type),
     uniqueComponentTypes: [...new Set(payrollItems.map(item => item.component_type))],
     // 检查分类的值
-    componentCategories: payrollItems.map(item => item.component_category),
-    uniqueComponentCategories: [...new Set(payrollItems.map(item => item.component_category))],
-    categoryNames: payrollItems.map(item => item.category_name),
-    uniqueCategoryNames: [...new Set(payrollItems.map(item => item.category_name))],
+    componentCategories: payrollItems.map(item => item.category),
+    uniqueComponentCategories: [...new Set(payrollItems.map(item => item.category))],
+    categoryNames: payrollItems.map(item => item.category),
+    uniqueCategoryNames: [...new Set(payrollItems.map(item => item.category))],
     // 检查是否有earning和deduction项目
     earningItems: payrollItems.filter(item => item.component_type === 'earning'),
     allDeductionItems: payrollItems.filter(item => item.component_type === 'deduction'),
     personalDeductionItems: payrollItems.filter(item => 
       item.component_type === 'deduction' && 
-      PERSONAL_DEDUCTION_CATEGORIES.includes(item.component_category)
+      PERSONAL_DEDUCTION_CATEGORIES.includes(item.category)
     ),
     filteredDeductionCategories: [...new Set(payrollItems
-      .filter(item => item.component_type === 'deduction' && PERSONAL_DEDUCTION_CATEGORIES.includes(item.component_category))
-      .map(item => item.component_category))]
+      .filter(item => item.component_type === 'deduction' && PERSONAL_DEDUCTION_CATEGORIES.includes(item.category))
+      .map(item => item.category))]
   });
 
   // 计算各类别小计
@@ -638,13 +648,11 @@ function PayrollBreakdownSection({
         </span>
       )
     }),
-    columnHelper.accessor('category_name' as any, {
+    columnHelper.accessor('category' as any, {
       header: '分类',
       cell: (info: any) => (
         <span className="text-xs text-base-content/70">
-          {info.row.original.category_name || 
-           CATEGORY_DISPLAY_NAMES[info.row.original.component_category] || 
-           info.row.original.component_category}
+          {info.row.original.category || '未知分类'}
         </span>
       )
     }),
@@ -690,13 +698,11 @@ function PayrollBreakdownSection({
         </span>
       )
     }),
-    columnHelper.accessor('category_name' as any, {
+    columnHelper.accessor('category' as any, {
       header: '分类',
       cell: (info: any) => (
         <span className="text-xs text-base-content/70">
-          {info.row.original.category_name || 
-           CATEGORY_DISPLAY_NAMES[info.row.original.component_category] || 
-           info.row.original.component_category}
+          {info.row.original.category || '未知分类'}
         </span>
       )
     }),
@@ -1114,7 +1120,7 @@ function ContributionBaseSection({
         </span>
       )
     }),
-    contributionColumnHelper.accessor('month_string' as keyof ContributionBase, {
+    contributionColumnHelper.accessor('base_period_display' as keyof ContributionBase, {
       header: '月份',
       cell: info => (
         <span className="text-sm text-base-content/70">
@@ -1130,7 +1136,7 @@ function ContributionBaseSection({
         </span>
       )
     }),
-    contributionColumnHelper.accessor('contribution_base' as keyof ContributionBase, {
+    contributionColumnHelper.accessor('latest_contribution_base' as keyof ContributionBase, {
       header: () => <div className="text-right">缴费基数</div>,
       cell: info => (
         <div className="text-right">
@@ -1140,26 +1146,13 @@ function ContributionBaseSection({
         </div>
       )
     }),
-    contributionColumnHelper.accessor('effective_start_date' as keyof ContributionBase, {
-      header: '生效日期',
+    contributionColumnHelper.accessor('base_last_updated' as keyof ContributionBase, {
+      header: '基数更新时间',
       cell: info => (
         <span className="text-sm text-base-content/60">
           {formatDate(String(info.getValue() || ''))}
         </span>
       )
-    }),
-    contributionColumnHelper.accessor('effective_end_date' as keyof ContributionBase, {
-      header: '截止日期',
-      cell: info => {
-        const value = info.getValue();
-        return value ? (
-          <span className="text-sm text-base-content/60">
-            {formatDate(String(value))}
-          </span>
-        ) : (
-          <span className="badge badge-sm badge-success">当前有效</span>
-        );
-      }
     })
   ], []);
 
@@ -1183,10 +1176,10 @@ function ContributionBaseSection({
       return acc;
     }, {} as Record<string, ContributionBase[]>);
     
-    // 获取当前有效的基数
+    // 获取当前有效的基数（视图已过滤出最新数据）
     const currentBases = Object.entries(grouped).map(([type, bases]) => {
-      const current = bases.find(b => !b.effective_end_date);
-      return current?.contribution_base || 0;
+      // 取每个类型的第一个基数（视图已确保是最新的）
+      return bases[0]?.latest_contribution_base || 0;
     }).filter(base => base > 0);
     
     return {
