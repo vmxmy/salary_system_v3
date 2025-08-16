@@ -33,3 +33,6 @@ export type { EmployeeCreateData, EmployeeUpdateData } from './useEmployeeAction
 // 智能员工表格Hook
 export { useEmployeeTable, useSimpleEmployeeTable, employeeTableKeys } from './useEmployeeTable';
 export type { EmployeeTableOptions } from './useEmployeeTable';
+
+// 员工统计和分析
+export { useEmployeeStatistics } from './useEmployeeStatistics';

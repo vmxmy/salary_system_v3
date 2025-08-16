@@ -35,7 +35,6 @@ export {
   useEmployeeInsuranceDetails,
   useEmployeeMonthlyContributionBases,
   useEmployeeContributionBases,
-  useInsuranceTypes,
   payrollFormatters,
   PayrollStatus,
   payrollQueryKeys,
@@ -45,6 +44,24 @@ export {
   type PayrollDetail,
   type BatchOperationResult
 } from './usePayroll';
+
+// 薪资相关工具和数据管理
+export { 
+  useAvailablePayrollMonths, 
+  checkMonthAvailability,
+  type AvailablePayrollMonth 
+} from './useAvailablePayrollMonths';
+export { useExcelTemplate } from './useExcelTemplate';
+export { 
+  useCurrentBases,
+  useInsuranceTypes,
+  useUpdateEmployeeBase,
+  useBatchUpdateEmployeeBases,
+  BaseStrategy,
+  type BaseStrategyType,
+  type BaseAdjustmentConfig,
+  type EmployeeBaseData
+} from './useInsuranceBases';
 
 // 薪资计算 - 已删除，功能迁移到 Supabase 存储函数
 // export {

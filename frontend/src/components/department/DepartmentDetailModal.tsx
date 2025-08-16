@@ -12,7 +12,7 @@ import {
   useUpdateDepartment,
   useCreateDepartment,
   useDeleteDepartment
-} from '@/hooks/useDepartments';
+} from '@/hooks/department';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { AccordionSection, AccordionContent } from '@/components/common/AccordionSection';
 import { DetailField, FieldGroup } from '@/components/common/DetailField';

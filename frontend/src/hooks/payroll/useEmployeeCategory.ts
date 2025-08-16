@@ -426,7 +426,7 @@ export const useValidateCategoryChange = () => {
         .from('payrolls')
         .select('id, pay_period_start, status')
         .eq('employee_id', params.employeeId)
-        .in('status', ['draft', 'calculating', 'calculated'])
+        .in('status', ['draft'])
         .gte('pay_period_start', params.effectiveDate);
       
       if (pendingPayrolls && pendingPayrolls.length > 0) {
@@ -588,7 +588,7 @@ export function useEmployeeCategory(options: UseEmployeeCategoryOptions = {}) {
           .from('payrolls')
           .select('id')
           .eq('employee_id', employeeId)
-          .in('status', ['draft', 'calculating', 'calculated'])
+          .in('status', ['draft'])
           .limit(1);
         return (data?.length || 0) > 0;
       }

@@ -18,7 +18,7 @@ import {
   useUpdateDepartment,
   useCreateDepartment,
   useDeleteDepartment
-} from '@/hooks/useDepartments';
+} from '@/hooks/department';
 import { useToast } from '@/contexts/ToastContext';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/format';

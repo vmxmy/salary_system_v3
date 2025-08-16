@@ -6,7 +6,7 @@ import { InfoIcon, XCircleIcon, RefreshIcon } from '@/components/common/Icons';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { DataGroupSelector } from '@/components/common/DataGroupSelector';
 import { DataGroupSelectAllController } from '@/components/common/DataGroupSelectAllController';
-import { useAvailablePayrollMonths, type AvailablePayrollMonth } from '@/hooks/useAvailablePayrollMonths';
+import { useAvailablePayrollMonths, type AvailablePayrollMonth } from '@/hooks/payroll';
 
 interface HistoryDataExporterProps {
   onClose?: () => void;

@@ -12,7 +12,7 @@ import {
 } from '@/hooks/payroll';
 import { type PayrollPeriod } from '@/hooks/payroll/usePayrollPeriod';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
-import { useTableConfiguration } from '@/hooks/useTableConfiguration';
+import { useTableConfiguration } from '@/hooks/core';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
 import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
 import { DataTable } from '@/components/common/DataTable';
@@ -23,7 +23,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { getMonthDateRange, getCurrentYearMonth, formatMonth } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
-import { usePermission, PERMISSIONS } from '@/hooks/usePermission';
+import { usePermission, PERMISSIONS } from '@/hooks/core';
 import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
 import type { PaginationState, Table } from '@tanstack/react-table';
 

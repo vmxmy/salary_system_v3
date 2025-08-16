@@ -8,7 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { ModernButton } from '@/components/common/ModernButton';
 import { useToast } from '@/contexts/ToastContext';
-import { useDepartmentTree, useUpdateDepartment, useDeleteDepartment } from '@/hooks/useDepartments';
+import { useDepartmentTree, useUpdateDepartment, useDeleteDepartment } from '@/hooks/department';
 import { cn } from '@/lib/utils';
 import type { Department } from '@/types/department';
 

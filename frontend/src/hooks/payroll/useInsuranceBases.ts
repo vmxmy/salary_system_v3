@@ -22,8 +22,7 @@ export interface BaseAdjustmentConfig {
   employeeId: string;
   insuranceTypeId: string;
   newBase: number;
-  effectiveDate: string;
-  reason?: string;
+  periodId?: string; // 关联的薪资周期ID
 }
 
 // 员工基数数据
@@ -33,8 +32,8 @@ export interface EmployeeBaseData {
   insurance_type_id: string;
   insurance_type_name: string;
   current_base: number;
-  effective_date: string;
   last_updated: string;
+  period_id?: string; // 关联的薪资周期ID
 }
 
 /**
@@ -75,7 +74,6 @@ export function useCurrentBases(employeeIds: string[], yearMonth?: string) {
         insurance_type_id: item.insurance_type_id,
         insurance_type_name: item.insurance_type_name,
         current_base: item.latest_contribution_base || 0,
-        effective_date: item.base_last_updated,
         last_updated: item.base_last_updated
       })) as EmployeeBaseData[];
     },
@@ -165,8 +163,7 @@ export function useUpdateEmployeeBase() {
         employee_id: config.employeeId,
         insurance_type_id: config.insuranceTypeId,
         contribution_base: config.newBase,
-        // effective_date 字段不存在于表中
-        // notes: config.reason, // notes 字段也不存在
+        period_id: config.periodId || null, // 关联的薪资周期ID
       };
 
       const { data, error } = await supabase
@@ -208,8 +205,7 @@ export function useBatchUpdateEmployeeBases() {
         employee_id: config.employeeId,
         insurance_type_id: config.insuranceTypeId,
         contribution_base: config.newBase,
-        effective_date: config.effectiveDate,
-        notes: config.reason,
+        period_id: config.periodId || null,
       }));
 
       const { data, error } = await supabase
