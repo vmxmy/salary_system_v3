@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { PERMISSIONS, ROLE_PERMISSIONS, type Permission, type Role } from '@/constants/permissions';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * 纯 Hook 权限管理

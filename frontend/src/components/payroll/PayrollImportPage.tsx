@@ -3,7 +3,7 @@ import { TemplateDownloader } from './TemplateDownloader';
 import { HistoryDataExporter } from './HistoryDataExporter';
 import { ImportDataGroup, ImportMode } from '@/types/payroll-import';
 import type { ImportConfig, ExcelDataRow } from '@/types/payroll-import';
-import { PayrollImportService } from '@/services/payroll-import.service';
+import { usePayrollImportExport } from '@/hooks/payroll/usePayrollImportExport';
 import { DataGroupSelector } from '@/components/common/DataGroupSelector';
 import { DataGroupSelectAllController } from '@/components/common/DataGroupSelectAllController';
 import { MonthPicker } from '@/components/common/MonthPicker';
@@ -13,6 +13,7 @@ import { DownloadIcon, UploadIcon, FolderIcon, CheckCircleIcon, CloseIcon } from
 
 export const PayrollImportPage: React.FC = () => {
   const { messages, removeToast, toast } = useToast();
+  const { mutations, importProgress, resetImportProgress } = usePayrollImportExport();
   const [activeTab, setActiveTab] = useState<'template' | 'import' | 'export'>('template');
   const [importing, setImporting] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -167,12 +168,33 @@ export const PayrollImportPage: React.FC = () => {
       return;
     }
 
+    if (!uploadedFile) {
+      toast.warning('请上传文件');
+      return;
+    }
+
     setImporting(true);
     setImportResult(null);
+    resetImportProgress();
 
     try {
-      const service = new PayrollImportService(importConfig);
-      const result = await service.importData(parsedData);
+      // 构建导入配置
+      const importConfi = {
+        mode: importConfig.mode === ImportMode.UPSERT ? 'update' : 'append' as 'append' | 'update' | 'replace',
+        validateBeforeImport: importConfig.options?.validateBeforeImport || true,
+        skipDuplicates: importConfig.options?.skipInvalidRows || false,
+        dataGroups: selectedDataGroups.map(g => g.toString()),
+        fieldMappings: {}
+      };
+      
+      // 获取周期ID（可以根据选中的月份查询）
+      const periodId = `${selectedMonth}-01`; // 这里需要根据实际情况获取
+      
+      const result = await mutations.importExcel.mutateAsync({
+        file: uploadedFile,
+        config: importConfi,
+        periodId: periodId
+      });
       
       setImportResult(result);
       

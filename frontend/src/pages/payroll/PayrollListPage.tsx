@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { 
   usePayrolls, 
-  useCreateBatchPayrolls, 
   useUpdateBatchPayrollStatus, 
   useCalculatePayrolls, 
   useLatestPayrollPeriod,
@@ -24,7 +23,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { getMonthDateRange, getCurrentYearMonth, formatMonth } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission, PERMISSIONS } from '@/hooks/usePermission';
 import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
 import type { PaginationState, Table } from '@tanstack/react-table';
 
@@ -56,7 +55,7 @@ export default function PayrollListPage() {
   const { t } = useTranslation(['common', 'payroll']);
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
-  const { can } = usePermission();
+  const { can, hasPermission } = usePermission();
 
   // 表格配置管理
   const {
@@ -155,7 +154,6 @@ export default function PayrollListPage() {
   const { data: statistics, isLoading: statsLoading } = usePayrollStatistics(selectedMonth);
 
   // Mutations
-  const createBatchPayrolls = useCreateBatchPayrolls();
   const updateBatchStatus = useUpdateBatchPayrollStatus();
   const calculatePayrolls = useCalculatePayrolls();
 
@@ -277,10 +275,10 @@ export default function PayrollListPage() {
     }
   }, [selectedIds, updateBatchStatus, t, refetch]);
 
-  // 创建新的薪资批次
-  const handleCreateBatch = useCallback(() => {
-    navigate('/payroll/create-cycle');
-  }, [navigate]);
+  // 创建新的薪资批次 - 功能已移除
+  // const handleCreateBatch = useCallback(() => {
+  //   navigate('/payroll/create-cycle');
+  // }, [navigate]);
 
   // 清空本月数据
   const handleClearCurrentMonth = useCallback(async () => {
@@ -405,22 +403,23 @@ export default function PayrollListPage() {
       onFieldConfigChange={updateUserConfig}
       onFieldConfigReset={resetToDefault}
       primaryActions={[
-        <ModernButton
-          key="create-batch"
-          onClick={handleCreateBatch}
-          variant="primary"
-          size="md"
-          icon={
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                d="M12 4v16m8-8H4" />
-            </svg>
-          }
-        >
-          {t('payroll:createBatch')}
-        </ModernButton>,
+        // 批量创建按钮已移除
+        // <ModernButton
+        //   key="create-batch"
+        //   onClick={handleCreateBatch}
+        //   variant="primary"
+        //   size="md"
+        //   icon={
+        //     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+        //         d="M12 4v16m8-8H4" />
+        //     </svg>
+        //   }
+        // >
+        //   {t('payroll:createBatch')}
+        // </ModernButton>,
         
-        ...(can('PAYROLL_CLEAR') ? [
+        ...(hasPermission(PERMISSIONS.PAYROLL_CLEAR) ? [
           <ModernButton
             key="clear-month"
             onClick={() => setIsClearModalOpen(true)}
@@ -533,7 +532,6 @@ export default function PayrollListPage() {
               onMarkPaid={handleBatchMarkPaid}
               onExport={() => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id)), 'payroll-selected')}
               loading={
-                createBatchPayrolls.isPending ||
                 updateBatchStatus.isPending ||
                 calculatePayrolls.isPending
               }
