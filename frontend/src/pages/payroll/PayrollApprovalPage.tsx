@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { PayrollApprovalPanel, PayrollDetailModal, ApprovalHistoryModal } from '@/components/payroll';
-import { usePayrollApproval } from '@/hooks/payroll';
+import { usePayrollApproval, useAvailablePayrollMonths } from '@/hooks/payroll';
 import { useCurrentPayrollPeriod } from '@/hooks/payroll/usePayrollPeriod';
 import { formatCurrency } from '@/lib/format';
-import { PayrollPeriodSelector } from '@/components/common/PayrollPeriodSelector';
+import { MonthPicker } from '@/components/common/MonthPicker';
 
 /**
  * 薪资审批管理页面
@@ -19,11 +19,19 @@ export default function PayrollApprovalPage() {
   // 获取当前活跃周期
   const { data: currentPeriod } = useCurrentPayrollPeriod();
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  
+  // 获取可用的薪资月份数据
+  const { data: availableMonths } = useAvailablePayrollMonths(true);
   
   // 设置默认周期
   useEffect(() => {
     if (currentPeriod && !selectedPeriodId) {
       setSelectedPeriodId(currentPeriod.id);
+      // 设置对应的月份
+      if (currentPeriod.period_year && currentPeriod.period_month) {
+        setSelectedMonth(`${currentPeriod.period_year}-${currentPeriod.period_month.toString().padStart(2, '0')}`);
+      }
     }
   }, [currentPeriod, selectedPeriodId]);
   
@@ -58,24 +66,12 @@ export default function PayrollApprovalPage() {
 
   return (
     <div className="container mx-auto p-6">
-      {/* 页面标题和周期选择器 */}
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">薪资审批管理</h1>
-          <p className="text-base-content/60 mt-1">
-            管理薪资审批流程，查看审批历史记录
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <PayrollPeriodSelector
-            value={selectedPeriodId}
-            onChange={(periodId) => setSelectedPeriodId(periodId)}
-            onlyWithData={true}
-            showCountBadge={true}
-            placeholder="选择薪资周期"
-            className="w-64"
-          />
-        </div>
+      {/* 页面标题 */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">薪资审批管理</h1>
+        <p className="text-base-content/60 mt-1">
+          管理薪资审批流程，查看审批历史记录
+        </p>
       </div>
 
       {/* 统计卡片 - 使用标准 DaisyUI 5 stat 组件 */}
@@ -161,7 +157,29 @@ export default function PayrollApprovalPage() {
       <div className="card bg-base-100 shadow-sm mb-6">
         <div className="card-body">
           <h3 className="card-title text-lg">快速操作</h3>
-          <div className="flex gap-4 mt-4">
+          <div className="flex items-center gap-4 mt-4">
+            {/* 月份选择器 - 放在最左边 */}
+            <MonthPicker
+              value={selectedMonth}
+              onChange={(month) => {
+                setSelectedMonth(month);
+                // 查找对应的周期ID
+                const monthData = availableMonths?.find(m => m.month === month);
+                if (monthData?.periodId) {
+                  setSelectedPeriodId(monthData.periodId);
+                } else {
+                  setSelectedPeriodId('');
+                }
+              }}
+              showDataIndicators={true}
+              availableMonths={availableMonths}
+              onlyShowMonthsWithData={true}
+              placeholder="选择薪资周期"
+              className="w-48"
+            />
+            
+            <div className="divider divider-horizontal m-0"></div>
+            
             <button 
               className="btn btn-primary"
               onClick={() => setShowFullPanel(true)}

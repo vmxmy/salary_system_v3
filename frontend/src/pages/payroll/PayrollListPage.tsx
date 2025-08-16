@@ -7,6 +7,7 @@ import {
   useCalculatePayrolls, 
   useLatestPayrollPeriod,
   useCurrentPayrollPeriod,
+  useAvailablePayrollMonths,
   PayrollStatus,
   type PayrollStatusType 
 } from '@/hooks/payroll';
@@ -16,7 +17,7 @@ import { useTableConfiguration } from '@/hooks/core';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
 import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
 import { DataTable } from '@/components/common/DataTable';
-import { PayrollPeriodSelector } from '@/components/common/PayrollPeriodSelector';
+import { MonthPicker } from '@/components/common/MonthPicker';
 import { ModernButton } from '@/components/common/ModernButton';
 import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
 import { useToast } from '@/contexts/ToastContext';
@@ -66,19 +67,12 @@ export default function PayrollListPage() {
     }
   }, []);
 
-  // 处理编辑详情 (目前与查看相同，因为模态框包含编辑功能)
-  const handleEditDetail = useCallback((row: PayrollData) => {
-    handleViewDetail(row);
-  }, [handleViewDetail]);
-
-  // 检查权限状态
-  const canUpdate = hasPermission(PERMISSIONS.PAYROLL_UPDATE);
 
   // 定义操作列配置
   const actionsConfig = useMemo(() => ({
     key: 'actions',
     title: '操作',
-    width: 150,
+    width: 120,
     render: (record: PayrollData) => (
       <div className="flex gap-1">
         <button
@@ -96,24 +90,9 @@ export default function PayrollListPage() {
               d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
         </button>
-        {canUpdate && (
-          <button
-            className="btn btn-ghost btn-xs text-secondary"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEditDetail(record);
-            }}
-            title="编辑薪资详情"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </button>
-        )}
       </div>
     )
-  }), [handleViewDetail, handleEditDetail, canUpdate]);
+  }), [handleViewDetail]);
 
   // 表格配置管理
   const {
@@ -152,6 +131,9 @@ export default function PayrollListPage() {
   
   // 获取最近有薪资记录的周期
   const { data: latestPeriod, isLoading: latestPeriodLoading } = useLatestPayrollPeriod();
+  
+  // 获取可用的薪资月份数据
+  const { data: availableMonths } = useAvailablePayrollMonths(true);
 
   // 自动设置为当前活跃周期或最近有记录的周期
   useEffect(() => {
@@ -495,19 +477,26 @@ export default function PayrollListPage() {
           <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                {/* 薪资周期选择器 */}
-                <PayrollPeriodSelector
-                  value={selectedPeriodId}
-                  onChange={(periodId, period) => {
-                    setSelectedPeriodId(periodId);
-                    if (period) {
-                      setPeriodYear(period.period_year);
-                      setPeriodMonth(period.period_month);
-                      setSelectedMonth(`${period.period_year}-${period.period_month.toString().padStart(2, '0')}`);
+                {/* 月份选择器 */}
+                <MonthPicker
+                  value={selectedMonth}
+                  onChange={(month) => {
+                    setSelectedMonth(month);
+                    // 解析年月
+                    const [year, monthStr] = month.split('-');
+                    setPeriodYear(parseInt(year));
+                    setPeriodMonth(parseInt(monthStr));
+                    
+                    // 查找对应的周期ID
+                    const monthData = availableMonths?.find(m => m.month === month);
+                    if (monthData?.periodId) {
+                      setSelectedPeriodId(monthData.periodId);
+                    } else {
+                      setSelectedPeriodId('');
                     }
                   }}
-                  onlyWithData={false}
-                  showCountBadge={true}
+                  showDataIndicators={true}
+                  availableMonths={availableMonths}
                   placeholder="选择薪资周期"
                   className="flex-shrink-0"
                   size="sm"

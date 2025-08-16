@@ -78,9 +78,13 @@ export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClos
       
       const exportConfig = {
         periodId: monthData?.periodId, // 使用实际的周期ID
+        periodMonth: selectedMonth, // 传递选中的月份
+        selectedDataGroups: selectedGroups, // 传递所有选中的数据组
         includeDetails: selectedGroups.includes(ImportDataGroup.EARNINGS) || 
                        selectedGroups.includes(ImportDataGroup.CONTRIBUTION_BASES),
         includeInsurance: selectedGroups.includes(ImportDataGroup.CONTRIBUTION_BASES),
+        includeJobAssignments: selectedGroups.includes(ImportDataGroup.JOB_ASSIGNMENT),
+        includeCategoryAssignments: selectedGroups.includes(ImportDataGroup.CATEGORY_ASSIGNMENT),
         filename: `薪资数据_${selectedMonth}.xlsx`
       };
 

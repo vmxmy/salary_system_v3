@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ApprovalTimeline } from './ApprovalTimeline';
-import { PayrollPeriodSelector } from '@/components/common/PayrollPeriodSelector';
+import { MonthPicker } from '@/components/common/MonthPicker';
+import { useAvailablePayrollMonths } from '@/hooks/payroll';
 import { 
   useApprovalHistory,
   type ApprovalHistoryFilters as HistoryFilters,
@@ -21,6 +22,19 @@ function ApprovalHistoryFilterPanel({
   filters: HistoryFilters;
   onFiltersChange: (filters: HistoryFilters) => void;
 }) {
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const { data: availableMonths } = useAvailablePayrollMonths(true);
+  
+  // 当 periodId 改变时，更新选中的月份
+  useEffect(() => {
+    if (filters.periodId && availableMonths) {
+      const monthData = availableMonths.find(m => m.periodId === filters.periodId);
+      if (monthData) {
+        setSelectedMonth(monthData.month);
+      }
+    }
+  }, [filters.periodId, availableMonths]);
+  
   const handleActionFilterChange = (action: string) => {
     onFiltersChange({
       ...filters,
@@ -33,11 +47,22 @@ function ApprovalHistoryFilterPanel({
       {/* 薪资周期选择 */}
       <div>
         <label className="label label-text font-medium">薪资周期</label>
-        <PayrollPeriodSelector
-          value={filters.periodId}
-          onChange={(periodId) => onFiltersChange({ ...filters, periodId })}
-          onlyWithData={true}
-          showCountBadge={false}
+        <MonthPicker
+          value={selectedMonth}
+          onChange={(month) => {
+            setSelectedMonth(month);
+            // 查找对应的周期ID
+            const monthData = availableMonths?.find(m => m.month === month);
+            if (monthData?.periodId) {
+              onFiltersChange({ ...filters, periodId: monthData.periodId });
+            } else {
+              onFiltersChange({ ...filters, periodId: undefined });
+            }
+          }}
+          showDataIndicators={true}
+          availableMonths={availableMonths}
+          onlyShowMonthsWithData={true}
+          placeholder="选择薪资周期"
           className="w-full"
         />
       </div>
@@ -138,6 +163,8 @@ export function ApprovalHistoryModal({
     periodId: initialPeriodId,
     limit: 50,
   });
+  
+  const { data: availableMonths } = useAvailablePayrollMonths(true);
 
   // 当初始周期ID变化时更新筛选器
   useEffect(() => {

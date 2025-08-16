@@ -113,8 +113,16 @@ interface ContributionBase {
   base_last_updated: string;
 }
 
+// 个税项目数据类型（从薪资明细中筛选）
+interface TaxItem {
+  item_id: string;
+  component_name: string;
+  amount: number;
+  item_notes?: string;
+}
+
 // Tab类型定义
-type TabType = 'overview' | 'breakdown' | 'insurance' | 'contribution';
+type TabType = 'overview' | 'breakdown' | 'insurance' | 'contribution' | 'tax';
 
 // 个人扣缴类分类定义
 
@@ -143,6 +151,7 @@ export function PayrollDetailModal({
   const [payrollItems, setPayrollItems] = useState<PayrollItemDetail[]>([]);
   const [insuranceDetails, setInsuranceDetails] = useState<InsuranceDetail[]>([]);
   const [contributionBases, setContributionBases] = useState<ContributionBase[]>([]);
+  const [taxItems, setTaxItems] = useState<TaxItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -234,6 +243,9 @@ export function PayrollDetailModal({
         }
       }
 
+      // 从薪资明细中筛选个税项目（在获取薪资明细后处理）
+      setTaxItems([]);
+
       // 获取薪资明细项
       try {
         console.log('开始获取薪资明细，payrollId:', payrollId);
@@ -262,9 +274,27 @@ export function PayrollDetailModal({
           } : null
         });
         setPayrollItems(items as PayrollItemDetail[]);
+        
+        // 从薪资明细中筛选个税项目
+        const taxRelatedItems = (items as PayrollItemDetail[]).filter(item => 
+          item.category === 'personal_tax' || 
+          item.component_name.includes('个人所得税') ||
+          item.component_name.includes('个税')
+        );
+        
+        const taxItems: TaxItem[] = taxRelatedItems.map(item => ({
+          item_id: item.item_id,
+          component_name: item.component_name,
+          amount: item.amount,
+          item_notes: item.item_notes
+        }));
+        
+        setTaxItems(taxItems);
+        console.log('筛选出的个税项目:', taxItems);
       } catch (itemError) {
         console.error('获取薪资明细失败:', itemError);
         setPayrollItems([]);
+        setTaxItems([]);
       }
     } catch (err) {
       setIsError(true);
@@ -295,64 +325,17 @@ export function PayrollDetailModal({
     { id: 'breakdown', label: '收入明细', icon: CalculatorIcon },
     { id: 'insurance', label: '五险一金', icon: ShieldCheckIcon },
     { id: 'contribution', label: '缴费基数', icon: CreditCardIcon },
+    { id: 'tax', label: '个人所得税', icon: DocumentTextIcon },
   ];
 
 
-  // 薪资概览Tab - 原来固定在头部的汇总区域
+  // 薪资概览Tab - 薪资汇总优先显示
   const OverviewTab = () => {
     if (!payrollData) return null;
     
     return (
       <div className="space-y-6">
-        {/* 薪资基本信息 */}
-        <div className="space-y-4">
-          <h5 className="font-semibold text-base flex items-center gap-2 pb-2 border-b border-base-300">
-            <UserCircleIcon className="w-5 h-5 text-primary" />
-            薪资基本信息
-          </h5>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-base-content/70">员工姓名</label>
-              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
-                {payrollData.employee?.employee_name || '-'}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-base-content/70">身份证号</label>
-              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
-                {payrollData.employee?.id_number || '-'}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-base-content/70">薪资期间</label>
-              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
-                {formatDate(payrollData.pay_period_start)} 至 {formatDate(payrollData.pay_period_end)}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-base-content/70">发薪日期</label>
-              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
-                {formatDate(payrollData.pay_date)}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-base-content/70">薪资状态</label>
-              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
-                <PayrollStatusBadge status={payrollData.status} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-base-content/70">薪资ID</label>
-              <div className="px-3 py-2 bg-base-200/50 rounded-lg font-mono text-sm">
-                {payrollData.id}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="divider"></div>
-
-        {/* 薪资汇总 */}
+        {/* 薪资汇总 - 移到顶部 */}
         <div className="space-y-4">
           <h5 className="font-semibold text-base flex items-center gap-2 pb-2 border-b border-base-300">
             <CurrencyDollarIcon className="w-5 h-5 text-primary" />
@@ -407,6 +390,54 @@ export function PayrollDetailModal({
                     {formatCurrency(payrollData.net_pay)}
                   </p>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="divider"></div>
+
+        {/* 薪资基本信息 - 移到下面 */}
+        <div className="space-y-4">
+          <h5 className="font-semibold text-base flex items-center gap-2 pb-2 border-b border-base-300">
+            <UserCircleIcon className="w-5 h-5 text-primary" />
+            薪资基本信息
+          </h5>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">员工姓名</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
+                {payrollData.employee?.employee_name || '-'}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">身份证号</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
+                {payrollData.employee?.id_number || '-'}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">薪资期间</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
+                {formatDate(payrollData.pay_period_start)} 至 {formatDate(payrollData.pay_period_end)}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">发薪日期</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
+                {formatDate(payrollData.pay_date)}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">薪资状态</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg">
+                <PayrollStatusBadge status={payrollData.status} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content/70">薪资ID</label>
+              <div className="px-3 py-2 bg-base-200/50 rounded-lg font-mono text-sm">
+                {payrollData.id}
               </div>
             </div>
           </div>
@@ -503,6 +534,9 @@ export function PayrollDetailModal({
                   {activeTab === 'contribution' && (
                     <ContributionTab contributionBases={contributionBases} />
                   )}
+                  {activeTab === 'tax' && (
+                    <TaxTab taxItems={taxItems} />
+                  )}
                 </>
               )}
             </div>
@@ -595,6 +629,19 @@ function ContributionTab({ contributionBases }: ContributionTabProps) {
   return (
     <div className="space-y-6">
       <ContributionBaseSection contributionBases={contributionBases} />
+    </div>
+  );
+}
+
+// 个税Tab组件
+interface TaxTabProps {
+  taxItems: TaxItem[];
+}
+
+function TaxTab({ taxItems }: TaxTabProps) {
+  return (
+    <div className="space-y-6">
+      <TaxDetailsSection taxItems={taxItems} />
     </div>
   );
 }
@@ -1147,6 +1194,133 @@ function ContributionBaseSection({
             </thead>
             <tbody>
               {contributionTable.getRowModel().rows.map(row => (
+                <tr key={row.id} className="hover:bg-base-100/50">
+                  {row.getVisibleCells().map(cell => (
+                    <td key={cell.id} className="py-2">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+// 创建个税项目列辅助器
+const taxItemColumnHelper = createColumnHelper<TaxItem>();
+
+// 个税详情组件
+interface TaxDetailsSectionProps {
+  taxItems: TaxItem[];
+}
+
+function TaxDetailsSection({ taxItems }: TaxDetailsSectionProps) {
+  const { t } = useTranslation(['payroll', 'common']);
+
+  // 定义表格列
+  const taxColumns = useMemo(() => [
+    taxItemColumnHelper.accessor('component_name', {
+      header: '税目名称',
+      cell: info => (
+        <span className="text-sm font-medium text-base-content">
+          {info.getValue()}
+        </span>
+      )
+    }),
+    taxItemColumnHelper.accessor('amount', {
+      header: '税额',
+      cell: info => (
+        <div className="text-right">
+          <span className="text-sm font-bold font-mono text-error">
+            {formatCurrency(info.getValue())}
+          </span>
+        </div>
+      )
+    }),
+    taxItemColumnHelper.accessor('item_notes', {
+      header: '备注',
+      cell: info => (
+        <span className="text-sm text-base-content/60">
+          {info.getValue() || '-'}
+        </span>
+      )
+    })
+  ], []);
+
+  // 创建表格实例
+  const taxTable = useReactTable({
+    data: taxItems,
+    columns: taxColumns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  // 计算个税总额
+  const totalTaxAmount = taxItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+  if (!taxItems.length) {
+    return (
+      <div className="space-y-4">
+        <h5 className="font-semibold text-base flex items-center gap-2 pb-2 border-b border-base-300">
+          <DocumentTextIcon className="w-5 h-5 text-primary" />
+          个人所得税明细
+        </h5>
+        <div className="text-center py-8 text-base-content/60">
+          <DocumentTextIcon className="w-16 h-16 mx-auto mb-4 text-base-content/30" />
+          <p>本期无个人所得税扣缴记录</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* 个税概览 */}
+      <div className="space-y-4">
+        <h5 className="font-semibold text-base flex items-center gap-2 pb-2 border-b border-base-300">
+          <DocumentTextIcon className="w-5 h-5 text-primary" />
+          个人所得税明细
+        </h5>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-gradient-to-r from-error/10 to-error/5 rounded-lg p-4">
+            <div className="text-sm text-base-content/70 mb-1">个税总额</div>
+            <div className="text-xl font-bold text-error">
+              {formatCurrency(totalTaxAmount)}
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-info/10 to-info/5 rounded-lg p-4">
+            <div className="text-sm text-base-content/70 mb-1">税目数量</div>
+            <div className="text-xl font-bold text-info">
+              {taxItems.length} 项
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 个税明细表格 */}
+      <div className="space-y-4">
+        <h6 className="font-medium text-sm text-base-content/80">详细税目信息</h6>
+
+        <div className="overflow-x-auto bg-base-100 rounded-lg border border-base-300">
+          <table className="table table-zebra w-full">
+            <thead>
+              {taxTable.getHeaderGroups().map(headerGroup => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <th key={header.id} className="bg-base-200 text-base-content font-semibold text-xs">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {taxTable.getRowModel().rows.map(row => (
                 <tr key={row.id} className="hover:bg-base-100/50">
                   {row.getVisibleCells().map(cell => (
                     <td key={cell.id} className="py-2">

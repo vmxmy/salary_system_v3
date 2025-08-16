@@ -283,7 +283,7 @@ export function MonthPicker({
 
 
             {/* 月份网格 */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3 mb-3">
               {Array.from({ length: 12 }, (_, i) => i + 1).map(month => {
                 const isSelected = value === `${displayYear}-${String(month).padStart(2, '0')}`;
                 const isDisabled = isMonthDisabled(displayYear, month);
@@ -294,7 +294,7 @@ export function MonthPicker({
                 const monthString = `${displayYear}-${String(month).padStart(2, '0')}`;
                 const monthAvailability = showDataIndicators 
                   ? checkMonthAvailability(availableMonths, monthString)
-                  : { hasData: false, count: 0 };
+                  : { hasData: false, count: 0, periodStatus: undefined, isLocked: undefined };
                 
                 return (
                   <motion.button
@@ -338,7 +338,7 @@ export function MonthPicker({
                           className={cn(
                             'absolute -top-1 -right-1',
                             'flex items-center justify-center',
-                            'w-4 h-4 text-xs font-bold rounded-full',
+                            'min-w-[1rem] h-4 px-1 text-xs font-bold rounded-full',
                             'border border-base-100',
                             isSelected 
                               ? 'bg-accent text-accent-content' 
@@ -349,10 +349,50 @@ export function MonthPicker({
                           title={
                             isDisabled && disableMonthsWithData 
                               ? `已有${monthAvailability.count}条薪资记录，无法重复创建` 
-                              : `${monthAvailability.count}条薪资记录`
+                              : `${monthAvailability.count}条薪资记录 - 状态: ${
+                                  monthAvailability.periodStatus === 'completed' ? '已完成' :
+                                  monthAvailability.periodStatus === 'processing' ? '处理中' : '草稿'
+                                }${monthAvailability.isLocked ? ' (已锁定)' : ''}`
                           }
                         >
                           {monthAvailability.count > 99 ? '99' : monthAvailability.count}
+                        </motion.div>
+                      )}
+                      
+                      {/* Period status indicator - 左上角 */}
+                      {showDataIndicators && monthAvailability.hasData && monthAvailability.periodStatus && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.15 }}
+                          className={cn(
+                            'absolute -top-1 -left-1',
+                            'w-3 h-3 rounded-full',
+                            'border border-base-100',
+                            // 根据状态设置颜色
+                            monthAvailability.periodStatus === 'completed' 
+                              ? 'bg-success' 
+                              : monthAvailability.periodStatus === 'processing' 
+                              ? 'bg-info' 
+                              : 'bg-warning',
+                            // 如果被锁定，添加锁定样式
+                            monthAvailability.isLocked && 'ring-2 ring-error ring-offset-1 ring-offset-base-100'
+                          )}
+                          title={`状态: ${
+                            monthAvailability.periodStatus === 'completed' ? '已完成' :
+                            monthAvailability.periodStatus === 'processing' ? '处理中' : '草稿'
+                          }${monthAvailability.isLocked ? ' (已锁定)' : ''}`}
+                        >
+                          {/* 如果已锁定，显示锁图标 */}
+                          {monthAvailability.isLocked && (
+                            <svg 
+                              className="w-2 h-2 absolute inset-0 m-auto text-white" 
+                              fill="currentColor" 
+                              viewBox="0 0 20 20"
+                            >
+                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
                         </motion.div>
                       )}
                       
@@ -376,6 +416,31 @@ export function MonthPicker({
                 );
               })}
             </div>
+            
+            {/* 状态图例 - 仅在显示数据指示器时显示 */}
+            {showDataIndicators && (
+              <div className="mt-3 pt-3 border-t border-base-200">
+                <div className="text-xs text-base-content/60 mb-2">状态说明：</div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-warning border border-base-300"></div>
+                    <span className="text-base-content/70">草稿</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-info border border-base-300"></div>
+                    <span className="text-base-content/70">处理中</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-success border border-base-300"></div>
+                    <span className="text-base-content/70">已完成</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-error border border-base-300 ring-2 ring-error ring-offset-1 ring-offset-base-100"></div>
+                    <span className="text-base-content/70">已锁定</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
