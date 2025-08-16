@@ -30,7 +30,6 @@ const DesignTokensPage = lazy(() => import('@/pages/DesignTokensPage'));
 const DesignSystemShowcase = lazy(() => import('@/pages/DesignSystemShowcase'));
 const TypographyShowcasePage = lazy(() => import('@/pages/TypographyShowcasePage'));
 const FontTestPage = lazy(() => import('@/pages/FontTestPage'));
-const SalaryComponentDemoPage = lazy(() => import('@/pages/SalaryComponentDemoPage'));
 const MonthPickerDemoPage = lazy(() => import('@/pages/MonthPickerDemoPage'));
 const ValidationTestPage = lazy(() => import('@/pages/ValidationTestPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
@@ -287,14 +286,6 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingScreen />}>
             <FontTestPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'salary-component-demo',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <SalaryComponentDemoPage />
           </Suspense>
         ),
       },
