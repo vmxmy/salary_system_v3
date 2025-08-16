@@ -56,7 +56,7 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
 
   // 按可见性和顺序排序的字段配置
   const sortedColumns = useMemo(() => {
-    const configMap = new Map(((userConfig.columns || []) || []).map((col: ColumnConfig) => [col.field, col]));
+    const configMap = new Map((userConfig.columns || []).map((col: ColumnConfig) => [col.field, col]));
     
     // 为所有字段创建配置，包括动态获取的字段
     const allColumns = fields.map(field => {
