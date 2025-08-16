@@ -30,5 +30,5 @@
     "noUncheckedSideEffectImports": true
   },
   "include": ["src"],
-  "exclude": ["src/backup-auth"]
+  "exclude": ["src/backup-auth", "src/_archived_services"]
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PayrollApprovalPanel } from '@/components/payroll';
+import { PayrollApprovalPanel, PayrollDetailModal, ApprovalHistoryModal } from '@/components/payroll';
 import { usePayrollApprovalV2 } from '@/hooks/payroll';
 import { useCurrentPayrollPeriod } from '@/hooks/payroll/usePayrollPeriod';
 import { formatCurrency } from '@/lib/format';
@@ -11,6 +11,9 @@ import { PayrollPeriodSelector } from '@/components/common/PayrollPeriodSelector
  */
 export default function PayrollApprovalPage() {
   const [showFullPanel, setShowFullPanel] = useState(false);
+  const [selectedPayrollId, setSelectedPayrollId] = useState<string | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const { queries, utils } = usePayrollApprovalV2();
   
   // 获取当前活跃周期
@@ -30,6 +33,28 @@ export default function PayrollApprovalPage() {
 
   // 计算待审批总金额
   const pendingAmount = pendingList?.reduce((sum, item) => sum + (item.net_pay || 0), 0) || 0;
+
+  // 处理查看详情
+  const handleViewDetail = (payrollId: string) => {
+    setSelectedPayrollId(payrollId);
+    setShowDetailModal(true);
+  };
+
+  // 关闭详情模态框
+  const handleCloseDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedPayrollId(null);
+  };
+
+  // 处理查看审批历史
+  const handleViewHistory = () => {
+    setShowHistoryModal(true);
+  };
+
+  // 关闭审批历史模态框
+  const handleCloseHistoryModal = () => {
+    setShowHistoryModal(false);
+  };
 
   return (
     <div className="container mx-auto p-6">
@@ -53,74 +78,82 @@ export default function PayrollApprovalPage() {
         </div>
       </div>
 
-      {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* 统计卡片 - 使用标准 DaisyUI 5 stat 组件 */}
+      <div className="stats stats-vertical lg:stats-horizontal shadow w-full mb-6">
         {/* 待审批 */}
-        <div className="card bg-warning/10 border-warning/20">
-          <div className="card-body">
-            <h2 className="card-title text-sm text-warning">待审批</h2>
-            <div className="stat-value text-3xl text-warning">
-              {statsLoading ? (
-                <span className="loading loading-dots loading-sm"></span>
-              ) : (
-                stats?.draft || 0
-              )}
-            </div>
-            <div className="text-xs text-base-content/60 mt-2">
-              总金额: {formatCurrency(pendingAmount)}
-            </div>
+        <div className="stat">
+          <div className="stat-figure text-warning">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
+          <div className="stat-title">待审批</div>
+          <div className="stat-value text-warning">
+            {statsLoading ? (
+              <span className="loading loading-spinner loading-md"></span>
+            ) : (
+              stats?.draft || 0
+            )}
+          </div>
+          <div className="stat-desc">总金额: {formatCurrency(pendingAmount)}</div>
         </div>
 
         {/* 已审批 */}
-        <div className="card bg-success/10 border-success/20">
-          <div className="card-body">
-            <h2 className="card-title text-sm text-success">已审批</h2>
-            <div className="stat-value text-3xl text-success">
-              {statsLoading ? (
-                <span className="loading loading-dots loading-sm"></span>
-              ) : (
-                stats?.approved || 0
-              )}
-            </div>
-            <div className="text-xs text-base-content/60 mt-2">
-              待发放
-            </div>
+        <div className="stat">
+          <div className="stat-figure text-success">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
+          <div className="stat-title">已审批</div>
+          <div className="stat-value text-success">
+            {statsLoading ? (
+              <span className="loading loading-spinner loading-md"></span>
+            ) : (
+              stats?.approved || 0
+            )}
+          </div>
+          <div className="stat-desc">待发放</div>
         </div>
 
         {/* 已发放 */}
-        <div className="card bg-info/10 border-info/20">
-          <div className="card-body">
-            <h2 className="card-title text-sm text-info">已发放</h2>
-            <div className="stat-value text-3xl text-info">
-              {statsLoading ? (
-                <span className="loading loading-dots loading-sm"></span>
-              ) : (
-                stats?.paid || 0
-              )}
-            </div>
-            <div className="text-xs text-base-content/60 mt-2">
-              本月完成
-            </div>
+        <div className="stat">
+          <div className="stat-figure text-info">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
           </div>
+          <div className="stat-title">已发放</div>
+          <div className="stat-value text-info">
+            {statsLoading ? (
+              <span className="loading loading-spinner loading-md"></span>
+            ) : (
+              stats?.paid || 0
+            )}
+          </div>
+          <div className="stat-desc">本月完成</div>
         </div>
 
         {/* 已取消 */}
-        <div className="card bg-error/10 border-error/20">
-          <div className="card-body">
-            <h2 className="card-title text-sm text-error">已取消</h2>
-            <div className="stat-value text-3xl text-error">
-              {statsLoading ? (
-                <span className="loading loading-dots loading-sm"></span>
-              ) : (
-                stats?.cancelled || 0
-              )}
-            </div>
-            <div className="text-xs text-base-content/60 mt-2">
-              无效记录
-            </div>
+        <div className="stat">
+          <div className="stat-figure text-error">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
+          <div className="stat-title">已取消</div>
+          <div className="stat-value text-error">
+            {statsLoading ? (
+              <span className="loading loading-spinner loading-md"></span>
+            ) : (
+              stats?.cancelled || 0
+            )}
+          </div>
+          <div className="stat-desc">无效记录</div>
         </div>
       </div>
 
@@ -148,7 +181,10 @@ export default function PayrollApprovalPage() {
               创建薪资批次
             </button>
             
-            <button className="btn btn-outline">
+            <button 
+              className="btn btn-outline"
+              onClick={handleViewHistory}
+            >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                   d="M9 17v1a3 3 0 003 3h0a3 3 0 003-3v-1m3-3.87a9.37 9.37 0 01-5.24 3.58 2.09 2.09 0 01-1.52 0A9.37 9.37 0 016 13.13" />
@@ -192,7 +228,12 @@ export default function PayrollApprovalPage() {
                         </span>
                       </td>
                       <td>
-                        <button className="btn btn-ghost btn-xs">查看</button>
+                        <button 
+                          className="btn btn-ghost btn-xs"
+                          onClick={() => handleViewDetail(item.payroll_id)}
+                        >
+                          查看
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -240,6 +281,20 @@ export default function PayrollApprovalPage() {
           </form>
         </dialog>
       )}
+
+      {/* 薪资详情模态框 */}
+      <PayrollDetailModal
+        payrollId={selectedPayrollId}
+        open={showDetailModal}
+        onClose={handleCloseDetailModal}
+      />
+
+      {/* 审批历史模态框 */}
+      <ApprovalHistoryModal
+        initialPeriodId={selectedPeriodId}
+        open={showHistoryModal}
+        onClose={handleCloseHistoryModal}
+      />
     </div>
   );
 }

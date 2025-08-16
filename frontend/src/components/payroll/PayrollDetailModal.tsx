@@ -7,7 +7,7 @@ import { DetailField } from '@/components/common/DetailField';
 import { ModernButton } from '@/components/common/ModernButton';
 import { PayrollStatusBadge } from './PayrollStatusBadge';
 import { PayrollStatus, type PayrollStatusType } from '@/hooks/payroll';
-import { payrollService } from '@/services/payroll.service';
+import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/format';
 import {
@@ -140,26 +140,75 @@ export function PayrollDetailModal({
 
     try {
       // 获取薪资基本信息
-      const { data: payrolls } = await payrollService.getPayrolls({
-        page: 1,
-        pageSize: 1000
-      });
+      const { data: payrollData, error: payrollError } = await supabase
+        .from('view_payroll_summary')
+        .select('*')
+        .eq('payroll_id', payrollId)
+        .single();
       
-      const payroll = payrolls.find(p => p.id === payrollId);
+      if (payrollError) throw payrollError;
+      
+      const payroll = payrollData ? {
+        id: payrollData.payroll_id,
+        employee_id: payrollData.employee_id,
+        employee_name: payrollData.employee_name,
+        pay_period_start: payrollData.period_start,
+        pay_period_end: payrollData.period_end,
+        pay_date: payrollData.actual_pay_date || payrollData.scheduled_pay_date,
+        status: payrollData.payroll_status,
+        gross_pay: payrollData.gross_pay,
+        total_deductions: payrollData.total_deductions,
+        net_pay: payrollData.net_pay,
+        employee: {
+          id: payrollData.employee_id,
+          employee_name: payrollData.employee_name,
+          id_number: payrollData.id_number
+        }
+      } : null;
       if (payroll) {
         setPayrollData(payroll as unknown as PayrollDetailData);
 
         // 获取五险一金详情
-        const insurance = await payrollService.getEmployeeInsuranceDetails(payrollId);
+        const { data: insurance, error: insuranceError } = await supabase
+          .from('insurance_calculation_logs')
+          .select(`
+            id,
+            payroll_id,
+            employee_id,
+            insurance_type_id,
+            calculation_date,
+            is_applicable,
+            contribution_base,
+            adjusted_base,
+            employee_rate,
+            employer_rate,
+            employee_amount,
+            employer_amount,
+            skip_reason,
+            insurance_type:insurance_types(
+              id,
+              system_key,
+              name,
+              description
+            )
+          `)
+          .eq('payroll_id', payrollId)
+          .order('insurance_type_id');
+        
+        if (insuranceError) throw insuranceError;
         setInsuranceDetails(insurance as unknown as InsuranceDetail[]);
 
         // 获取缴费基数信息（基于薪资期间）
         if (payroll.employee_id) {
           const yearMonth = payroll.pay_period_start.substring(0, 7); // YYYY-MM
-          const bases = await payrollService.getEmployeeContributionBases(
-            payroll.employee_id, 
-            yearMonth
-          );
+          const { data: bases, error: baseError } = await supabase
+            .from('view_employee_insurance_base_monthly_latest')
+            .select('*')
+            .eq('employee_id', payroll.employee_id)
+            .eq('month_string', yearMonth)
+            .order('insurance_type_key');
+          
+          if (baseError) throw baseError;
           setContributionBases(bases as ContributionBase[]);
         }
       }
@@ -167,7 +216,15 @@ export function PayrollDetailModal({
       // 获取薪资明细项
       try {
         console.log('开始获取薪资明细，payrollId:', payrollId);
-        const items = await payrollService.getPayrollDetails(payrollId);
+        const { data: items, error: itemsError } = await supabase
+          .from('view_payroll_unified')
+          .select('*')
+          .eq('payroll_id', payrollId)
+          .not('payroll_item_id', 'is', null)
+          .order('category_sort_order', { ascending: true })
+          .order('component_name', { ascending: true });
+        
+        if (itemsError) throw itemsError;
         console.log('原始获取的薪资明细数据:', {
           totalCount: items?.length || 0,
           rawData: items,

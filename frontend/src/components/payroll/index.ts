@@ -9,3 +9,5 @@ export * from './PayrollList';
 export * from './PayrollBatchActions';
 export * from './PayrollApprovalPanel';
 export * from './PayrollApprovalActions';
+export * from './ApprovalTimeline';
+export * from './ApprovalHistoryModal';

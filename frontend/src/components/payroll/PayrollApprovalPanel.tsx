@@ -112,23 +112,26 @@ export function PayrollApprovalPanel({ periodId, onClose }: PayrollApprovalPanel
           )}
         </div>
         
-        {/* 统计卡片 */}
-        <div className="grid grid-cols-4 gap-4">
-          <div className="stat bg-base-200 rounded-lg p-4">
-            <div className="stat-title text-xs">待审批</div>
-            <div className="stat-value text-warning text-2xl">{stats?.draft || 0}</div>
+        {/* 统计卡片 - 使用标准 DaisyUI 5 stat 组件 */}
+        <div className="stats shadow w-full">
+          <div className="stat place-items-center">
+            <div className="stat-title">待审批</div>
+            <div className="stat-value text-warning">{stats?.draft || 0}</div>
           </div>
-          <div className="stat bg-base-200 rounded-lg p-4">
-            <div className="stat-title text-xs">已审批</div>
-            <div className="stat-value text-success text-2xl">{stats?.approved || 0}</div>
+          
+          <div className="stat place-items-center">
+            <div className="stat-title">已审批</div>
+            <div className="stat-value text-success">{stats?.approved || 0}</div>
           </div>
-          <div className="stat bg-base-200 rounded-lg p-4">
-            <div className="stat-title text-xs">已发放</div>
-            <div className="stat-value text-info text-2xl">{stats?.paid || 0}</div>
+          
+          <div className="stat place-items-center">
+            <div className="stat-title">已发放</div>
+            <div className="stat-value text-info">{stats?.paid || 0}</div>
           </div>
-          <div className="stat bg-base-200 rounded-lg p-4">
-            <div className="stat-title text-xs">已取消</div>
-            <div className="stat-value text-error text-2xl">{stats?.cancelled || 0}</div>
+          
+          <div className="stat place-items-center">
+            <div className="stat-title">已取消</div>
+            <div className="stat-value text-error">{stats?.cancelled || 0}</div>
           </div>
         </div>
       </div>

@@ -165,7 +165,7 @@ export function PayrollPeriodSelector({
             </span>
           )}
           
-          {selectedPeriod && showCountBadge && selectedPeriod.employee_count > 0 && (
+          {selectedPeriod && showCountBadge && selectedPeriod.employee_count && selectedPeriod.employee_count > 0 && (
             <span className="badge badge-sm badge-primary">
               {selectedPeriod.employee_count}人
             </span>
@@ -246,8 +246,8 @@ export function PayrollPeriodSelector({
                         </div>
                         <div className="space-y-1">
                           {groupedPeriods[Number(year)]
-                            .sort((a, b) => b.period_month - a.period_month)
-                            .map(period => (
+                            .sort((a: PayrollPeriod, b: PayrollPeriod) => b.period_month - a.period_month)
+                            .map((period: PayrollPeriod) => (
                               <motion.button
                                 key={period.id}
                                 type="button"
@@ -270,7 +270,7 @@ export function PayrollPeriodSelector({
                                   <span className={cn('badge badge-xs', getStatusColor(period.status))}>
                                     {getStatusText(period.status)}
                                   </span>
-                                  {showCountBadge && period.employee_count > 0 && (
+                                  {showCountBadge && period.employee_count && period.employee_count > 0 && (
                                     <span className="badge badge-xs badge-neutral">
                                       {period.employee_count}人
                                     </span>
