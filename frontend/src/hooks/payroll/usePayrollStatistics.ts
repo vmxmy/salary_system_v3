@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { PayrollService } from '@/services/payroll.service';
-import { getMonthDateRange } from '@/lib/dateUtils';
+import { supabase } from '@/lib/supabase';
+import { useErrorHandler } from '@/hooks/core/useErrorHandler';
+import { payrollQueryKeys } from './usePayroll';
 
 export interface PayrollStatistics {
   totalGrossPay: number;
@@ -23,22 +24,31 @@ export interface PayrollStatistics {
 }
 
 export function usePayrollStatistics(yearMonth: string) {
+  const { handleError } = useErrorHandler();
+  
   return useQuery({
-    queryKey: ['payroll-statistics', yearMonth],
+    queryKey: [...payrollQueryKeys.statistics(), yearMonth],
     queryFn: async () => {
       if (!yearMonth) {
         return null;
       }
 
-      // 获取该月的薪资数据  
-      const monthDateRange = getMonthDateRange(yearMonth);
-      const payrolls = await PayrollService.getPayrolls({
-        startDate: monthDateRange.startDate,
-        endDate: monthDateRange.endDate,
-        pageSize: 1000 // 获取所有数据用于统计
-      });
-
-      const data = payrolls.data || [];
+      // 解析年月
+      const [year, month] = yearMonth.split('-');
+      const periodCode = `${year}-${month}`;
+      
+      // 直接从 view_payroll_summary 获取该月的薪资数据
+      const { data: payrollData, error } = await supabase
+        .from('view_payroll_summary')
+        .select('*')
+        .eq('period_code', periodCode);
+      
+      if (error) {
+        handleError(error, { customMessage: '获取薪资统计失败' });
+        throw error;
+      }
+      
+      const data = payrollData || [];
       
       // 计算统计数据
       const statistics: PayrollStatistics = {
@@ -67,9 +77,10 @@ export function usePayrollStatistics(yearMonth: string) {
         statistics.totalDeductions += payroll.total_deductions || 0;
         statistics.totalNetPay += payroll.net_pay || 0;
         
-        // 统计状态数量
-        if (payroll.status in statistics.statusCount) {
-          statistics.statusCount[payroll.status as keyof typeof statistics.statusCount]++;
+        // 统计状态数量 - 使用 payroll_status 字段
+        const status = payroll.payroll_status || payroll.status;
+        if (status in statistics.statusCount) {
+          statistics.statusCount[status as keyof typeof statistics.statusCount]++;
         }
       });
 

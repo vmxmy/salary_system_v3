@@ -5,6 +5,7 @@ export interface AvailablePayrollMonth {
   month: string; // Format: YYYY-MM
   payrollCount: number;
   hasData: boolean;
+  periodId?: string; // 关联的周期ID
 }
 
 /**
@@ -19,56 +20,43 @@ export function useAvailablePayrollMonths(enabled: boolean = true) {
       // 使用视图获取薪资数据，按月份分组统计
       const { data, error } = await supabase
         .from('view_payroll_summary')
-        .select('pay_period_start, employee_id');
+        .select('period_code, period_id, employee_id');
 
       if (error) throw error;
 
       // 按月份分组统计（每个月份统计不重复的员工数）
-      const monthDataMap = new Map<string, Set<string>>();
+      const monthDataMap = new Map<string, { employeeSet: Set<string>; periodId?: string }>();
       
       (data || []).forEach(row => {
-        // 从 pay_period_start 提取月份信息
-        if (row.pay_period_start && row.employee_id) {
-          let monthString = '';
+        // 使用 period_code 字段（格式：YYYY-MM）
+        if (row.period_code && row.employee_id) {
+          const monthString = row.period_code;
           
-          if (typeof row.pay_period_start === 'string') {
-            // 如果是字符串格式（YYYY-MM-DD），提取前7个字符
-            monthString = row.pay_period_start.substring(0, 7);
-          } else if (row.pay_period_start instanceof Date) {
-            // 如果是Date对象，格式化为YYYY-MM
-            const year = row.pay_period_start.getFullYear();
-            const month = String(row.pay_period_start.getMonth() + 1).padStart(2, '0');
-            monthString = `${year}-${month}`;
-          } else if (typeof row.pay_period_start === 'object' && row.pay_period_start !== null) {
-            // 如果是其他对象格式，尝试转换为Date
-            try {
-              const date = new Date(row.pay_period_start);
-              if (!isNaN(date.getTime())) {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                monthString = `${year}-${month}`;
-              }
-            } catch (e) {
-              // 忽略转换失败的情况
-            }
-          }
-          
-          // 验证月份格式并添加员工ID到对应月份的Set中
+          // 验证月份格式
           if (monthString && /^\d{4}-\d{2}$/.test(monthString)) {
             if (!monthDataMap.has(monthString)) {
-              monthDataMap.set(monthString, new Set<string>());
+              monthDataMap.set(monthString, { 
+                employeeSet: new Set<string>(),
+                periodId: row.period_id
+              });
             }
-            monthDataMap.get(monthString)!.add(row.employee_id);
+            const monthData = monthDataMap.get(monthString)!;
+            monthData.employeeSet.add(row.employee_id);
+            // 保留最新的 period_id
+            if (row.period_id) {
+              monthData.periodId = row.period_id;
+            }
           }
         }
       });
 
       // 转换为数组并排序（使用Set的size来获取不重复的员工数）
       return Array.from(monthDataMap.entries())
-        .map(([month, employeeSet]) => ({
+        .map(([month, data]) => ({
           month,
-          payrollCount: employeeSet.size, // 使用Set的size获取不重复的员工数
-          hasData: true
+          payrollCount: data.employeeSet.size, // 使用Set的size获取不重复的员工数
+          hasData: true,
+          periodId: data.periodId
         }))
         .sort((a, b) => b.month.localeCompare(a.month));
     },

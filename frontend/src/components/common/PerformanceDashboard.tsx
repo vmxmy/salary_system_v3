@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { performanceMonitor } from '@/services/performance-monitor.service';
-import type { PerformanceSummary, QueryPerformanceMetric } from '@/services/performance-monitor.service';
+import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
+import type { PerformanceSummary, QueryPerformanceMetric } from '@/hooks/usePerformanceMonitor';
 
 interface PerformanceDashboardProps {
   className?: string;
@@ -17,6 +17,8 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
   const [slowQueries, setSlowQueries] = useState<QueryPerformanceMetric[]>([]);
   const [errorQueries, setErrorQueries] = useState<QueryPerformanceMetric[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  const performanceMonitor = usePerformanceMonitor();
 
   const refreshData = () => {
     const newSummary = performanceMonitor.getPerformanceSummary();

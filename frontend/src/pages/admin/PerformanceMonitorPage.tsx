@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { PerformanceDashboard } from '@/components/common/PerformanceDashboard';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
-import { performanceMonitor } from '@/services/performance-monitor.service';
 
 const PerformanceMonitorPage: React.FC = () => {
   const [refreshInterval, setRefreshInterval] = useState(5000);

@@ -41,7 +41,9 @@ export interface PayrollSummary {
   employee_name: string;
   department_name?: string;
   position_name?: string;
-  pay_date: string;
+  pay_date: string;  // 从 actual_pay_date 或 scheduled_pay_date 映射
+  actual_pay_date?: string;  // 实际发薪日期
+  scheduled_pay_date?: string;  // 计划发薪日期
   pay_period_start?: string;  // 从period表获取，可选
   pay_period_end?: string;    // 从period表获取，可选
   gross_pay: number;
@@ -109,7 +111,7 @@ export const useLatestPayrollPeriod = () => {
   
   return useQuery({
     queryKey: payrollQueryKeys.latestMonth(),
-    queryFn: async (): Promise<{ period_id: string; period_name: string; year?: number; month?: number } | null> => {
+    queryFn: async (): Promise<{ id: string; period_id: string; period_name: string; year?: number; month?: number } | null> => {
       // 直接从 payroll_periods 表获取有薪资记录的最新周期
       const { data: payrollData, error: payrollError } = await supabase
         .from('payrolls')
@@ -145,7 +147,8 @@ export const useLatestPayrollPeriod = () => {
       if (periodData && periodData.length > 0) {
         const period = periodData[0];
         return {
-          period_id: period.id,
+          id: period.id,  // 添加 id 字段
+          period_id: period.id,  // 保留兼容性
           period_name: period.period_name,
           year: period.period_year,
           month: period.period_month
@@ -180,53 +183,46 @@ export const usePayrolls = (filters?: {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
+      // 使用 view_payroll_summary 视图，已包含所有需要的字段
       let query = supabase
-        .from('payrolls')
-        .select(`
-          id,
-          pay_date,
-          period_id,
-          employee_id,
-          gross_pay,
-          total_deductions,
-          net_pay,
-          status,
-          employee:employees!inner(
-            id,
-            employee_name,
-            id_number
-          ),
-          period:payroll_periods!inner(
-            id,
-            period_name,
-            period_year,
-            period_month,
-            period_start,
-            period_end
-          )
-        `, { count: 'exact' });
+        .from('view_payroll_summary')
+        .select('*', { count: 'exact' });
 
-      // 搜索条件 - 注意：status是enum类型，不能使用ilike
+      // 搜索条件 - 支持多字段搜索
       if (searchTerm) {
-        // 对于嵌套关系，需要使用正确的过滤语法
-        query = query.filter('employee.employee_name', 'ilike', `%${searchTerm}%`);
+        // 使用 or 条件进行多字段搜索
+        query = query.or([
+          `employee_name.ilike.%${searchTerm}%`,
+          `department_name.ilike.%${searchTerm}%`,
+          `position_name.ilike.%${searchTerm}%`,
+          `id_number.ilike.%${searchTerm}%`
+        ].join(','));
       }
 
       // 过滤条件
       if (filters?.status) {
-        query = query.eq('status', filters.status);
+        query = query.eq('payroll_status', filters.status);
       }
       if (filters?.employeeId) {
         query = query.eq('employee_id', filters.employeeId);
       }
       if (filters?.periodId) {
+        // 直接使用 period_id 过滤（视图现在包含此字段）
         query = query.eq('period_id', filters.periodId);
       }
       
-      // 由于Supabase不支持嵌套字段过滤，需要在客户端过滤
-      // 先获取数据，然后在客户端处理
+      // 按年月过滤 - 使用 period_code 字段（格式：'2025-01'）
+      if (filters?.periodYear && filters?.periodMonth) {
+        const periodCode = `${filters.periodYear}-${String(filters.periodMonth).padStart(2, '0')}`;
+        query = query.eq('period_code', periodCode);
+      } else if (filters?.periodYear) {
+        // 只按年过滤
+        query = query.like('period_code', `${filters.periodYear}-%`);
+      }
+
+      // 排序 - 按创建时间降序
       query = query
-        .order('id', { ascending: false })
+        .order('created_at', { ascending: false })
         .range(from, to);
 
       const { data, error, count } = await query;
@@ -236,52 +232,42 @@ export const usePayrolls = (filters?: {
         throw error;
       }
 
-      // 客户端过滤周期年月
-      let filteredData = data || [];
-      if (filters?.periodYear) {
-        filteredData = filteredData.filter((item: any) => 
-          (item.period as any)?.period_year === filters.periodYear
-        );
-      }
-      if (filters?.periodMonth) {
-        filteredData = filteredData.filter((item: any) => 
-          (item.period as any)?.period_month === filters.periodMonth
-        );
-      }
-
-      // 客户端排序 - 按周期年月降序
-      filteredData.sort((a: any, b: any) => {
-        const yearDiff = ((b.period as any)?.period_year || 0) - ((a.period as any)?.period_year || 0);
-        if (yearDiff !== 0) return yearDiff;
+      // 转换数据格式以兼容现有代码
+      const transformedData = (data || []).map((item: any) => ({
+        // 主要字段
+        id: item.payroll_id,
+        payroll_id: item.payroll_id,
+        pay_date: item.actual_pay_date || item.scheduled_pay_date,
+        actual_pay_date: item.actual_pay_date,
+        scheduled_pay_date: item.scheduled_pay_date,
         
-        const monthDiff = ((b.period as any)?.period_month || 0) - ((a.period as any)?.period_month || 0);
-        if (monthDiff !== 0) return monthDiff;
-        
-        // 如果年月相同，按ID降序
-        return b.id.localeCompare(a.id);
-      });
-
-      // 转换数据格式
-      const transformedData = filteredData.map((item: any) => ({
-        id: item.id,
-        payroll_id: item.id,
-        pay_date: item.pay_date,
-        period_id: item.period_id,
-        period_name: (item.period as any)?.period_name || '',
-        pay_period_start: (item.period as any)?.period_start || '',
-        pay_period_end: (item.period as any)?.period_end || '',
+        // 员工信息
         employee_id: item.employee_id,
-        employee_name: (item.employee as any)?.employee_name || '',
-        gross_pay: item.gross_pay,
-        total_deductions: item.total_deductions,
-        net_pay: item.net_pay,
-        status: item.status,
+        employee_name: item.employee_name,
+        department_name: item.department_name,
+        position_name: item.position_name,
+        
+        // 周期信息
+        period_id: item.period_id,  // 现在视图直接提供此字段
+        period_code: item.period_code,
+        period_name: item.period_name,
+        pay_period_start: item.period_start,
+        pay_period_end: item.period_end,
+        
+        // 金额信息
+        gross_pay: formatNumber(item.gross_pay),
+        total_deductions: formatNumber(item.total_deductions),
+        net_pay: formatNumber(item.net_pay),
+        
+        // 状态
+        status: item.payroll_status,
+        
+        // 兼容旧结构
         employee: {
           id: item.employee_id,
-          employee_name: (item.employee as any)?.employee_name || '',
-          id_number: (item.employee as any)?.id_number || null
-        },
-        period: item.period
+          employee_name: item.employee_name,
+          id_number: item.id_number
+        }
       }));
 
       return {

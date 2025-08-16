@@ -35,7 +35,7 @@ export interface PersonnelCategoryTreeNode extends PersonnelCategory {
  * 人员类别查询键管理
  */
 export const personnelCategoryQueryKeys = {
-  all: ['personnel_categories'] as const,
+  all: ['employee_categories'] as const,
   list: () => [...personnelCategoryQueryKeys.all, 'list'] as const,
   tree: () => [...personnelCategoryQueryKeys.all, 'tree'] as const,
   names: () => [...personnelCategoryQueryKeys.all, 'names'] as const,
@@ -59,7 +59,7 @@ export function usePersonnelCategories() {
   } = useResource<PersonnelCategory>({
     queryKey: personnelCategoryQueryKeys.list(),
     tableConfig: {
-      tableName: 'personnel_categories',
+      tableName: 'employee_categories',
       orderBy: { column: 'sort_order', ascending: true },
       transform: (data) => ({
         ...data,
@@ -317,7 +317,7 @@ export function usePersonnelCategories() {
     mutationFn: async (reorderData: Array<{ id: string; sort_order: number }>) => {
       const promises = reorderData.map(({ id, sort_order }) =>
         supabase
-          .from('personnel_categories')
+          .from('employee_categories')
           .update({ sort_order })
           .eq('id', id)
       );

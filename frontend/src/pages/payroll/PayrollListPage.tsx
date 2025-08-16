@@ -7,16 +7,19 @@ import {
   useUpdateBatchPayrollStatus, 
   useCalculatePayrolls, 
   useLatestPayrollPeriod,
+  useCurrentPayrollPeriod,
   PayrollStatus,
   type PayrollStatusType 
 } from '@/hooks/payroll';
+import { type PayrollPeriod } from '@/hooks/payroll/usePayrollPeriod';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
 import { useTableConfiguration } from '@/hooks/useTableConfiguration';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
 import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
 import { DataTable } from '@/components/common/DataTable';
-import { MonthPicker } from '@/components/common/MonthPicker';
+import { PayrollPeriodSelector } from '@/components/common/PayrollPeriodSelector';
 import { ModernButton } from '@/components/common/ModernButton';
+import { ManagementPageLayout } from '@/components/layout/ManagementPageLayout';
 import { useToast } from '@/contexts/ToastContext';
 import { getMonthDateRange, getCurrentYearMonth, formatMonth } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/format';
@@ -29,7 +32,9 @@ import type { PaginationState, Table } from '@tanstack/react-table';
 interface PayrollData {
   payroll_id: string;
   id?: string; // 兼容字段
-  pay_date: string;
+  pay_date: string;  // 从 actual_pay_date 或 scheduled_pay_date 映射
+  actual_pay_date?: string;  // 实际发薪日期
+  scheduled_pay_date?: string;  // 计划发薪日期
   pay_period_start: string;
   pay_period_end: string;
   employee_id: string;
@@ -77,6 +82,7 @@ export default function PayrollListPage() {
   const [activeSearchQuery, setActiveSearchQuery] = useState(''); // 实际用于搜索的查询
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<PayrollStatusType | 'all'>('all');
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
   const [selectedMonth, setSelectedMonth] = useState(() => {
     // 默认为当前月份，将在useEffect中更新为最近有记录的月份
     return getCurrentYearMonth();
@@ -88,26 +94,35 @@ export default function PayrollListPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
-  const monthDateRange = getMonthDateRange(selectedMonth);
-  
-  // 解析年月
-  const parseYearMonth = (yearMonth: string) => {
-    if (!yearMonth) return { year: undefined, month: undefined };
-    const [year, month] = yearMonth.split('-').map(Number);
-    return { year, month };
-  };
-  
-  const { year: periodYear, month: periodMonth } = parseYearMonth(selectedMonth);
+  // 从选中的周期获取年月信息
+  const [periodYear, setPeriodYear] = useState<number | undefined>();
+  const [periodMonth, setPeriodMonth] = useState<number | undefined>();
 
-  // 获取最近有薪资记录的月份
-  const { data: latestMonth, isLoading: latestMonthLoading } = useLatestPayrollPeriod();
+  // 获取当前活跃周期
+  const { data: currentPeriod } = useCurrentPayrollPeriod();
+  
+  // 获取最近有薪资记录的周期
+  const { data: latestPeriod, isLoading: latestPeriodLoading } = useLatestPayrollPeriod();
 
-  // 自动设置为最近有记录的月份
+  // 自动设置为当前活跃周期或最近有记录的周期
   useEffect(() => {
-    if (latestMonth && !latestMonthLoading) {
-      setSelectedMonth(latestMonth.period_name || `${latestMonth.year}-${latestMonth.month?.toString().padStart(2, '0')}`);
+    if (!selectedPeriodId) {
+      // 优先使用当前活跃周期
+      if (currentPeriod) {
+        setSelectedPeriodId(currentPeriod.id);
+        setPeriodYear(currentPeriod.period_year);
+        setPeriodMonth(currentPeriod.period_month);
+        setSelectedMonth(`${currentPeriod.period_year}-${currentPeriod.period_month?.toString().padStart(2, '0')}`);
+      } 
+      // 否则使用最近有记录的周期
+      else if (latestPeriod && !latestPeriodLoading) {
+        setSelectedPeriodId(latestPeriod.id);
+        setPeriodYear(latestPeriod.year);
+        setPeriodMonth(latestPeriod.month);
+        setSelectedMonth(`${latestPeriod.year}-${latestPeriod.month?.toString().padStart(2, '0')}`);
+      }
     }
-  }, [latestMonth, latestMonthLoading]);
+  }, [currentPeriod, latestPeriod, latestPeriodLoading, selectedPeriodId]);
 
   // 搜索处理函数 - 手动触发搜索
   const handleSearch = useCallback(() => {
@@ -173,7 +188,7 @@ export default function PayrollListPage() {
           payroll.employee_name,        // 员工姓名
           (payroll as any).department_name,      // 部门名称 (直接从视图获取)
           payroll.status,               // 状态
-          payroll.pay_date,             // 支付日期
+          payroll.actual_pay_date || payroll.scheduled_pay_date || payroll.pay_date,  // 支付日期
           payroll.gross_pay?.toString(), // 应发工资
           payroll.net_pay?.toString(),   // 实发工资
         ].filter(Boolean); // 过滤掉空值
@@ -301,6 +316,14 @@ export default function PayrollListPage() {
   }, [selectedMonth, showSuccess, showError, refetch]);
 
   // 准备统计卡片数据
+  interface StatCardProps {
+    title: string;
+    value: string;
+    description?: string;
+    icon?: React.ReactNode;
+    colorClass?: string;
+  }
+  
   const statCards: StatCardProps[] = useMemo(() => {
     if (!statistics) return [];
 
@@ -342,7 +365,7 @@ export default function PayrollListPage() {
   }, [statistics, selectedMonth, t]);
 
   // 处理加载状态
-  const totalLoading = isLoading || statsLoading || latestMonthLoading || metadataLoading;
+  const totalLoading = isLoading || statsLoading || latestPeriodLoading || metadataLoading;
 
   // 错误处理
   if (metadataError) {
@@ -413,7 +436,7 @@ export default function PayrollListPage() {
       loading={totalLoading}
       tableInstance={tableInstance || undefined}
       onTableReady={setTableInstance}
-      initialSorting={[{ id: 'pay_date', desc: true }]}
+      initialSorting={[{ id: 'actual_pay_date', desc: true }]}
       initialPagination={{ pageIndex: 0, pageSize: 20 }}
       enableExport={false}
       showGlobalFilter={false}
@@ -426,13 +449,22 @@ export default function PayrollListPage() {
           <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                {/* 月份选择 */}
-                <MonthPicker
-                  value={selectedMonth}
-                  onChange={setSelectedMonth}
+                {/* 薪资周期选择器 */}
+                <PayrollPeriodSelector
+                  value={selectedPeriodId}
+                  onChange={(periodId, period) => {
+                    setSelectedPeriodId(periodId);
+                    if (period) {
+                      setPeriodYear(period.period_year);
+                      setPeriodMonth(period.period_month);
+                      setSelectedMonth(`${period.period_year}-${period.period_month.toString().padStart(2, '0')}`);
+                    }
+                  }}
+                  onlyWithData={false}
+                  showCountBadge={true}
+                  placeholder="选择薪资周期"
+                  className="w-64"
                   size="sm"
-                  placeholder={String(t('payroll:selectMonth'))}
-                  showDataIndicators={true}
                 />
 
                 {/* 状态筛选 */}

@@ -127,12 +127,12 @@ class MetadataService {
         description: '薪资记录和员工信息',
         fields: fields.sort((a, b) => (a.order || 999) - (b.order || 999)),
         primaryKey: 'payroll_id',
-        defaultSort: { field: 'pay_date', direction: 'desc' },
+        defaultSort: { field: 'actual_pay_date', direction: 'desc' },
         defaultFields: [
           'employee_name',    // 员工姓名
           'department_name',  // 部门
-          'pay_date',         // 发薪日期
-          'status',           // 状态
+          'actual_pay_date',  // 发薪日期
+          'payroll_status',   // 状态
           'gross_pay',        // 应发工资
           'total_deductions', // 扣除合计
           'net_pay'           // 实发工资
@@ -705,7 +705,14 @@ class MetadataService {
   private generatePayrollFieldLabel(fieldName: string): string {
     const labelMap: Record<string, string> = {
       'payroll_id': '薪资ID',
-      'pay_date': '发薪日期',
+      'scheduled_pay_date': '计划发薪日期',
+      'actual_pay_date': '实际发薪日期',
+      'pay_date': '发薪日期',  // 兼容旧字段
+      'period_start': '计薪开始',
+      'period_end': '计薪结束',
+      'period_code': '薪资周期',
+      'period_name': '周期名称',
+      'payroll_status': '薪资状态',
       'pay_period_start': '计薪开始',
       'pay_period_end': '计薪结束',
       'employee_id': '员工ID',
