@@ -258,22 +258,50 @@ export function PayrollApprovalPanel({ periodId, onClose }: PayrollApprovalPanel
                       <ul className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-32">
                         {utils.canApprove(item.status) && (
                           <li>
-                            <a onClick={() => actions.approve([item.payroll_id])}>
+                            <button 
+                              type="button"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const confirmed = window.confirm(`确认审批通过 ${item.employee_name} 的薪资记录？`);
+                                if (confirmed) {
+                                  await actions.approve([item.payroll_id]);
+                                }
+                              }}
+                            >
                               审批通过
-                            </a>
+                            </button>
                           </li>
                         )}
                         {utils.canMarkPaid(item.status) && (
                           <li>
-                            <a onClick={() => actions.markPaid([item.payroll_id])}>
+                            <button 
+                              type="button"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const confirmed = window.confirm(`确认标记 ${item.employee_name} 的薪资为已发放？`);
+                                if (confirmed) {
+                                  await actions.markPaid([item.payroll_id]);
+                                }
+                              }}
+                            >
                               标记发放
-                            </a>
+                            </button>
                           </li>
                         )}
                         <li>
-                          <a onClick={() => setSelectedPayrollId(item.payroll_id)}>
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedPayrollId(item.payroll_id);
+                              setActiveTab('history');
+                            }}
+                          >
                             查看历史
-                          </a>
+                          </button>
                         </li>
                       </ul>
                     </div>

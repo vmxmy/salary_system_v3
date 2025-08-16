@@ -21,13 +21,10 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
   const performanceMonitor = usePerformanceMonitor();
 
   const refreshData = () => {
-    const newSummary = performanceMonitor.getPerformanceSummary();
-    const newSlowQueries = performanceMonitor.getSlowQueries(10);
-    const newErrorQueries = performanceMonitor.getErrorQueries(10);
-
-    setSummary(newSummary);
-    setSlowQueries(newSlowQueries);
-    setErrorQueries(newErrorQueries);
+    // performanceMonitor 已经包含了这些数据
+    setSummary(performanceMonitor.summary);
+    setSlowQueries(performanceMonitor.slowQueries);
+    setErrorQueries(performanceMonitor.errorQueries);
   };
 
   useEffect(() => {
@@ -42,16 +39,8 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
   }, [autoRefresh, refreshInterval]);
 
   const handleExportMetrics = () => {
-    const exportData = performanceMonitor.exportMetrics();
-    const blob = new Blob([exportData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `performance-metrics-${new Date().toISOString().slice(0, 19)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // exportMetrics 直接处理下载，返回布尔值表示成功与否
+    performanceMonitor.exportMetrics();
   };
 
   const handleClearMetrics = () => {
@@ -154,8 +143,8 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-base-content/70">{op.count}次</span>
-                    <span className={`badge badge-xs ${getPerformanceBadge(op.avg_duration)}`}>
-                      {op.avg_duration}ms
+                    <span className={`badge badge-xs ${getPerformanceBadge(op.average_duration)}`}>
+                      {op.average_duration}ms
                     </span>
                   </div>
                 </div>
@@ -200,7 +189,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                       </div>
                       <div className="text-base-content/50 text-xs">
                         {query.timestamp.toLocaleTimeString()}
-                        {query.context && ` • ${query.context}`}
+                        {query.details?.context && ` • ${query.details.context}`}
                       </div>
                     </div>
                   ))}

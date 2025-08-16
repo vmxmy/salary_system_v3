@@ -19,11 +19,11 @@ import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
 import { DataTable } from '@/components/common/DataTable';
 import { PayrollPeriodSelector } from '@/components/common/PayrollPeriodSelector';
 import { ModernButton } from '@/components/common/ModernButton';
-import { ManagementPageLayout } from '@/components/layout/ManagementPageLayout';
+import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
 import { useToast } from '@/contexts/ToastContext';
 import { getMonthDateRange, getCurrentYearMonth, formatMonth } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/format';
-import { PayrollCreationService } from '@/services/payroll-creation.service';
+import { supabase } from '@/lib/supabase';
 import { usePermission } from '@/hooks/usePermission';
 import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
 import type { PaginationState, Table } from '@tanstack/react-table';
@@ -55,7 +55,7 @@ interface PayrollData {
 export default function PayrollListPage() {
   const { t } = useTranslation(['common', 'payroll']);
   const navigate = useNavigate();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showInfo } = useToast();
   const { can } = usePermission();
 
   // 表格配置管理
@@ -67,15 +67,16 @@ export default function PayrollListPage() {
     columns,
     updateUserConfig,
     resetToDefault,
-  } = useTableConfiguration('payroll', {
-    onViewDetail: (row) => {
-      const payrollId = row.payroll_id || row.id;
-      if (payrollId) {
-        setSelectedPayrollId(payrollId);
-        setIsDetailModalOpen(true);
-      }
-    },
-  });
+  } = useTableConfiguration('payroll');
+  
+  // 处理查看详情
+  const handleViewDetail = useCallback((row: PayrollData) => {
+    const payrollId = row.payroll_id || row.id;
+    if (payrollId) {
+      setSelectedPayrollId(payrollId);
+      setIsDetailModalOpen(true);
+    }
+  }, []);
 
   // 状态管理
   const [searchQuery, setSearchQuery] = useState('');
@@ -284,45 +285,51 @@ export default function PayrollListPage() {
   // 清空本月数据
   const handleClearCurrentMonth = useCallback(async () => {
     try {
-      // 调用清空薪资数据服务
+      // 使用 supabase 清空薪资数据
       const monthDateRange = getMonthDateRange(selectedMonth);
-      const result = await PayrollCreationService.clearPayrollDataByPeriod(
-        monthDateRange.startDate,
-        monthDateRange.endDate,
-        'CLEAR_PAYROLL_CONFIRMED'
-      );
-
-      if (result.success) {
-        if (result.deleted_summary) {
-          const summary = result.deleted_summary;
-          showSuccess(
-            `${formatMonth(selectedMonth)} 的薪资数据已清空\n` +
-            `删除薪资记录: ${summary.deleted_payrolls} 条\n` +
-            `删除薪资项目: ${summary.deleted_items} 条\n` +
-            `涉及员工: ${summary.affected_employees} 人`
-          );
-        } else {
-          showSuccess(`${formatMonth(selectedMonth)} 的薪资数据已清空`);
-        }
-        refetch();
-      } else {
-        showError(`清空数据失败: ${result.error_message || '未知错误'}`);
+      
+      // 获取当前月份的薪资记录
+      const { data: payrollsToDelete, error: fetchError } = await supabase
+        .from('payrolls')
+        .select('id')
+        .gte('pay_date', monthDateRange.startDate)
+        .lte('pay_date', monthDateRange.endDate)
+        .eq('status', PayrollStatus.DRAFT);
+      
+      if (fetchError) {
+        throw fetchError;
       }
+      
+      if (!payrollsToDelete || payrollsToDelete.length === 0) {
+        showInfo(`${formatMonth(selectedMonth)} 没有可清除的薪资数据`);
+        setIsClearModalOpen(false);
+        return;
+      }
+      
+      // 批量删除
+      const { error: deleteError } = await supabase
+        .from('payrolls')
+        .delete()
+        .in('id', payrollsToDelete.map(p => p.id));
+      
+      if (deleteError) {
+        throw deleteError;
+      }
+      
+      showSuccess(
+        `${formatMonth(selectedMonth)} 的薪资数据已清空\n` +
+        `删除了 ${payrollsToDelete.length} 条记录`
+      );
+      
+      refetch();
     } catch (error) {
       showError(`清空数据失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setIsClearModalOpen(false);
     }
-  }, [selectedMonth, showSuccess, showError, refetch]);
+  }, [selectedMonth, showSuccess, showError, showInfo, refetch]);
 
-  // 准备统计卡片数据
-  interface StatCardProps {
-    title: string;
-    value: string;
-    description?: string;
-    icon?: React.ReactNode;
-    colorClass?: string;
-  }
+  // 准备统计卡片数据 - 移除本地定义，使用 ManagementPageLayout 的类型
   
   const statCards: StatCardProps[] = useMemo(() => {
     if (!statistics) return [];

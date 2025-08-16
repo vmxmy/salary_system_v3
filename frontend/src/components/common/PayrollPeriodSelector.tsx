@@ -109,8 +109,8 @@ export function PayrollPeriodSelector({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft': return 'badge-warning';
-      case 'open': return 'badge-success';
-      case 'closed': return 'badge-info';
+      case 'processing': return 'badge-info';
+      case 'completed': return 'badge-success';
       case 'archived': return 'badge-neutral';
       default: return 'badge-ghost';
     }
@@ -120,8 +120,8 @@ export function PayrollPeriodSelector({
   const getStatusText = (status: string) => {
     switch (status) {
       case 'draft': return '草稿';
-      case 'open': return '进行中';
-      case 'closed': return '已关闭';
+      case 'processing': return '处理中';
+      case 'completed': return '已完成';
       case 'archived': return '已归档';
       default: return status;
     }

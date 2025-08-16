@@ -76,9 +76,11 @@ async function testHooks() {
     
     // 5. 测试错误处理
     console.log('\n📋 测试5: 错误处理机制');
+    // 使用一个有效的表名，但故意使用错误的查询条件
     const { error: testError } = await supabase
-      .from('non_existent_table')
-      .select('*');
+      .from('employees')
+      .select('*')
+      .eq('id', 'invalid-uuid-format'); // 故意使用无效的UUID格式
     
     if (testError) {
       console.log('✅ 错误处理正常工作');
