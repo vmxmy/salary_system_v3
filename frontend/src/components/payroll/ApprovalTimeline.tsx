@@ -1,6 +1,6 @@
 import { formatDate } from '@/lib/dateUtils';
 import { 
-  ApprovalHistoryItem, 
+  type ApprovalHistoryItem, 
   getActionConfig, 
   formatStatusLabel 
 } from '@/hooks/payroll/useApprovalHistory';

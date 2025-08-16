@@ -13,8 +13,8 @@ type PayrollPeriodUpdate = Database['public']['Tables']['payroll_periods']['Upda
 // 周期状态枚举
 export const PeriodStatus = {
   DRAFT: 'draft',
-  OPEN: 'open',
-  CLOSED: 'closed',
+  PROCESSING: 'processing',
+  COMPLETED: 'completed',
   ARCHIVED: 'archived'
 } as const;
 
@@ -97,6 +97,20 @@ export const useCurrentPayrollPeriod = () => {
   return useQuery({
     queryKey: payrollPeriodQueryKeys.current(),
     queryFn: async (): Promise<PayrollPeriod | null> => {
+      // 优先获取处理中的周期，如果没有则获取最新的草稿周期
+      const { data: processingPeriod, error: processingError } = await supabase
+        .from('payroll_periods')
+        .select('*')
+        .eq('status', PeriodStatus.PROCESSING)
+        .order('period_year', { ascending: false })
+        .order('period_month', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (processingPeriod && !processingError) {
+        return processingPeriod;
+      }
+      
       const { data, error } = await supabase
         .from('payroll_periods')
         .select('*')
@@ -305,15 +319,15 @@ export const useUpdatePeriodStatus = () => {
       periodId: string;
       status: PeriodStatusType;
     }) => {
-      // 如果要打开一个周期，先关闭其他打开的周期
-      if (status === PeriodStatus.OPEN) {
+      // 如果要处理一个周期，先完成其他处理中的周期
+      if (status === PeriodStatus.PROCESSING) {
         await supabase
           .from('payroll_periods')
           .update({ 
-            status: PeriodStatus.CLOSED,
+            status: PeriodStatus.COMPLETED,
             updated_at: new Date().toISOString()
           })
-          .eq('status', PeriodStatus.OPEN);
+          .eq('status', PeriodStatus.PROCESSING);
       }
 
       const { data, error } = await supabase
@@ -321,7 +335,7 @@ export const useUpdatePeriodStatus = () => {
         .update({ 
           status,
           updated_at: new Date().toISOString(),
-          locked_at: status === PeriodStatus.CLOSED ? new Date().toISOString() : null
+          locked_at: status === PeriodStatus.COMPLETED ? new Date().toISOString() : null
         })
         .eq('id', periodId)
         .select()
@@ -567,10 +581,10 @@ export function usePayrollPeriod(options: UsePayrollPeriodOptions = {}) {
         return `${period.period_year}年${period.period_month}月`;
       },
       isPeriodLocked: (period: PayrollPeriod) => {
-        return period.status === PeriodStatus.CLOSED || period.status === PeriodStatus.ARCHIVED;
+        return period.status === PeriodStatus.COMPLETED || period.status === PeriodStatus.ARCHIVED;
       },
       canEditPeriod: (period: PayrollPeriod) => {
-        return period.status === PeriodStatus.OPEN;
+        return period.status === PeriodStatus.DRAFT || period.status === PeriodStatus.PROCESSING;
       }
     }
   };
@@ -595,7 +609,7 @@ export const useUpcomingPayrollPeriods = (limit = 3) => {
         .from('payroll_periods')
         .select('*')
         .or(`period_year.gt.${currentYear},and(period_year.eq.${currentYear},period_month.gte.${currentMonth})`)
-        .in('status', [PeriodStatus.DRAFT, PeriodStatus.OPEN])
+        .in('status', [PeriodStatus.DRAFT, PeriodStatus.PROCESSING])
         .order('period_year', { ascending: true })
         .order('period_month', { ascending: true })
         .limit(limit);
@@ -703,7 +717,7 @@ export const useYearPayrollSummary = (year: number) => {
         yearTotal,
         averageMonthlyGrossPay: yearTotal.totalGrossPay / (summaries.length || 1),
         averageMonthlyNetPay: yearTotal.totalNetPay / (summaries.length || 1),
-        completedMonths: summaries.filter(s => s.period.status === PeriodStatus.CLOSED).length,
+        completedMonths: summaries.filter(s => s.period.status === PeriodStatus.COMPLETED).length,
         totalMonths: summaries.length,
       };
     },

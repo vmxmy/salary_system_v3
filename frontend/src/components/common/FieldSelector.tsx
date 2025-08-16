@@ -1,7 +1,28 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { EyeIcon, EyeOffIcon, ArrowUpIcon, ArrowDownIcon, SettingsIcon, RefreshCcwIcon, CheckSquareIcon } from 'lucide-react';
-import type { FieldMetadata } from '@/services/metadata.service';
-import type { UserTableConfig } from '@/services/column-config.service';
+// 定义类型接口
+export interface FieldMetadata {
+  name: string;
+  label: string;
+  description?: string;
+  visible?: boolean;
+  order?: number;
+  type?: string;
+  required?: boolean;
+  width?: number;
+}
+
+export interface ColumnConfig {
+  field: string;
+  visible: boolean;
+  order: number;
+  label?: string;
+  width?: number;
+}
+
+export interface UserTableConfig {
+  columns: ColumnConfig[];
+}
 import { cn } from '@/lib/utils';
 
 export interface FieldSelectorProps {
@@ -35,7 +56,7 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
 
   // 按可见性和顺序排序的字段配置
   const sortedColumns = useMemo(() => {
-    const configMap = new Map(userConfig.columns.map(col => [col.field, col]));
+    const configMap = new Map(userConfig.columns.map((col: ColumnConfig) => [col.field, col]));
     
     // 为所有字段创建配置，包括动态获取的字段
     const allColumns = fields.map(field => {

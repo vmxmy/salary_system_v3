@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { ApprovalTimeline } from './ApprovalTimeline';
 import { PayrollPeriodSelector } from '@/components/common/PayrollPeriodSelector';
 import { 
-  usePeriodApprovalHistory, 
-  ApprovalHistoryFilters as HistoryFilters,
+  useApprovalHistory,
+  type ApprovalHistoryFilters as HistoryFilters,
   ACTION_CONFIG 
 } from '@/hooks/payroll/useApprovalHistory';
 
@@ -32,9 +32,7 @@ function ApprovalHistoryFilterPanel({
     <div className="space-y-4">
       {/* 薪资周期选择 */}
       <div>
-        <label className="label">
-          <span className="label-text font-medium">薪资周期</span>
-        </label>
+        <label className="label label-text font-medium">薪资周期</label>
         <PayrollPeriodSelector
           value={filters.periodId}
           onChange={(periodId) => onFiltersChange({ ...filters, periodId })}
@@ -44,45 +42,28 @@ function ApprovalHistoryFilterPanel({
         />
       </div>
 
-      {/* 操作类型筛选 */}
+      {/* 操作类型筛选 - 改为下拉列表 */}
       <div>
-        <label className="label">
-          <span className="label-text font-medium">操作类型</span>
-        </label>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-          {/* 全部 */}
-          <button
-            className={`btn btn-sm ${
-              !filters.action ? 'btn-primary' : 'btn-outline'
-            }`}
-            onClick={() => handleActionFilterChange('all')}
-          >
-            全部
-          </button>
-          
-          {/* 各种操作类型 */}
+        <label className="label label-text font-medium">操作类型</label>
+        <select 
+          className="select select-bordered w-full"
+          value={filters.action || 'all'}
+          onChange={(e) => handleActionFilterChange(e.target.value)}
+        >
+          <option value="all">全部操作</option>
           {Object.entries(ACTION_CONFIG).map(([actionKey, config]) => (
-            <button
-              key={actionKey}
-              className={`btn btn-sm ${
-                filters.action === actionKey ? `btn-${config.color}` : 'btn-outline'
-              }`}
-              onClick={() => handleActionFilterChange(actionKey)}
-            >
-              <span className="mr-1">{config.icon}</span>
-              {config.label}
-            </button>
+            <option key={actionKey} value={actionKey}>
+              {config.icon} {config.label}
+            </option>
           ))}
-        </div>
+        </select>
       </div>
 
       {/* 记录数量限制 */}
       <div>
-        <label className="label">
-          <span className="label-text font-medium">显示数量</span>
-        </label>
+        <label className="label label-text font-medium">显示数量</label>
         <select 
-          className="select select-bordered w-32"
+          className="select select-bordered w-full"
           value={filters.limit || 50}
           onChange={(e) => onFiltersChange({ 
             ...filters, 
@@ -93,6 +74,7 @@ function ApprovalHistoryFilterPanel({
           <option value={50}>50条</option>
           <option value={100}>100条</option>
           <option value={200}>200条</option>
+          <option value={500}>500条</option>
         </select>
       </div>
     </div>
@@ -170,7 +152,8 @@ export function ApprovalHistoryModal({
     isLoading, 
     error,
     refetch 
-  } = usePeriodApprovalHistory(filters.periodId || '', {
+  } = useApprovalHistory({
+    periodId: filters.periodId,
     action: filters.action,
     limit: filters.limit,
   });
@@ -193,76 +176,87 @@ export function ApprovalHistoryModal({
 
   return (
     <dialog className="modal modal-open">
-      <div className="modal-box max-w-6xl h-[90vh] flex flex-col">
-        {/* 头部 */}
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-bold text-xl">审批历史</h3>
-            <p className="text-base-content/60 text-sm mt-1">
-              查看薪资审批流程的详细操作记录
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <button 
-              className="btn btn-ghost btn-sm"
-              onClick={handleRefresh}
-              disabled={isLoading}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              刷新
-            </button>
-            
-            <button 
-              className="btn btn-ghost btn-sm"
-              onClick={handleClose}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        {/* 筛选器 */}
-        <div className="card bg-base-100 border mb-4">
-          <div className="card-body p-4">
-            <ApprovalHistoryFilterPanel
-              filters={filters}
-              onFiltersChange={setFilters}
-            />
-          </div>
-        </div>
-
-        {/* 内容区域 */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {error && (
-            <div className="alert alert-error mb-4">
-              <span>加载审批历史失败: {error.message}</span>
+      <div className="modal-box max-w-7xl h-[90vh] p-0">
+        {/* 左右布局容器 */}
+        <div className="flex h-full">
+          {/* 左侧边栏 - 筛选器 */}
+          <div className="w-80 border-r bg-base-200/30 p-6 flex flex-col">
+            {/* 侧边栏标题 */}
+            <div className="mb-6">
+              <h3 className="font-bold text-lg">筛选条件</h3>
+              <p className="text-base-content/60 text-sm mt-1">
+                设置筛选条件查看历史记录
+              </p>
             </div>
-          )}
+            
+            {/* 筛选器面板 */}
+            <div className="flex-1">
+              <ApprovalHistoryFilterPanel
+                filters={filters}
+                onFiltersChange={setFilters}
+              />
+            </div>
 
-          {/* 统计信息 */}
-          {historyItems.length > 0 && (
-            <ApprovalStats items={historyItems} />
-          )}
-
-          {/* 时间线内容 */}
-          <div className="flex-1 overflow-y-auto">
-            {isLoading ? (
-              <ApprovalTimeline.Loading />
-            ) : (
-              <ApprovalTimeline items={historyItems} />
-            )}
+            {/* 刷新按钮 */}
+            <div className="mt-auto pt-4">
+              <button 
+                className="btn btn-primary btn-block"
+                onClick={handleRefresh}
+                disabled={isLoading}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                刷新数据
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* 底部操作 */}
-        <div className="modal-action mt-4">
-          <button className="btn" onClick={handleClose}>
-            关闭
-          </button>
+          {/* 右侧主内容区 */}
+          <div className="flex-1 flex flex-col">
+            {/* 头部 */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h2 className="font-bold text-2xl">审批历史</h2>
+                <p className="text-base-content/60 text-sm mt-1">
+                  查看薪资审批流程的详细操作记录
+                </p>
+              </div>
+              
+              <button 
+                className="btn btn-ghost btn-circle"
+                onClick={handleClose}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 内容区域 */}
+            <div className="flex-1 overflow-hidden flex flex-col p-6">
+              {error && (
+                <div className="alert alert-error mb-4">
+                  <span>加载审批历史失败: {error.message}</span>
+                </div>
+              )}
+
+              {/* 统计信息 */}
+              {historyItems.length > 0 && (
+                <ApprovalStats items={historyItems} />
+              )}
+
+              {/* 时间线内容 - 可滚动区域 */}
+              <div className="flex-1 overflow-y-auto pr-2">
+                {isLoading ? (
+                  <ApprovalTimeline.Loading />
+                ) : (
+                  <ApprovalTimeline items={historyItems} />
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       

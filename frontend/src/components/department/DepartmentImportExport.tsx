@@ -9,7 +9,15 @@ import {
 } from '@heroicons/react/24/outline';
 import { ModernButton } from '@/components/common/ModernButton';
 import { useToast } from '@/contexts/ToastContext';
-import { ExcelService, type ExcelImportResult } from '@/services/excel.service';
+// Excel service types
+interface ExcelImportResult {
+  success: boolean;
+  data?: any[];
+  errors?: Array<{ row: number; field?: string; message: string }>;
+  totalRows?: number;
+  successCount?: number;
+  errorCount?: number;
+}
 import { ResponsiveModal, ResponsiveButtonGroup, ResponsiveGrid } from '@/components/common/ResponsiveWrapper';
 import { cn } from '@/lib/utils';
 import type { DepartmentNode } from '@/types/department';
@@ -277,7 +285,7 @@ export function DepartmentImportExport({
                           <div>
                             <p className="font-medium text-warning mb-2">错误详情：</p>
                             <div className="space-y-1">
-                              {importResult.errors.map((error, index) => (
+                              {importResult.errors.map((error: any, index: number) => (
                                 <div key={index} className="text-sm text-error">
                                   第{error.row}行 - {error.field}: {error.message}
                                 </div>

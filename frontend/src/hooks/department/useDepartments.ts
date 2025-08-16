@@ -211,20 +211,22 @@ export function useDepartmentEmployees(departmentId: string) {
 
         if (error) throw error;
         
-        // Transform for compatibility
-        return (data || []).map(employee => ({
-          id: employee.employee_id,
-          employee_id: employee.employee_id,
-          employee_name: employee.employee_name,
-          name: employee.employee_name,
-          position_name: employee.position_name,
-          personnel_category: employee.category_name,
-          employment_status: employee.employment_status,
-          status: employee.employment_status,
-          assignment_start_date: employee.hire_date,
-          department_id: employee.department_id,
-          department_name: employee.department_name,
-        }));
+        // Transform for compatibility - filter out null IDs
+        return (data || [])
+          .filter(employee => employee.employee_id != null)
+          .map(employee => ({
+            id: employee.employee_id || '',
+            employee_id: employee.employee_id || '',
+            employee_name: employee.employee_name || '',
+            name: employee.employee_name || '',
+            position_name: employee.position_name || undefined,
+            personnel_category: employee.category_name || undefined,
+            employment_status: employee.employment_status || '',
+            status: employee.employment_status || '',
+            assignment_start_date: employee.hire_date || undefined,
+            department_id: employee.department_id || '',
+            department_name: employee.department_name || undefined,
+          }));
       } catch (error) {
         handleError(error, { customMessage: '获取部门员工失败' });
         throw error;

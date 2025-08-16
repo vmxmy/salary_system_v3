@@ -12,7 +12,15 @@
  */
 
 import { supabase } from '@/lib/supabase';
-import { ROLES } from '@/services/permission.service';
+
+// Define roles locally since permission.service has been removed
+const ROLES = {
+  SUPER_ADMIN: 'super_admin',
+  HR_MANAGER: 'hr_manager',
+  FINANCE_ADMIN: 'finance_admin',
+  MANAGER: 'manager',
+  EMPLOYEE: 'employee',
+} as const;
 
 export async function setupTestData() {
   console.log('Setting up test data...');
