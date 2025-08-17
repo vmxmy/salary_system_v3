@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_deletion_log: {
+        Row: {
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_data: Json | null
+          id: string
+          reason: string | null
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_data?: Json | null
+          id?: string
+          reason?: string | null
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_data?: Json | null
+          id?: string
+          reason?: string | null
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       backup_category_assignments_dates: {
         Row: {
           backup_time: string | null
@@ -4887,6 +4917,18 @@ export type Database = {
       cleanup_old_logs: {
         Args: { p_days_to_keep?: number }
         Returns: number
+      }
+      clear_multiple_payroll_periods: {
+        Args: { p_clear_strategy?: string; p_period_ids: string[] }
+        Returns: Json
+      }
+      clear_payroll_by_month: {
+        Args: { p_clear_strategy?: string; p_month: number; p_year: number }
+        Returns: Json
+      }
+      clear_payroll_period: {
+        Args: { p_clear_strategy?: string; p_period_id: string }
+        Returns: Json
       }
       close_payroll_period: {
         Args: { p_period_id: string }

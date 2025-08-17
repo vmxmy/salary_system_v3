@@ -705,7 +705,7 @@ function JobTab({ employeeId, payrollId }: JobTabProps) {
           .eq('id', payrollId)
           .single();
         
-        setPeriodId(data?.period_id);
+        setPeriodId(data?.period_id || undefined);
       } catch (error) {
         console.warn('Failed to get period ID from payroll:', error);
         setPeriodId(undefined);

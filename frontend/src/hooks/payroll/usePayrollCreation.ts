@@ -138,11 +138,26 @@ export function usePayrollCreation() {
         throw new Error('薪资周期不存在');
       }
 
+      // 计算发薪日期：优先使用周期设置的日期，否则使用月末最后一天
+      let payDate: string;
+      if (period.pay_date) {
+        payDate = period.pay_date;
+      } else if (period.period_year && period.period_month) {
+        // 计算该月最后一天作为默认发薪日期
+        const lastDay = new Date(period.period_year, period.period_month, 0).getDate();
+        payDate = `${period.period_year}-${period.period_month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      } else {
+        // 最后的备选：当前月的最后一天
+        const now = new Date();
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        payDate = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      }
+
       // 创建薪资记录
       const payrollData: PayrollInsert = {
         employee_id: employeeId,
         period_id: periodId,
-        pay_date: period.pay_date || new Date().toISOString().split('T')[0],
+        pay_date: payDate,
         status: 'draft',
         gross_pay: 0,
         total_deductions: 0,

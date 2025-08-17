@@ -1,4 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import {
+  createColumnHelper,
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+} from '@tanstack/react-table';
+import type { VisibilityState } from '@tanstack/react-table';
 import { ImportDataGroup } from '@/types/payroll-import';
 import { MoneyIcon, BankIcon, PeopleIcon, BriefcaseIcon } from '@/components/common/Icons';
 
@@ -7,6 +14,7 @@ interface DataGroupOption {
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
+  selected: boolean;
 }
 
 interface DataGroupSelectorProps {
@@ -17,6 +25,8 @@ interface DataGroupSelectorProps {
   className?: string;
 }
 
+const columnHelper = createColumnHelper<DataGroupOption>();
+
 export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
   selectedGroups,
   onGroupToggle,
@@ -25,7 +35,7 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
   className = ""
 }) => {
   // 数据组选项配置
-  const dataGroupOptions: DataGroupOption[] = [
+  const dataGroupOptions: Omit<DataGroupOption, 'selected'>[] = [
     {
       value: ImportDataGroup.EARNINGS,
       label: '薪资项目明细',
@@ -52,14 +62,117 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
     }
   ];
 
+  // 将数据转换为表格数据格式
+  const data = useMemo<DataGroupOption[]>(() => {
+    return dataGroupOptions.map(option => ({
+      ...option,
+      selected: selectedGroups.includes(option.value)
+    }));
+  }, [selectedGroups]);
+
+  // 定义表格列
+  const columns = useMemo(() => [
+    columnHelper.accessor('selected', {
+      id: 'select',
+      header: () => null,
+      cell: ({ row }) => (
+        <input
+          type={multiple ? "checkbox" : "radio"}
+          name={multiple ? undefined : "data-group-selector"}
+          className={`${multiple ? "checkbox" : "radio"} checkbox-primary`}
+          checked={row.original.selected}
+          onChange={() => onGroupToggle(row.original.value)}
+          disabled={disabled}
+        />
+      ),
+      size: 40,
+    }),
+    columnHelper.accessor('icon', {
+      id: 'icon',
+      header: () => null,
+      cell: ({ row }) => {
+        const Icon = row.original.icon;
+        return <Icon className="w-6 h-6 text-primary" />;
+      },
+      size: 50,
+    }),
+    columnHelper.accessor('label', {
+      id: 'label',
+      header: '数据类型',
+      cell: ({ row }) => (
+        <div>
+          <div className="font-semibold">{row.original.label}</div>
+          <div className="text-sm text-base-content/70">{row.original.description}</div>
+        </div>
+      ),
+    }),
+  ], [multiple, disabled, onGroupToggle]);
+
+  // 创建表格实例
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    enableRowSelection: multiple,
+    enableMultiRowSelection: multiple,
+  });
+
   return (
     <div className={`${className}`}>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {dataGroupOptions.map(option => (
+      <div className="overflow-x-auto">
+        <table className="table table-zebra w-full">
+          <thead>
+            {table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <th key={header.id} style={{ width: header.getSize() }}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map(row => (
+              <tr 
+                key={row.id}
+                className={`hover cursor-pointer ${
+                  row.original.selected ? 'bg-primary/5' : ''
+                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => !disabled && onGroupToggle(row.original.value)}
+              >
+                {row.getVisibleCells().map(cell => (
+                  <td 
+                    key={cell.id} 
+                    style={{ width: cell.column.getSize() }}
+                    onClick={(e) => {
+                      // 防止点击 checkbox/radio 时触发两次
+                      if ((e.target as HTMLElement).tagName === 'INPUT') {
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      {/* 提供卡片视图作为响应式备选方案 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:hidden mt-4">
+        {data.map(option => (
           <div
             key={option.value}
             className={`card bordered cursor-pointer transition-all ${
-              selectedGroups.includes(option.value) ? 'border-primary bg-primary/5' : 'border-base-300 hover:border-primary/50'
+              option.selected ? 'border-primary bg-primary/5' : 'border-base-300 hover:border-primary/50'
             } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={() => !disabled && onGroupToggle(option.value)}
           >
@@ -67,15 +180,15 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
               <div className="flex items-start gap-3">
                 <input
                   type={multiple ? "checkbox" : "radio"}
-                  name={multiple ? undefined : "data-group-controller"}
-                  className={multiple ? "checkbox checkbox-primary mt-1" : "radio radio-primary mt-1"}
-                  checked={selectedGroups.includes(option.value)}
+                  name={multiple ? undefined : "data-group-selector-mobile"}
+                  className={`${multiple ? "checkbox" : "radio"} checkbox-primary mt-1`}
+                  checked={option.selected}
                   onChange={() => {}}
                   disabled={disabled}
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <option.icon className="text-2xl" />
+                    <option.icon className="w-5 h-5 text-primary" />
                     <h3 className="font-semibold">{option.label}</h3>
                   </div>
                   <p className="text-sm text-base-content/70 mt-1">
@@ -87,13 +200,12 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
           </div>
         ))}
       </div>
-
     </div>
   );
 };
 
 // 导出数据组选项配置供其他组件使用
-export const DATA_GROUP_OPTIONS: DataGroupOption[] = [
+export const DATA_GROUP_OPTIONS = [
   {
     value: ImportDataGroup.EARNINGS,
     label: '薪资项目明细',

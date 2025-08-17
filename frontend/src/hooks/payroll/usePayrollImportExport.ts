@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
 import * as XLSX from 'xlsx';
 import type { Database } from '@/types/supabase';
+import { ImportDataGroup } from '@/types/payroll-import';
+import type { ImportConfig as PayrollImportConfig } from '@/types/payroll-import';
 // import type { SalaryComponentCategory } from './useSalaryComponentFields';
 
 // 临时定义类型来避免导入错误
@@ -30,12 +32,8 @@ export interface ExcelDataRow {
   [key: string]: any;
 }
 
-// 导入配置
-export interface ImportConfig {
-  mode: 'append' | 'replace' | 'update';
-  validateBeforeImport: boolean;
-  skipDuplicates: boolean;
-  dataGroups: string[];
+// 使用从 payroll-import 导入的 ImportConfig，同时扩展一些额外字段
+export interface ImportConfig extends PayrollImportConfig {
   fieldMappings?: Record<string, string>;
 }
 
@@ -334,7 +332,8 @@ export function usePayrollImportExport() {
     const warnings: any[] = [];
     
     // 根据选择的数据组进行验证
-    config.dataGroups.forEach(group => {
+    const dataGroups = Array.isArray(config.dataGroup) ? config.dataGroup : [config.dataGroup];
+    dataGroups.forEach(group => {
       const groupName = group.toLowerCase().replace('_', '');
       const rules = validationRules[groupName] || validationRules[group] || [];
       
@@ -412,21 +411,37 @@ export function usePayrollImportExport() {
     },
     globalProgressRef?: { current: number }
   ) => {
+    console.log('🚀 开始导入薪资项目明细数据');
+    console.log(`📊 数据行数: ${data.length}`);
+    console.log(`🔰 薪资周期ID: ${periodId}`);
+    console.log('📋 配置选项:', options);
+    
     const results = [];
     
     // 默认配置：导入所有收入项类别(basic_salary, benefits) + 个人所得税(personal_tax)
     const defaultCategories: SalaryComponentCategory[] = ['basic_salary', 'benefits', 'personal_tax'];
     const includeCategories = options?.includeCategories || defaultCategories;
     
+    console.log('🎯 将导入的薪资组件类别:', includeCategories);
+    
     // 获取指定类别的薪资组件
+    console.log('🔍 查询薪资组件数据...');
     const { data: salaryComponents, error: componentsError } = await supabase
       .from('salary_components')
       .select('id, name, type, category')
       .in('category', includeCategories);
     
-    if (componentsError || !salaryComponents) {
+    if (componentsError) {
+      console.error('❌ 获取薪资组件失败:', componentsError);
       throw new Error('无法获取薪资组件列表');
     }
+    
+    if (!salaryComponents || salaryComponents.length === 0) {
+      console.error('❌ 未找到任何薪资组件');
+      throw new Error('未找到符合条件的薪资组件');
+    }
+    
+    console.log(`✅ 成功获取 ${salaryComponents.length} 个薪资组件`);
     
     // 创建组件名称到ID的映射
     const componentMap = new Map(
@@ -434,25 +449,67 @@ export function usePayrollImportExport() {
     );
     
     // 调试：打印获取到的组件
-    console.log('导入类别:', includeCategories);
-    console.log('获取到的薪资组件:', salaryComponents.map(c => ({ name: c.name, type: c.type, category: c.category })));
+    console.log('💼 薪资组件映射表:');
+    salaryComponents.forEach(comp => {
+      console.log(`  - ${comp.name} (${comp.category}/${comp.type}) -> ${comp.id}`);
+    });
+    console.log('🔗 组件名称映射Keys:', Array.from(componentMap.keys()));
     
-    for (const row of data) {
+    // 分析Excel数据的列结构
+    if (data.length > 0) {
+      const sampleRow = data[0];
+      console.log('📝 Excel数据列结构分析:');
+      console.log('  可用列名:', Object.keys(sampleRow));
+      console.log('  示例数据行:', sampleRow);
+      
+      // 检查哪些Excel列可以匹配到薪资组件
+      const matchedColumns = [];
+      const unmatchedColumns = [];
+      
+      for (const columnName of Object.keys(sampleRow)) {
+        if (componentMap.has(columnName)) {
+          matchedColumns.push(columnName);
+        } else if (!['员工姓名', 'employee_name', '部门', '职位', 'rowNumber', '_sheetName'].includes(columnName)) {
+          unmatchedColumns.push(columnName);
+        }
+      }
+      
+      console.log('✅ 匹配到的薪资组件列:', matchedColumns);
+      console.log('⚠️ 未匹配的数据列:', unmatchedColumns);
+    }
+    
+    console.log(`\n🔄 开始逐行处理 ${data.length} 条数据...`);
+    
+    for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
+      const row = data[rowIndex];
+      console.log(`\n--- 处理第 ${rowIndex + 1}/${data.length} 行数据 ---`);
+      console.log('📋 当前行数据:', row);
       try {
         // 查找员工
-        const { data: employee } = await supabase
+        const employeeName = row['员工姓名'] || row['employee_name'];
+        console.log(`👤 查找员工: "${employeeName}"`);
+        
+        const { data: employee, error: employeeError } = await supabase
           .from('employees')
-          .select('id')
-          .or(`employee_name.eq.${row['员工姓名']},employee_name.eq.${row['employee_name']}`)
+          .select('id, employee_name')
+          .or(`employee_name.eq.${employeeName},employee_name.eq.${employeeName}`)
           .single();
         
-        if (!employee) {
-          throw new Error(`找不到员工: ${row['员工姓名'] || row['employee_name']}`);
+        if (employeeError) {
+          console.error('❌ 员工查询出错:', employeeError);
         }
         
+        if (!employee) {
+          console.error(`❌ 未找到员工: "${employeeName}"`);
+          throw new Error(`找不到员工: ${employeeName}`);
+        }
+        
+        console.log(`✅ 找到员工: ${employee.employee_name} (ID: ${employee.id})`);
+        
         // 查找或创建薪资记录
+        console.log('🔍 查找现有薪资记录...');
         let payrollId;
-        const { data: existingPayroll } = await supabase
+        const { data: existingPayroll, error: payrollSearchError } = await supabase
           .from('payrolls')
           .select('id')
           .match({ 
@@ -461,33 +518,89 @@ export function usePayrollImportExport() {
           })
           .single();
         
+        if (payrollSearchError && payrollSearchError.code !== 'PGRST116') {
+          console.error('❌ 查找薪资记录时出错:', payrollSearchError);
+        }
+        
         if (existingPayroll) {
           payrollId = existingPayroll.id;
+          console.log(`✅ 找到现有薪资记录: ${payrollId}`);
         } else {
+          console.log('🆕 需要创建新的薪资记录...');
+          
+          // 获取薪资周期的发薪日期
+          console.log('🔍 查询薪资周期信息...');
+          const { data: period, error: periodError } = await supabase
+            .from('payroll_periods')
+            .select('pay_date, period_year, period_month')
+            .eq('id', periodId)
+            .single();
+          
+          if (periodError) {
+            console.error('❌ 查询薪资周期失败:', periodError);
+            throw new Error(`查询薪资周期失败: ${periodError.message}`);
+          }
+          
+          console.log('✅ 薪资周期信息:', period);
+          
+          // 使用周期的发薪日期，如果没有则使用月末最后一天
+          let payDate: string;
+          if (period?.pay_date) {
+            payDate = period.pay_date;
+            console.log(`📅 使用周期设置的发薪日期: ${payDate}`);
+          } else if (period?.period_year && period?.period_month) {
+            // 计算该月最后一天作为默认发薪日期
+            const lastDay = new Date(period.period_year, period.period_month, 0).getDate();
+            payDate = `${period.period_year}-${period.period_month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+            console.log(`📅 计算得出的发薪日期(月末): ${payDate}`);
+          } else {
+            // 最后的备选：当前月的最后一天
+            const now = new Date();
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            payDate = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+            console.log(`📅 使用备选发薪日期(当前月末): ${payDate}`);
+          }
+          
           // 只创建框架记录，不计算总额（由存储过程负责）
-          const { data: newPayroll } = await supabase
+          console.log('💾 创建新薪资记录...');
+          const payrollInsertData = {
+            employee_id: employee.id,
+            period_id: periodId,
+            pay_date: payDate,
+            status: 'draft'
+            // 不设置 gross_pay、total_deductions、net_pay
+            // 这些字段由存储过程计算
+          };
+          console.log('📋 薪资记录数据:', payrollInsertData);
+          
+          const { data: newPayroll, error: createError } = await supabase
             .from('payrolls')
-            .insert({
-              employee_id: employee.id,
-              period_id: periodId,
-              pay_date: new Date().toISOString().split('T')[0],
-              status: 'draft'
-              // 不设置 gross_pay、total_deductions、net_pay
-              // 这些字段由存储过程计算
-            })
+            .insert(payrollInsertData)
             .select()
             .single();
           
+          if (createError) {
+            console.error('❌ 创建薪资记录失败:', createError);
+            throw new Error(`创建薪资记录失败: ${createError.message}`);
+          }
+          
           payrollId = newPayroll?.id;
+          console.log(`✅ 成功创建薪资记录: ${payrollId}`);
         }
         
         if (!payrollId) {
+          console.error('❌ 薪资记录ID为空');
           throw new Error('无法创建薪资记录');
         }
         
+        console.log(`💰 开始处理薪资项 (薪资记录ID: ${payrollId})`);
+        
         // 收集所有薪资项（动态匹配Excel列与数据库组件）
         const payrollItems = [];
-        // 不再计算总额，由存储过程负责
+        let matchedItemsCount = 0;
+        let skippedItemsCount = 0;
+        
+        console.log('🔍 分析Excel数据列...');
         
         // 遍历Excel数据的所有列，匹配薪资组件
         for (const [columnName, value] of Object.entries(row)) {
@@ -495,41 +608,78 @@ export function usePayrollImportExport() {
           if (columnName === '员工姓名' || columnName === 'employee_name' || 
               columnName === '部门' || columnName === '职位' || 
               columnName === 'rowNumber' || columnName === '_sheetName') {
+            console.log(`⏭️ 跳过非薪资列: ${columnName}`);
             continue;
           }
           
+          console.log(`🔍 处理列: ${columnName} = ${value}`);
+          
           // 检查是否匹配数据库中的薪资组件
           const component = componentMap.get(columnName);
-          if (component && value && Number(value) !== 0) {
-            const amount = Math.abs(Number(value));
-            
-            payrollItems.push({
-              payroll_id: payrollId,
-              component_id: component.id,
-              amount: amount,
-              period_id: periodId
-            });
-            
-            // 不再在这里计算总额，由存储过程负责
+          if (component) {
+            if (value && Number(value) !== 0) {
+              const amount = Math.abs(Number(value));
+              console.log(`✅ 匹配到薪资组件: ${columnName} (${component.category}/${component.type}) -> ${amount}`);
+              
+              const payrollItem = {
+                payroll_id: payrollId,
+                component_id: component.id,
+                amount: amount,
+                period_id: periodId
+              };
+              
+              payrollItems.push(payrollItem);
+              matchedItemsCount++;
+              console.log(`📝 添加薪资项:`, payrollItem);
+            } else {
+              console.log(`⚠️ 薪资组件 ${columnName} 值为空或为0，跳过`);
+              skippedItemsCount++;
+            }
+          } else {
+            console.log(`❌ 未匹配到薪资组件: ${columnName}`);
           }
         }
         
+        console.log(`📊 薪资项统计:`);
+        console.log(`  - 匹配成功: ${matchedItemsCount} 项`);
+        console.log(`  - 跳过(空值): ${skippedItemsCount} 项`);
+        console.log(`  - 待插入: ${payrollItems.length} 项`);
+        
         // 批量插入薪资项
         if (payrollItems.length > 0) {
-          await supabase
+          console.log('💾 批量插入薪资项...');
+          console.log('📋 插入数据:', payrollItems);
+          
+          const { error: insertError } = await supabase
             .from('payroll_items' as any)
             .insert(payrollItems);
           
+          if (insertError) {
+            console.error('❌ 插入薪资项失败:', insertError);
+            throw new Error(`插入薪资项失败: ${insertError.message}`);
+          }
+          
+          console.log(`✅ 成功插入 ${payrollItems.length} 个薪资项`);
+          
           // 不再更新总额，由存储过程计算
           // 存储过程会基于 payroll_items 数据自动计算并更新 payrolls 表的总额字段
+        } else {
+          console.log('⚠️ 没有有效的薪资项需要插入');
         }
         
+        console.log(`✅ 第 ${rowIndex + 1} 行处理成功`);
         results.push({ row, success: true });
+        
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
+        console.error(`❌ 第 ${rowIndex + 1} 行处理失败:`, errorMessage);
+        console.error('📋 失败的行数据:', row);
+        console.error('🔍 错误详情:', error);
+        
         results.push({ 
           row, 
           success: false, 
-          error: error instanceof Error ? error.message : '未知错误' 
+          error: errorMessage
         });
       } finally {
         // 更新全局进度和当前数据组进度
@@ -546,6 +696,8 @@ export function usePayrollImportExport() {
               processedRecords: prev.current.processedRecords + 1
             }
           }));
+          
+          console.log(`📈 进度更新: 全局 ${globalProgressRef.current} / 当前组 ${prev.current.processedRecords + 1}`);
         }
       }
     }
@@ -1095,13 +1247,35 @@ export function usePayrollImportExport() {
         if (existingPayroll) {
           payrollId = existingPayroll.id;
         } else {
+          // 获取薪资周期的发薪日期
+          const { data: period } = await supabase
+            .from('payroll_periods')
+            .select('pay_date, period_year, period_month')
+            .eq('id', periodId)
+            .single();
+          
+          // 使用周期的发薪日期，如果没有则使用月末最后一天
+          let payDate: string;
+          if (period?.pay_date) {
+            payDate = period.pay_date;
+          } else if (period?.period_year && period?.period_month) {
+            // 计算该月最后一天作为默认发薪日期
+            const lastDay = new Date(period.period_year, period.period_month, 0).getDate();
+            payDate = `${period.period_year}-${period.period_month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+          } else {
+            // 最后的备选：当前月的最后一天
+            const now = new Date();
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            payDate = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+          }
+          
           // 只创建框架记录，不计算总额（由存储过程负责）
           const { data: newPayroll } = await supabase
             .from('payrolls')
             .insert({
               employee_id: employee.id,
               period_id: periodId,
-              pay_date: new Date().toISOString().split('T')[0],
+              pay_date: payDate,
               status: 'draft'
               // 不设置 gross_pay、total_deductions、net_pay
               // 这些字段由存储过程计算
@@ -1221,11 +1395,12 @@ export function usePayrollImportExport() {
         
         // 获取数据组显示名称
         const getDataGroupDisplayName = (group: ImportDataGroup): string => {
-          const groupNames = {
-            'earnings': '薪资数据',
-            'bases': '缴费基数',
-            'category': '人员类别',
-            'job': '职务信息'
+          const groupNames: Record<ImportDataGroup, string> = {
+            [ImportDataGroup.EARNINGS]: '薪资数据',
+            [ImportDataGroup.CONTRIBUTION_BASES]: '缴费基数',
+            [ImportDataGroup.CATEGORY_ASSIGNMENT]: '人员类别',
+            [ImportDataGroup.JOB_ASSIGNMENT]: '职务信息',
+            [ImportDataGroup.ALL]: '全部数据'
           };
           return groupNames[group] || group;
         };
@@ -1315,11 +1490,12 @@ export function usePayrollImportExport() {
           
           // 获取工作表名称
           const getSheetName = (group: ImportDataGroup): string => {
-            const sheetNames = {
-              'earnings': '薪资项目',
-              'bases': '缴费基数',
-              'category': '人员类别',
-              'job': '职务信息'
+            const sheetNames: Record<ImportDataGroup, string> = {
+              [ImportDataGroup.EARNINGS]: '薪资项目',
+              [ImportDataGroup.CONTRIBUTION_BASES]: '缴费基数',
+              [ImportDataGroup.CATEGORY_ASSIGNMENT]: '人员类别',
+              [ImportDataGroup.JOB_ASSIGNMENT]: '职务信息',
+              [ImportDataGroup.ALL]: '全部数据'
             };
             return sheetNames[group] || group;
           };
@@ -1337,7 +1513,7 @@ export function usePayrollImportExport() {
           }));
           
           // 验证数据（如果需要）
-          if (params.config.validateBeforeImport) {
+          if (params.config.options?.validateBeforeImport) {
             setImportProgress(prev => ({ ...prev, phase: 'validating' }));
             const validation = await validateImportData(groupData, params.config);
             result.errors.push(...validation.errors);

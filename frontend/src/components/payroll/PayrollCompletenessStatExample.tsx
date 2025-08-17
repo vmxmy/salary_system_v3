@@ -30,7 +30,7 @@ export function PayrollCompletenessStatExample() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <PayrollCompletenessStat
-            completeness={completeness}
+            completeness={completeness || null}
             variant="default"
             onClick={() => setIsModalOpen(true)}
           />
@@ -45,7 +45,7 @@ export function PayrollCompletenessStatExample() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <PayrollCompletenessStat
-            completeness={completeness}
+            completeness={completeness || null}
             variant="compact"
             onClick={() => setIsModalOpen(true)}
           />
@@ -60,7 +60,7 @@ export function PayrollCompletenessStatExample() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <PayrollCompletenessStat
-            completeness={completeness}
+            completeness={completeness || null}
             variant="detailed"
             showPeriodName={true}
             onClick={() => setIsModalOpen(true)}
@@ -127,7 +127,7 @@ export function PayrollCompletenessStatExample() {
       <PayrollCompletenessModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        completeness={completeness}
+        completeness={completeness || null}
         onImportData={(element) => {
           console.log('Import data for:', element);
           // 处理导入逻辑
