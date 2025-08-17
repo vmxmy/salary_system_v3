@@ -13,8 +13,8 @@ export const getSalaryComponents = async (dataGroup?: ImportDataGroup): Promise<
     
     let query = supabase
       .from('salary_components')
-      .select('*')
-      .eq('is_active', true);
+      .select('*');
+    // 注意：salary_components 表没有 is_active 字段，默认所有组件都是活跃的
 
     // 根据数据组筛选薪资组件
     if (dataGroup && dataGroup !== 'all') {
@@ -38,7 +38,8 @@ export const getSalaryComponents = async (dataGroup?: ImportDataGroup): Promise<
       }
     }
 
-    query = query.order('display_order');
+    // salary_components 表没有 display_order 字段，按 name 排序
+    query = query.order('name');
     
     const { data: components, error } = await query;
 

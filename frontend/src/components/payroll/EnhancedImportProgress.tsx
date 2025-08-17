@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { EnhancedImportProgress } from '@/utils/import/ProgressManager';
+import type { EnhancedImportProgress } from '@/utils/import/ProgressManager';
 
 interface EnhancedImportProgressProps {
   progress: EnhancedImportProgress;

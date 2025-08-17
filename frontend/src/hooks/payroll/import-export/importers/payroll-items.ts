@@ -210,7 +210,7 @@ export const importPayrollItems = async (
           period_id: periodId,
           employee_id: employee.id,
           pay_date: defaultPayDate,
-          total_earnings: 0,
+          gross_pay: 0,  // 修正字段名：total_earnings -> gross_pay
           total_deductions: 0,
           net_pay: 0,
           status: 'draft' as const
@@ -232,9 +232,8 @@ export const importPayrollItems = async (
             allPayrollItems.push({
               payroll_id: payrollId, // 临时ID，批量插入后会替换
               component_id: component.id,
-              component_name: component.name,
               amount: amount,
-              calculated_amount: amount,
+              period_id: periodId, // payroll_items 表需要 period_id
               employee_id: employee.id // 添加员工ID，用于后续匹配
             });
           }
@@ -283,7 +282,8 @@ export const importPayrollItems = async (
       const realPayrollId = existingPayrollMap.get(item.employee_id);
       if (realPayrollId && !realPayrollId.startsWith('temp_')) {
         item.payroll_id = realPayrollId;
-        delete (item as any).employee_id; // 删除临时字段
+        // 保留 period_id，删除临时的 employee_id
+        delete (item as any).employee_id;
         return true;
       }
       return false;
@@ -329,7 +329,9 @@ export const importPayrollItems = async (
     totalRows: data.length,
     successCount: data.length - errors.length,
     failedCount: errors.length,
+    skippedCount: 0, // 当前实现中没有跳过的记录
     errors,
+    warnings: [], // 当前实现中没有警告
     results
   };
 };

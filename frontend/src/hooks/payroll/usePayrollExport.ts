@@ -689,12 +689,12 @@ export function usePayrollExport() {
             '员工姓名': item.employees?.employee_name || '',
             '部门': item.departments?.name || '',  // 修正：使用 name 而不是 department_name
             '职位': item.positions?.name || '',     // 修正：使用 name 而不是 position_name
-            '创建时间': item.created_at ? new Date(item.created_at).toLocaleDateString() : ''
+            '职级': item.job_ranks?.name || item.ranks?.name || ''  // 新增：职级信息
           }));
 
           const jobSheet = XLSX.utils.json_to_sheet(jobData);
           jobSheet['!cols'] = [
-            { wch: 8 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+            { wch: 8 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }  // 保持5列宽度配置
           ];
           XLSX.utils.book_append_sheet(workbook, jobSheet, '职务分配');
           sheetsCreated++;
@@ -705,14 +705,12 @@ export function usePayrollExport() {
           const categoryData = comprehensiveData.categoryAssignments.map((item: any, index: number) => ({
             '序号': index + 1,
             '员工姓名': item.employees?.employee_name || '',
-            '人员类别编码': item.employee_categories?.code || '',     // 修正：可能是 code 而不是 category_code
-            '人员类别名称': item.employee_categories?.name || '',      // 修正：使用 name 而不是 category_name
-            '创建时间': item.created_at ? new Date(item.created_at).toLocaleDateString() : ''
+            '人员类别名称': item.employee_categories?.name || ''      // 修正：使用 name 而不是 category_name
           }));
 
           const categorySheet = XLSX.utils.json_to_sheet(categoryData);
           categorySheet['!cols'] = [
-            { wch: 8 }, { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 15 }
+            { wch: 8 }, { wch: 12 }, { wch: 20 }  // 调整列宽配置，移除人员类别编码和创建时间的列宽
           ];
           XLSX.utils.book_append_sheet(workbook, categorySheet, '人员类别');
           sheetsCreated++;

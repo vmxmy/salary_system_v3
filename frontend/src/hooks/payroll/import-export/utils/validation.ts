@@ -17,6 +17,12 @@ interface ExtendedValidationRule {
  * 动态获取验证规则
  */
 export const getValidationRules = async (): Promise<Record<string, ExtendedValidationRule[]>> => {
+  // 注意：import_validation_rules 表目前不存在，直接使用基础规则
+  // 如果将来需要动态验证规则，可以创建这个表并启用下面注释的代码
+  console.log('📋 使用内置基础验证规则');
+  return convertBasicRules();
+  
+  /* 保留原始代码供未来参考：创建 import_validation_rules 表后可启用
   try {
     console.log('🔍 正在动态获取验证规则...');
     
@@ -61,6 +67,7 @@ export const getValidationRules = async (): Promise<Record<string, ExtendedValid
     console.error('❌ 获取验证规则时发生错误:', error);
     return convertBasicRules();
   }
+  */
 };
 
 /**

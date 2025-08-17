@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { TemplateDownloader } from './TemplateDownloader';
 import { HistoryDataExporter } from './HistoryDataExporter';
 import { ImportDataGroup, ImportMode } from '@/types/payroll-import';
 import type { ImportConfig, ExcelDataRow } from '@/types/payroll-import';
@@ -12,7 +11,7 @@ import { useAvailablePayrollMonths, usePayrollPeriod } from '@/hooks/payroll';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
-import { DownloadIcon, UploadIcon, FolderIcon, CheckCircleIcon, CloseIcon } from '@/components/common/Icons';
+import { UploadIcon, FolderIcon, CheckCircleIcon, CloseIcon } from '@/components/common/Icons';
 import { PayrollElement } from '@/types/payroll-completeness';
 
 export const PayrollImportPage: React.FC = () => {
@@ -26,13 +25,36 @@ export const PayrollImportPage: React.FC = () => {
     resetProgress, 
     analyzeFieldMapping,
     isImporting,
-    isExporting,
-    isDownloading,
-    utils
+    isExporting
   } = usePayrollImportExport();
   const { data: availableMonths } = useAvailablePayrollMonths(true);
   const { actions: periodActions } = usePayrollPeriod();
-  const [activeTab, setActiveTab] = useState<'template' | 'import' | 'export'>('template');
+  const [activeTab, setActiveTab] = useState<'import' | 'export'>('import');
+
+  // 辅助函数替代 utils 方法
+  const getPhaseDescription = (phase: string) => {
+    const phaseMap: Record<string, string> = {
+      'idle': '准备中',
+      'parsing': '解析文件',
+      'validating': '验证数据',
+      'importing': '导入数据',
+      'creating_payrolls': '创建薪资记录',
+      'inserting_items': '插入薪资项目',
+      'completed': '完成',
+      'error': '错误'
+    };
+    return phaseMap[phase] || '处理中';
+  };
+
+  const getProgressPercentage = () => {
+    if (!hookProgress.global.totalRecords) return 0;
+    return Math.round((hookProgress.global.processedRecords / hookProgress.global.totalRecords) * 100);
+  };
+
+  const getCurrentGroupPercentage = () => {
+    if (!hookProgress.current.totalRecords) return 0;
+    return Math.round((hookProgress.current.processedRecords / hookProgress.current.totalRecords) * 100);
+  };
   const [importing, setImporting] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ExcelDataRow[]>([]);
@@ -90,6 +112,7 @@ export const PayrollImportPage: React.FC = () => {
     totalRows: number;
     validRows: number;
     emptyRows: number;
+    totalEmployees: number;
     duplicateEmployees: string[];
     dataConsistency: {
       allSheetsHaveSameRowCount: boolean;
@@ -337,8 +360,9 @@ export const PayrollImportPage: React.FC = () => {
                   isEmptyRow = false;
                 }
                 
-                // 收集员工姓名或编号
-                if ((header === '员工姓名' || header === '姓名' || header === 'employee_name') && value) {
+                // 收集员工姓名或编号 - 更灵活的匹配
+                if ((header === '员工姓名' || header === '姓名' || header === 'employee_name' || 
+                     header.includes('员工') || header.includes('姓名') || header.includes('name')) && value) {
                   employeesBySheet[sheetName].add(String(value));
                 }
               });
@@ -360,6 +384,7 @@ export const PayrollImportPage: React.FC = () => {
         const allEmployees = new Set<string>();
         const employeeSheetCount: { [employee: string]: string[] } = {};
         
+        // 从employeesBySheet收集员工
         Object.entries(employeesBySheet).forEach(([sheetName, employees]) => {
           employees.forEach(emp => {
             allEmployees.add(emp);
@@ -369,6 +394,16 @@ export const PayrollImportPage: React.FC = () => {
             employeeSheetCount[emp].push(sheetName);
           });
         });
+        
+        // 如果employeesBySheet没有收集到员工，直接从allData中提取
+        if (allEmployees.size === 0 && allData.length > 0) {
+          allData.forEach(row => {
+            const employeeName = row['员工姓名'] || row['姓名'] || row['employee_name'];
+            if (employeeName && employeeName.trim()) {
+              allEmployees.add(String(employeeName).trim());
+            }
+          });
+        }
         
         // 找出不一致的员工（没有出现在所有sheet中）
         const missingInSheets: { employee: string; sheets: string[] }[] = [];
@@ -390,17 +425,44 @@ export const PayrollImportPage: React.FC = () => {
         const allSheetsHaveSameRowCount = rowCounts.length > 0 && 
           rowCounts.every(count => count === rowCounts[0]);
         
-        // 查找重复的员工
-        const employeeCounts: { [name: string]: number } = {};
+        // 查找重复的员工（仅在同一个sheet内检查重复）
+        const duplicateEmployees: string[] = [];
+        const duplicateDetails: { [sheet: string]: string[] } = {};
+        
+        // 按sheet分组数据
+        const dataBySheet: { [sheet: string]: any[] } = {};
         allData.forEach(row => {
-          const name = row['员工姓名'] || row['姓名'] || row['employee_name'];
-          if (name) {
-            employeeCounts[name] = (employeeCounts[name] || 0) + 1;
+          const sheetName = row._sheetName;
+          if (sheetName) {
+            if (!dataBySheet[sheetName]) {
+              dataBySheet[sheetName] = [];
+            }
+            dataBySheet[sheetName].push(row);
           }
         });
-        const duplicateEmployees = Object.entries(employeeCounts)
-          .filter(([_, count]) => count > 1)
-          .map(([name, _]) => name);
+        
+        // 在每个sheet内检查重复员工
+        Object.entries(dataBySheet).forEach(([sheetName, rows]) => {
+          const employeeCounts: { [name: string]: number } = {};
+          rows.forEach((row: any) => {
+            const name = row['员工姓名'] || row['姓名'] || row['employee_name'];
+            if (name) {
+              employeeCounts[name] = (employeeCounts[name] || 0) + 1;
+            }
+          });
+          
+          const sheetDuplicates = Object.entries(employeeCounts)
+            .filter(([_, count]) => count > 1)
+            .map(([name, _]) => name);
+            
+          if (sheetDuplicates.length > 0) {
+            duplicateDetails[sheetName] = sheetDuplicates;
+            duplicateEmployees.push(...sheetDuplicates);
+          }
+        });
+        
+        // 去重（如果同一个员工在多个sheet中都有重复）
+        const uniqueDuplicateEmployees = [...new Set(duplicateEmployees)];
         
         // 生成警告和错误信息
         const warnings: string[] = [];
@@ -424,8 +486,9 @@ export const PayrollImportPage: React.FC = () => {
         if (!allSheetsHaveSameRowCount && rowCounts.length > 1) {
           warnings.push(`各工作表数据行数不一致: ${JSON.stringify(rowCountBySheet)}`);
         }
-        if (duplicateEmployees.length > 0) {
-          warnings.push(`发现重复的员工: ${duplicateEmployees.slice(0, 5).join(', ')}${duplicateEmployees.length > 5 ? '...' : ''}`);
+        if (uniqueDuplicateEmployees.length > 0) {
+          const duplicateSheets = Object.keys(duplicateDetails);
+          warnings.push(`在${duplicateSheets.length}个工作表中发现重复员工: ${uniqueDuplicateEmployees.slice(0, 5).join(', ')}${uniqueDuplicateEmployees.length > 5 ? '...' : ''}`);
         }
         if (missingInSheets.length > 0) {
           warnings.push(`部分员工数据不完整，未出现在所有工作表中`);
@@ -445,7 +508,8 @@ export const PayrollImportPage: React.FC = () => {
           totalRows: allData.length,
           validRows: allData.length,
           emptyRows: totalEmptyRows,
-          duplicateEmployees,
+          totalEmployees: allEmployees.size,
+          duplicateEmployees: uniqueDuplicateEmployees,
           dataConsistency: {
             allSheetsHaveSameRowCount,
             rowCountVariance: rowCounts,
@@ -668,26 +732,6 @@ export const PayrollImportPage: React.FC = () => {
 
       {/* 标签页 - 使用 DaisyUI 5 tabs-border 样式 */}
       <div className="tabs tabs-border">
-        <input
-          type="radio"
-          name="payroll_import_tabs"
-          className="tab"
-          aria-label="下载模板"
-          checked={activeTab === 'template'}
-          onChange={() => setActiveTab('template')}
-        />
-        <div className="tab-content border-base-300 bg-base-100 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <DownloadIcon className="w-5 h-5" />
-            <h2 className="text-xl font-semibold">下载模板</h2>
-          </div>
-          <TemplateDownloader
-            defaultPeriod={{
-              year: importConfig.payPeriod.start.getFullYear(),
-              month: importConfig.payPeriod.start.getMonth() + 1
-            }}
-          />
-        </div>
 
         <input
           type="radio"
@@ -703,114 +747,206 @@ export const PayrollImportPage: React.FC = () => {
             <h2 className="text-xl font-semibold">导入数据</h2>
           </div>
           <div className="flex flex-col gap-6">
-            {/* 导入配置 */}
-            <div className="card bg-base-100 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title">导入配置</h2>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* 薪资周期选择 */}
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text">薪资周期</span>
-                    </label>
-                    <MonthPicker
-                      value={selectedMonth}
-                      onChange={handleMonthChange}
-                      placeholder="请选择薪资周期"
-                      showDataIndicators={true}
-                      availableMonths={availableMonths}
-                      isMonthDisabledCustom={(yearMonth, monthData) => {
-                        // 禁用状态为"处理中"(processing)或"已完成"(completed)的月份
-                        if (monthData?.periodStatus === 'processing' || monthData?.periodStatus === 'completed') {
-                          return true;
-                        }
-                        return false;
-                      }}
-                      className="select-bordered"
-                    />
-                    <label className="label">
-                      <span className="label-text-alt">不能选择处理中或已完成状态的月份</span>
-                    </label>
-                  </div>
-
-                  {/* 导入模式 */}
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text">导入模式</span>
-                    </label>
-                    <select
-                      className="select select-bordered"
-                      value={importConfig.mode}
-                      onChange={(e) => setImportConfig(prev => ({
-                        ...prev,
-                        mode: e.target.value as ImportMode
-                      }))}
-                    >
-                      <option value={ImportMode.CREATE}>仅创建新记录</option>
-                      <option value={ImportMode.UPDATE}>仅更新现有记录</option>
-                      <option value={ImportMode.UPSERT}>更新或创建</option>
-                      <option value={ImportMode.APPEND}>追加新字段</option>
-                    </select>
-                  </div>
-
-                  {/* 数据组选择 */}
-                  <div className="col-span-2">
-                    <div className="form-control mb-4">
-                      <div className="flex items-center gap-4 mb-2">
-                        <span className="label-text font-semibold">选择数据类型</span>
-                        <DataGroupSelectAllController
-                          selectedGroups={selectedDataGroups}
-                          onSelectAll={handleSelectAllDataGroups}
-                        />
-                      </div>
+            {/* 导入配置 - 高级专业设计 */}
+            <div className="card bg-gradient-to-br from-base-100 via-base-50 to-base-100 shadow-2xl border border-base-300/50">
+              <div className="card-body p-8">
+                {/* 标题区域 */}
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center">
+                      <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
                     </div>
-                    
-                    <DataGroupSelector
-                      selectedGroups={selectedDataGroups}
-                      onGroupToggle={handleGroupToggle}
-                      multiple={true}
-                      className="mt-0"
-                    />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold text-base-content bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                      导入配置
+                    </h2>
+                    <p className="text-base-content/70 text-sm mt-1">
+                      请完成以下配置以开始数据导入流程
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <div className="badge badge-primary badge-lg font-medium">
+                      步骤 1/3
+                    </div>
                   </div>
                 </div>
 
-                {/* 选项 */}
-                <div className="flex flex-row gap-4 mt-4">
-                  <div className="form-control">
-                    <label className="label cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-primary mr-2"
-                        checked={importConfig.options.validateBeforeImport}
-                        onChange={(e) => setImportConfig(prev => ({
-                          ...prev,
-                          options: {
-                            ...prev.options,
-                            validateBeforeImport: e.target.checked
-                          }
-                        }))}
-                      />
-                      <span className="label-text">导入前验证</span>
-                    </label>
+                {/* 配置步骤指示器 */}
+                <div className="mb-8">
+                  <ul className="steps steps-horizontal w-full">
+                    <li className="step step-primary">基础配置</li>
+                    <li className="step">上传文件</li>
+                    <li className="step">执行导入</li>
+                  </ul>
+                </div>
+                
+                {/* 主要配置区域 */}
+                <div className="space-y-8">
+                  {/* 第一行：薪资周期和导入模式 */}
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    {/* 薪资周期选择 */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-base-content">薪资周期</h3>
+                          <p className="text-sm text-base-content/60">选择要导入数据的薪资周期</p>
+                        </div>
+                      </div>
+                      
+                      <div className="p-6 bg-base-200/50 rounded-xl border border-base-300/30">
+                        <MonthPicker
+                          value={selectedMonth}
+                          onChange={handleMonthChange}
+                          placeholder="请选择薪资周期"
+                          showDataIndicators={true}
+                          availableMonths={availableMonths}
+                          isMonthDisabledCustom={(yearMonth, monthData) => {
+                            // 禁用状态为"处理中"(processing)或"已完成"(completed)的月份
+                            if (monthData?.periodStatus === 'processing' || monthData?.periodStatus === 'completed') {
+                              return true;
+                            }
+                            return false;
+                          }}
+                          className="select-bordered w-full select-lg"
+                        />
+                        <div className="mt-3 flex items-center gap-2 text-sm text-base-content/60">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          不能选择处理中或已完成状态的月份
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 导入模式 */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-base-content">导入模式</h3>
+                          <p className="text-sm text-base-content/60">选择数据处理方式</p>
+                        </div>
+                      </div>
+                      
+                      <div className="p-6 bg-base-200/50 rounded-xl border border-base-300/30">
+                        <select
+                          className="select select-bordered w-full select-lg"
+                          value={importConfig.mode}
+                          onChange={(e) => setImportConfig(prev => ({
+                            ...prev,
+                            mode: e.target.value as ImportMode
+                          }))}
+                        >
+                          <option value={ImportMode.UPSERT}>🔄 更新或创建（推荐）</option>
+                          <option value={ImportMode.REPLACE}>🔄 替换现有数据</option>
+                        </select>
+                        <div className="mt-3 text-sm text-base-content/60">
+                          {importConfig.mode === ImportMode.UPSERT && "智能处理：更新现有记录，创建新记录（推荐）"}
+                          {importConfig.mode === ImportMode.REPLACE && "删除该周期的现有数据，然后插入新数据"}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="form-control">
-                    <label className="label cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-primary mr-2"
-                        checked={importConfig.options.skipInvalidRows}
-                        onChange={(e) => setImportConfig(prev => ({
-                          ...prev,
-                          options: {
-                            ...prev.options,
-                            skipInvalidRows: e.target.checked
-                          }
-                        }))}
+
+                  {/* 数据类型选择区域 */}
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-base-content">数据类型选择</h3>
+                          <p className="text-sm text-base-content/60">选择要导入的数据类型（可多选）</p>
+                        </div>
+                      </div>
+                      
+                      <DataGroupSelectAllController
+                        selectedGroups={selectedDataGroups}
+                        onSelectAll={handleSelectAllDataGroups}
                       />
-                      <span className="label-text">跳过无效行</span>
-                    </label>
+                    </div>
+                    
+                    <div className="p-6 bg-gradient-to-br from-base-200/30 to-base-200/50 rounded-xl border border-base-300/30">
+                      <DataGroupSelector
+                        selectedGroups={selectedDataGroups}
+                        onGroupToggle={handleGroupToggle}
+                        multiple={true}
+                        variant="default"
+                        showDescriptions={true}
+                      />
+                      
+                      {selectedDataGroups.length > 0 && (
+                        <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0">
+                              <svg className="w-5 h-5 text-primary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-primary">
+                                已选择 {selectedDataGroups.length} 种数据类型
+                              </p>
+                              <p className="text-xs text-base-content/60 mt-1">
+                                确保您的Excel文件包含对应的工作表，系统将自动验证文件结构
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* 配置状态指示 */}
+                <div className="mt-8 p-6 bg-gradient-to-r from-success/5 to-success/10 rounded-xl border border-success/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-success/10 rounded-xl flex items-center justify-center">
+                        <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-success">配置已完成</h4>
+                        <p className="text-sm text-base-content/70">
+                          {selectedDataGroups.length > 0 
+                            ? `已配置 ${selectedDataGroups.length} 种数据类型，可以继续上传文件`
+                            : '请至少选择一种数据类型后继续'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="badge badge-success badge-lg">
+                        {selectedDataGroups.length > 0 ? '✓ 就绪' : '⚠ 待配置'}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -860,183 +996,433 @@ export const PayrollImportPage: React.FC = () => {
                       </button>
                     </div>
 
-                    {/* 解析结果详情 */}
+                    {/* 解析结果详情 - 高级排版设计 */}
                     {parseResult && (
-                      <div className="card bg-base-200">
-                        <div className="card-body">
-                          <h3 className="card-title text-base">解析结果分析</h3>
-                          
-                          {/* 错误信息展示 */}
-                          {parseResult.hasErrors && (
-                            <div className="alert alert-error mb-4">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <div>
-                                <h3 className="font-bold">无法导入 - 发现以下错误：</h3>
-                                <ul className="mt-2 ml-4 list-disc">
-                                  {parseResult.errors.map((error, idx) => (
-                                    <li key={idx}>{error}</li>
-                                  ))}
-                                </ul>
+                      <div className="space-y-6">
+                        {/* 状态概览卡片 */}
+                        <div className="card bg-gradient-to-br from-base-100 to-base-200 shadow-xl border border-base-300">
+                          <div className="card-body">
+                            <div className="flex items-center justify-between mb-6">
+                              <div className="flex items-center gap-3">
+                                <div className="flex-shrink-0">
+                                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                                    parseResult.hasErrors 
+                                      ? 'bg-error/10 text-error' 
+                                      : parseResult.warnings.length > 0 
+                                        ? 'bg-warning/10 text-warning'
+                                        : 'bg-success/10 text-success'
+                                  }`}>
+                                    {parseResult.hasErrors ? (
+                                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                          d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                    ) : parseResult.warnings.length > 0 ? (
+                                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                      </svg>
+                                    ) : (
+                                      <CheckCircleIcon className="w-6 h-6" />
+                                    )}
+                                  </div>
+                                </div>
+                                <div>
+                                  <h3 className="text-xl font-bold text-base-content">
+                                    文件解析{parseResult.hasErrors ? '失败' : '成功'}
+                                  </h3>
+                                  <p className="text-base-content/70 text-sm mt-1">
+                                    {parseResult.hasErrors 
+                                      ? '发现错误，无法继续导入' 
+                                      : parseResult.warnings.length > 0 
+                                        ? `发现 ${parseResult.warnings.length} 个警告，可继续导入`
+                                        : '文件格式正确，可以开始导入'
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                              <div className={`badge badge-lg ${
+                                parseResult.hasErrors 
+                                  ? 'badge-error' 
+                                  : parseResult.warnings.length > 0 
+                                    ? 'badge-warning'
+                                    : 'badge-success'
+                              }`}>
+                                {parseResult.hasErrors ? '❌ 错误' : parseResult.warnings.length > 0 ? '⚠️ 警告' : '✅ 正常'}
                               </div>
                             </div>
-                          )}
-                          
-                          {/* Sheet分析 */}
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                            <div>
-                              <h4 className="font-semibold mb-2">工作表信息</h4>
-                              <div className="space-y-1 text-sm">
+
+                            {/* 数据统计面板 */}
+                            <div className="stats stats-horizontal shadow bg-base-100">
+                              <div className="stat">
+                                <div className="stat-figure text-secondary">
+                                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                </div>
+                                <div className="stat-title">工作表数量</div>
+                                <div className="stat-value text-secondary">{parseResult.sheets.length}</div>
+                                <div className="stat-desc">
+                                  {parseResult.sheets.filter(s => s.hasData).length} 个有数据
+                                </div>
+                              </div>
+                              
+                              <div className="stat">
+                                <div className="stat-figure text-primary">
+                                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                  </svg>
+                                </div>
+                                <div className="stat-title">数据行数</div>
+                                <div className="stat-value text-primary">{parseResult.totalRows}</div>
+                                <div className="stat-desc">
+                                  {parseResult.emptyRows > 0 && `跳过 ${parseResult.emptyRows} 空行`}
+                                </div>
+                              </div>
+                              
+                              <div className="stat">
+                                <div className="stat-figure text-accent">
+                                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                  </svg>
+                                </div>
+                                <div className="stat-title">员工数量</div>
+                                <div className="stat-value text-accent">
+                                  {parseResult.totalEmployees || '0'}
+                                </div>
+                                <div className="stat-desc">
+                                  {parseResult.duplicateEmployees.length > 0 && 
+                                    `${parseResult.duplicateEmployees.length} 个重复`
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 错误信息卡片 */}
+                        {parseResult.hasErrors && (
+                          <div className="card bg-error/5 border border-error/20 shadow-lg">
+                            <div className="card-body">
+                              <div className="flex items-start gap-4">
+                                <div className="flex-shrink-0">
+                                  <div className="w-10 h-10 bg-error/10 rounded-lg flex items-center justify-center">
+                                    <svg className="w-5 h-5 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="text-lg font-semibold text-error mb-3">发现严重错误</h4>
+                                  <p className="text-base-content/70 mb-4 text-sm">
+                                    以下错误必须修复后才能继续导入，请检查文件内容或重新选择正确的数据组。
+                                  </p>
+                                  <div className="space-y-2">
+                                    {parseResult.errors.map((error, idx) => (
+                                      <div key={idx} className="flex items-start gap-3 p-3 bg-base-100 rounded-lg border border-error/10">
+                                        <span className="flex-shrink-0 w-5 h-5 bg-error text-error-content rounded-full flex items-center justify-center text-xs font-bold">
+                                          {idx + 1}
+                                        </span>
+                                        <span className="text-sm text-base-content">{error}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 工作表详情和匹配状态 */}
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                          {/* 工作表信息 */}
+                          <div className="card bg-base-100 shadow-lg border border-base-300">
+                            <div className="card-body">
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="w-8 h-8 bg-info/10 rounded-lg flex items-center justify-center">
+                                  <svg className="w-4 h-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                </div>
+                                <h4 className="text-lg font-semibold text-base-content">工作表详情</h4>
+                              </div>
+                              
+                              <div className="space-y-3">
                                 {parseResult.sheets.map((sheet, idx) => (
-                                  <div key={idx} className="flex justify-between items-center">
-                                    <span className={`${sheet.isEmpty ? 'opacity-50' : ''}`}>
-                                      {sheet.name}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                      {sheet.isEmpty ? (
-                                        <span className="badge badge-ghost badge-sm">空表</span>
-                                      ) : (
-                                        <>
-                                          <span className="badge badge-info badge-sm">{sheet.rowCount} 行</span>
-                                          <span className="badge badge-secondary badge-sm">{sheet.columnCount} 列</span>
-                                        </>
-                                      )}
+                                  <div key={idx} className={`p-4 rounded-xl border transition-all ${
+                                    sheet.isEmpty 
+                                      ? 'bg-base-200 border-base-300 opacity-60' 
+                                      : 'bg-gradient-to-r from-base-100 to-base-50 border-base-300 hover:shadow-sm'
+                                  }`}>
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <div className={`w-3 h-3 rounded-full ${
+                                          sheet.isEmpty ? 'bg-base-400' : 'bg-success'
+                                        }`}></div>
+                                        <span className={`font-medium ${sheet.isEmpty ? 'text-base-content/50' : 'text-base-content'}`}>
+                                          {sheet.name}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        {sheet.isEmpty ? (
+                                          <span className="badge badge-ghost badge-sm">空表</span>
+                                        ) : (
+                                          <>
+                                            <span className="badge badge-info badge-sm">{sheet.rowCount} 行</span>
+                                            <span className="badge badge-secondary badge-sm">{sheet.columnCount} 列</span>
+                                          </>
+                                        )}
+                                      </div>
                                     </div>
+                                    {sheet.hasData && sheet.headers.length > 0 && (
+                                      <div className="mt-2 pt-2 border-t border-base-300">
+                                        <div className="flex flex-wrap gap-1">
+                                          {sheet.headers.slice(0, 3).map((header, hIdx) => (
+                                            <span key={hIdx} className="badge badge-outline badge-xs">
+                                              {header}
+                                            </span>
+                                          ))}
+                                          {sheet.headers.length > 3 && (
+                                            <span className="badge badge-ghost badge-xs">
+                                              +{sheet.headers.length - 3} 更多
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>
                             </div>
-                            
-                            <div>
-                              <h4 className="font-semibold mb-2">数据统计</h4>
-                              <div className="stats stats-vertical shadow-sm">
-                                <div className="stat py-2">
-                                  <div className="stat-title text-xs">有效数据行</div>
-                                  <div className="stat-value text-lg">{parseResult.validRows}</div>
-                                </div>
-                                <div className="stat py-2">
-                                  <div className="stat-title text-xs">空行数量</div>
-                                  <div className="stat-value text-lg">{parseResult.emptyRows}</div>
-                                </div>
-                                <div className="stat py-2">
-                                  <div className="stat-title text-xs">重复员工</div>
-                                  <div className="stat-value text-lg">{parseResult.duplicateEmployees.length}</div>
-                                </div>
-                              </div>
-                            </div>
                           </div>
-                          
-                          {/* Sheet匹配状态 */}
-                          <div className="mb-4">
-                            <h4 className="font-semibold mb-2">工作表匹配状态</h4>
-                            {selectedDataGroups.length === 0 ? (
-                              <div className="text-sm text-warning">请先选择要导入的数据组</div>
-                            ) : (
-                              <>
-                                <div className="text-sm mb-2 opacity-70">
-                                  根据选中的数据组，期望包含: {parseResult.expectedSheets.join(', ')}
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {parseResult.expectedSheets.map(sheet => {
-                                    const isMissing = parseResult.missingSheets.includes(sheet);
-                                    return (
-                                      <span 
-                                        key={sheet}
-                                        className={`badge ${isMissing ? 'badge-error' : 'badge-success'}`}
-                                      >
-                                        {isMissing && '✗ '}{!isMissing && '✓ '}{sheet}
-                                      </span>
-                                    );
-                                  })}
-                                  {parseResult.unexpectedSheets.filter(s => s !== '使用说明').map(sheet => (
-                                    <span key={sheet} className="badge badge-warning">
-                                      ? {sheet}
-                                    </span>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                          
-                          {/* 数据一致性检查 */}
-                          <div className="mb-4">
-                            <h4 className="font-semibold mb-2">数据一致性</h4>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex items-center gap-2">
-                                {parseResult.dataConsistency.allSheetsHaveSameRowCount ? (
-                                  <>
-                                    <CheckCircleIcon className="w-4 h-4 text-success" />
-                                    <span className="text-success">各工作表行数一致</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg className="w-4 h-4 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                                    </svg>
-                                    <span className="text-warning">
-                                      各工作表行数不一致 ({parseResult.dataConsistency.rowCountVariance.join(', ')})
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                              
-                              <div className="flex items-center gap-2">
-                                {parseResult.dataConsistency.employeeListConsistent ? (
-                                  <>
-                                    <CheckCircleIcon className="w-4 h-4 text-success" />
-                                    <span className="text-success">所有员工数据完整</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg className="w-4 h-4 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                                    </svg>
-                                    <span className="text-warning">
-                                      {parseResult.dataConsistency.missingInSheets.length} 个员工数据不完整
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                              
-                              {parseResult.duplicateEmployees.length > 0 && (
-                                <div className="flex items-start gap-2">
-                                  <svg className="w-4 h-4 text-info mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                          {/* 匹配状态 */}
+                          <div className="card bg-base-100 shadow-lg border border-base-300">
+                            <div className="card-body">
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center">
+                                  <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
-                                  <div className="text-info">
-                                    <div>发现重复员工：</div>
-                                    <div className="text-xs opacity-80">
-                                      {parseResult.duplicateEmployees.slice(0, 3).join(', ')}
-                                      {parseResult.duplicateEmployees.length > 3 && ` 等${parseResult.duplicateEmployees.length}人`}
+                                </div>
+                                <h4 className="text-lg font-semibold text-base-content">匹配状态</h4>
+                              </div>
+                              
+                              {selectedDataGroups.length === 0 ? (
+                                <div className="flex items-center gap-3 p-4 bg-warning/10 rounded-xl border border-warning/20">
+                                  <div className="w-6 h-6 bg-warning/20 rounded-full flex items-center justify-center">
+                                    <svg className="w-3 h-3 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                  </div>
+                                  <span className="text-sm text-warning font-medium">请先选择要导入的数据组</span>
+                                </div>
+                              ) : (
+                                <div className="space-y-4">
+                                  <div className="p-3 bg-base-200 rounded-lg">
+                                    <p className="text-sm text-base-content/70 mb-2">
+                                      根据选中的数据组，期望包含以下工作表：
+                                    </p>
+                                    <div className="text-sm font-medium text-base-content">
+                                      {parseResult.expectedSheets.join(' • ')}
                                     </div>
+                                  </div>
+                                  
+                                  <div className="space-y-3">
+                                    <div>
+                                      <h5 className="font-medium text-base-content mb-2">期望的工作表</h5>
+                                      <div className="flex flex-wrap gap-2">
+                                        {parseResult.expectedSheets.map(sheet => {
+                                          const isMissing = parseResult.missingSheets.includes(sheet);
+                                          return (
+                                            <div key={sheet} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
+                                              isMissing 
+                                                ? 'bg-error/5 border-error/20 text-error' 
+                                                : 'bg-success/5 border-success/20 text-success'
+                                            }`}>
+                                              {isMissing ? (
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                                    d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                              ) : (
+                                                <CheckCircleIcon className="w-4 h-4" />
+                                              )}
+                                              <span className="text-sm font-medium">{sheet}</span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                    
+                                    {parseResult.unexpectedSheets.filter(s => s !== '使用说明').length > 0 && (
+                                      <div>
+                                        <h5 className="font-medium text-base-content mb-2">意外的工作表</h5>
+                                        <div className="flex flex-wrap gap-2">
+                                          {parseResult.unexpectedSheets.filter(s => s !== '使用说明').map(sheet => (
+                                            <div key={sheet} className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-warning/5 border-warning/20 text-warning">
+                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                              </svg>
+                                              <span className="text-sm font-medium">{sheet}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               )}
                             </div>
                           </div>
-                          
-                          {/* 警告信息 */}
-                          {parseResult.warnings.length > 0 && (
-                            <div className="alert alert-warning">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                              </svg>
-                              <div>
-                                <div className="font-semibold">发现 {parseResult.warnings.length} 个问题</div>
-                                <ul className="text-sm mt-1">
-                                  {parseResult.warnings.map((warning, idx) => (
-                                    <li key={idx}>• {warning}</li>
-                                  ))}
-                                </ul>
+                        </div>
+
+                        {/* 数据一致性检查 */}
+                        <div className="card bg-base-100 shadow-lg border border-base-300">
+                          <div className="card-body">
+                            <div className="flex items-center gap-3 mb-6">
+                              <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+                                <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                              </div>
+                              <h4 className="text-lg font-semibold text-base-content">数据一致性检查</h4>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* 行数一致性 */}
+                              <div className={`p-4 rounded-xl border transition-all ${
+                                parseResult.dataConsistency.allSheetsHaveSameRowCount
+                                  ? 'bg-success/5 border-success/20 hover:bg-success/10'
+                                  : 'bg-warning/5 border-warning/20 hover:bg-warning/10'
+                              }`}>
+                                <div className="flex items-start gap-3">
+                                  <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                                    parseResult.dataConsistency.allSheetsHaveSameRowCount
+                                      ? 'bg-success/10 text-success'
+                                      : 'bg-warning/10 text-warning'
+                                  }`}>
+                                    {parseResult.dataConsistency.allSheetsHaveSameRowCount ? (
+                                      <CheckCircleIcon className="w-4 h-4" />
+                                    ) : (
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <div className="flex-1">
+                                    <h5 className={`font-semibold mb-1 ${
+                                      parseResult.dataConsistency.allSheetsHaveSameRowCount ? 'text-success' : 'text-warning'
+                                    }`}>
+                                      行数一致性
+                                    </h5>
+                                    <p className="text-sm text-base-content/70 mb-2">
+                                      {parseResult.dataConsistency.allSheetsHaveSameRowCount
+                                        ? '所有工作表的数据行数保持一致'
+                                        : '工作表之间存在行数差异'
+                                      }
+                                    </p>
+                                    {!parseResult.dataConsistency.allSheetsHaveSameRowCount && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {parseResult.dataConsistency.rowCountVariance.map((count, idx) => (
+                                          <span key={idx} className="badge badge-warning badge-sm">
+                                            {count} 行
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* 员工数据完整性 */}
+                              <div className={`p-4 rounded-xl border transition-all ${
+                                parseResult.dataConsistency.employeeListConsistent
+                                  ? 'bg-success/5 border-success/20 hover:bg-success/10'
+                                  : 'bg-warning/5 border-warning/20 hover:bg-warning/10'
+                              }`}>
+                                <div className="flex items-start gap-3">
+                                  <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                                    parseResult.dataConsistency.employeeListConsistent
+                                      ? 'bg-success/10 text-success'
+                                      : 'bg-warning/10 text-warning'
+                                  }`}>
+                                    {parseResult.dataConsistency.employeeListConsistent ? (
+                                      <CheckCircleIcon className="w-4 h-4" />
+                                    ) : (
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <div className="flex-1">
+                                    <h5 className={`font-semibold mb-1 ${
+                                      parseResult.dataConsistency.employeeListConsistent ? 'text-success' : 'text-warning'
+                                    }`}>
+                                      员工数据完整性
+                                    </h5>
+                                    <p className="text-sm text-base-content/70 mb-2">
+                                      {parseResult.dataConsistency.employeeListConsistent
+                                        ? '所有员工在各工作表中数据完整'
+                                        : `${parseResult.dataConsistency.missingInSheets.length} 个员工数据不完整`
+                                      }
+                                    </p>
+                                    {!parseResult.dataConsistency.employeeListConsistent && (
+                                      <div className="text-xs text-base-content/60">
+                                        部分员工未在所有必需的工作表中出现
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                          )}
+                          </div>
                         </div>
+
+                        {/* 警告信息 */}
+                        {parseResult.warnings.length > 0 && (
+                          <div className="card bg-warning/5 border border-warning/20 shadow-lg">
+                            <div className="card-body">
+                              <div className="flex items-start gap-4">
+                                <div className="flex-shrink-0">
+                                  <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center">
+                                    <svg className="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="text-lg font-semibold text-warning mb-3">注意事项</h4>
+                                  <p className="text-base-content/70 mb-4 text-sm">
+                                    发现 {parseResult.warnings.length} 个潜在问题，建议检查后再导入，或者在导入时选择"跳过无效行"选项。
+                                  </p>
+                                  <div className="space-y-2">
+                                    {parseResult.warnings.map((warning, idx) => (
+                                      <div key={idx} className="flex items-start gap-3 p-3 bg-base-100 rounded-lg border border-warning/10">
+                                        <span className="flex-shrink-0 w-5 h-5 bg-warning text-warning-content rounded-full flex items-center justify-center text-xs font-bold">
+                                          {idx + 1}
+                                        </span>
+                                        <span className="text-sm text-base-content">{warning}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1114,7 +1500,7 @@ export const PayrollImportPage: React.FC = () => {
                             <div className="flex items-center justify-between mb-2">
                               <h3 className="text-lg font-semibold">导入进度总览</h3>
                               <div className="badge badge-info">
-                                {utils?.getPhaseDescription(hookProgress.phase) || '处理中'}
+                                {getPhaseDescription(hookProgress.phase)}
                               </div>
                             </div>
                             
@@ -1136,7 +1522,7 @@ export const PayrollImportPage: React.FC = () => {
                                   {hookProgress.global.processedRecords} / {hookProgress.global.totalRecords}
                                 </div>
                                 <div className="stat-desc">
-                                  {utils?.getProgressPercentage()}% 完成
+                                  {getProgressPercentage()}% 完成
                                 </div>
                               </div>
                             </div>
@@ -1145,11 +1531,11 @@ export const PayrollImportPage: React.FC = () => {
                             <div className="mt-3">
                               <div className="flex justify-between text-sm mb-1">
                                 <span>总体进度</span>
-                                <span>{utils?.getProgressPercentage()}%</span>
+                                <span>{getProgressPercentage()}%</span>
                               </div>
                               <progress 
                                 className="progress progress-primary w-full" 
-                                value={utils?.getProgressPercentage() || 0} 
+                                value={getProgressPercentage()} 
                                 max="100"
                               ></progress>
                             </div>
@@ -1184,7 +1570,7 @@ export const PayrollImportPage: React.FC = () => {
                                     {hookProgress.current.processedRecords} / {hookProgress.current.totalRecords}
                                   </div>
                                   <div className="stat-desc text-xs">
-                                    {utils?.getCurrentGroupPercentage()}% 完成
+                                    {getCurrentGroupPercentage()}% 完成
                                   </div>
                                 </div>
                               </div>
@@ -1193,11 +1579,11 @@ export const PayrollImportPage: React.FC = () => {
                               <div className="mt-3">
                                 <div className="flex justify-between text-xs mb-1">
                                   <span>当前工作表进度</span>
-                                  <span>{utils?.getCurrentGroupPercentage()}%</span>
+                                  <span>{getCurrentGroupPercentage()}%</span>
                                 </div>
                                 <progress 
                                   className="progress progress-secondary w-full h-2" 
-                                  value={utils?.getCurrentGroupPercentage() || 0} 
+                                  value={getCurrentGroupPercentage()} 
                                   max="100"
                                 ></progress>
                               </div>
@@ -1326,14 +1712,14 @@ export const PayrollImportPage: React.FC = () => {
           type="radio"
           name="payroll_import_tabs"
           className="tab"
-          aria-label="导出历史"
+          aria-label="导出数据"
           checked={activeTab === 'export'}
           onChange={() => setActiveTab('export')}
         />
         <div className="tab-content border-base-300 bg-base-100 p-6">
           <div className="flex items-center gap-2 mb-4">
             <FolderIcon className="w-5 h-5" />
-            <h2 className="text-xl font-semibold">导出历史</h2>
+            <h2 className="text-xl font-semibold">导出数据</h2>
           </div>
           <HistoryDataExporter />
         </div>
@@ -1425,11 +1811,9 @@ export const PayrollImportPage: React.FC = () => {
               </svg>
               <div>
                 <div className="font-semibold">导入设置</div>
-                <ul className="text-sm mt-1">
-                  <li>• 导入前验证: {importConfig.options.validateBeforeImport ? '✓ 已启用' : '✗ 已禁用'}</li>
-                  <li>• 跳过无效行: {importConfig.options.skipInvalidRows ? '✓ 已启用' : '✗ 已禁用'}</li>
-                  <li>• 批处理大小: {importConfig.options.batchSize} 行/批</li>
-                </ul>
+                <div className="text-sm mt-1">
+                  导入前验证已启用，将自动验证数据格式和完整性
+                </div>
               </div>
             </div>
 

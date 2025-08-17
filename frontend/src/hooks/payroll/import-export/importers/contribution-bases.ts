@@ -17,7 +17,7 @@ export const importContributionBases = async (
   const results: any[] = [];
   const errors: any[] = [];
   
-  // 批量预加载员工数据
+  // 预加载员工数据
   const employeeNames = [...new Set(data.map(row => 
     row['员工姓名'] || row['employee_name']
   ).filter(Boolean))];
@@ -31,24 +31,36 @@ export const importContributionBases = async (
   const employeeMap = new Map((allEmployees || []).map(emp => [emp.employee_name, emp]));
   console.log(`✅ 预加载 ${employeeMap.size} 个员工数据`);
   
-  // 社保基数字段映射 - 扩展支持更多基数类型
+  // 预加载保险类型数据
+  const { data: insuranceTypes } = await supabase
+    .from('insurance_types')
+    .select('id, system_key, name')
+    .eq('is_active', true);
+  
+  const insuranceTypeMap = new Map((insuranceTypes || []).map(type => [type.system_key, type]));
+  console.log(`✅ 预加载 ${insuranceTypeMap.size} 个保险类型`);
+  
+  // 社保基数字段映射 - 映射到 insurance_types.system_key
   const baseFields = [
-    { field: '养老保险基数', baseType: 'pension_base' },
-    { field: '医疗保险基数', baseType: 'medical_base' },
-    { field: '失业保险基数', baseType: 'unemployment_base' },
-    { field: '工伤保险基数', baseType: 'work_injury_base' },
-    { field: '生育保险基数', baseType: 'maternity_base' },
-    { field: '住房公积金基数', baseType: 'housing_fund_base' },
-    { field: '职业年金基数', baseType: 'occupational_annuity_base' },
-    { field: '大病医疗基数', baseType: 'serious_illness_base' },
+    { field: '养老保险基数', systemKey: 'pension' },
+    { field: '医疗保险基数', systemKey: 'medical' },
+    { field: '失业保险基数', systemKey: 'unemployment' },
+    { field: '工伤保险基数', systemKey: 'work_injury' },
+    { field: '生育保险基数', systemKey: 'maternity' },
+    { field: '住房公积金基数', systemKey: 'housing_fund' },
+    { field: '职业年金基数', systemKey: 'occupational_pension' },
+    { field: '大病医疗基数', systemKey: 'serious_illness' },
     // 兼容旧的字段名称
-    { field: '养老基数', baseType: 'pension_base' },
-    { field: '医疗基数', baseType: 'medical_base' },
-    { field: '失业基数', baseType: 'unemployment_base' },
-    { field: '工伤基数', baseType: 'work_injury_base' },
-    { field: '生育基数', baseType: 'maternity_base' },
-    { field: '公积金基数', baseType: 'housing_fund_base' }
+    { field: '养老基数', systemKey: 'pension' },
+    { field: '医疗基数', systemKey: 'medical' },
+    { field: '失业基数', systemKey: 'unemployment' },
+    { field: '工伤基数', systemKey: 'work_injury' },
+    { field: '生育基数', systemKey: 'maternity' },
+    { field: '公积金基数', systemKey: 'housing_fund' }
   ];
+  
+  // 准备批量数据
+  const allContributionBases = [];
   
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
@@ -65,53 +77,44 @@ export const importContributionBases = async (
         throw new Error(`第 ${i + 1} 行: 找不到员工 ${employeeName}`);
       }
       
-      // 准备基数数据
-      const baseData: any = {
-        employee_id: employee.id,
-        period_id: periodId,  // 使用正确的字段名 period_id
-        effective_date: new Date().toISOString().split('T')[0]
-      };
+      // 处理每种保险基数，创建单独的记录
+      let processedCount = 0;
       
-      // 使用Set避免重复处理相同的基数类型
-      const processedBaseTypes = new Set<string>();
-      
-      for (const { field, baseType } of baseFields) {
-        // 如果该基数类型已处理过，跳过
-        if (processedBaseTypes.has(baseType)) {
-          continue;
-        }
+      for (const { field, systemKey } of baseFields) {
+        const value = row[field];
         
-        const value = row[field] || row[baseType];
-        if (value && Number(value) > 0) {
-          baseData[baseType] = Number(value);
-          processedBaseTypes.add(baseType);
+        // 检查该员工的这种保险类型是否已经处理过（避免重复字段导致的重复记录）
+        const existingRecord = allContributionBases.find(
+          record => record.employee_id === employee.id && 
+                   record.insurance_type_id === insuranceTypeMap.get(systemKey)?.id
+        );
+        
+        if (!existingRecord && value && Number(value) > 0) {
+          const insuranceType = insuranceTypeMap.get(systemKey);
+          if (insuranceType) {
+            allContributionBases.push({
+              employee_id: employee.id,
+              insurance_type_id: insuranceType.id,
+              contribution_base: Number(value),
+              period_id: periodId
+            });
+            processedCount++;
+          } else {
+            console.warn(`找不到保险类型: ${systemKey}`);
+          }
         }
       }
       
-      // 检查是否有有效的基数数据
-      const hasValidData = processedBaseTypes.size > 0;
-      if (!hasValidData) {
+      if (processedCount === 0) {
         console.warn(`第 ${i + 1} 行: 没有找到有效的基数数据`);
         results.push({ 
           row, 
           success: false, 
           error: '没有找到有效的基数数据'
         });
-        continue;
+      } else {
+        results.push({ row, success: true, processedCount });
       }
-      
-      // 插入或更新社保基数
-      const { error } = await supabase
-        .from('employee_contribution_bases')
-        .upsert(baseData, {
-          onConflict: 'employee_id,period_id'
-        });
-      
-      if (error) {
-        throw new Error(`数据库操作失败: ${error.message}`);
-      }
-      
-      results.push({ row, success: true });
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
@@ -152,20 +155,59 @@ export const importContributionBases = async (
     }
   }
   
+  // 批量插入缴费基数数据
+  if (allContributionBases.length > 0) {
+    console.log(`🚀 批量插入 ${allContributionBases.length} 条缴费基数记录...`);
+    
+    try {
+      // 先删除该周期的现有数据，然后插入新数据（upsert替代方案）
+      const employeeIds = [...new Set(allContributionBases.map(item => item.employee_id))];
+      
+      // 删除现有数据
+      await supabase
+        .from('employee_contribution_bases')
+        .delete()
+        .eq('period_id', periodId)
+        .in('employee_id', employeeIds);
+      
+      // 批量插入新数据
+      const { error: insertError } = await supabase
+        .from('employee_contribution_bases')
+        .insert(allContributionBases);
+      
+      if (insertError) {
+        console.error('❌ 批量插入缴费基数失败:', insertError);
+        throw new Error(`批量插入缴费基数失败: ${insertError.message}`);
+      }
+      
+      console.log(`✅ 成功插入 ${allContributionBases.length} 条缴费基数记录`);
+      
+    } catch (error) {
+      console.error('❌ 批量操作失败:', error);
+      errors.push({
+        row: -1,
+        message: `批量插入失败: ${error instanceof Error ? error.message : '未知错误'}`
+      });
+    }
+  }
+  
   // 统计结果
   const successCount = results.filter(r => r.success).length;
   const failCount = results.filter(r => !r.success).length;
   
   console.log(`\n🎯 社保基数导入完成:`);
-  console.log(`  - 成功: ${successCount} 条`);
-  console.log(`  - 失败: ${failCount} 条`);
+  console.log(`  - 成功处理行数: ${successCount} 条`);
+  console.log(`  - 失败行数: ${failCount} 条`);
+  console.log(`  - 插入基数记录: ${allContributionBases.length} 条`);
   
   return {
     success: errors.length === 0,
     totalRows: data.length,
     successCount,
     failedCount: failCount,
+    skippedCount: 0,
     errors,
+    warnings: [],
     results
   };
 };

@@ -14,10 +14,8 @@ export { ImportDataGroup };
 
 // 导入模式
 const ImportMode = {
-  CREATE: 'create',        // 新建模式（创建新记录）
-  UPDATE: 'update',        // 更新模式（更新现有记录）
-  UPSERT: 'upsert',       // 更新或创建
-  APPEND: 'append'        // 追加模式（仅添加新字段）
+  UPSERT: 'upsert',       // 更新或创建（推荐，默认）
+  REPLACE: 'replace'      // 替换模式（先删除后插入）
 } as const;
 
 export type ImportMode = typeof ImportMode[keyof typeof ImportMode];

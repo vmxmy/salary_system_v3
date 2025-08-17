@@ -101,7 +101,7 @@ export function usePayrollImportExport() {
 
         // 2. 解析Excel文件
         setMessage('解析Excel文件...');
-        const data = await parseExcelFile(file, config.dataGroup, (progress) => {
+        const data = await parseExcelFile(file, Array.isArray(config.dataGroup) ? config.dataGroup[0] : config.dataGroup, (progress) => {
           updateProgress(progress);
         });
 
@@ -130,8 +130,8 @@ export function usePayrollImportExport() {
         
         let importResult: ImportResult;
 
-        switch (config.dataGroup) {
-          case 'payroll':
+        const dataGroup = Array.isArray(config.dataGroup) ? config.dataGroup[0] : config.dataGroup;
+        switch (dataGroup) {
           case 'earnings':
             setMessage('导入薪资项目数据...');
             importResult = await importPayrollItems(

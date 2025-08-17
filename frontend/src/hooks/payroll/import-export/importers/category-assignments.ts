@@ -220,7 +220,9 @@ export const importCategoryAssignments = async (
     totalRows: data.length,
     successCount,
     failedCount: failCount,
+    skippedCount: 0, // 当前实现中没有跳过的记录
     errors,
+    warnings: [], // 当前实现中没有警告
     results
   };
 };

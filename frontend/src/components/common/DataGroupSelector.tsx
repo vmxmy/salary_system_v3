@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   createColumnHelper,
   useReactTable,
@@ -23,6 +23,9 @@ interface DataGroupSelectorProps {
   multiple?: boolean;
   disabled?: boolean;
   className?: string;
+  variant?: 'default' | 'compact' | 'detailed';
+  showDescriptions?: boolean;
+  animateSelections?: boolean;
 }
 
 const columnHelper = createColumnHelper<DataGroupOption>();
@@ -32,8 +35,14 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
   onGroupToggle,
   multiple = true,
   disabled = false,
-  className = ""
+  className = "",
+  variant = 'default',
+  showDescriptions = true,
+  animateSelections = true
 }) => {
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const optionRefs = useRef<(HTMLDivElement | null)[]>([]);
   // 数据组选项配置
   const dataGroupOptions: Omit<DataGroupOption, 'selected'>[] = [
     {
@@ -117,89 +126,157 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
     enableMultiRowSelection: multiple,
   });
 
+  // 键盘导航处理
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (disabled) return;
+    
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        setFocusedIndex(prev => 
+          prev < data.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        setFocusedIndex(prev => 
+          prev > 0 ? prev - 1 : data.length - 1
+        );
+        break;
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        if (focusedIndex >= 0) {
+          onGroupToggle(data[focusedIndex].value);
+        }
+        break;
+      case 'Escape':
+        setFocusedIndex(-1);
+        break;
+    }
+  };
+
+  // 聚焦管理
+  useEffect(() => {
+    if (focusedIndex >= 0 && optionRefs.current[focusedIndex]) {
+      optionRefs.current[focusedIndex]?.focus();
+    }
+  }, [focusedIndex]);
+
+  // 获取布局类名
+  const getLayoutClasses = () => {
+    switch (variant) {
+      case 'compact':
+        return 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3';
+      case 'detailed':
+        return 'grid grid-cols-1 lg:grid-cols-2 gap-6';
+      default:
+        return 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
+    }
+  };
+
   return (
-    <div className={`${className}`}>
-      {/* 桌面端表格视图 */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="table table-zebra w-full">
-          <thead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th key={header.id} style={{ width: header.getSize() }}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map(row => (
-              <tr 
-                key={row.id}
-                className={`hover cursor-pointer ${
-                  row.original.selected ? 'bg-primary/5' : ''
-                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => !disabled && onGroupToggle(row.original.value)}
+    <div 
+      ref={containerRef}
+      className={`${className} focus-within:outline-none`}
+      onKeyDown={handleKeyDown}
+      role="group"
+      aria-label="数据类型选择器"
+    >
+      {/* 统一的卡片布局 */}
+      <div className="w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {data.map((option, index) => {
+            const Icon = option.icon;
+            const isSelected = option.selected;
+            const isFocused = index === focusedIndex;
+            
+            return (
+              <div
+                key={option.value}
+                ref={el => { optionRefs.current[index] = el; }}
+                className={`
+                  group relative cursor-pointer transition-all duration-300
+                  border-2 rounded-xl p-4 hover:shadow-lg
+                  w-full min-w-[200px]
+                  ${
+                    isSelected 
+                      ? 'border-primary bg-primary/10 shadow-md transform scale-[1.02]' 
+                      : 'border-base-300 bg-base-100 hover:border-primary/50 hover:bg-primary/5'
+                  }
+                  ${
+                    isFocused 
+                      ? 'ring-2 ring-primary ring-offset-2' 
+                      : ''
+                  }
+                  ${
+                    disabled 
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : 'hover:transform hover:scale-105'
+                  }
+                  ${animateSelections ? 'animate-pulse' : ''}
+                `}
+                onClick={() => !disabled && onGroupToggle(option.value)}
+                onFocus={() => setFocusedIndex(index)}
+                onBlur={() => setFocusedIndex(-1)}
+                tabIndex={disabled ? -1 : 0}
+                role="option"
+                aria-selected={isSelected}
+                aria-describedby={`option-${option.value}-desc`}
               >
-                {row.getVisibleCells().map(cell => (
-                  <td 
-                    key={cell.id} 
-                    style={{ width: cell.column.getSize() }}
-                    onClick={(e) => {
-                      // 防止点击 checkbox/radio 时触发两次
-                      if ((e.target as HTMLElement).tagName === 'INPUT') {
-                        e.stopPropagation();
-                      }
-                    }}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      
-      {/* 移动端卡片视图 */}
-      <div className="grid grid-cols-1 gap-4 md:hidden">
-        {data.map(option => (
-          <div
-            key={option.value}
-            className={`card bordered cursor-pointer transition-all ${
-              option.selected ? 'border-primary bg-primary/5' : 'border-base-300 hover:border-primary/50'
-            } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={() => !disabled && onGroupToggle(option.value)}
-          >
-            <div className="card-body p-4">
-              <div className="flex items-start gap-3">
-                <input
-                  type={multiple ? "checkbox" : "radio"}
-                  name={multiple ? undefined : "data-group-selector-mobile"}
-                  className={`${multiple ? "checkbox" : "radio"} checkbox-primary mt-1`}
-                  checked={option.selected}
-                  onChange={() => {}}
-                  disabled={disabled}
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <option.icon className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold">{option.label}</h3>
+                {/* 选择状态指示器 */}
+                <div className="absolute top-3 right-3">
+                  <input
+                    type={multiple ? "checkbox" : "radio"}
+                    name={multiple ? undefined : "data-group-selector"}
+                    className={`${multiple ? "checkbox" : "radio"} checkbox-primary checkbox-sm`}
+                    checked={isSelected}
+                    onChange={() => {}}
+                    disabled={disabled}
+                    tabIndex={-1}
+                  />
+                </div>
+                
+                {/* 图标和标题 */}
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`
+                    flex-shrink-0 p-2 rounded-lg transition-colors
+                    ${
+                      isSelected 
+                        ? 'bg-primary text-primary-content' 
+                        : 'bg-primary/10 text-primary group-hover:bg-primary/20'
+                    }
+                  `}>
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <p className="text-sm text-base-content/70 mt-1">
+                  <div className="flex-1">
+                    <h3 className={`
+                      font-semibold text-sm leading-tight
+                      ${isSelected ? 'text-primary' : 'text-base-content'}
+                    `}>
+                      {option.label}
+                    </h3>
+                  </div>
+                </div>
+                
+                {/* 描述信息 */}
+                {showDescriptions && variant !== 'compact' && (
+                  <p 
+                    id={`option-${option.value}-desc`}
+                    className="text-xs text-base-content/70 leading-relaxed"
+                  >
                     {option.description}
                   </p>
-                </div>
+                )}
+                
+                {/* 选中状态的视觉反馈 */}
+                {isSelected && (
+                  <div className="absolute inset-0 border-2 border-primary rounded-xl bg-primary/5 pointer-events-none" />
+                )}
               </div>
-            </div>
-          </div>
-        ))}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

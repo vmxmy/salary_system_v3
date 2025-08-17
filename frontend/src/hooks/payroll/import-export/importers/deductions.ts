@@ -108,7 +108,7 @@ export const importDeductions = async (
           employee_id: employee.id,
           period_id: periodId,
           pay_date: defaultPayDate,
-          total_earnings: 0,
+          gross_pay: 0,  // 修正字段名：total_earnings -> gross_pay
           total_deductions: 0,
           net_pay: 0,
           status: 'draft' as const
@@ -141,9 +141,8 @@ export const importDeductions = async (
             allDeductionItems.push({
               payroll_id: payrollId, // 临时ID，批量插入后会替换
               component_id: componentId,
-              component_name: componentName,
               amount: Number(amount),
-              calculated_amount: Number(amount),
+              period_id: periodId, // payroll_items 表需要 period_id
               employee_id: employee.id // 添加员工ID，用于后续匹配
             });
           } else {
@@ -262,7 +261,9 @@ export const importDeductions = async (
     totalRows: data.length,
     successCount,
     failedCount: failCount,
+    skippedCount: 0, // 当前实现中没有跳过的记录
     errors,
+    warnings: [], // 当前实现中没有警告
     results
   };
 };
