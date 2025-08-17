@@ -126,6 +126,9 @@ export * from './useSalaryComponents';
 // 薪资统计
 export * from './usePayrollStatistics';
 
+// 薪资清除
+export * from './useClearPayrollPeriod';
+
 /**
  * 便捷的组合 Hook
  * 提供统一的薪资管理接口

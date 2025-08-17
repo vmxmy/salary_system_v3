@@ -1,20 +1,61 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 interface ClearPayrollModalProps {
   isOpen: boolean;
   month: string;
-  onConfirm: () => void;
+  periodId?: string;
+  onConfirm: (clearStrategy?: 'all' | 'draft_only') => void;
   onCancel: () => void;
 }
 
 export const ClearPayrollModal: React.FC<ClearPayrollModalProps> = ({
   isOpen,
   month,
+  periodId,
   onConfirm,
   onCancel,
 }) => {
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState('');
+  const [clearStrategy, setClearStrategy] = useState<'all' | 'draft_only'>('draft_only');
+  const [dataPreview, setDataPreview] = useState<{
+    draftCount: number;
+    approvedCount: number;
+    paidCount: number;
+    totalCount: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // 获取数据预览
+  useEffect(() => {
+    if (isOpen && periodId) {
+      setLoading(true);
+      const fetchDataPreview = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('payrolls')
+            .select('status')
+            .eq('period_id', periodId);
+
+          if (!error && data) {
+            const preview = {
+              draftCount: data.filter(p => p.status === 'draft').length,
+              approvedCount: data.filter(p => p.status === 'approved').length,
+              paidCount: data.filter(p => p.status === 'paid').length,
+              totalCount: data.length
+            };
+            setDataPreview(preview);
+          }
+        } catch (err) {
+          console.error('Failed to fetch data preview:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchDataPreview();
+    }
+  }, [isOpen, periodId]);
 
   const handleConfirm = useCallback(() => {
     if (confirmText !== '确认清空') {
@@ -23,12 +64,15 @@ export const ClearPayrollModal: React.FC<ClearPayrollModalProps> = ({
     }
     setConfirmText('');
     setError('');
-    onConfirm();
-  }, [confirmText, onConfirm]);
+    setClearStrategy('draft_only');
+    onConfirm(clearStrategy);
+  }, [confirmText, clearStrategy, onConfirm]);
 
   const handleCancel = useCallback(() => {
     setConfirmText('');
     setError('');
+    setClearStrategy('draft_only');
+    setDataPreview(null);
     onCancel();
   }, [onCancel]);
 
@@ -49,13 +93,86 @@ export const ClearPayrollModal: React.FC<ClearPayrollModalProps> = ({
             </span>
           </div>
 
+          {/* 数据预览 */}
+          {loading ? (
+            <div className="flex justify-center py-4">
+              <span className="loading loading-spinner loading-sm"></span>
+              <span className="ml-2 text-sm">加载数据预览...</span>
+            </div>
+          ) : dataPreview ? (
+            <div className="bg-base-200 rounded-lg p-3 space-y-2">
+              <p className="text-sm font-semibold">{month} 数据统计：</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex justify-between">
+                  <span>草稿状态：</span>
+                  <span className="font-semibold text-warning">{dataPreview.draftCount} 条</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>已审批：</span>
+                  <span className="font-semibold text-info">{dataPreview.approvedCount} 条</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>已支付：</span>
+                  <span className="font-semibold text-success">{dataPreview.paidCount} 条</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>总计：</span>
+                  <span className="font-semibold">{dataPreview.totalCount} 条</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* 清除策略选择 */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text text-sm">清除策略</span>
+            </label>
+            <div className="space-y-2">
+              <label className="label cursor-pointer">
+                <span className="label-text text-xs">仅清除草稿状态的薪资记录（推荐）</span>
+                <input 
+                  type="radio" 
+                  name="clearStrategy" 
+                  className="radio radio-sm radio-primary" 
+                  checked={clearStrategy === 'draft_only'}
+                  onChange={() => setClearStrategy('draft_only')}
+                />
+              </label>
+              <label className="label cursor-pointer">
+                <span className="label-text text-xs text-error">
+                  清除所有薪资记录（包括已审批和已支付）
+                  {(!dataPreview || dataPreview.totalCount === 0) && (
+                    <span className="text-base-content/50">（无数据）</span>
+                  )}
+                </span>
+                <input 
+                  type="radio" 
+                  name="clearStrategy" 
+                  className="radio radio-sm radio-error" 
+                  checked={clearStrategy === 'all'}
+                  onChange={() => setClearStrategy('all')}
+                  disabled={!dataPreview || dataPreview.totalCount === 0}
+                />
+              </label>
+            </div>
+          </div>
+
           <div className="text-sm space-y-2">
-            <p>您即将清空 <span className="font-semibold text-error">{month}</span> 的所有薪资数据。</p>
-            <p>此操作将删除：</p>
+            <p>即将清除的数据：</p>
             <ul className="list-disc list-inside ml-2 text-xs space-y-1">
-              <li>该月份的所有薪资记录</li>
-              <li>相关的薪资项目明细</li>
-              <li>所有关联的计算数据</li>
+              {clearStrategy === 'draft_only' ? (
+                <>
+                  <li className="text-warning">草稿状态的薪资记录（{dataPreview?.draftCount || 0} 条）</li>
+                  <li>相关的薪资项目明细</li>
+                </>
+              ) : (
+                <>
+                  <li className="text-error">所有薪资记录（{dataPreview?.totalCount || 0} 条）</li>
+                  <li>所有薪资项目明细</li>
+                  <li>相关的缴费基数、人员类别、职务信息</li>
+                </>
+              )}
             </ul>
           </div>
 

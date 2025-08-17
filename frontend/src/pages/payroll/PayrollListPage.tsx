@@ -11,6 +11,7 @@ import {
   PayrollStatus,
   type PayrollStatusType 
 } from '@/hooks/payroll';
+import { useClearPayrollPeriod } from '@/hooks/payroll/useClearPayrollPeriod';
 import { type PayrollPeriod } from '@/hooks/payroll/usePayrollPeriod';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
 import { useTableConfiguration } from '@/hooks/core';
@@ -309,52 +310,35 @@ export default function PayrollListPage() {
   //   navigate('/payroll/create-cycle');
   // }, [navigate]);
 
+  // 使用清空薪资周期的 hook
+  const clearPayrollPeriod = useClearPayrollPeriod();
+
   // 清空本月数据
-  const handleClearCurrentMonth = useCallback(async () => {
-    try {
-      // 使用 supabase 清空薪资数据
-      const monthDateRange = getMonthDateRange(selectedMonth);
-      
-      // 获取当前月份的薪资记录
-      const { data: payrollsToDelete, error: fetchError } = await supabase
-        .from('payrolls')
-        .select('id')
-        .gte('pay_date', monthDateRange.startDate)
-        .lte('pay_date', monthDateRange.endDate)
-        .eq('status', PayrollStatus.DRAFT);
-      
-      if (fetchError) {
-        throw fetchError;
-      }
-      
-      if (!payrollsToDelete || payrollsToDelete.length === 0) {
-        showInfo(`${formatMonth(selectedMonth)} 没有可清除的薪资数据`);
-        setIsClearModalOpen(false);
-        return;
-      }
-      
-      // 批量删除
-      const { error: deleteError } = await supabase
-        .from('payrolls')
-        .delete()
-        .in('id', payrollsToDelete.map(p => p.id));
-      
-      if (deleteError) {
-        throw deleteError;
-      }
-      
-      showSuccess(
-        `${formatMonth(selectedMonth)} 的薪资数据已清空\n` +
-        `删除了 ${payrollsToDelete.length} 条记录`
-      );
-      
-      refetch();
-    } catch (error) {
-      showError(`清空数据失败: ${error instanceof Error ? error.message : '未知错误'}`);
-    } finally {
+  const handleClearCurrentMonth = useCallback((clearStrategy: 'all' | 'draft_only' = 'draft_only') => {
+    if (!selectedPeriodId) {
+      showError('未选择薪资周期');
       setIsClearModalOpen(false);
+      return;
     }
-  }, [selectedMonth, showSuccess, showError, showInfo, refetch]);
+
+    // 使用新的 hook 清空数据
+    clearPayrollPeriod.mutate(
+      {
+        periodId: selectedPeriodId,
+        periodName: formatMonth(selectedMonth),
+        clearStrategy  // 使用传入的清除策略
+      },
+      {
+        onSuccess: () => {
+          setIsClearModalOpen(false);
+          refetch();  // 刷新数据
+        },
+        onError: () => {
+          setIsClearModalOpen(false);
+        }
+      }
+    );
+  }, [selectedPeriodId, selectedMonth, clearPayrollPeriod, showError, refetch]);
 
   // 准备统计卡片数据 - 移除本地定义，使用 ManagementPageLayout 的类型
   
@@ -595,6 +579,7 @@ export default function PayrollListPage() {
           <ClearPayrollModal
             isOpen={isClearModalOpen}
             month={formatMonth(selectedMonth)}
+            periodId={selectedPeriodId}
             onConfirm={handleClearCurrentMonth}
             onCancel={() => setIsClearModalOpen(false)}
           />
