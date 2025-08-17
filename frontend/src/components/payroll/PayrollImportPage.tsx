@@ -4,7 +4,7 @@ import { TemplateDownloader } from './TemplateDownloader';
 import { HistoryDataExporter } from './HistoryDataExporter';
 import { ImportDataGroup, ImportMode } from '@/types/payroll-import';
 import type { ImportConfig, ExcelDataRow } from '@/types/payroll-import';
-import { usePayrollImportExport } from '@/hooks/payroll/usePayrollImportExport';
+import { usePayrollImportExport } from '@/hooks/payroll/import-export';
 import { DataGroupSelector } from '@/components/common/DataGroupSelector';
 import { DataGroupSelectAllController } from '@/components/common/DataGroupSelectAllController';
 import { MonthPicker } from '@/components/common/MonthPicker';
@@ -18,7 +18,18 @@ import { PayrollElement } from '@/types/payroll-completeness';
 export const PayrollImportPage: React.FC = () => {
   const location = useLocation();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
-  const { mutations, importProgress: hookProgress, resetImportProgress, utils } = usePayrollImportExport();
+  const { 
+    importExcel, 
+    exportExcel, 
+    downloadTemplate, 
+    importProgress: hookProgress, 
+    resetProgress, 
+    analyzeFieldMapping,
+    isImporting,
+    isExporting,
+    isDownloading,
+    utils
+  } = usePayrollImportExport();
   const { data: availableMonths } = useAvailablePayrollMonths(true);
   const { actions: periodActions } = usePayrollPeriod();
   const [activeTab, setActiveTab] = useState<'template' | 'import' | 'export'>('template');
@@ -504,7 +515,7 @@ export const PayrollImportPage: React.FC = () => {
     setShowPreviewModal(false);
     
     // 重置进度状态
-    resetImportProgress();
+    resetProgress();
 
     try {
       // 获取或创建周期ID
@@ -549,7 +560,7 @@ export const PayrollImportPage: React.FC = () => {
           
           console.log(`🚀 开始导入数据组: ${group}`, importConfigForGroup);
           
-          const groupResult = await mutations.importExcel.mutateAsync({
+          const groupResult = await importExcel.mutateAsync({
             file: uploadedFile,
             config: importConfigForGroup,
             periodId: periodId

@@ -3,8 +3,10 @@
  * 整合批处理器和权重进度计算器，提供统一的进度管理接口
  */
 
-import { SmartBatchProcessor, BatchProcessorConfig, BatchProcessorState } from './SmartBatchProcessor';
-import { WeightedProgressCalculator, ProgressPhase, ProgressSnapshot } from './WeightedProgressCalculator';
+import { SmartBatchProcessor } from './SmartBatchProcessor';
+import type { BatchProcessorConfig, BatchProcessorState } from './SmartBatchProcessor';
+import { WeightedProgressCalculator } from './WeightedProgressCalculator';
+import type { ProgressPhase, ProgressSnapshot } from './WeightedProgressCalculator';
 
 export interface EnhancedImportProgress {
   // 基本进度信息

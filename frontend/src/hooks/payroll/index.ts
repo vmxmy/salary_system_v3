@@ -14,7 +14,7 @@
 // 内部导入 - 用于 usePayrollManagement
 import { usePayroll as usePayrollHook } from './usePayroll';
 // import { usePayrollCalculation as useCalculationHook } from './usePayrollCalculation'; // 已删除
-import { usePayrollImportExport as useImportExportHook } from './usePayrollImportExport';
+import { usePayrollImportExport as useImportExportHook } from './import-export';
 import { usePayrollApproval as useApprovalHook } from './usePayrollApproval';
 import { usePayrollAnalytics as useAnalyticsHook } from './usePayrollAnalytics';
 
@@ -84,7 +84,7 @@ export {
   type ExcelDataRow,
   type FieldMappingAnalysis,
   type ColumnMatchResult
-} from './usePayrollImportExport';
+} from './import-export';
 
 // 审批流程 - 轻量级单级审批
 export {
@@ -150,8 +150,8 @@ export function usePayrollManagement(periodId?: string) {
     loading: {
       payrolls: payroll.loading.isLoading,
       // calculation: calculation.loading.batch, // 已删除
-      import: importExport.loading.import,
-      export: importExport.loading.export,
+      import: importExport.isImporting,
+      export: importExport.isExporting,
       approval: approval.loading.isProcessing
     },
     
@@ -166,8 +166,8 @@ export function usePayrollManagement(periodId?: string) {
       // preview: calculation.actions.preview,
       
       // 导入导出
-      importExcel: importExport.actions.importExcel,
-      exportExcel: importExport.actions.exportExcel,
+      importExcel: importExport.importExcel.mutate,
+      exportExcel: importExport.exportExcel.mutate,
       
       // 审批
       approve: approval.actions.approve,
