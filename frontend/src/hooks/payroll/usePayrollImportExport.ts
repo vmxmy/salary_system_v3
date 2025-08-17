@@ -95,7 +95,7 @@ export interface FieldMappingAnalysis {
 
 // 导入进度
 export interface ImportProgress {
-  phase: 'parsing' | 'validating' | 'importing' | 'completed' | 'error';
+  phase: 'parsing' | 'validating' | 'importing' | 'creating_payrolls' | 'inserting_items' | 'completed' | 'error';
   
   // 全局进度
   global: {
@@ -114,8 +114,13 @@ export interface ImportProgress {
     totalRecords: number;          // 当前工作表的总记录数
     processedRecords: number;      // 当前工作表已处理的记录数
     currentRecord?: number;        // 当前处理的记录行号
+    successCount?: number;         // 成功记录数
+    errorCount?: number;           // 错误记录数
     fieldMappingAnalysis?: FieldMappingAnalysis;  // 字段映射分析结果
   };
+  
+  // 进度消息
+  message?: string;                // 当前进度的文字描述
   
   errors: any[];
   warnings: any[];
@@ -780,7 +785,7 @@ export function usePayrollImportExport() {
     console.log(`🔰 薪资周期ID: ${periodId}`);
     console.log('📋 配置选项:', options);
     
-    const results = [];
+    const results: any[] = [];
     
     // 默认配置：导入所有收入项类别(basic_salary, benefits) + 个人所得税(personal_tax)
     const defaultCategories: SalaryComponentCategory[] = ['basic_salary', 'benefits', 'personal_tax'];
@@ -871,240 +876,318 @@ export function usePayrollImportExport() {
       console.warn('⚠️ 以下员工在数据库中不存在:', missingEmployees);
     }
     
-    console.log(`\n🔄 开始逐行处理 ${data.length} 条数据...`);
+    // 批量处理优化：先收集所有数据，然后批量插入
+    console.log(`\n🚀 开始批量处理 ${data.length} 条数据...`);
+    
+    // Step 1: 获取薪资周期信息（只查询一次）
+    console.log('🔍 查询薪资周期信息...');
+    const { data: period, error: periodError } = await supabase
+      .from('payroll_periods')
+      .select('pay_date, period_year, period_month')
+      .eq('id', periodId)
+      .single();
+    
+    if (periodError) {
+      console.error('❌ 查询薪资周期失败:', periodError);
+      throw new Error(`查询薪资周期失败: ${periodError.message}`);
+    }
+    
+    // 计算默认发薪日期
+    let defaultPayDate: string;
+    if (period?.pay_date) {
+      defaultPayDate = period.pay_date;
+    } else if (period?.period_year && period?.period_month) {
+      const lastDay = new Date(period.period_year, period.period_month, 0).getDate();
+      defaultPayDate = `${period.period_year}-${period.period_month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+    } else {
+      const now = new Date();
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      defaultPayDate = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+    }
+    console.log(`📅 默认发薪日期: ${defaultPayDate}`);
+    
+    // Step 2: 批量查询现有薪资记录
+    console.log('🔍 批量查询现有薪资记录...');
+    const employeeIds = [...employeeMap.values()].map(e => e.id);
+    const { data: existingPayrolls } = await supabase
+      .from('payrolls')
+      .select('id, employee_id')
+      .eq('period_id', periodId)
+      .in('employee_id', employeeIds);
+    
+    const existingPayrollMap = new Map(
+      (existingPayrolls || []).map(p => [p.employee_id, p.id])
+    );
+    console.log(`✅ 找到 ${existingPayrollMap.size} 条现有薪资记录`);
+    
+    // Step 3: 准备批量数据
+    const newPayrollsToInsert = [];
+    const allPayrollItems = [];
+    const errors: any[] = [];
     
     for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
       const row = data[rowIndex];
-      console.log(`\n--- 处理第 ${rowIndex + 1}/${data.length} 行数据 ---`);
-      console.log('📋 当前行数据:', row);
+      
+      // 更新进度
+      if (globalProgressRef) {
+        globalProgressRef.current++;
+        setImportProgress(prev => ({
+          ...prev,
+          global: {
+            ...prev.global,
+            processedRecords: globalProgressRef.current
+          },
+          current: {
+            ...prev.current,
+            processedRecords: rowIndex + 1,
+            successCount: rowIndex + 1 - errors.length,
+            errorCount: errors.length
+          },
+          phase: 'importing' as const,
+          message: `正在处理第 ${rowIndex + 1}/${data.length} 条记录...`
+        }));
+      }
+      
       try {
-        // 从映射表中查找员工（避免每次查询数据库）
+        // 从映射表中查找员工
         const employeeName = row['员工姓名'] || row['employee_name'];
-        console.log(`👤 查找员工: "${employeeName}"`);
-        
         const employee = employeeMap.get(employeeName);
         
         if (!employee) {
-          console.error(`❌ 未找到员工: "${employeeName}"`);
-          throw new Error(`找不到员工: ${employeeName}`);
+          errors.push({
+            row: rowIndex + 1,
+            message: `找不到员工: ${employeeName}`,
+            error: `找不到员工: ${employeeName}` // 保持向后兼容
+          });
+          continue;
         }
         
-        console.log(`✅ 找到员工: ${employee.employee_name} (ID: ${employee.id})`);
-        
-        // 查找或创建薪资记录
-        console.log('🔍 查找现有薪资记录...');
-        let payrollId;
-        const { data: existingPayroll, error: payrollSearchError } = await supabase
-          .from('payrolls')
-          .select('id')
-          .match({ 
-            employee_id: employee.id,
-            period_id: periodId
-          })
-          .single();
-        
-        if (payrollSearchError && payrollSearchError.code !== 'PGRST116') {
-          console.error('❌ 查找薪资记录时出错:', payrollSearchError);
-        }
-        
-        if (existingPayroll) {
-          payrollId = existingPayroll.id;
-          console.log(`✅ 找到现有薪资记录: ${payrollId}`);
-        } else {
-          console.log('🆕 需要创建新的薪资记录...');
-          
-          // 获取薪资周期的发薪日期
-          console.log('🔍 查询薪资周期信息...');
-          const { data: period, error: periodError } = await supabase
-            .from('payroll_periods')
-            .select('pay_date, period_year, period_month')
-            .eq('id', periodId)
-            .single();
-          
-          if (periodError) {
-            console.error('❌ 查询薪资周期失败:', periodError);
-            throw new Error(`查询薪资周期失败: ${periodError.message}`);
-          }
-          
-          console.log('✅ 薪资周期信息:', period);
-          
-          // 使用周期的发薪日期，如果没有则使用月末最后一天
-          let payDate: string;
-          if (period?.pay_date) {
-            payDate = period.pay_date;
-            console.log(`📅 使用周期设置的发薪日期: ${payDate}`);
-          } else if (period?.period_year && period?.period_month) {
-            // 计算该月最后一天作为默认发薪日期
-            const lastDay = new Date(period.period_year, period.period_month, 0).getDate();
-            payDate = `${period.period_year}-${period.period_month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
-            console.log(`📅 计算得出的发薪日期(月末): ${payDate}`);
-          } else {
-            // 最后的备选：当前月的最后一天
-            const now = new Date();
-            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            payDate = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
-            console.log(`📅 使用备选发薪日期(当前月末): ${payDate}`);
-          }
-          
-          // 只创建框架记录，不计算总额（由存储过程负责）
-          console.log('💾 创建新薪资记录...');
-          const payrollInsertData = {
-            employee_id: employee.id,
-            period_id: periodId,
-            pay_date: payDate,
-            status: 'draft' as const
-            // 不设置 gross_pay、total_deductions、net_pay
-            // 这些字段由存储过程计算
-          };
-          console.log('📋 薪资记录数据:', payrollInsertData);
-          
-          const { data: newPayroll, error: createError } = await supabase
-            .from('payrolls')
-            .insert(payrollInsertData)
-            .select()
-            .single();
-          
-          if (createError) {
-            console.error('❌ 创建薪资记录失败:', createError);
-            throw new Error(`创建薪资记录失败: ${createError.message}`);
-          }
-          
-          payrollId = newPayroll?.id;
-          console.log(`✅ 成功创建薪资记录: ${payrollId}`);
-        }
+        // 检查是否需要创建新的薪资记录
+        let payrollId = existingPayrollMap.get(employee.id);
         
         if (!payrollId) {
-          console.error('❌ 薪资记录ID为空');
-          throw new Error('无法创建薪资记录');
+          // 需要创建新记录，先收集起来
+          newPayrollsToInsert.push({
+            employee_id: employee.id,
+            period_id: periodId,
+            pay_date: defaultPayDate,
+            status: 'draft' as const,
+            _temp_row_index: rowIndex // 临时标记，用于后续关联
+          });
         }
         
-        console.log(`💰 开始处理薪资项 (薪资记录ID: ${payrollId})`);
-        
-        // 收集所有薪资项（动态匹配Excel列与数据库组件）
-        const payrollItems = [];
-        let matchedItemsCount = 0;
-        let skippedItemsCount = 0;
-        
-        console.log('🔍 分析Excel数据列...');
-        
-        // 遍历Excel数据的所有列，匹配薪资组件
+        // 收集薪资项数据（暂时不设置 payroll_id）
         for (const [columnName, value] of Object.entries(row)) {
           // 跳过非薪资项目列
-          if (columnName === '员工姓名' || columnName === 'employee_name' || 
-              columnName === '部门' || columnName === '职位' || 
-              columnName === 'rowNumber' || columnName === '_sheetName') {
-            console.log(`⏭️ 跳过非薪资列: ${columnName}`);
+          if (['员工姓名', 'employee_name', '部门', '职位', 'rowNumber', '_sheetName'].includes(columnName)) {
             continue;
           }
           
-          console.log(`🔍 处理列: ${columnName} = ${value}`);
-          
-          // 检查是否匹配数据库中的薪资组件
           const component = componentMap.get(columnName);
-          if (component) {
-            if (value && Number(value) !== 0) {
-              const amount = Math.abs(Number(value));
-              console.log(`✅ 匹配到薪资组件: ${columnName} (${component.category}/${component.type}) -> ${amount}`);
-              
-              const payrollItem = {
-                payroll_id: payrollId,
-                component_id: component.id,
-                amount: amount,
-                period_id: periodId
-              };
-              
-              payrollItems.push(payrollItem);
-              matchedItemsCount++;
-              console.log(`📝 添加薪资项:`, payrollItem);
-            } else {
-              console.log(`⚠️ 薪资组件 ${columnName} 值为空或为0，跳过`);
-              skippedItemsCount++;
-            }
-          } else {
-            console.log(`❌ 未匹配到薪资组件: ${columnName}`);
+          if (component && value && Number(value) !== 0) {
+            allPayrollItems.push({
+              _employee_id: employee.id, // 临时标记
+              _row_index: rowIndex,       // 临时标记
+              component_id: component.id,
+              amount: Math.abs(Number(value)),
+              period_id: periodId
+              // payroll_id 稍后填充
+            });
           }
         }
-        
-        console.log(`📊 薪资项统计:`);
-        console.log(`  - 匹配成功: ${matchedItemsCount} 项`);
-        console.log(`  - 跳过(空值): ${skippedItemsCount} 项`);
-        console.log(`  - 待插入: ${payrollItems.length} 项`);
-        
-        // 批量插入薪资项
-        if (payrollItems.length > 0) {
-          console.log('💾 批量插入薪资项...');
-          console.log('📋 插入数据:', payrollItems);
-          
-          const { error: insertError } = await supabase
-            .from('payroll_items' as any)
-            .insert(payrollItems);
-          
-          if (insertError) {
-            console.error('❌ 插入薪资项失败:', insertError);
-            
-            // 处理重复数据的友好提示
-            if (insertError.code === '23505' && insertError.message.includes('unique_payroll_item_component')) {
-              throw new Error(`该员工本月薪资数据已存在，请先删除原有数据再重新导入`);
-            }
-            
-            // 其他错误
-            throw new Error(`插入薪资项失败: ${insertError.message}`);
-          }
-          
-          console.log(`✅ 成功插入 ${payrollItems.length} 个薪资项`);
-          
-          // 不再更新总额，由存储过程计算
-          // 存储过程会基于 payroll_items 数据自动计算并更新 payrolls 表的总额字段
-        } else {
-          console.log('⚠️ 没有有效的薪资项需要插入');
-        }
-        
-        console.log(`✅ 第 ${rowIndex + 1} 行处理成功`);
-        results.push({ row, success: true });
         
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : '未知错误';
-        console.error(`❌ 第 ${rowIndex + 1} 行处理失败:`, errorMessage);
-        console.error('📋 失败的行数据:', row);
-        console.error('🔍 错误详情:', error);
-        
-        results.push({ 
-          row, 
-          success: false, 
-          error: errorMessage
+        errors.push({
+          row: rowIndex + 1,
+          message: errorMessage,
+          error: errorMessage // 保持向后兼容
         });
-      } finally {
-        // 更新全局进度和当前数据组进度
-        if (globalProgressRef) {
-          globalProgressRef.current++;
-          setImportProgress(prev => {
-            const newProgress = {
-              ...prev,
-              global: {
-                ...prev.global,
-                processedRecords: globalProgressRef.current
-              },
-              current: {
-                ...prev.current,
-                processedRecords: prev.current.processedRecords + 1
-              }
-            };
-            console.log(`📈 进度更新: 全局 ${globalProgressRef.current} / 当前组 ${newProgress.current.processedRecords}`);
-            return newProgress;
-          });
-        }
       }
     }
     
+    // Step 4: 批量插入新的薪资记录
+    let newPayrollMap = new Map();
+    if (newPayrollsToInsert.length > 0) {
+      console.log(`💾 批量创建 ${newPayrollsToInsert.length} 条新薪资记录...`);
+      
+      // 更新进度阶段
+      setImportProgress(prev => ({
+        ...prev,
+        phase: 'creating_payrolls' as const,
+        message: `正在创建薪资记录...`
+      }));
+      
+      // 分批插入（每批500条）
+      const chunkSize = 500;
+      let createdCount = 0;
+      for (let i = 0; i < newPayrollsToInsert.length; i += chunkSize) {
+        const chunk = newPayrollsToInsert.slice(i, i + chunkSize);
+        
+        // 移除临时字段
+        const cleanChunk = chunk.map(({ _temp_row_index, ...rest }) => rest);
+        
+        const { data: insertedPayrolls, error: insertError } = await supabase
+          .from('payrolls')
+          .insert(cleanChunk)
+          .select('id, employee_id');
+        
+        if (insertError) {
+          console.error('❌ 批量创建薪资记录失败:', insertError);
+          throw new Error(`批量创建薪资记录失败: ${insertError.message}`);
+        }
+        
+        // 更新映射
+        (insertedPayrolls || []).forEach(p => {
+          newPayrollMap.set(p.employee_id, p.id);
+        });
+        
+        // 更新创建进度
+        createdCount += chunk.length;
+        setImportProgress(prev => ({
+          ...prev,
+          message: `已创建 ${createdCount}/${newPayrollsToInsert.length} 条薪资记录`
+        }));
+      }
+      
+      console.log(`✅ 成功创建 ${newPayrollMap.size} 条薪资记录`);
+    }
+    
+    // Step 5: 为薪资项填充 payroll_id
+    const finalPayrollItems = allPayrollItems.map(item => {
+      const payrollId = existingPayrollMap.get(item._employee_id) || 
+                       newPayrollMap.get(item._employee_id);
+      
+      if (!payrollId) {
+        console.warn(`⚠️ 无法找到员工 ${item._employee_id} 的薪资记录`);
+        return null;
+      }
+      
+      // 移除临时字段，添加 payroll_id
+      const { _employee_id, _row_index, ...rest } = item;
+      return {
+        ...rest,
+        payroll_id: payrollId
+      };
+    }).filter(Boolean);
+    
+    // Step 6: 批量插入薪资项
+    if (finalPayrollItems.length > 0) {
+      console.log(`💾 批量插入 ${finalPayrollItems.length} 个薪资项...`);
+      
+      // 更新进度阶段
+      setImportProgress(prev => ({
+        ...prev,
+        phase: 'inserting_items' as const,
+        message: `正在插入薪资项目...`
+      }));
+      
+      // 分批插入（每批1000条）
+      const chunkSize = 1000;
+      let totalInserted = 0;
+      
+      for (let i = 0; i < finalPayrollItems.length; i += chunkSize) {
+        const chunk = finalPayrollItems.slice(i, i + chunkSize);
+        
+        const { error: insertError } = await supabase
+          .from('payroll_items' as any)
+          .insert(chunk);
+        
+        if (insertError) {
+          // 处理重复数据的友好提示
+          if (insertError.code === '23505' && insertError.message.includes('unique_payroll_item_component')) {
+            console.warn(`⚠️ 批次 ${Math.floor(i / chunkSize) + 1} 包含重复数据，尝试使用 upsert`);
+            
+            // 改用 upsert 模式
+            const { error: upsertError } = await supabase
+              .from('payroll_items' as any)
+              .upsert(chunk, {
+                onConflict: 'payroll_id,component_id',
+                ignoreDuplicates: false // 更新已存在的记录
+              });
+            
+            if (upsertError) {
+              console.error('❌ Upsert 失败:', upsertError);
+              errors.push({
+                row: 0,
+                message: `薪资项插入失败: ${upsertError.message}`,
+                error: `薪资项插入失败: ${upsertError.message}` // 保持向后兼容
+              });
+              continue;
+            }
+          } else {
+            console.error('❌ 批量插入薪资项失败:', insertError);
+            errors.push({
+              row: 0,
+              message: `薪资项插入失败: ${insertError.message}`,
+              error: `薪资项插入失败: ${insertError.message}` // 保持向后兼容
+            });
+            continue;
+          }
+        }
+        
+        totalInserted += chunk.length;
+        console.log(`✅ 已插入 ${totalInserted}/${finalPayrollItems.length} 个薪资项`);
+        
+        // 更新插入进度
+        setImportProgress(prev => ({
+          ...prev,
+          message: `已插入 ${totalInserted}/${finalPayrollItems.length} 个薪资项`
+        }));
+      }
+      
+      console.log(`✅ 成功插入所有薪资项`);
+    }
+    
+    // Step 7: 返回结果
+    const preliminarySuccessCount = data.length - errors.length;
+    console.log(`\n📊 导入完成统计:`);
+    console.log(`  ✅ 成功: ${preliminarySuccessCount} 条`);
+    console.log(`  ❌ 失败: ${errors.length} 条`);
+    
+    if (errors.length > 0) {
+      console.log('❌ 错误详情:');
+      errors.forEach(e => {
+        console.log(`  - 第 ${e.row} 行: ${e.message || e.error}`);
+      });
+    }
+    
+    // 构建返回结果
+    data.forEach((row, index) => {
+      const hasError = errors.find(e => e.row === index + 1);
+      if (hasError) {
+        results.push({ 
+          row, 
+          success: false, 
+          error: hasError.message || hasError.error // 使用message字段，向后兼容error字段
+        });
+      } else {
+        results.push({ row, success: true });
+      }
+    });
+    
     // 最终统计
-    const successCount = results.filter(r => r.success).length;
+    const finalSuccessCount = results.filter(r => r.success).length;
     const failureCount = results.filter(r => !r.success).length;
     
     console.log('\n📊 薪资项目导入完成统计:');
-    console.log(`✅ 成功: ${successCount} 条`);
+    console.log(`✅ 成功: ${finalSuccessCount} 条`);
     console.log(`❌ 失败: ${failureCount} 条`);
     console.log(`📊 总计: ${results.length} 条`);
-    console.log(`📈 成功率: ${((successCount / results.length) * 100).toFixed(1)}%`);
+    console.log(`📈 成功率: ${((finalSuccessCount / results.length) * 100).toFixed(1)}%`);
+    
+    // 更新最终进度状态
+    setImportProgress(prev => ({
+      ...prev,
+      phase: 'completed' as const,
+      message: `导入完成: 成功 ${finalSuccessCount} 条，失败 ${failureCount} 条`,
+      current: {
+        ...prev.current,
+        processedRecords: results.length,
+        successCount: finalSuccessCount,
+        errorCount: failureCount
+      }
+    }));
     
     if (failureCount > 0) {
       console.log('\n❌ 失败详情:');
@@ -1135,7 +1218,7 @@ export function usePayrollImportExport() {
     periodId: string,
     globalProgressRef?: { current: number }
   ) => {
-    const results = [];
+    const results: any[] = [];
     
     for (const row of data) {
       try {
@@ -1231,178 +1314,230 @@ export function usePayrollImportExport() {
     return results;
   }, []);
 
-  // 导入人员类别分配
+  // 导入人员类别分配（使用批量插入优化）
   const importCategoryAssignments = useCallback(async (
     data: ExcelDataRow[],
     periodId: string,
     globalProgressRef?: { current: number }
   ) => {
-    console.log('🔍 开始导入人员类别分配');
+    console.log('🔍 开始导入人员类别分配（批量优化版）');
     console.log('📊 数据行数:', data.length);
     console.log('📋 第一行数据示例:', data[0]);
     
-    const results = [];
+    const results: any[] = [];
+    const errors: any[] = [];
     
-    for (const row of data) {
+    // Step 1: 批量预加载所有需要的数据
+    console.log('\n🚀 批量预加载相关数据...');
+    
+    // 预加载所有员工
+    const employeeNames = [...new Set(data.map(row => 
+      row['员工姓名'] || row['姓名'] || row['employee_name'] || row['name']
+    ).filter(Boolean))];
+    
+    console.log(`📊 需要查询的员工数量: ${employeeNames.length}`);
+    const { data: allEmployees } = await supabase
+      .from('employees')
+      .select('id, employee_name')
+      .in('employee_name', employeeNames);
+    
+    const employeeMap = new Map((allEmployees || []).map(emp => [emp.employee_name, emp]));
+    console.log(`✅ 预加载 ${employeeMap.size} 个员工数据`);
+    
+    // 预加载所有人员类别
+    const categoryNames = [...new Set(data.map(row => 
+      row['人员类别名称'] || row['人员类别'] || row['类别']
+    ).filter(Boolean))];
+    
+    console.log(`📊 需要查询的类别数量: ${categoryNames.length}`);
+    const { data: allCategories } = await supabase
+      .from('employee_categories')
+      .select('id, name')
+      .in('name', categoryNames);
+    
+    const categoryMap = new Map((allCategories || []).map(cat => [cat.name, cat]));
+    console.log(`✅ 预加载 ${categoryMap.size} 个类别数据`);
+    
+    // 预加载现有分配记录
+    const employeeIds = Array.from(employeeMap.values()).map(emp => emp.id);
+    const { data: existingAssignments } = await supabase
+      .from('employee_category_assignments')
+      .select('id, employee_id')
+      .in('employee_id', employeeIds)
+      .eq('period_id', periodId);
+    
+    const existingMap = new Map((existingAssignments || []).map(a => [a.employee_id, a]));
+    console.log(`✅ 找到 ${existingMap.size} 条现有分配记录`);
+    
+    // Step 2: 准备批量数据
+    console.log('\n📋 准备批量插入/更新数据...');
+    const toInsert = [];
+    const toUpdate = [];
+    
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      
       try {
-        console.log('➡️ 处理行:', row);
-        
-        // 查找员工姓名（尝试多个可能的字段名）
-        const employeeName = row['员工姓名'] || row['姓名'] || row['employee_name'] || row['name'];
-        console.log('👤 员工姓名:', employeeName);
-        
-        if (!employeeName) {
-          console.error('❌ 缺少员工姓名，可用字段:', Object.keys(row));
-          throw new Error('缺少员工姓名');
-        }
-        
         // 查找员工
-        const { data: employee, error: employeeError } = await supabase
-          .from('employees')
-          .select('id, employee_name')
-          .eq('employee_name', employeeName)
-          .single();
-        
-        if (employeeError) {
-          console.error('❌ 查找员工失败:', employeeError);
-          throw new Error(`找不到员工: ${employeeName}`);
+        const employeeName = row['员工姓名'] || row['姓名'] || row['employee_name'] || row['name'];
+        if (!employeeName) {
+          throw new Error(`第 ${i + 1} 行: 缺少员工姓名`);
         }
         
-        console.log('✅ 找到员工:', employee);
+        const employee = employeeMap.get(employeeName);
+        if (!employee) {
+          throw new Error(`第 ${i + 1} 行: 找不到员工 ${employeeName}`);
+        }
         
-        // 简化：只使用人员类别名称字段
+        // 查找类别
         const categoryName = row['人员类别名称'] || row['人员类别'] || row['类别'];
-        console.log('📁 人员类别:', categoryName);
-        console.log('📝 可用字段:', Object.keys(row));
-        
         if (!categoryName) {
-          console.error('❌ 缺少人员类别名称，可用字段:', Object.keys(row));
-          throw new Error('人员类别名称不能为空，请确保Excel中有"人员类别名称"字段');
+          throw new Error(`第 ${i + 1} 行: 缺少人员类别`);
         }
         
-        // 查找人员类别
-        console.log('🔎 查询人员类别表...');
-        const { data: category, error: categoryError } = await supabase
-          .from('employee_categories')
-          .select('id, name')
-          .eq('name', categoryName)
-          .single();
-        
-        if (categoryError) {
-          console.error('❌ 查找人员类别失败:', categoryError);
-          console.log('💡 尝试查询所有可用类别...');
-          
-          const { data: allCategories } = await supabase
-            .from('employee_categories')
-            .select('id, name');
-          
-          console.log('📝 可用的人员类别:', allCategories?.map(c => c.name));
-          throw new Error(`找不到人员类别: ${categoryName}`);
+        const category = categoryMap.get(categoryName);
+        if (!category) {
+          throw new Error(`第 ${i + 1} 行: 找不到人员类别 ${categoryName}`);
         }
         
-        console.log('✅ 找到人员类别:', category);
+        // 检查是否需要更新
+        const existing = existingMap.get(employee.id);
         
-        // 准备分配数据
-        const assignmentData = {
-          employee_id: employee.id,
-          employee_category_id: category.id,
-          period_id: periodId // 添加周期ID以跟踪
-          // created_at 字段会自动设置
-        };
-        
-        console.log('📤 准备插入/更新数据:', assignmentData);
-        
-        // 检查是否已存在该员工在当前期间的类别分配
-        const { data: existingAssignment } = await supabase
-          .from('employee_category_assignments')
-          .select('id')
-          .eq('employee_id', employee.id)
-          .eq('period_id', periodId)
-          .maybeSingle();
-
-        let insertedData;
-        let error;
-
-        if (existingAssignment) {
-          // 如果已存在，更新现有记录
-          console.log('📝 更新现有分配记录:', existingAssignment.id);
-          const { data, error: updateError } = await supabase
-            .from('employee_category_assignments')
-            .update({
-              employee_category_id: category.id
-            })
-            .eq('id', existingAssignment.id)
-            .select();
-          
-          insertedData = data;
-          error = updateError;
+        if (existing) {
+          toUpdate.push({
+            id: existing.id,
+            employee_category_id: category.id
+          });
         } else {
-          // 如果不存在，插入新记录
-          console.log('➕ 插入新的分配记录');
-          const { data, error: insertError } = await supabase
-            .from('employee_category_assignments')
-            .insert(assignmentData)
-            .select();
-          
-          insertedData = data;
-          error = insertError;
+          toInsert.push({
+            employee_id: employee.id,
+            employee_category_id: category.id,
+            period_id: periodId
+          });
         }
-        
-        if (error) {
-          console.error('❌ 插入/更新失败:', error);
-          throw error;
-        }
-        
-        console.log('✅ 成功插入/更新:', insertedData);
-        results.push({ row, success: true });
         
       } catch (error) {
-        console.error('❌ 处理失败:', error);
-        results.push({ 
-          row, 
-          success: false, 
-          error: error instanceof Error ? error.message : '未知错误' 
+        errors.push({
+          row: i + 1,
+          message: error instanceof Error ? error.message : '未知错误',
+          data: row
         });
-      } finally {
-        // 更新全局进度和当前数据组进度
-        if (globalProgressRef) {
-          globalProgressRef.current++;
-          setImportProgress(prev => ({
-            ...prev,
-            global: {
-              ...prev.global,
-              processedRecords: globalProgressRef.current
-            },
-            current: {
-              ...prev.current,
-              processedRecords: prev.current.processedRecords + 1
-            }
-          }));
+      }
+      
+      // 更新进度
+      if (globalProgressRef) {
+        globalProgressRef.current++;
+        setImportProgress(prev => ({
+          ...prev,
+          global: {
+            ...prev.global,
+            processedRecords: globalProgressRef.current
+          },
+          current: {
+            ...prev.current,
+            processedRecords: i + 1
+          }
+        }));
+      }
+    }
+    
+    // Step 3: 执行批量操作
+    console.log('\n🚀 执行批量数据库操作...');
+    console.log(`📊 待插入: ${toInsert.length} 条, 待更新: ${toUpdate.length} 条`);
+    
+    // 批量插入新记录（每批 500 条）
+    if (toInsert.length > 0) {
+      const insertChunkSize = 500;
+      for (let i = 0; i < toInsert.length; i += insertChunkSize) {
+        const chunk = toInsert.slice(i, i + insertChunkSize);
+        console.log(`💾 插入第 ${Math.floor(i / insertChunkSize) + 1} 批，共 ${chunk.length} 条`);
+        
+        const { error: insertError } = await supabase
+          .from('employee_category_assignments')
+          .insert(chunk);
+        
+        if (insertError) {
+          console.error('❌ 批量插入失败:', insertError);
+          chunk.forEach(() => {
+            errors.push({
+              message: `批量插入失败: ${insertError.message}`
+            });
+          });
         }
       }
     }
     
-    console.log('📊 导入完成，结果统计:');
-    console.log('✅ 成功:', results.filter(r => r.success).length);
-    console.log('❌ 失败:', results.filter(r => !r.success).length);
+    // 批量更新现有记录
+    if (toUpdate.length > 0) {
+      console.log(`📝 批量更新 ${toUpdate.length} 条记录`);
+      // Supabase 不支持批量更新，需要逐条更新
+      // 但可以使用 Promise.all 并行执行
+      const updatePromises = toUpdate.map(item => 
+        supabase
+          .from('employee_category_assignments')
+          .update({ employee_category_id: item.employee_category_id })
+          .eq('id', item.id)
+      );
+      
+      const updateResults = await Promise.allSettled(updatePromises);
+      updateResults.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          errors.push({
+            message: `更新失败: ${result.reason}`
+          });
+        }
+      });
+    }
+    
+    // Step 4: 构建返回结果
+    data.forEach((row, index) => {
+      const hasError = errors.find(e => e.row === index + 1);
+      if (hasError) {
+        results.push({ 
+          row, 
+          success: false, 
+          error: hasError.message 
+        });
+      } else {
+        results.push({ row, success: true });
+      }
+    });
+    
+    // 统计结果
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+    
+    console.log('\n📊 人员类别导入完成统计:');
+    console.log(`✅ 成功: ${successCount} 条`);
+    console.log(`❌ 失败: ${failCount} 条`);
+    console.log(`📊 总计: ${results.length} 条`);
+    console.log(`📈 成功率: ${((successCount / results.length) * 100).toFixed(1)}%`);
+    
+    if (failCount > 0) {
+      console.log('\n❌ 失败详情:');
+      errors.forEach((error, index) => {
+        console.log(`${index + 1}. ${error.message}`);
+      });
+    }
     
     return results;
   }, []);
 
-  // 导入岗位分配数据
+  // 导入岗位分配数据（使用批量插入优化）
   const importJobAssignments = useCallback(async (
     data: ExcelDataRow[],
     periodId: string,
     globalProgressRef?: { current: number }
   ) => {
-    console.log('🏢 开始导入职务分配数据');
+    console.log('🏢 开始导入职务分配数据（批量优化版）');
     console.log(`📊 数据行数: ${data.length}`);
     console.log(`🆔 周期ID: ${periodId}`);
     console.log('📋 原始数据预览:', data.slice(0, 3));
     
-    const results = [];
+    const results: any[] = [];
+    const errors: any[] = [];
     
-    // 批量查询优化：预先加载所有相关数据
+    // Step 1: 批量预加载所有相关数据
     console.log('\n🚀 批量预加载职务分配相关数据...');
     
     // 1. 预加载所有员工
@@ -1464,174 +1599,145 @@ export function usePayrollImportExport() {
       console.log(`✅ 预加载 ${rankMap.size} 个职级数据`);
     }
     
-    console.log('\n🔄 开始逐行处理数据...');
+    // Step 2: 准备批量数据
+    console.log('\n📋 准备批量插入数据...');
+    const toInsert = [];
     
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
-      console.log(`\n--- 处理第 ${i + 1}/${data.length} 行数据 ---`);
-      console.log('🔍 当前行数据:', row);
       
       try {
-        // 从映射表中查找员工（避免每次查询数据库）
+        // 查找员工
         const employeeName = row['员工姓名'] || row['employee_name'];
-        console.log(`👤 查找员工: "${employeeName}"`);
-        
-        const employee = employeeMap.get(employeeName);
-        
-        if (!employee) {
-          throw new Error(`找不到员工: ${employeeName}`);
+        if (!employeeName) {
+          throw new Error(`第 ${i + 1} 行: 缺少员工姓名`);
         }
         
-        console.log(`✅ 员工找到: ${employee.employee_name} (ID: ${employee.id})`);
+        const employee = employeeMap.get(employeeName);
+        if (!employee) {
+          throw new Error(`第 ${i + 1} 行: 找不到员工 ${employeeName}`);
+        }
         
         // 准备岗位分配数据
         const assignmentData: any = {
           employee_id: employee.id,
-          period_id: periodId,  // 使用正确的字段名 period_id
+          period_id: periodId,
+          created_at: new Date().toISOString()
         };
         
-        console.log('🏗️ 初始分配数据:', assignmentData);
-        
-        // 处理创建时间 - 支持Excel中的创建时间字段
+        // 处理Excel中的创建时间（如果有）
         const excelCreatedAt = row['创建时间'] || row['created_at'] || row['创建日期'];
-        console.log(`📅 Excel创建时间: "${excelCreatedAt}"`);
-        
         if (excelCreatedAt) {
           try {
-            // 尝试解析Excel中的时间格式
             const parsedDate = new Date(excelCreatedAt);
             if (!isNaN(parsedDate.getTime())) {
               assignmentData.created_at = parsedDate.toISOString();
-              console.log(`✅ 使用Excel时间: ${assignmentData.created_at}`);
-            } else {
-              // 如果解析失败，使用当前时间
-              assignmentData.created_at = new Date().toISOString();
-              console.log(`⚠️ Excel时间解析失败，使用当前时间: ${assignmentData.created_at}`);
             }
           } catch {
-            assignmentData.created_at = new Date().toISOString();
-            console.log(`❌ Excel时间解析异常，使用当前时间: ${assignmentData.created_at}`);
+            // 使用默认时间
           }
-        } else {
-          assignmentData.created_at = new Date().toISOString();
-          console.log(`ℹ️ 无Excel时间，使用当前时间: ${assignmentData.created_at}`);
         }
         
-        // 从映射表中查找部门（避免每次查询数据库）
+        // 查找部门
         const departmentName = row['部门'] || row['department_name'];
-        console.log(`🏢 查找部门: "${departmentName}"`);
-        
         if (departmentName) {
           const department = departmentMap.get(departmentName);
-          
-          if (department) {
-            assignmentData.department_id = department.id;
-            console.log(`✅ 部门找到: ${department.name} (ID: ${department.id})`);
-          } else {
-            console.log(`❌ 未找到部门: "${departmentName}"`);
+          if (!department) {
+            throw new Error(`第 ${i + 1} 行: 找不到部门 ${departmentName}`);
           }
+          assignmentData.department_id = department.id;
         } else {
-          console.log('⚠️ 未提供部门信息');
+          throw new Error(`第 ${i + 1} 行: 缺少部门信息`);
         }
         
-        // 从映射表中查找职位（避免每次查询数据库）
+        // 查找职位
         const positionName = row['职位'] || row['position_name'];
-        console.log(`💼 查找职位: "${positionName}"`);
-        
         if (positionName) {
           const position = positionMap.get(positionName);
-          
-          if (position) {
-            assignmentData.position_id = position.id;
-            console.log(`✅ 职位找到: ${position.name} (ID: ${position.id})`);
-          } else {
-            console.log(`❌ 未找到职位: "${positionName}"`);
+          if (!position) {
+            throw new Error(`第 ${i + 1} 行: 找不到职位 ${positionName}`);
           }
+          assignmentData.position_id = position.id;
         } else {
-          console.log('⚠️ 未提供职位信息');
+          throw new Error(`第 ${i + 1} 行: 缺少职位信息`);
         }
         
-        // 从映射表中查找职级（避免每次查询数据库）
+        // 查找职级（可选）
         const rankName = row['职级'] || row['rank_name'];
-        console.log(`🎖️ 查找职级: "${rankName}"`);
-        
         if (rankName) {
           const rank = rankMap.get(rankName);
-          
           if (rank) {
             assignmentData.rank_id = rank.id;
-            console.log(`✅ 职级找到: ${rank.name} (ID: ${rank.id})`);
-          } else {
-            console.log(`❌ 未找到职级: "${rankName}"`);
           }
-        } else {
-          console.log('ℹ️ 未提供职级信息（可选）');
         }
         
-        console.log('🔧 最终分配数据:', assignmentData);
-        
-        // 验证必需字段
-        console.log('🔍 验证必需字段...');
-        if (!assignmentData.department_id) {
-          console.error(`❌ 缺少部门ID: 部门名称="${departmentName}"`);
-          throw new Error(`缺少部门信息: ${departmentName || '未提供部门'}`);
-        }
-        
-        if (!assignmentData.position_id) {
-          console.error(`❌ 缺少职位ID: 职位名称="${positionName}"`);
-          throw new Error(`缺少职位信息: ${positionName || '未提供职位'}`);
-        }
-        
-        console.log('✅ 必需字段验证通过');
-        
-        // 插入岗位分配记录
-        console.log('💾 插入职务分配记录...');
-        console.log('📋 插入数据详情:', assignmentData);
-        
-        const { data: insertResult, error } = await supabase
-          .from('employee_job_history')
-          .insert(assignmentData)
-          .select();
-        
-        if (error) {
-          console.error('❌ 职务分配插入错误:', error);
-          console.error('📋 导致错误的数据:', assignmentData);
-          throw error;
-        }
-        
-        console.log('✅ 职务分配插入成功:', insertResult);
-        results.push({ row, success: true, data: insertResult });
+        toInsert.push(assignmentData);
         
       } catch (error) {
-        console.error(`❌ 第 ${i + 1} 行处理失败:`, error);
-        console.error('📋 失败的行数据:', row);
-        
-        results.push({ 
-          row, 
-          success: false, 
-          error: error instanceof Error ? error.message : '未知错误' 
+        errors.push({
+          row: i + 1,
+          message: error instanceof Error ? error.message : '未知错误',
+          data: row
         });
-      } finally {
-        // 更新全局进度和当前数据组进度
-        if (globalProgressRef) {
-          globalProgressRef.current++;
-          console.log(`📈 进度更新: ${globalProgressRef.current} / ${data.length}`);
-          setImportProgress(prev => ({
-            ...prev,
-            global: {
-              ...prev.global,
-              processedRecords: globalProgressRef.current
-            },
-            current: {
-              ...prev.current,
-              processedRecords: prev.current.processedRecords + 1
-            }
-          }));
+      }
+      
+      // 更新进度
+      if (globalProgressRef) {
+        globalProgressRef.current++;
+        setImportProgress(prev => ({
+          ...prev,
+          global: {
+            ...prev.global,
+            processedRecords: globalProgressRef.current
+          },
+          current: {
+            ...prev.current,
+            processedRecords: i + 1
+          }
+        }));
+      }
+    }
+    
+    // Step 3: 执行批量插入
+    console.log('\n🚀 执行批量数据库操作...');
+    console.log(`📊 待插入: ${toInsert.length} 条`);
+    
+    if (toInsert.length > 0) {
+      const insertChunkSize = 500;
+      for (let i = 0; i < toInsert.length; i += insertChunkSize) {
+        const chunk = toInsert.slice(i, i + insertChunkSize);
+        console.log(`💾 插入第 ${Math.floor(i / insertChunkSize) + 1} 批，共 ${chunk.length} 条`);
+        
+        const { error: insertError } = await supabase
+          .from('employee_job_history')
+          .insert(chunk);
+        
+        if (insertError) {
+          console.error('❌ 批量插入失败:', insertError);
+          chunk.forEach(() => {
+            errors.push({
+              message: `批量插入失败: ${insertError.message}`
+            });
+          });
         }
       }
     }
     
-    // 导入结果统计
+    // Step 4: 构建返回结果
+    data.forEach((row, index) => {
+      const hasError = errors.find(e => e.row === index + 1);
+      if (hasError) {
+        results.push({ 
+          row, 
+          success: false, 
+          error: hasError.message 
+        });
+      } else {
+        results.push({ row, success: true });
+      }
+    });
+    
+    // 统计结果
     const successCount = results.filter(r => r.success).length;
     const failCount = results.filter(r => !r.success).length;
     
@@ -1639,11 +1745,12 @@ export function usePayrollImportExport() {
     console.log(`✅ 成功: ${successCount} 条`);
     console.log(`❌ 失败: ${failCount} 条`);
     console.log(`📊 总计: ${results.length} 条`);
+    console.log(`📈 成功率: ${((successCount / results.length) * 100).toFixed(1)}%`);
     
     if (failCount > 0) {
       console.log('\n❌ 失败详情:');
-      results.filter(r => !r.success).forEach((result, index) => {
-        console.log(`${index + 1}. ${result.error} - 数据:`, result.row);
+      errors.forEach((error, index) => {
+        console.log(`${index + 1}. ${error.message}`);
       });
     }
     
@@ -1656,7 +1763,7 @@ export function usePayrollImportExport() {
     periodId: string,
     globalProgressRef?: { current: number }
   ) => {
-    const results = [];
+    const results: any[] = [];
     
     for (const row of data) {
       try {
@@ -2290,10 +2397,12 @@ export function usePayrollImportExport() {
 
       // 获取导入阶段描述
       getPhaseDescription: (phase: ImportProgress['phase']) => {
-        const descriptions = {
+        const descriptions: Record<ImportProgress['phase'], string> = {
           parsing: '正在解析文件...',
           validating: '正在验证数据...',
           importing: '正在导入数据...',
+          creating_payrolls: '正在创建薪资记录...',
+          inserting_items: '正在插入薪资项...',
           completed: '导入完成',
           error: '导入失败'
         };
