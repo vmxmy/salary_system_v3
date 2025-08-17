@@ -464,6 +464,13 @@ export type Database = {
             foreignKeyName: "employee_category_assignments_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "employee_category_assignments_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
           },
@@ -622,6 +629,13 @@ export type Database = {
             columns: ["period_id"]
             isOneToOne: false
             referencedRelation: "view_insurance_base_monthly_summary"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "employee_contribution_bases_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
             referencedColumns: ["period_id"]
           },
           {
@@ -977,6 +991,13 @@ export type Database = {
             foreignKeyName: "employee_job_history_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "employee_job_history_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
           },
@@ -1055,6 +1076,13 @@ export type Database = {
             columns: ["period_id"]
             isOneToOne: false
             referencedRelation: "view_insurance_base_monthly_summary"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "employee_special_deductions_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
             referencedColumns: ["period_id"]
           },
           {
@@ -1528,6 +1556,13 @@ export type Database = {
             foreignKeyName: "import_logs_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "import_logs_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
           },
@@ -1748,6 +1783,13 @@ export type Database = {
             columns: ["period_id"]
             isOneToOne: false
             referencedRelation: "view_insurance_base_monthly_summary"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "insurance_calculation_logs_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
             referencedColumns: ["period_id"]
           },
           {
@@ -2137,6 +2179,13 @@ export type Database = {
             foreignKeyName: "payroll_items_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "payroll_items_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
           },
@@ -2338,6 +2387,13 @@ export type Database = {
             foreignKeyName: "payrolls_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
           },
@@ -2485,6 +2541,13 @@ export type Database = {
             columns: ["period_id"]
             isOneToOne: false
             referencedRelation: "view_insurance_base_monthly_summary"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "personal_income_tax_calculation_logs_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
             referencedColumns: ["period_id"]
           },
           {
@@ -3288,6 +3351,13 @@ export type Database = {
             foreignKeyName: "payrolls_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
           },
@@ -3720,6 +3790,13 @@ export type Database = {
             columns: ["period_id"]
             isOneToOne: false
             referencedRelation: "view_insurance_base_monthly_summary"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "employee_contribution_bases_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
             referencedColumns: ["period_id"]
           },
           {
@@ -4175,10 +4252,43 @@ export type Database = {
             foreignKeyName: "payrolls_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
           },
         ]
+      }
+      view_payroll_period_completeness: {
+        Row: {
+          bases_count: number | null
+          bases_percentage: number | null
+          bases_status: string | null
+          category_count: number | null
+          category_percentage: number | null
+          category_status: string | null
+          complete_employees_count: number | null
+          earnings_count: number | null
+          earnings_percentage: number | null
+          earnings_status: string | null
+          job_count: number | null
+          job_percentage: number | null
+          job_status: string | null
+          metadata_status: string | null
+          overall_completeness_percentage: number | null
+          period_id: string | null
+          period_month: number | null
+          period_name: string | null
+          period_status: string | null
+          period_year: number | null
+          total_employees: number | null
+        }
+        Relationships: []
       }
       view_payroll_period_estimation: {
         Row: {
@@ -4295,6 +4405,13 @@ export type Database = {
             columns: ["period_id"]
             isOneToOne: false
             referencedRelation: "view_insurance_base_monthly_summary"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
             referencedColumns: ["period_id"]
           },
           {

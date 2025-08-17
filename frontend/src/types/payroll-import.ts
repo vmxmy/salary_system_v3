@@ -46,6 +46,8 @@ export interface ExcelDataRow {
   employeeCode?: string;      // 员工编号
   employeeName?: string;      // 员工姓名
   idNumber?: string;          // 身份证号
+  _sheetName?: string;        // 来源工作表名称（内部字段）
+  _dataType?: ImportDataGroup; // 数据类型（内部字段）
   [key: string]: any;         // 动态字段
 }
 

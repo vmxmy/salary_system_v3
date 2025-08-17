@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { TemplateDownloader } from './TemplateDownloader';
 import { HistoryDataExporter } from './HistoryDataExporter';
 import { ImportDataGroup, ImportMode } from '@/types/payroll-import';
@@ -7,22 +8,37 @@ import { usePayrollImportExport } from '@/hooks/payroll/usePayrollImportExport';
 import { DataGroupSelector } from '@/components/common/DataGroupSelector';
 import { DataGroupSelectAllController } from '@/components/common/DataGroupSelectAllController';
 import { MonthPicker } from '@/components/common/MonthPicker';
-import { useAvailablePayrollMonths } from '@/hooks/payroll';
+import { useAvailablePayrollMonths, usePayrollPeriod } from '@/hooks/payroll';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 import { DownloadIcon, UploadIcon, FolderIcon, CheckCircleIcon, CloseIcon } from '@/components/common/Icons';
+import { PayrollElement } from '@/types/payroll-completeness';
 
 export const PayrollImportPage: React.FC = () => {
+  const location = useLocation();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
-  const { mutations, resetImportProgress } = usePayrollImportExport();
+  const { mutations, importProgress: hookProgress, resetImportProgress, utils } = usePayrollImportExport();
   const { data: availableMonths } = useAvailablePayrollMonths(true);
+  const { actions: periodActions } = usePayrollPeriod();
   const [activeTab, setActiveTab] = useState<'template' | 'import' | 'export'>('template');
   const [importing, setImporting] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ExcelDataRow[]>([]);
   const [selectedDataGroups, setSelectedDataGroups] = useState<ImportDataGroup[]>([]);
+  
+  // 从路由状态获取参数
+  const locationState = location.state as { 
+    selectedMonth?: string; 
+    selectedPeriodId?: string; 
+    targetElement?: PayrollElement;
+  } | null;
+  
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    // 优先使用路由传递的月份
+    if (locationState?.selectedMonth) {
+      return locationState.selectedMonth;
+    }
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
@@ -41,14 +57,11 @@ export const PayrollImportPage: React.FC = () => {
   });
   const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(() => {
+    // 优先使用路由传递的周期ID
+    return locationState?.selectedPeriodId || null;
+  });
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [importProgress, setImportProgress] = useState<{
-    current: number;
-    total: number;
-    currentGroup: string;
-    percentage: number;
-  }>({ current: 0, total: 0, currentGroup: '', percentage: 0 });
   const [failedRows, setFailedRows] = useState<ExcelDataRow[]>([]);
   const [retryMode, setRetryMode] = useState(false);
   const [parseResult, setParseResult] = useState<{
@@ -74,48 +87,70 @@ export const PayrollImportPage: React.FC = () => {
       missingInSheets: { employee: string; sheets: string[] }[];
     };
     warnings: string[];
+    hasErrors: boolean;
+    errors: string[];
   } | null>(null);
+
+  // 根据传入的目标要素自动选择数据组并切换到导入页签
+  useEffect(() => {
+    if (locationState?.targetElement) {
+      // 映射要素到数据组
+      const elementToDataGroup: Record<string, ImportDataGroup[]> = {
+        [PayrollElement.Earnings]: [ImportDataGroup.EARNINGS],
+        [PayrollElement.Bases]: [ImportDataGroup.CONTRIBUTION_BASES],
+        [PayrollElement.Category]: [ImportDataGroup.CATEGORY_ASSIGNMENT],
+        [PayrollElement.Job]: [ImportDataGroup.JOB_ASSIGNMENT]
+      };
+      
+      const targetGroups = elementToDataGroup[locationState.targetElement];
+      if (targetGroups) {
+        setSelectedDataGroups(targetGroups);
+        setImportConfig(prev => ({
+          ...prev,
+          dataGroup: targetGroups
+        }));
+        // 自动切换到导入页签
+        setActiveTab('import');
+        
+        // 显示提示信息
+        const elementNames: Record<string, string> = {
+          [PayrollElement.Earnings]: '薪资项目',
+          [PayrollElement.Bases]: '缴费基数',
+          [PayrollElement.Category]: '人员类别',
+          [PayrollElement.Job]: '职务信息'
+        };
+        showInfo(`已自动选择 ${elementNames[locationState.targetElement]} 数据组，请上传对应的Excel文件`);
+      }
+    }
+  }, [locationState?.targetElement]);
 
   // 获取或创建薪资周期
   const getOrCreatePeriod = async (month: string): Promise<string | null> => {
     try {
-      // 首先检查是否已有周期
+      // 首先检查是否已有周期（从缓存中查找）
       const monthData = availableMonths?.find(m => m.month === month);
       if (monthData?.periodId) {
         return monthData.periodId;
       }
       
-      // 如果没有，创建新周期
+      // 解析年月
       const [year, monthNum] = month.split('-');
-      const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
+      const yearInt = parseInt(year);
+      const monthInt = parseInt(monthNum);
       
-      const { data, error } = await supabase
-        .from('payroll_periods')
-        .insert({
-          period_code: month,
-          period_year: parseInt(year),
-          period_month: parseInt(monthNum),
-          period_name: `${year}年${monthNum}月薪资`,
-          period_start: startDate.toISOString().split('T')[0],
-          period_end: endDate.toISOString().split('T')[0],
-          pay_date: endDate.toISOString().split('T')[0],
-          status: 'draft',
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+      // 使用 hook 的 getOrCreatePeriod 方法
+      const period = await periodActions.getOrCreatePeriod(yearInt, monthInt);
       
-      if (error) {
-        console.error('创建薪资周期失败:', error);
-        showError('创建薪资周期失败: ' + error.message);
+      if (!period) {
+        showError('无法创建薪资周期');
         return null;
       }
       
-      return data?.id || null;
-    } catch (error) {
+      console.log(`成功获取或创建薪资周期: ${month}, ID: ${period.id}`);
+      return period.id;
+    } catch (error: any) {
       console.error('获取或创建周期失败:', error);
-      showError('获取或创建周期失败');
+      showError(error.message || '获取或创建周期失败');
       return null;
     }
   };
@@ -194,8 +229,25 @@ export const PayrollImportPage: React.FC = () => {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         
-        // 定义期望的工作表
-        const expectedSheets = ['基本信息', '薪资收入', '缴费基数', '人员类别', '岗位信息'];
+        // 根据选中的数据组定义期望的工作表
+        const getExpectedSheets = () => {
+          const sheets: string[] = [];
+          if (selectedDataGroups.includes(ImportDataGroup.EARNINGS)) {
+            sheets.push('薪资项目明细');
+          }
+          if (selectedDataGroups.includes(ImportDataGroup.CONTRIBUTION_BASES)) {
+            sheets.push('缴费基数');
+          }
+          if (selectedDataGroups.includes(ImportDataGroup.CATEGORY_ASSIGNMENT)) {
+            sheets.push('人员类别');
+          }
+          if (selectedDataGroups.includes(ImportDataGroup.JOB_ASSIGNMENT)) {
+            sheets.push('职务分配');
+          }
+          return sheets;
+        };
+        
+        const expectedSheets = getExpectedSheets();
         const foundSheets: string[] = [];
         const missingSheets: string[] = [];
         const unexpectedSheets: string[] = [];
@@ -339,11 +391,22 @@ export const PayrollImportPage: React.FC = () => {
           .filter(([_, count]) => count > 1)
           .map(([name, _]) => name);
         
-        // 生成警告信息
+        // 生成警告和错误信息
         const warnings: string[] = [];
-        if (missingSheets.length > 0) {
-          warnings.push(`缺少期望的工作表: ${missingSheets.join(', ')}`);
+        const errors: string[] = [];
+        
+        // 严重错误（会阻止导入）- 只有当选择了数据组但缺少对应sheet时才报错
+        if (missingSheets.length > 0 && selectedDataGroups.length > 0) {
+          errors.push(`缺少选中数据组对应的工作表: ${missingSheets.join(', ')}`);
         }
+        if (allData.length === 0) {
+          errors.push('文件中没有有效数据');
+        }
+        if (sheetDetails.filter(s => s.name !== '使用说明' && s.hasData).length === 0) {
+          errors.push('所有工作表都为空，没有可导入的数据');
+        }
+        
+        // 警告信息（不会阻止导入）
         if (unexpectedSheets.length > 0 && unexpectedSheets.filter(s => s !== '使用说明').length > 0) {
           warnings.push(`发现非标准工作表: ${unexpectedSheets.filter(s => s !== '使用说明').join(', ')}`);
         }
@@ -359,6 +422,8 @@ export const PayrollImportPage: React.FC = () => {
         if (totalEmptyRows > 10) {
           warnings.push(`文件包含 ${totalEmptyRows} 个空行，建议清理后重新上传`);
         }
+        
+        const hasErrors = errors.length > 0;
         
         // 设置解析结果
         setParseResult({
@@ -376,16 +441,18 @@ export const PayrollImportPage: React.FC = () => {
             employeeListConsistent: missingInSheets.length === 0,
             missingInSheets: missingInSheets.slice(0, 10) // 只显示前10个
           },
-          warnings
+          warnings,
+          hasErrors,
+          errors
         });
         
         setParsedData(allData);
         
-        // 如果有严重问题，显示警告
-        if (missingSheets.length > 0) {
-          showWarning(`文件缺少必要的工作表，可能影响导入完整性`);
+        // 显示解析结果通知
+        if (hasErrors) {
+          showError(`文件解析失败: ${errors[0]}`);
         } else if (warnings.length > 0) {
-          showInfo(`文件解析成功，但发现 ${warnings.length} 个潜在问题`);
+          showWarning(`文件解析成功，但发现 ${warnings.length} 个潜在问题`);
         } else {
           showSuccess(`文件解析成功，共 ${allData.length} 条有效数据`);
         }
@@ -435,19 +502,9 @@ export const PayrollImportPage: React.FC = () => {
     setImporting(true);
     setImportResult(null);
     setShowPreviewModal(false);
-    resetImportProgress();
-
-    // 初始化进度
-    const totalGroups = selectedDataGroups.length;
-    const rowsPerGroup = parsedData.length;
-    const totalRows = totalGroups * rowsPerGroup;
     
-    setImportProgress({
-      current: 0,
-      total: totalRows,
-      currentGroup: '',
-      percentage: 0
-    });
+    // 重置进度状态
+    resetImportProgress();
 
     try {
       // 获取或创建周期ID
@@ -462,8 +519,7 @@ export const PayrollImportPage: React.FC = () => {
         setSelectedPeriodId(periodId);
       }
       
-      // 逐个数据组导入并更新进度
-      let processedRows = 0;
+      // 逐个数据组导入
       const results = {
         success: true,
         successCount: 0,
@@ -481,26 +537,21 @@ export const PayrollImportPage: React.FC = () => {
         const group = selectedDataGroups[i];
         const groupName = getDataGroupLabel(group);
         
-        // 更新当前处理的数据组
-        setImportProgress(prev => ({
-          ...prev,
-          currentGroup: groupName,
-          percentage: Math.round((processedRows / totalRows) * 100)
-        }));
 
         try {
-          // 构建导入配置
-          const importConfi = {
-            mode: importConfig.mode === ImportMode.UPSERT ? 'update' : 'append' as 'append' | 'update' | 'replace',
-            validateBeforeImport: importConfig.options?.validateBeforeImport || true,
-            skipDuplicates: importConfig.options?.skipInvalidRows || false,
-            dataGroups: [group.toString()],
-            fieldMappings: {}
+          // 构建导入配置 - 使用正确的ImportConfig接口
+          const importConfigForGroup: ImportConfig = {
+            dataGroup: group as ImportDataGroup,  // 修复：使用正确的字段名和类型
+            mode: importConfig.mode,
+            payPeriod: importConfig.payPeriod,
+            options: importConfig.options
           };
+          
+          console.log(`🚀 开始导入数据组: ${group}`, importConfigForGroup);
           
           const groupResult = await mutations.importExcel.mutateAsync({
             file: uploadedFile,
-            config: importConfi,
+            config: importConfigForGroup,
             periodId: periodId
           });
 
@@ -519,18 +570,10 @@ export const PayrollImportPage: React.FC = () => {
           }
           if (groupResult.warnings) results.warnings.push(...groupResult.warnings);
           
-          processedRows += rowsPerGroup;
-          
-          // 更新进度
-          setImportProgress(prev => ({
-            ...prev,
-            current: processedRows,
-            percentage: Math.round((processedRows / totalRows) * 100)
-          }));
           
         } catch (error) {
           console.error(`导入 ${groupName} 失败:`, error);
-          results.failedCount += rowsPerGroup;
+          results.failedCount += dataToImport.length;
           results.errors.push({
             row: 0,
             message: `${groupName} 导入失败: ${error instanceof Error ? error.message : '未知错误'}`
@@ -562,13 +605,6 @@ export const PayrollImportPage: React.FC = () => {
       showError('导入失败: ' + errorMessage);
     } finally {
       setImporting(false);
-      // 重置进度
-      setImportProgress({
-        current: 0,
-        total: 0,
-        currentGroup: '',
-        percentage: 0
-      });
     }
   };
 
@@ -576,7 +612,7 @@ export const PayrollImportPage: React.FC = () => {
   const getDataGroupLabel = (group: ImportDataGroup): string => {
     switch(group) {
       case ImportDataGroup.EARNINGS:
-        return '薪资收入';
+        return '薪资项目明细';
       case ImportDataGroup.CONTRIBUTION_BASES:
         return '缴费基数';
       case ImportDataGroup.CATEGORY_ASSIGNMENT:
@@ -672,11 +708,18 @@ export const PayrollImportPage: React.FC = () => {
                       onChange={handleMonthChange}
                       placeholder="请选择薪资周期"
                       showDataIndicators={true}
-                      disableMonthsWithData={true}
+                      availableMonths={availableMonths}
+                      isMonthDisabledCustom={(yearMonth, monthData) => {
+                        // 禁用状态为"处理中"(processing)或"已完成"(completed)的月份
+                        if (monthData?.periodStatus === 'processing' || monthData?.periodStatus === 'completed') {
+                          return true;
+                        }
+                        return false;
+                      }}
                       className="select-bordered"
                     />
                     <label className="label">
-                      <span className="label-text-alt">只能选择无薪资数据的月份</span>
+                      <span className="label-text-alt">不能选择处理中或已完成状态的月份</span>
                     </label>
                   </div>
 
@@ -812,6 +855,23 @@ export const PayrollImportPage: React.FC = () => {
                         <div className="card-body">
                           <h3 className="card-title text-base">解析结果分析</h3>
                           
+                          {/* 错误信息展示 */}
+                          {parseResult.hasErrors && (
+                            <div className="alert alert-error mb-4">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <div>
+                                <h3 className="font-bold">无法导入 - 发现以下错误：</h3>
+                                <ul className="mt-2 ml-4 list-disc">
+                                  {parseResult.errors.map((error, idx) => (
+                                    <li key={idx}>{error}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                          
                           {/* Sheet分析 */}
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                             <div>
@@ -859,24 +919,33 @@ export const PayrollImportPage: React.FC = () => {
                           {/* Sheet匹配状态 */}
                           <div className="mb-4">
                             <h4 className="font-semibold mb-2">工作表匹配状态</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {parseResult.expectedSheets.map(sheet => {
-                                const isMissing = parseResult.missingSheets.includes(sheet);
-                                return (
-                                  <span 
-                                    key={sheet}
-                                    className={`badge ${isMissing ? 'badge-error' : 'badge-success'}`}
-                                  >
-                                    {isMissing && '✗ '}{!isMissing && '✓ '}{sheet}
-                                  </span>
-                                );
-                              })}
-                              {parseResult.unexpectedSheets.filter(s => s !== '使用说明').map(sheet => (
-                                <span key={sheet} className="badge badge-warning">
-                                  ? {sheet}
-                                </span>
-                              ))}
-                            </div>
+                            {selectedDataGroups.length === 0 ? (
+                              <div className="text-sm text-warning">请先选择要导入的数据组</div>
+                            ) : (
+                              <>
+                                <div className="text-sm mb-2 opacity-70">
+                                  根据选中的数据组，期望包含: {parseResult.expectedSheets.join(', ')}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {parseResult.expectedSheets.map(sheet => {
+                                    const isMissing = parseResult.missingSheets.includes(sheet);
+                                    return (
+                                      <span 
+                                        key={sheet}
+                                        className={`badge ${isMissing ? 'badge-error' : 'badge-success'}`}
+                                      >
+                                        {isMissing && '✗ '}{!isMissing && '✓ '}{sheet}
+                                      </span>
+                                    );
+                                  })}
+                                  {parseResult.unexpectedSheets.filter(s => s !== '使用说明').map(sheet => (
+                                    <span key={sheet} className="badge badge-warning">
+                                      ? {sheet}
+                                    </span>
+                                  ))}
+                                </div>
+                              </>
+                            )}
                           </div>
                           
                           {/* 数据一致性检查 */}
@@ -1015,28 +1084,120 @@ export const PayrollImportPage: React.FC = () => {
                       <button
                         className="btn btn-primary"
                         onClick={handleImport}
-                        disabled={importing || parsedData.length === 0 || selectedDataGroups.length === 0}
+                        disabled={importing || parsedData.length === 0 || selectedDataGroups.length === 0 || parseResult?.hasErrors}
                       >
                         {importing && <span className="loading loading-spinner"></span>}
-                        {importing ? '导入中...' : selectedDataGroups.length === 0 ? '请选择数据类型' : `开始导入 (${parsedData.length} 条)`}
+                        {importing ? '导入中...' : 
+                         parseResult?.hasErrors ? '无法导入（有错误）' :
+                         selectedDataGroups.length === 0 ? '请选择数据类型' : 
+                         `开始导入 (${parsedData.length} 条)`}
                       </button>
                     </div>
 
-                    {/* 导入进度条 */}
-                    {importing && importProgress.total > 0 && (
-                      <div className="mt-4 space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>正在导入: {importProgress.currentGroup}</span>
-                          <span>{importProgress.percentage}%</span>
+                    {/* 详细导入进度展示 */}
+                    {importing && hookProgress.global.totalRecords > 0 && (
+                      <div className="mt-6 space-y-4">
+                        {/* 全局进度概览 */}
+                        <div className="card bg-base-200 shadow-sm">
+                          <div className="card-body p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-lg font-semibold">导入进度总览</h3>
+                              <div className="badge badge-info">
+                                {utils?.getPhaseDescription(hookProgress.phase) || '处理中'}
+                              </div>
+                            </div>
+                            
+                            {/* 全局统计卡片 */}
+                            <div className="stats stats-horizontal shadow">
+                              <div className="stat">
+                                <div className="stat-title">数据组</div>
+                                <div className="stat-value text-sm">
+                                  {hookProgress.global.processedGroups} / {hookProgress.global.totalGroups}
+                                </div>
+                                <div className="stat-desc">
+                                  {hookProgress.global.dataGroups.join(', ')}
+                                </div>
+                              </div>
+                              
+                              <div className="stat">
+                                <div className="stat-title">总记录数</div>
+                                <div className="stat-value text-primary text-sm">
+                                  {hookProgress.global.processedRecords} / {hookProgress.global.totalRecords}
+                                </div>
+                                <div className="stat-desc">
+                                  {utils?.getProgressPercentage()}% 完成
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* 全局进度条 */}
+                            <div className="mt-3">
+                              <div className="flex justify-between text-sm mb-1">
+                                <span>总体进度</span>
+                                <span>{utils?.getProgressPercentage()}%</span>
+                              </div>
+                              <progress 
+                                className="progress progress-primary w-full" 
+                                value={utils?.getProgressPercentage() || 0} 
+                                max="100"
+                              ></progress>
+                            </div>
+                          </div>
                         </div>
-                        <progress 
-                          className="progress progress-primary w-full" 
-                          value={importProgress.percentage} 
-                          max="100"
-                        ></progress>
-                        <div className="text-sm text-base-content/60">
-                          已处理 {importProgress.current} / {importProgress.total} 条记录
-                        </div>
+
+                        {/* 当前数据组详细进度 */}
+                        {hookProgress.current.groupName && (
+                          <div className="card bg-base-100 shadow-sm border border-primary/20">
+                            <div className="card-body p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium text-primary">
+                                  当前处理: {hookProgress.current.groupName}
+                                </h4>
+                                <div className="badge badge-outline">
+                                  第 {hookProgress.current.groupIndex + 1} 组
+                                </div>
+                              </div>
+                              
+                              {/* 当前数据组统计 */}
+                              <div className="stats stats-horizontal shadow-sm">
+                                <div className="stat">
+                                  <div className="stat-title text-xs">工作表</div>
+                                  <div className="stat-value text-xs text-accent">
+                                    {hookProgress.current.sheetName}
+                                  </div>
+                                </div>
+                                
+                                <div className="stat">
+                                  <div className="stat-title text-xs">当前进度</div>
+                                  <div className="stat-value text-xs text-secondary">
+                                    {hookProgress.current.processedRecords} / {hookProgress.current.totalRecords}
+                                  </div>
+                                  <div className="stat-desc text-xs">
+                                    {utils?.getCurrentGroupPercentage()}% 完成
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* 当前数据组进度条 */}
+                              <div className="mt-3">
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span>当前工作表进度</span>
+                                  <span>{utils?.getCurrentGroupPercentage()}%</span>
+                                </div>
+                                <progress 
+                                  className="progress progress-secondary w-full h-2" 
+                                  value={utils?.getCurrentGroupPercentage() || 0} 
+                                  max="100"
+                                ></progress>
+                              </div>
+                              
+                              {/* 实时处理信息 */}
+                              <div className="mt-2 text-xs text-base-content/70">
+                                正在处理 {hookProgress.current.sheetName} 工作表中的数据...
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1283,7 +1444,7 @@ export const PayrollImportPage: React.FC = () => {
               <button 
                 className="btn btn-primary" 
                 onClick={handleImport}
-                disabled={importing}
+                disabled={importing || parseResult?.hasErrors}
               >
                 {importing && <span className="loading loading-spinner"></span>}
                 确认导入

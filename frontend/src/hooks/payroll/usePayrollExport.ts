@@ -107,9 +107,11 @@ export function usePayrollExport() {
       queryKey: payrollExportQueryKeys.comprehensiveData(config),
       queryFn: async () => {
         const result: any = {};
+        let employeeIdsWithPayroll: string[] = []; // 声明在外层作用域
         
-        // 获取薪资数据（如果选中了收入或缴费基数）
-        if (config.selectedDataGroups?.includes('earnings') || config.selectedDataGroups?.includes('bases')) {
+        // 始终先获取薪资数据，以便获取有薪资记录的员工ID列表
+        // 即使用户只选择导出其他数据类型，也需要知道哪些员工有薪资记录
+        if (true) { // 总是执行此查询
           let payrollQuery = supabase
             .from('view_payroll_summary')
             .select('*');
@@ -131,10 +133,19 @@ export function usePayrollExport() {
           const { data: payrollData, error: payrollError } = await payrollQuery;
           if (payrollError) throw payrollError;
 
-          result.payroll = payrollData || [];
+          // 只有在用户选择了导出薪资数据时，才包含在结果中
+          if (config.selectedDataGroups?.includes('earnings') || config.selectedDataGroups?.includes('bases')) {
+            result.payroll = payrollData || [];
+          }
+          
+          // 保存员工ID列表供其他查询使用
+          employeeIdsWithPayroll = (payrollData || [])
+            .map(p => p.employee_id)
+            .filter((id): id is string => id !== null && id !== undefined);
 
           // 获取详细薪资项目
-          if (config.includeDetails && payrollData && payrollData.length > 0) {
+          if (config.includeDetails && payrollData && payrollData.length > 0 && 
+              (config.selectedDataGroups?.includes('earnings') || config.selectedDataGroups?.includes('bases'))) {
             const payrollIds = payrollData.map(p => p.payroll_id);
             const { data: details, error: detailError } = await supabase
               .from('view_payroll_unified')
@@ -310,9 +321,11 @@ export function usePayrollExport() {
         queryKey: payrollExportQueryKeys.comprehensiveData(config),
         queryFn: async () => {
           const data: any = {};
+          let employeeIdsWithPayroll: string[] = []; // 声明在外层作用域
           
-          // 获取薪资数据（如果选中了收入或缴费基数）
-          if (config.selectedDataGroups?.includes('earnings') || config.selectedDataGroups?.includes('bases')) {
+          // 始终先获取薪资数据，以便获取有薪资记录的员工ID列表
+          // 即使用户只选择导出其他数据类型，也需要知道哪些员工有薪资记录
+          if (true) { // 总是执行此查询
             let payrollQuery = supabase
               .from('view_payroll_summary')
               .select('*');
@@ -334,10 +347,19 @@ export function usePayrollExport() {
             const { data: payrollData, error: payrollError } = await payrollQuery;
             if (payrollError) throw payrollError;
 
-            data.payroll = payrollData || [];
+            // 只有在用户选择了导出薪资数据时，才包含在结果中
+            if (config.selectedDataGroups?.includes('earnings') || config.selectedDataGroups?.includes('bases')) {
+              data.payroll = payrollData || [];
+            }
+            
+            // 保存员工ID列表供其他查询使用
+            employeeIdsWithPayroll = (payrollData || [])
+              .map(p => p.employee_id)
+              .filter((id): id is string => id !== null && id !== undefined);
 
             // 获取详细薪资项目
-            if (config.includeDetails && payrollData && payrollData.length > 0) {
+            if (config.includeDetails && payrollData && payrollData.length > 0 && 
+                (config.selectedDataGroups?.includes('earnings') || config.selectedDataGroups?.includes('bases'))) {
               const payrollIds = payrollData.map(p => p.payroll_id);
               const { data: details, error: detailError } = await supabase
                 .from('view_payroll_unified')
@@ -363,86 +385,104 @@ export function usePayrollExport() {
             }
           }
 
-          // 获取职务分配数据
+          // 获取职务分配数据 - 只包含有薪资记录的员工
           if (config.includeJobAssignments || config.selectedDataGroups?.includes('job')) {
-            let jobQuery = supabase
-              .from('employee_job_history')
-              .select(`
-                id,
-                employee_id,
-                department_id,
-                position_id,
-                rank_id,
-                period_id,
-                created_at,
-                employees!inner(employee_name),
-                departments(name),
-                positions(name)
-              `);
+            // 使用之前获取的员工ID列表
+            
+            if (employeeIdsWithPayroll.length > 0) {
+              let jobQuery = supabase
+                .from('employee_job_history')
+                .select(`
+                  id,
+                  employee_id,
+                  department_id,
+                  position_id,
+                  rank_id,
+                  period_id,
+                  created_at,
+                  employees!inner(employee_name),
+                  departments(name),
+                  positions(name)
+                `)
+                .in('employee_id', employeeIdsWithPayroll); // 只查询有薪资记录的员工
 
-            if (config.periodId) {
-              // 根据周期ID筛选
-              jobQuery = jobQuery.eq('period_id', config.periodId);
+              if (config.periodId) {
+                // 根据周期ID筛选
+                jobQuery = jobQuery.eq('period_id', config.periodId);
+              }
+
+              const { data: jobData, error: jobError } = await jobQuery;
+              if (jobError) throw jobError;
+              data.jobAssignments = jobData || [];
+            } else {
+              data.jobAssignments = [];
             }
-
-            const { data: jobData, error: jobError } = await jobQuery;
-            if (jobError) throw jobError;
-            data.jobAssignments = jobData || [];
           }
 
-          // 获取人员类别数据（从employee_category_assignments表获取）
+          // 获取人员类别数据 - 只包含有薪资记录的员工
           if (config.includeCategoryAssignments || config.selectedDataGroups?.includes('category')) {
-            let categoryQuery = supabase
-              .from('employee_category_assignments')
-              .select(`
-                id,
-                employee_id,
-                employee_category_id,
-                period_id,
-                created_at,
-                employees!inner(employee_name),
-                employee_categories(name)
-              `);
+            // 使用之前获取的员工ID列表
+            
+            if (employeeIdsWithPayroll.length > 0) {
+              let categoryQuery = supabase
+                .from('employee_category_assignments')
+                .select(`
+                  id,
+                  employee_id,
+                  employee_category_id,
+                  period_id,
+                  created_at,
+                  employees!inner(employee_name),
+                  employee_categories(name)
+                `)
+                .in('employee_id', employeeIdsWithPayroll); // 只查询有薪资记录的员工
 
-            if (config.periodId) {
-              // 根据周期ID筛选
-              categoryQuery = categoryQuery.eq('period_id', config.periodId);
+              if (config.periodId) {
+                // 根据周期ID筛选
+                categoryQuery = categoryQuery.eq('period_id', config.periodId);
+              }
+
+              const { data: categoryData, error: categoryError } = await categoryQuery;
+              if (categoryError) throw categoryError;
+              data.categoryAssignments = categoryData || [];
+            } else {
+              data.categoryAssignments = [];
             }
-
-            const { data: categoryData, error: categoryError } = await categoryQuery;
-            if (categoryError) throw categoryError;
-            data.categoryAssignments = categoryData || [];
           }
 
-          // 获取缴费基数数据 - 使用视图获取所有保险类型的基数
+          // 获取缴费基数数据 - 只包含有薪资记录的员工
           if (config.includeInsurance || config.selectedDataGroups?.includes('bases')) {
-            let basesQuery = supabase
-              .from('view_employee_insurance_base_monthly')
-              .select(`
-                employee_id,
-                employee_name,
-                period_id,
-                period_display,
-                insurance_type_key,
-                insurance_type_name,
-                contribution_base,
-                employee_amount,
-                employer_amount,
-                department_name,
-                position_name
-              `);
-
-            if (config.periodId) {
-              basesQuery = basesQuery.eq('period_id', config.periodId);
-            }
-
-            const { data: basesData, error: basesError } = await basesQuery;
-            if (basesError) throw basesError;
+            // 使用之前获取的员工ID列表
             
-            // 转换数据格式：将多行记录转换为每个员工一行的格式
-            const employeeBasesMap = new Map();
-            
-            (basesData || []).forEach(item => {
+            if (employeeIdsWithPayroll.length > 0) {
+              let basesQuery = supabase
+                .from('view_employee_insurance_base_monthly')
+                .select(`
+                  employee_id,
+                  employee_name,
+                  period_id,
+                  period_display,
+                  insurance_type_key,
+                  insurance_type_name,
+                  contribution_base,
+                  employee_amount,
+                  employer_amount,
+                  department_name,
+                  position_name
+                `)
+                .in('employee_id', employeeIdsWithPayroll); // 只查询有薪资记录的员工
+
+              if (config.periodId) {
+                basesQuery = basesQuery.eq('period_id', config.periodId);
+              }
+
+              const { data: basesData, error: basesError } = await basesQuery;
+              if (basesError) throw basesError;
+              
+              // 转换数据格式：将多行记录转换为每个员工一行的格式
+              const employeeBasesMap = new Map();
+              
+              (basesData || []).forEach(item => {
               if (!employeeBasesMap.has(item.employee_id)) {
                 employeeBasesMap.set(item.employee_id, {
                   employee_id: item.employee_id,
@@ -493,6 +533,9 @@ export function usePayrollExport() {
             });
             
             data.contributionBases = Array.from(employeeBasesMap.values());
+            } else {
+              data.contributionBases = [];
+            }
           }
 
           return data;
@@ -590,7 +633,7 @@ export function usePayrollExport() {
             { wch: 8 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
             { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }
           ];
-          XLSX.utils.book_append_sheet(workbook, payrollSheet, '薪资数据');
+          XLSX.utils.book_append_sheet(workbook, payrollSheet, '薪资收入');
           sheetsCreated++;
         }
 

@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAvailablePayrollMonths, checkMonthAvailability, type AvailablePayrollMonth } from '@/hooks/payroll';
+import { usePayrollPeriodsCompleteness } from '@/hooks/payroll/usePayrollPeriodCompleteness';
+import type { PayrollPeriodCompleteness } from '@/types/payroll-completeness';
 
 interface MonthPickerProps {
   value: string;
@@ -21,6 +23,10 @@ interface MonthPickerProps {
   disableMonthsWithData?: boolean;
   /** Only allow selection of months that have payroll data (opposite of disableMonthsWithData) */
   onlyShowMonthsWithData?: boolean;
+  /** Custom function to determine if a month should be disabled */
+  isMonthDisabledCustom?: (yearMonth: string, monthData?: AvailablePayrollMonth) => boolean;
+  /** Show completeness indicators for periods */
+  showCompletenessIndicators?: boolean;
 }
 
 export function MonthPicker({
@@ -35,7 +41,9 @@ export function MonthPicker({
   showDataIndicators = false,
   availableMonths: providedAvailableMonths,
   disableMonthsWithData = false,
-  onlyShowMonthsWithData = false
+  onlyShowMonthsWithData = false,
+  isMonthDisabledCustom,
+  showCompletenessIndicators = false
 }: MonthPickerProps) {
   const { t } = useTranslation('common');
   const [isOpen, setIsOpen] = useState(false);
@@ -52,8 +60,18 @@ export function MonthPicker({
   const shouldFetchData = showDataIndicators && !providedAvailableMonths;
   const { data: fetchedAvailableMonths, isLoading: isLoadingMonths } = useAvailablePayrollMonths(shouldFetchData);
   
+  // Fetch completeness data when enabled
+  const { data: completenessData, isLoading: isLoadingCompleteness } = usePayrollPeriodsCompleteness();
+  
   // Use provided months or fetched months
   const availableMonths = providedAvailableMonths || (showDataIndicators ? fetchedAvailableMonths : undefined);
+  
+  // Helper function to get completeness for a specific month
+  const getMonthCompleteness = (yearMonth: string): PayrollPeriodCompleteness | undefined => {
+    if (!showCompletenessIndicators || !completenessData) return undefined;
+    const [year, month] = yearMonth.split('-').map(Number);
+    return completenessData.find(c => c.period_year === year && c.period_month === month);
+  };
   
   // 使用 DaisyUI 5 标准样式
   const getSizeClass = () => {
@@ -108,6 +126,12 @@ export function MonthPicker({
     
     if (minDate && yearMonth < minDate) return true;
     if (maxDate && yearMonth > maxDate) return true;
+    
+    // 如果提供了自定义禁用函数，使用它
+    if (isMonthDisabledCustom) {
+      const monthData = availableMonths?.find(m => m.month === yearMonth);
+      if (isMonthDisabledCustom(yearMonth, monthData)) return true;
+    }
     
     // 如果启用了禁用有数据月份功能，检查该月份是否有数据
     if (disableMonthsWithData && showDataIndicators) {
@@ -296,6 +320,9 @@ export function MonthPicker({
                   ? checkMonthAvailability(availableMonths, monthString)
                   : { hasData: false, count: 0, periodStatus: undefined, isLocked: undefined };
                 
+                // Get completeness data for this month
+                const monthCompleteness = getMonthCompleteness(monthString);
+                
                 return (
                   <motion.button
                     type="button"
@@ -405,6 +432,30 @@ export function MonthPicker({
                         />
                       )}
                       
+                      {/* Completeness indicator - 底部 */}
+                      {showCompletenessIndicators && monthCompleteness && monthAvailability.hasData && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.2 }}
+                          className="absolute -bottom-1.5 left-1/2 -translate-x-1/2"
+                        >
+                          <div className={cn(
+                            "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                            "border border-base-100",
+                            monthCompleteness.metadata_status === 'complete'
+                              ? "bg-success text-success-content"
+                              : monthCompleteness.metadata_status === 'incomplete'
+                              ? "bg-warning text-warning-content"
+                              : "bg-base-300 text-base-content/60"
+                          )}
+                          title={`四要素完整度: ${monthCompleteness.overall_completeness_percentage}%`}
+                          >
+                            {monthCompleteness.overall_completeness_percentage}%
+                          </div>
+                        </motion.div>
+                      )}
+                      
                       {/* Loading state for data indicators */}
                       {showDataIndicators && isLoadingMonths && !monthAvailability.hasData && !isCurrent && (
                         <div className="absolute -top-1 -right-1">
@@ -418,26 +469,41 @@ export function MonthPicker({
             </div>
             
             {/* 状态图例 - 仅在显示数据指示器时显示 */}
-            {showDataIndicators && (
+            {(showDataIndicators || showCompletenessIndicators) && (
               <div className="mt-3 pt-3 border-t border-base-200">
                 <div className="text-xs text-base-content/60 mb-2">状态说明：</div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-warning border border-base-300"></div>
-                    <span className="text-base-content/70">草稿</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-info border border-base-300"></div>
-                    <span className="text-base-content/70">处理中</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-success border border-base-300"></div>
-                    <span className="text-base-content/70">已完成</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-error border border-base-300 ring-2 ring-error ring-offset-1 ring-offset-base-100"></div>
-                    <span className="text-base-content/70">已锁定</span>
-                  </div>
+                  {showDataIndicators && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-warning border border-base-300"></div>
+                        <span className="text-base-content/70">草稿</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-info border border-base-300"></div>
+                        <span className="text-base-content/70">处理中</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-success border border-base-300"></div>
+                        <span className="text-base-content/70">已完成</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-error border border-base-300 ring-2 ring-error ring-offset-1 ring-offset-base-100"></div>
+                        <span className="text-base-content/70">已锁定</span>
+                      </div>
+                    </>
+                  )}
+                  {showCompletenessIndicators && (
+                    <>
+                      <div className="flex items-center gap-2 col-span-2 mt-1">
+                        <span className="text-base-content/60">完整度：</span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-success rounded-full text-success-content">100%</span>
+                        <span className="text-base-content/50">完整</span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-warning rounded-full text-warning-content">50%</span>
+                        <span className="text-base-content/50">部分</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}

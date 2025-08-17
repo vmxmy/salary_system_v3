@@ -16,6 +16,9 @@ import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
 import { useTableConfiguration } from '@/hooks/core';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
 import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
+import { PayrollCompletenessModal } from '@/components/payroll/PayrollCompletenessModal';
+import { PayrollCompletenessStats } from '@/components/payroll/PayrollCompletenessStats';
+import { usePayrollPeriodCompleteness } from '@/hooks/payroll/usePayrollPeriodCompleteness';
 import { DataTable } from '@/components/common/DataTable';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { ModernButton } from '@/components/common/ModernButton';
@@ -121,6 +124,7 @@ export default function PayrollListPage() {
   const [selectedPayrollId, setSelectedPayrollId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isCompletenessModalOpen, setIsCompletenessModalOpen] = useState(false);
 
   // 从选中的周期获取年月信息
   const [periodYear, setPeriodYear] = useState<number | undefined>();
@@ -183,6 +187,9 @@ export default function PayrollListPage() {
 
   // 获取统计数据
   const { data: statistics, isLoading: statsLoading } = usePayrollStatistics(selectedMonth);
+  
+  // 获取四要素完整度数据
+  const { data: completenessData, isLoading: completenessLoading } = usePayrollPeriodCompleteness(selectedPeriodId);
 
   // Mutations
   const updateBatchStatus = useUpdateBatchPayrollStatus();
@@ -353,7 +360,8 @@ export default function PayrollListPage() {
   
   const statCards: StatCardProps[] = useMemo(() => {
     if (!statistics) return [];
-
+    
+    // 只返回薪资统计的三个卡片
     return [
       {
         title: t('payroll:statistics.totalPayroll'),
@@ -413,6 +421,14 @@ export default function PayrollListPage() {
       title={t('payroll:payrollManagement')}
       subtitle={t('payroll:payrollManagementDesc')}
       statCards={statCards}
+      statCardsExtra={
+        completenessData && (
+          <PayrollCompletenessStats
+            completeness={completenessData}
+            onClick={() => setIsCompletenessModalOpen(true)}
+          />
+        )
+      }
       searchValue={searchQuery}
       onSearchChange={setSearchQuery}
       onSearch={handleSearch}
@@ -500,6 +516,7 @@ export default function PayrollListPage() {
                   placeholder="选择薪资周期"
                   className="flex-shrink-0"
                   size="sm"
+                  showCompletenessIndicators={true}
                 />
 
                 {/* 状态筛选 */}
@@ -580,6 +597,27 @@ export default function PayrollListPage() {
             month={formatMonth(selectedMonth)}
             onConfirm={handleClearCurrentMonth}
             onCancel={() => setIsClearModalOpen(false)}
+          />
+          <PayrollCompletenessModal
+            isOpen={isCompletenessModalOpen}
+            onClose={() => setIsCompletenessModalOpen(false)}
+            completeness={completenessData || null}
+            onImportData={(element) => {
+              // 关闭完整度模态框
+              setIsCompletenessModalOpen(false);
+              // 导航到导入页面，并传递要导入的数据类型
+              navigate('/payroll/import', { 
+                state: { 
+                  selectedMonth,
+                  selectedPeriodId,
+                  targetElement: element 
+                }
+              });
+            }}
+            onViewDetails={(element) => {
+              // 可以在这里实现查看详情的逻辑
+              console.log('View details for element:', element);
+            }}
           />
         </>
       }

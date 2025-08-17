@@ -22,6 +22,9 @@ export interface ManagementPageLayoutProps {
   // 统计卡片
   statCards?: StatCardProps[];
   
+  // 统计卡片下方的额外内容
+  statCardsExtra?: ReactNode;
+  
   // 搜索功能
   searchValue?: string;
   onSearchChange?: (value: string) => void;
@@ -82,6 +85,7 @@ export function ManagementPageLayout({
   title,
   subtitle,
   statCards = [],
+  statCardsExtra,
   searchValue = '',
   onSearchChange,
   onSearch,
@@ -119,24 +123,33 @@ export function ManagementPageLayout({
   
   // 渲染统计卡片 - 使用标准 DaisyUI stats 组件
   const renderStatCards = () => {
-    if (statCards.length === 0) return null;
+    if (statCards.length === 0 && !statCardsExtra) return null;
     
+    // 渲染统计卡片和额外内容
     return (
-      <div className="stats stats-vertical lg:stats-horizontal shadow w-full mt-3">
-        {statCards.map((card, index) => (
-          <div key={index} className="stat">
-            <div className={`stat-figure ${card.colorClass || 'text-primary'}`}>
-              {card.icon}
-            </div>
-            <div className="stat-title">{card.title}</div>
-            <div className={`stat-value ${card.colorClass || ''}`}>
-              {card.value}
-            </div>
-            {card.description && (
-              <div className="stat-desc">{card.description}</div>
-            )}
+      <div className="space-y-3 mt-3">
+        {/* 薪资统计卡片 */}
+        {statCards.length > 0 && (
+          <div className="stats stats-vertical lg:stats-horizontal shadow w-full">
+            {statCards.map((card, index) => (
+              <div key={index} className="stat">
+                <div className={`stat-figure ${card.colorClass || 'text-primary'}`}>
+                  {card.icon}
+                </div>
+                <div className="stat-title">{card.title}</div>
+                <div className={`stat-value ${card.colorClass || ''}`}>
+                  {card.value}
+                </div>
+                {card.description && (
+                  <div className="stat-desc">{card.description}</div>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
+        )}
+        
+        {/* 统计卡片下方的额外内容（四要素组件） */}
+        {statCardsExtra && statCardsExtra}
       </div>
     );
   };

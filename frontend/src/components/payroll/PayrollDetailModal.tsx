@@ -7,6 +7,8 @@ import { DetailField } from '@/components/common/DetailField';
 import { ModernButton } from '@/components/common/ModernButton';
 import { PayrollStatusBadge } from './PayrollStatusBadge';
 import { PayrollStatus, type PayrollStatusType } from '@/hooks/payroll';
+import { useEmployeeCategoryByPeriod } from '@/hooks/payroll/useEmployeeCategory';
+import { useEmployeePositionByPeriod, useEmployeePositionHistory } from '@/hooks/payroll/useEmployeePosition';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -24,6 +26,7 @@ import {
   CalculatorIcon,
   DocumentTextIcon,
   CreditCardIcon,
+  BriefcaseIcon,
 } from '@heroicons/react/24/outline';
 
 // 薪资详情数据类型
@@ -121,8 +124,33 @@ interface TaxItem {
   item_notes?: string;
 }
 
+// 职务信息数据类型
+interface JobInfo {
+  // 当前薪资周期的员工身份类别
+  employee_category?: {
+    id: string;
+    name: string;
+    assigned_at: string;
+  };
+  // 职务历史记录
+  job_history: Array<{
+    id: string;
+    employee_id: string;
+    department_id: string;
+    department_name: string;
+    position_id: string;
+    position_name: string;
+    employment_status: string;
+    start_date: string;
+    end_date?: string;
+    is_current: boolean;
+    notes?: string;
+    created_at: string;
+  }>;
+}
+
 // Tab类型定义
-type TabType = 'overview' | 'breakdown' | 'insurance' | 'contribution' | 'tax';
+type TabType = 'overview' | 'breakdown' | 'insurance' | 'contribution' | 'tax' | 'job';
 
 // 个人扣缴类分类定义
 
@@ -296,6 +324,8 @@ export function PayrollDetailModal({
         setPayrollItems([]);
         setTaxItems([]);
       }
+
+      // Note: 职务信息现在由JobTab组件中的hooks直接获取
     } catch (err) {
       setIsError(true);
       setError(err as Error);
@@ -326,6 +356,7 @@ export function PayrollDetailModal({
     { id: 'insurance', label: '五险一金', icon: ShieldCheckIcon },
     { id: 'contribution', label: '缴费基数', icon: CreditCardIcon },
     { id: 'tax', label: '个人所得税', icon: DocumentTextIcon },
+    { id: 'job', label: '职务信息', icon: BriefcaseIcon },
   ];
 
 
@@ -537,6 +568,12 @@ export function PayrollDetailModal({
                   {activeTab === 'tax' && (
                     <TaxTab taxItems={taxItems} />
                   )}
+                  {activeTab === 'job' && payrollData && (
+                    <JobTab 
+                      employeeId={payrollData.employee_id} 
+                      payrollId={payrollData.id}
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -642,6 +679,144 @@ function TaxTab({ taxItems }: TaxTabProps) {
   return (
     <div className="space-y-6">
       <TaxDetailsSection taxItems={taxItems} />
+    </div>
+  );
+}
+
+// 职务信息Tab组件
+interface JobTabProps {
+  employeeId?: string;
+  payrollId?: string;
+}
+
+function JobTab({ employeeId, payrollId }: JobTabProps) {
+  const [periodId, setPeriodId] = useState<string | undefined>(undefined);
+
+  // 从薪资记录获取周期ID
+  useEffect(() => {
+    const fetchPeriodId = async () => {
+      if (!payrollId) return;
+      
+      try {
+        // 从薪资记录中获取period_id
+        const { data } = await supabase
+          .from('payrolls')
+          .select('period_id')
+          .eq('id', payrollId)
+          .single();
+        
+        setPeriodId(data?.period_id);
+      } catch (error) {
+        console.warn('Failed to get period ID from payroll:', error);
+        setPeriodId(undefined);
+      }
+    };
+
+    fetchPeriodId();
+  }, [payrollId]);
+
+  // 严格查询当前薪资周期的数据 - 只有当periodId存在时才查询
+  const shouldQuery = !!(employeeId && periodId);
+  
+  const { 
+    data: employeeCategory, 
+    isLoading: categoryLoading, 
+    error: categoryError 
+  } = useEmployeeCategoryByPeriod(employeeId || '', periodId);
+  
+  const { 
+    data: currentPosition, 
+    isLoading: positionLoading, 
+    error: positionError 
+  } = useEmployeePositionByPeriod(employeeId || '', periodId);
+  
+  // 严格按当前薪资周期获取职务历史 - 只显示该周期的记录
+  const { 
+    data: allJobHistory, 
+    isLoading: historyLoading, 
+    error: historyError 
+  } = useEmployeePositionHistory(employeeId || '');
+  
+  // 过滤职务历史：只显示当前薪资周期的记录
+  const currentPeriodJobHistory = useMemo(() => {
+    if (!allJobHistory || !periodId) return [];
+    
+    // 只返回该周期的职务记录
+    return allJobHistory.filter(job => job.period_id === periodId);
+  }, [allJobHistory, periodId]);
+
+  // 构建jobInfo对象 - 严格基于当前薪资周期
+  const jobInfo: JobInfo | null = useMemo(() => {
+    if (!employeeId || !periodId) return null;
+    
+    // 只有当periodId存在时才构建数据，确保严格按周期查询
+    return {
+      employee_category: employeeCategory ? {
+        id: employeeCategory.id,
+        name: employeeCategory.category_name,
+        assigned_at: employeeCategory.effective_date || new Date().toISOString()
+      } : undefined,
+      // 只显示当前薪资周期的职务记录
+      job_history: currentPeriodJobHistory.map(job => ({
+        id: job.id,
+        employee_id: job.employee_id,
+        department_id: job.department_id,
+        department_name: job.department_name,
+        position_id: job.position_id,
+        position_name: job.position_name,
+        employment_status: 'active', // Hook数据中没有此字段，设为默认值
+        start_date: job.effective_date || '',
+        end_date: job.end_date || undefined,
+        is_current: job.is_active,
+        notes: undefined, // Hook数据中没有此字段
+        created_at: new Date().toISOString() // Hook数据中没有此字段，设为默认值
+      }))
+    };
+  }, [employeeId, periodId, employeeCategory, currentPeriodJobHistory]);
+
+  const isLoading = categoryLoading || positionLoading || historyLoading;
+  const hasError = categoryError || positionError || historyError;
+
+  // 如果没有薪资周期ID，显示无法查询
+  if (!periodId && !isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mb-4">
+          <BriefcaseIcon className="w-8 h-8 text-warning" />
+        </div>
+        <p className="text-warning text-sm">无法获取薪资周期信息</p>
+        <p className="text-base-content/40 text-xs mt-2">
+          无法确定当前薪资记录对应的周期，无法查询职务信息
+        </p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mb-4">
+          <BriefcaseIcon className="w-8 h-8 text-error" />
+        </div>
+        <p className="text-error text-sm">加载职务信息失败</p>
+        <p className="text-base-content/40 text-xs mt-2">
+          {categoryError?.message || positionError?.message || historyError?.message}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <JobInfoSection jobInfo={jobInfo} periodId={periodId} />
     </div>
   );
 }
@@ -1332,6 +1507,257 @@ function TaxDetailsSection({ taxItems }: TaxDetailsSectionProps) {
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// 创建职务历史列辅助器
+const jobHistoryColumnHelper = createColumnHelper<JobInfo['job_history'][0]>();
+
+// 职务信息详情组件
+interface JobInfoSectionProps {
+  jobInfo: JobInfo | null;
+  periodId?: string; // 添加周期ID信息用于显示
+}
+
+function JobInfoSection({ jobInfo, periodId }: JobInfoSectionProps) {
+  const { t } = useTranslation(['payroll', 'common']);
+
+  // 定义职务历史表格列
+  const jobHistoryColumns = useMemo(() => [
+    jobHistoryColumnHelper.accessor('department_name', {
+      header: '部门',
+      cell: info => (
+        <span className="text-sm font-medium text-base-content">
+          {info.getValue()}
+        </span>
+      )
+    }),
+    jobHistoryColumnHelper.accessor('position_name', {
+      header: '职位',
+      cell: info => (
+        <span className="text-sm font-medium text-base-content">
+          {info.getValue()}
+        </span>
+      )
+    }),
+    jobHistoryColumnHelper.accessor('employment_status', {
+      header: '就业状态',
+      cell: info => (
+        <span className="badge badge-sm badge-ghost">
+          {info.getValue()}
+        </span>
+      )
+    }),
+    jobHistoryColumnHelper.accessor('start_date', {
+      header: '开始日期',
+      cell: info => (
+        <span className="text-sm text-base-content/70">
+          {formatDate(info.getValue())}
+        </span>
+      )
+    }),
+    jobHistoryColumnHelper.accessor('end_date', {
+      header: '结束日期',
+      cell: info => {
+        const endDate = info.getValue();
+        const isCurrent = info.row.original.is_current;
+        return (
+          <span className={cn(
+            "text-sm",
+            isCurrent ? "text-success font-medium" : "text-base-content/70"
+          )}>
+            {endDate ? formatDate(endDate) : (isCurrent ? '至今' : '-')}
+          </span>
+        );
+      }
+    }),
+    jobHistoryColumnHelper.accessor('is_current', {
+      header: '当前职位',
+      cell: info => (
+        <div className="flex items-center justify-center">
+          {info.getValue() ? (
+            <span className="badge badge-success badge-sm">当前</span>
+          ) : (
+            <span className="text-base-content/30">-</span>
+          )}
+        </div>
+      )
+    }),
+    jobHistoryColumnHelper.accessor('notes', {
+      header: '备注',
+      cell: info => (
+        <span className="text-sm text-base-content/60">
+          {info.getValue() || '-'}
+        </span>
+      )
+    })
+  ], []);
+
+  // 创建职务历史表格实例
+  const jobHistoryTable = useReactTable({
+    data: jobInfo?.job_history || [],
+    columns: jobHistoryColumns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  if (!jobInfo) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-16 h-16 rounded-full bg-base-200/50 flex items-center justify-center mb-4">
+          <BriefcaseIcon className="w-8 h-8 text-base-content/30" />
+        </div>
+        <p className="text-base-content/60 text-sm">
+          {periodId ? `当前薪资周期暂无职务信息` : '暂无职务信息'}
+        </p>
+        <p className="text-base-content/40 text-xs mt-2">
+          该员工在当前薪资周期内未分配身份类别或职务记录
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* 员工身份类别 */}
+      <div className="space-y-4">
+        <h5 className="font-semibold text-base flex items-center gap-2 pb-2 border-b border-base-300">
+          <UserCircleIcon className="w-5 h-5 text-primary" />
+          员工身份类别
+        </h5>
+        
+        {jobInfo.employee_category ? (
+          <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent rounded-lg p-4 border border-primary/10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-base-content/70">身份类别</label>
+                <div className="px-3 py-2 bg-base-100 rounded-lg border">
+                  <span className="text-base font-medium text-primary">
+                    {jobInfo.employee_category.name}
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-base-content/70">分配时间</label>
+                <div className="px-3 py-2 bg-base-100 rounded-lg border">
+                  <span className="text-base text-base-content">
+                    {formatDate(jobInfo.employee_category.assigned_at)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-6 bg-base-200/30 rounded-lg">
+            <UserCircleIcon className="w-12 h-12 mx-auto mb-3 text-base-content/30" />
+            <p className="text-base-content/60 text-sm">
+              {periodId ? `当前薪资周期内未分配身份类别` : '该薪资周期内未分配身份类别'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* 职务历史记录 */}
+      <div className="space-y-4">
+        <h5 className="font-semibold text-base flex items-center gap-2 pb-2 border-b border-base-300">
+          <BriefcaseIcon className="w-5 h-5 text-primary" />
+          职务历史记录
+        </h5>
+        
+        {jobInfo.job_history.length > 0 ? (
+          <div className="space-y-4">
+            {/* 当前职位概览 */}
+            {(() => {
+              const currentJob = jobInfo.job_history.find(job => job.is_current);
+              return currentJob ? (
+                <div className="bg-gradient-to-r from-success/5 via-success/3 to-transparent rounded-lg p-4 border border-success/10">
+                  <h6 className="text-sm font-semibold text-success mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    当前职位
+                  </h6>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <p className="text-xs text-base-content/60 mb-1">部门</p>
+                      <p className="text-base font-semibold text-success">
+                        {currentJob.department_name}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-base-content/60 mb-1">职位</p>
+                      <p className="text-base font-semibold text-success">
+                        {currentJob.position_name}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-base-content/60 mb-1">任职时间</p>
+                      <p className="text-base font-semibold text-success">
+                        {formatDate(currentJob.start_date)} 至今
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            {/* 职务历史表格 */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <BriefcaseIcon className="w-4 h-4" />
+                </div>
+                <h6 className="text-sm font-semibold text-primary">职务变更历史</h6>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="table table-sm w-full">
+                  <thead>
+                    {jobHistoryTable.getHeaderGroups().map(headerGroup => (
+                      <tr key={headerGroup.id}>
+                        {headerGroup.headers.map(header => (
+                          <th key={header.id} className="text-xs font-medium">
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                          </th>
+                        ))}
+                      </tr>
+                    ))}
+                  </thead>
+                  <tbody>
+                    {jobHistoryTable.getRowModel().rows.map(row => (
+                      <tr key={row.id} className={cn(
+                        "hover:bg-base-100/50",
+                        row.original.is_current && "bg-success/5"
+                      )}>
+                        {row.getVisibleCells().map(cell => (
+                          <td key={cell.id} className="py-2">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-base-200/30 rounded-lg">
+            <BriefcaseIcon className="w-12 h-12 mx-auto mb-3 text-base-content/30" />
+            <p className="text-base-content/60 text-sm">
+              {periodId ? `当前薪资周期暂无职务记录` : '暂无职务历史记录'}
+            </p>
+            <p className="text-base-content/40 text-xs mt-2">
+              该员工在当前薪资周期内未创建职务分配记录
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -28,8 +28,8 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
   const dataGroupOptions: DataGroupOption[] = [
     {
       value: ImportDataGroup.EARNINGS,
-      label: '收入数据',
-      description: '所有收入项目的数据',
+      label: '薪资项目明细',
+      description: '各项薪资组成明细数据',
       icon: MoneyIcon
     },
     {
@@ -46,7 +46,7 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
     },
     {
       value: ImportDataGroup.JOB_ASSIGNMENT,
-      label: '职务信息',
+      label: '职务分配',
       description: '部门和职位分配信息',
       icon: BriefcaseIcon
     }
@@ -96,8 +96,8 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
 export const DATA_GROUP_OPTIONS: DataGroupOption[] = [
   {
     value: ImportDataGroup.EARNINGS,
-    label: '收入数据',
-    description: '所有收入项目的数据',
+    label: '薪资项目明细',
+    description: '各项薪资组成明细数据',
     icon: MoneyIcon
   },
   {
@@ -114,7 +114,7 @@ export const DATA_GROUP_OPTIONS: DataGroupOption[] = [
   },
   {
     value: ImportDataGroup.JOB_ASSIGNMENT,
-    label: '职务信息',
+    label: '职务分配',
     description: '部门和职位分配信息',
     icon: BriefcaseIcon
   }
