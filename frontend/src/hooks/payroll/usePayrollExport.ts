@@ -162,12 +162,21 @@ export function usePayrollExport() {
               }])
             );
             
-            // 将部门和职位信息合并到详细数据中
-            result.payrollDetails = (details || []).map(detail => ({
-              ...detail,
-              department_name: payrollInfoMap.get(detail.payroll_id)?.department_name || '',
-              position_name: payrollInfoMap.get(detail.payroll_id)?.position_name || ''
-            }));
+            // 将部门和职位信息合并到详细数据中，确保包含汇总字段
+            result.payrollDetails = (details || []).map(detail => {
+              const payrollInfo = payrollInfoMap.get(detail.payroll_id);
+              const originalPayroll = payrollData.find(p => p.payroll_id === detail.payroll_id);
+              
+              return {
+                ...detail,
+                department_name: payrollInfo?.department_name || '',
+                position_name: payrollInfo?.position_name || '',
+                // 确保包含汇总字段（从原始薪资数据中获取）
+                gross_pay: originalPayroll?.gross_pay || detail.gross_pay || 0,
+                total_deductions: originalPayroll?.total_deductions || detail.total_deductions || 0,
+                net_pay: originalPayroll?.net_pay || detail.net_pay || 0
+              };
+            });
           }
         }
 
@@ -376,12 +385,21 @@ export function usePayrollExport() {
                 }])
               );
               
-              // 将部门和职位信息合并到详细数据中
-              data.payrollDetails = (details || []).map(detail => ({
-                ...detail,
-                department_name: payrollInfoMap.get(detail.payroll_id)?.department_name || '',
-                position_name: payrollInfoMap.get(detail.payroll_id)?.position_name || ''
-              }));
+              // 将部门和职位信息合并到详细数据中，确保包含汇总字段
+              data.payrollDetails = (details || []).map(detail => {
+                const payrollInfo = payrollInfoMap.get(detail.payroll_id);
+                const originalPayroll = payrollData.find(p => p.payroll_id === detail.payroll_id);
+                
+                return {
+                  ...detail,
+                  department_name: payrollInfo?.department_name || '',
+                  position_name: payrollInfo?.position_name || '',
+                  // 确保包含汇总字段（从原始薪资数据中获取）
+                  gross_pay: originalPayroll?.gross_pay || detail.gross_pay || 0,
+                  total_deductions: originalPayroll?.total_deductions || detail.total_deductions || 0,
+                  net_pay: originalPayroll?.net_pay || detail.net_pay || 0
+                };
+              });
             }
           }
 
@@ -705,6 +723,7 @@ export function usePayrollExport() {
           // 步骤1: 按员工分组数据
           const employeeDetailsMap = new Map<string, any>();
           const componentNames = new Set<string>();
+          const componentTypesMap = new Map<string, string>(); // 存储组件类型
           
           // 收集所有薪资项目名称并按员工分组
           comprehensiveData.payrollDetails.forEach((item: any) => {
@@ -717,32 +736,43 @@ export function usePayrollExport() {
                 department_name: item.department_name || '',
                 position_name: item.position_name || '',
                 pay_month: item.pay_month || item.period_name || '',
-                components: {}
+                // 使用视图中已有的汇总字段
+                gross_pay: item.gross_pay || 0,
+                total_deductions: item.total_deductions || 0,
+                net_pay: item.net_pay || 0,
+                components: {},
+                incomeComponents: {}, // 收入项
+                deductionComponents: {} // 扣除项
               });
             }
             
             const employeeData = employeeDetailsMap.get(key);
             // 将薪资项目名称作为属性存储
-            employeeData.components[item.component_name] = item.amount || 0;
+            employeeData.components[item.component_name] = item.item_amount || item.amount || 0;
+            
+            // 根据 component_type 分类存储（优化：利用 component_type 字段）
+            if (item.component_type === 'earning' || item.component_type === 'income') {
+              employeeData.incomeComponents[item.component_name] = item.item_amount || item.amount || 0;
+            } else if (item.component_type === 'deduction') {
+              employeeData.deductionComponents[item.component_name] = Math.abs(item.item_amount || item.amount || 0);
+            }
+            
             componentNames.add(item.component_name);
+            // 存储组件类型信息
+            componentTypesMap.set(item.component_name, item.component_type || 'unknown');
           });
           
           // 步骤2: 将薪资项目名称排序（收入项在前，扣除项在后）
           const sortedComponents = Array.from(componentNames).sort((a, b) => {
-            // 可以根据实际的组件类型排序，这里简单按名称排序
-            const incomeKeywords = ['基本工资', '岗位工资', '绩效', '奖金', '津贴', '补贴', '加班'];
-            const deductionKeywords = ['养老', '医疗', '失业', '工伤', '生育', '公积金', '个税', '扣款'];
+            // 使用 component_type 进行准确排序
+            const aType = componentTypesMap.get(a) || 'unknown';
+            const bType = componentTypesMap.get(b) || 'unknown';
             
-            const aIsIncome = incomeKeywords.some(keyword => a.includes(keyword));
-            const bIsIncome = incomeKeywords.some(keyword => b.includes(keyword));
-            const aIsDeduction = deductionKeywords.some(keyword => a.includes(keyword));
-            const bIsDeduction = deductionKeywords.some(keyword => b.includes(keyword));
+            // 收入项排在前面
+            if ((aType === 'earning' || aType === 'income') && bType === 'deduction') return -1;
+            if (aType === 'deduction' && (bType === 'earning' || bType === 'income')) return 1;
             
-            if (aIsIncome && !bIsIncome) return -1;
-            if (!aIsIncome && bIsIncome) return 1;
-            if (aIsDeduction && !bIsDeduction) return 1;
-            if (!aIsDeduction && bIsDeduction) return -1;
-            
+            // 同类型按名称排序
             return a.localeCompare(b, 'zh-CN');
           });
           
@@ -761,24 +791,20 @@ export function usePayrollExport() {
               row[componentName] = item.components[componentName] || 0;
             });
             
-            // 计算合计
-            const totalIncome = sortedComponents
-              .filter(name => !name.includes('扣') && !name.includes('个税') && 
-                            !name.includes('养老') && !name.includes('医疗') && 
-                            !name.includes('失业') && !name.includes('工伤') && 
-                            !name.includes('生育') && !name.includes('公积金'))
-              .reduce((sum, name) => sum + (item.components[name] || 0), 0);
+            // 立即修复：使用视图中已有的准确值，而不是重新计算
+            row['应发合计'] = item.gross_pay;  // 使用数据库计算的准确值
+            row['扣款合计'] = item.total_deductions;  // 使用数据库计算的准确值
+            row['实发工资'] = item.net_pay;  // 使用数据库计算的准确值
             
-            const totalDeduction = sortedComponents
-              .filter(name => name.includes('扣') || name.includes('个税') || 
-                            name.includes('养老') || name.includes('医疗') || 
-                            name.includes('失业') || name.includes('工伤') || 
-                            name.includes('生育') || name.includes('公积金'))
-              .reduce((sum, name) => sum + Math.abs(item.components[name] || 0), 0);
-            
-            row['应发合计'] = totalIncome;
-            row['扣款合计'] = totalDeduction;
-            row['实发工资'] = totalIncome - totalDeduction;
+            // 备注：如果需要验证计算，可以比较重新计算的值与数据库值
+            // const calculatedIncome = Object.entries(item.incomeComponents)
+            //   .reduce((sum, [_, amount]) => sum + (amount as number), 0);
+            // const calculatedDeduction = Object.entries(item.deductionComponents)
+            //   .reduce((sum, [_, amount]) => sum + Math.abs(amount as number), 0);
+            // 
+            // if (Math.abs(calculatedIncome - item.gross_pay) > 0.01) {
+            //   console.warn(`应发金额不一致: ${item.employee_name}, 计算值: ${calculatedIncome}, 数据库值: ${item.gross_pay}`);
+            // }
             
             return row;
           });
