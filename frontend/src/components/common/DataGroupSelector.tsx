@@ -119,7 +119,8 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
 
   return (
     <div className={`${className}`}>
-      <div className="overflow-x-auto">
+      {/* 桌面端表格视图 */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="table table-zebra w-full">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
@@ -166,8 +167,8 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
         </table>
       </div>
       
-      {/* 提供卡片视图作为响应式备选方案 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:hidden mt-4">
+      {/* 移动端卡片视图 */}
+      <div className="grid grid-cols-1 gap-4 md:hidden">
         {data.map(option => (
           <div
             key={option.value}

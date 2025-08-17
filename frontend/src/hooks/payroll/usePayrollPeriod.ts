@@ -97,36 +97,31 @@ export const useCurrentPayrollPeriod = () => {
   return useQuery({
     queryKey: payrollPeriodQueryKeys.current(),
     queryFn: async (): Promise<PayrollPeriod | null> => {
-      // 获取当前日期，用于过滤未来月份
-      const currentDate = new Date();
-      const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth() + 1;
+      // 简化逻辑：直接按状态优先级和时间顺序获取最新的可用周期
       
-      // 优先获取处理中的周期（不超过当前月份）
-      const { data: processingPeriod, error: processingError } = await supabase
+      // 先尝试获取处理中的周期
+      const { data: processingPeriod } = await supabase
         .from('payroll_periods')
         .select('*')
         .eq('status', PeriodStatus.PROCESSING)
-        .or(`period_year.lt.${currentYear},and(period_year.eq.${currentYear},period_month.lte.${currentMonth})`)
         .order('period_year', { ascending: false })
         .order('period_month', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
       
-      if (processingPeriod && !processingError) {
+      if (processingPeriod) {
         return processingPeriod;
       }
       
-      // 获取最新的草稿周期（不超过当前月份）
+      // 如果没有处理中的周期，获取最新的草稿周期
       const { data, error } = await supabase
         .from('payroll_periods')
         .select('*')
         .eq('status', PeriodStatus.DRAFT)
-        .or(`period_year.lt.${currentYear},and(period_year.eq.${currentYear},period_month.lte.${currentMonth})`)
         .order('period_year', { ascending: false })
         .order('period_month', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         handleError(error, { customMessage: '获取当前薪资周期失败' });
@@ -610,14 +605,10 @@ export const useUpcomingPayrollPeriods = (limit = 3) => {
   return useQuery({
     queryKey: payrollPeriodQueryKeys.upcoming(),
     queryFn: async () => {
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
-      
+      // 简化：直接获取草稿和处理中的周期，按时间正序排列
       const { data, error } = await supabase
         .from('payroll_periods')
         .select('*')
-        .or(`period_year.gt.${currentYear},and(period_year.eq.${currentYear},period_month.gte.${currentMonth})`)
         .in('status', [PeriodStatus.DRAFT, PeriodStatus.PROCESSING])
         .order('period_year', { ascending: true })
         .order('period_month', { ascending: true })

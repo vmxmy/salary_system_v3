@@ -87,24 +87,13 @@ export function useTableConfiguration(
       
       setMetadata(config);
       
-      // 设置默认用户配置
-      if (!userConfig) {
-        const defaultConfig: UserTableConfig = {
-          visibleColumns: config.defaultFields,
-          columnOrder: config.defaultFields,
-          columnWidths: {},
-          sorting: config.defaultSort ? [config.defaultSort] : undefined
-        };
-        setUserConfig(defaultConfig);
-      }
-      
     } catch (error) {
       console.error('Failed to load table metadata:', error);
       setMetadataError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setMetadataLoading(false);
     }
-  }, [tableName, userConfig]);
+  }, [tableName]);
 
   // 刷新元数据
   const refreshMetadata = useCallback(async () => {
@@ -193,18 +182,33 @@ export function useTableConfiguration(
     loadMetadata();
   }, [loadMetadata]);
 
-  // 尝试从 localStorage 恢复用户配置
+  // 初始化用户配置：优先使用 localStorage，否则使用默认配置
   useEffect(() => {
+    if (!metadata) return;
+    
     try {
       const savedConfig = localStorage.getItem(`table-config-${tableName}`);
       if (savedConfig) {
         const config = JSON.parse(savedConfig);
-        setUserConfig(config);
+        // 验证保存的配置是否有效（至少要有可见列）
+        if (config.visibleColumns && config.visibleColumns.length > 0) {
+          setUserConfig(config);
+          return;
+        }
       }
     } catch (error) {
       console.warn('Failed to load user config from localStorage:', error);
     }
-  }, [tableName]);
+    
+    // 如果没有有效的保存配置，使用默认配置
+    const defaultConfig: UserTableConfig = {
+      visibleColumns: metadata.defaultFields,
+      columnOrder: metadata.defaultFields,
+      columnWidths: {},
+      sorting: metadata.defaultSort ? [metadata.defaultSort] : undefined
+    };
+    setUserConfig(defaultConfig);
+  }, [tableName, metadata]);
 
   return {
     metadata,

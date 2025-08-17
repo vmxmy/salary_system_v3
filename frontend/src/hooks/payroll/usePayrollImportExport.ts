@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
 import * as XLSX from 'xlsx';
+import uFuzzy from '@leeoniya/ufuzzy';
 import type { Database } from '@/types/supabase';
 import { ImportDataGroup } from '@/types/payroll-import';
 import type { ImportConfig as PayrollImportConfig } from '@/types/payroll-import';
@@ -69,6 +70,29 @@ export interface ExportConfig {
   format?: 'xlsx' | 'csv';
 }
 
+// 列名匹配结果接口
+export interface ColumnMatchResult {
+  excelColumn: string;
+  dbField: string | null;
+  matchType: 'exact' | 'fuzzy' | 'unmapped';
+  suggestions?: string[];
+  isRequired?: boolean;
+}
+
+// 字段匹配分析结果
+export interface FieldMappingAnalysis {
+  sheetName: string;
+  dataGroup: ImportDataGroup | undefined;
+  totalColumns: number;
+  mappedColumns: number;
+  unmappedColumns: number;
+  requiredFieldsMatched: number;
+  requiredFieldsTotal: number;
+  matchResults: ColumnMatchResult[];
+  warnings: string[];
+  recommendations: string[];
+}
+
 // 导入进度
 export interface ImportProgress {
   phase: 'parsing' | 'validating' | 'importing' | 'completed' | 'error';
@@ -90,6 +114,7 @@ export interface ImportProgress {
     totalRecords: number;          // 当前工作表的总记录数
     processedRecords: number;      // 当前工作表已处理的记录数
     currentRecord?: number;        // 当前处理的记录行号
+    fieldMappingAnalysis?: FieldMappingAnalysis;  // 字段映射分析结果
   };
   
   errors: any[];
@@ -158,6 +183,208 @@ export function usePayrollImportExport() {
     warnings: []
   });
 
+
+  // 分析Excel列名与数据库字段的匹配情况
+  const analyzeFieldMapping = useCallback(async (
+    excelColumns: string[], 
+    dataGroup?: ImportDataGroup
+  ): Promise<FieldMappingAnalysis> => {
+    console.log('🔍 开始分析字段映射...');
+    console.log('📊 Excel列名:', excelColumns);
+    console.log('📋 数据组:', dataGroup);
+
+    // 获取薪资组件和验证规则
+    const salaryComponents = await getSalaryComponents(dataGroup);
+    const validationRules = await getValidationRules();
+    
+    // 构建数据库字段映射
+    const dbFields = new Map<string, { type: string; required: boolean }>();
+    
+    // 添加基础字段
+    dbFields.set('员工姓名', { type: 'basic', required: true });
+    dbFields.set('employee_name', { type: 'basic', required: true });
+    
+    // 添加薪资组件字段
+    salaryComponents.forEach(component => {
+      dbFields.set(component.name, { 
+        type: component.type === 'earning' ? 'earning' : 'deduction', 
+        required: false 
+      });
+    });
+    
+    // 根据数据组添加特定字段
+    if (dataGroup === 'category' || dataGroup === 'all') {
+      dbFields.set('人员类别', { type: 'assignment', required: true });
+      dbFields.set('category_name', { type: 'assignment', required: true });
+    }
+    
+    if (dataGroup === 'job' || dataGroup === 'all') {
+      dbFields.set('部门', { type: 'assignment', required: true });
+      dbFields.set('职位', { type: 'assignment', required: true });
+      dbFields.set('department_name', { type: 'assignment', required: true });
+      dbFields.set('position_name', { type: 'assignment', required: true });
+    }
+    
+    if (dataGroup === 'bases' || dataGroup === 'all') {
+      ['养老基数', '医疗基数', '失业基数', '工伤基数', '生育基数', '公积金基数'].forEach(field => {
+        dbFields.set(field, { type: 'contribution_base', required: false });
+      });
+    }
+
+    const matchResults: ColumnMatchResult[] = [];
+    const warnings: string[] = [];
+    const recommendations: string[] = [];
+    
+    // 使用 uFuzzy 进行高效的模糊匹配
+    // uFuzzy 是2025年最新的高性能模糊匹配库，仅7.5KB，零依赖
+    const uf = new uFuzzy({
+      // 配置选项
+      intraMode: 1,  // 允许单个错误
+      intraIns: 1,   // 插入成本
+      intraSub: 1,   // 替换成本
+      intraTrn: 1,   // 交换成本
+      intraDel: 1    // 删除成本
+    });
+
+    // 构建搜索数据库字段列表
+    const haystack = Array.from(dbFields.keys());
+    
+    console.log('🔍 使用 uFuzzy 进行字段匹配，数据库字段:', haystack);
+
+    // 分析每个Excel列
+    excelColumns.forEach(excelColumn => {
+      console.log(`🔍 分析Excel列: "${excelColumn}"`);
+      
+      // 使用 uFuzzy 进行搜索
+      const idxs = uf.filter(haystack, excelColumn);
+      
+      if (idxs && idxs.length > 0) {
+        // 获取匹配信息和排序
+        const info = uf.info(idxs, haystack, excelColumn);
+        const order = uf.sort(info, haystack, excelColumn);
+        
+        if (order.length > 0) {
+          // 获取最佳匹配
+          const bestMatchIdx = info.idx[order[0]];
+          const bestMatchField = haystack[bestMatchIdx];
+          const fieldInfo = dbFields.get(bestMatchField);
+          
+          // 计算相似度分数 (uFuzzy 没有直接提供相似度分数，我们基于排名估算)
+          const similarity = order[0] === 0 ? 1.0 : Math.max(0.6, 1 - (order[0] * 0.1));
+          
+          // 判断匹配类型
+          let matchType: 'exact' | 'fuzzy' | 'unmapped';
+          if (excelColumn.toLowerCase() === bestMatchField.toLowerCase()) {
+            matchType = 'exact';
+          } else if (similarity >= 0.7) {
+            matchType = 'fuzzy';
+          } else {
+            matchType = 'unmapped';
+          }
+          
+          // 获取建议列表（前3个匹配）
+          const suggestions = order.slice(0, Math.min(3, order.length))
+            .map(orderIdx => haystack[info.idx[orderIdx]]);
+          
+          matchResults.push({
+            excelColumn,
+            dbField: matchType !== 'unmapped' ? bestMatchField : null,
+            matchType,
+            suggestions,
+            isRequired: fieldInfo?.required || false
+          });
+          
+          // 添加警告
+          if (matchType === 'fuzzy' && similarity < 0.8) {
+            warnings.push(`列"${excelColumn}"与数据库字段"${bestMatchField}"相似度较低`);
+          }
+          
+          console.log(`✅ 匹配结果: "${excelColumn}" -> "${bestMatchField}" (${matchType})`);
+        } else {
+          // 没有有效匹配
+          matchResults.push({
+            excelColumn,
+            dbField: null,
+            matchType: 'unmapped',
+            suggestions: haystack.slice(0, 5) // 提供前5个字段作为建议
+          });
+          warnings.push(`列"${excelColumn}"未找到匹配的数据库字段`);
+          console.log(`❌ 未匹配: "${excelColumn}"`);
+        }
+      } else {
+        // uFuzzy 没有找到任何匹配
+        matchResults.push({
+          excelColumn,
+          dbField: null,
+          matchType: 'unmapped',
+          suggestions: haystack.slice(0, 5)
+        });
+        warnings.push(`列"${excelColumn}"未找到匹配的数据库字段`);
+        console.log(`❌ 无匹配: "${excelColumn}"`);
+      }
+    });
+
+    // 检查必需字段是否都有匹配
+    const requiredFields = Array.from(dbFields.entries()).filter(([_, info]) => info.required);
+    const matchedRequiredFields = requiredFields.filter(([field, _]) => 
+      matchResults.some(result => result.dbField === field)
+    );
+    
+    if (matchedRequiredFields.length < requiredFields.length) {
+      const missingFields = requiredFields
+        .filter(([field, _]) => !matchResults.some(result => result.dbField === field))
+        .map(([field, _]) => field);
+      warnings.push(`缺少必需字段: ${missingFields.join(', ')}`);
+      recommendations.push(`请确保Excel中包含以下必需列: ${missingFields.join(', ')}`);
+    }
+    
+    // 统计信息
+    const mappedColumns = matchResults.filter(r => r.dbField !== null).length;
+    const unmappedColumns = matchResults.filter(r => r.dbField === null).length;
+
+    console.log('📋 字段映射分析完成:', {
+      总列数: excelColumns.length,
+      已映射: mappedColumns,
+      未映射: unmappedColumns,
+      必需字段匹配: `${matchedRequiredFields.length}/${requiredFields.length}`
+    });
+
+    return {
+      sheetName: '未知',
+      dataGroup,
+      totalColumns: excelColumns.length,
+      mappedColumns,
+      unmappedColumns,
+      requiredFieldsMatched: matchedRequiredFields.length,
+      requiredFieldsTotal: requiredFields.length,
+      matchResults,
+      warnings,
+      recommendations
+    };
+  }, []);
+
+  // 获取薪资组件的辅助函数 - 使用与导入相同的过滤条件
+  const getSalaryComponents = useCallback(async (dataGroup?: ImportDataGroup) => {
+    // 根据数据组确定薪资组件类别
+    const defaultCategories: SalaryComponentCategory[] = ['basic_salary', 'benefits', 'personal_tax'];
+    const includeCategories = defaultCategories; // 与 importPayrollItems 保持一致
+    
+    const { data: salaryComponents, error } = await supabase
+      .from('salary_components')
+      .select('name, type, category')
+      .in('category', includeCategories)
+      .order('type', { ascending: true })
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('获取薪资组件失败:', error);
+      return [];
+    }
+
+    console.log(`🎯 字段映射使用的薪资组件类别: ${includeCategories.join(', ')}`);
+    return salaryComponents || [];
+  }, []);
+
   // 解析Excel文件 - 支持单个数据组和全部数据的多工作表解析
   const parseExcelFile = useCallback(async (file: File, dataGroup?: ImportDataGroup): Promise<ExcelDataRow[]> => {
     return new Promise((resolve, reject) => {
@@ -170,10 +397,10 @@ export function usePayrollImportExport() {
           
           // 定义工作表名称映射
           const sheetNameMapping: Record<Exclude<ImportDataGroup, 'all'>, string[]> = {
-            'earnings': ['薪资项目', '收入数据', '薪资数据', '工资'],
-            'bases': ['缴费基数', '社保基数', '公积金基数'],
-            'category': ['人员类别', '员工类别', '人员分类'],
-            'job': ['职务信息', '岗位信息', '部门职位', '职务分配', '岗位分配']
+            'earnings': ['薪资项目明细'],
+            'bases': ['缴费基数'],
+            'category': ['人员类别'],
+            'job': ['职务信息']
           };
           
           // 根据数据组选择对应的工作表
@@ -201,6 +428,40 @@ export function usePayrollImportExport() {
           }) as ExcelDataRow[];
           
           console.log(`📊 工作表 "${sheetName}" 读取了 ${jsonData.length} 行数据`);
+          
+          // 如果有数据，分析字段映射
+          if (jsonData.length > 0) {
+            const excelColumns = Object.keys(jsonData[0]);
+            console.log('🔍 开始分析Excel列名与数据库字段的匹配情况...');
+            
+            // 异步执行字段映射分析（不阻塞解析流程）
+            analyzeFieldMapping(excelColumns, dataGroup).then(analysis => {
+              console.log('📋 字段映射分析结果:', analysis);
+              
+              // 更新进度状态，包含映射分析结果
+              setImportProgress(prev => ({
+                ...prev,
+                current: {
+                  ...prev.current,
+                  sheetName,
+                  fieldMappingAnalysis: analysis
+                }
+              }));
+              
+              // 如果有警告，输出到控制台
+              if (analysis.warnings.length > 0) {
+                console.warn('⚠️ 字段映射警告:', analysis.warnings);
+              }
+              
+              // 如果有建议，输出到控制台
+              if (analysis.recommendations.length > 0) {
+                console.info('💡 字段映射建议:', analysis.recommendations);
+              }
+            }).catch(error => {
+              console.error('❌ 字段映射分析失败:', error);
+            });
+          }
+          
           resolve(jsonData);
         } catch (error) {
           reject(error);
@@ -223,45 +484,100 @@ export function usePayrollImportExport() {
     customValidator?: (value: any, row: ExcelDataRow) => string | null;
   }
 
-  // 定义各数据组的验证规则
-  const validationRules: Record<string, ValidationRule[]> = {
-    earnings: [
-      { field: '员工姓名', required: true },
-      { field: '基本工资', type: 'number', min: 0, max: 1000000 },
-      { field: '岗位工资', type: 'number', min: 0, max: 1000000 },
-      { field: '绩效奖金', type: 'number', min: 0, max: 1000000 },
-      { field: '加班费', type: 'number', min: 0 },
-      { field: '津贴', type: 'number', min: 0 },
-      { field: '补贴', type: 'number', min: 0 }
-    ],
-    deductions: [
-      { field: '员工姓名', required: true },
-      { field: '养老保险', type: 'number', min: 0, max: 50000 },
-      { field: '医疗保险', type: 'number', min: 0, max: 50000 },
-      { field: '失业保险', type: 'number', min: 0, max: 50000 },
-      { field: '工伤保险', type: 'number', min: 0, max: 50000 },
-      { field: '生育保险', type: 'number', min: 0, max: 50000 },
-      { field: '住房公积金', type: 'number', min: 0, max: 50000 },
-      { field: '个人所得税', type: 'number', min: 0, max: 100000 }
-    ],
-    contribution_bases: [
-      { field: '员工姓名', required: true },
-      { field: '养老基数', type: 'number', min: 0, max: 100000 },
-      { field: '医疗基数', type: 'number', min: 0, max: 100000 },
-      { field: '失业基数', type: 'number', min: 0, max: 100000 },
-      { field: '工伤基数', type: 'number', min: 0, max: 100000 },
-      { field: '生育基数', type: 'number', min: 0, max: 100000 },
-      { field: '公积金基数', type: 'number', min: 0, max: 100000 }
-    ],
-    category_assignment: [
-      { field: '员工姓名', required: true },
-      { field: '人员类别', required: true }
-    ],
-    job_assignment: [
-      { field: '员工姓名', required: true },
-      { field: '部门', required: true },
-      { field: '职位', required: true }
-    ]
+  // 动态获取验证规则
+  const getValidationRules = useCallback(async (): Promise<Record<string, ValidationRule[]>> => {
+    try {
+      // 获取薪资组件
+      const { data: salaryComponents, error } = await supabase
+        .from('salary_components')
+        .select('name, type')
+        .order('type', { ascending: true })
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.error('获取薪资组件失败:', error);
+        // 如果获取失败，返回基础验证规则
+        return getBasicValidationRules();
+      }
+
+      console.log('🔍 动态获取到的薪资组件:', salaryComponents);
+
+      // 根据薪资组件类型分组构建验证规则
+      const earningComponents = salaryComponents?.filter(c => c.type === 'earning') || [];
+      const deductionComponents = salaryComponents?.filter(c => c.type === 'deduction') || [];
+
+      const rules: Record<string, ValidationRule[]> = {
+        earnings: [
+          { field: '员工姓名', required: true },
+          // 动态添加收入项组件
+          ...earningComponents.map(component => ({
+            field: component.name,
+            type: 'number' as const,
+            min: 0,
+            max: 1000000
+          }))
+        ],
+        deductions: [
+          { field: '员工姓名', required: true },
+          // 动态添加扣除项组件
+          ...deductionComponents.map(component => ({
+            field: component.name,
+            type: 'number' as const,
+            min: 0,
+            max: component.name === '个人所得税' ? 100000 : 50000
+          }))
+        ],
+        contribution_bases: [
+          { field: '员工姓名', required: true },
+          // 基数相关字段（这些通常不是薪资组件，而是计算基础）
+          { field: '养老基数', type: 'number', min: 0, max: 100000 },
+          { field: '医疗基数', type: 'number', min: 0, max: 100000 },
+          { field: '失业基数', type: 'number', min: 0, max: 100000 },
+          { field: '工伤基数', type: 'number', min: 0, max: 100000 },
+          { field: '生育基数', type: 'number', min: 0, max: 100000 },
+          { field: '公积金基数', type: 'number', min: 0, max: 100000 }
+        ],
+        category_assignment: [
+          { field: '员工姓名', required: true },
+          { field: '人员类别', required: true }
+        ],
+        job_assignment: [
+          { field: '员工姓名', required: true },
+          { field: '部门', required: true },
+          { field: '职位', required: true }
+        ]
+      };
+
+      console.log('📋 动态构建的验证规则:', rules);
+      return rules;
+    } catch (error) {
+      console.error('获取验证规则时发生错误:', error);
+      return getBasicValidationRules();
+    }
+  }, []);
+
+  // 基础验证规则（兜底方案）
+  const getBasicValidationRules = (): Record<string, ValidationRule[]> => {
+    return {
+      earnings: [
+        { field: '员工姓名', required: true },
+      ],
+      deductions: [
+        { field: '员工姓名', required: true },
+      ],
+      contribution_bases: [
+        { field: '员工姓名', required: true },
+      ],
+      category_assignment: [
+        { field: '员工姓名', required: true },
+        { field: '人员类别', required: true }
+      ],
+      job_assignment: [
+        { field: '员工姓名', required: true },
+        { field: '部门', required: true },
+        { field: '职位', required: true }
+      ]
+    };
   };
 
   // 验证单个字段
@@ -328,16 +644,35 @@ export function usePayrollImportExport() {
     data: ExcelDataRow[],
     config: ImportConfig
   ): Promise<{ isValid: boolean; errors: any[]; warnings: any[] }> => {
+    console.log('🔍 开始数据验证...');
+    console.log(`📊 待验证数据行数: ${data.length}`);
+    console.log('⚙️ 验证配置:', config);
+    
     const errors: any[] = [];
     const warnings: any[] = [];
     
+    // 动态获取验证规则
+    const validationRules = await getValidationRules();
+    console.log('🛠️ 动态获取的验证规则:', validationRules);
+    
     // 根据选择的数据组进行验证
     const dataGroups = Array.isArray(config.dataGroup) ? config.dataGroup : [config.dataGroup];
+    console.log('📋 数据组类型:', dataGroups);
+    
     dataGroups.forEach(group => {
       const groupName = group.toLowerCase().replace('_', '');
       const rules = validationRules[groupName] || validationRules[group] || [];
       
+      console.log(`🔎 验证数据组: ${group}`);
+      console.log(`📝 找到验证规则: ${rules.length} 条`);
+      
+      if (rules.length === 0) {
+        console.log(`⚠️ 数据组 "${group}" 没有找到验证规则`);
+      }
+      
       data.forEach((row, index) => {
+        console.log(`🔍 验证第 ${index + 1} 行数据...`);
+        
         rules.forEach(rule => {
           // 支持多个可能的字段名
           const possibleFields = [
@@ -365,42 +700,71 @@ export function usePayrollImportExport() {
             }
           }
           
+          console.log(`  📝 验证字段: ${rule.field} -> ${fieldName} = ${value}`);
+          
           const error = validateField(value, rule);
           if (error) {
+            console.log(`  ❌ 验证失败: ${error}`);
             errors.push({
               row: index + 2,
               field: fieldName,
               message: error
             });
+          } else {
+            console.log(`  ✅ 验证通过: ${rule.field}`);
           }
         });
       });
     });
     
+    console.log('\n📊 验证统计:');
+    console.log(`❌ 错误数量: ${errors.length}`);
+    console.log(`⚠️ 警告数量: ${warnings.length}`);
+    
+    if (errors.length > 0) {
+      console.log('\n❌ 错误详情:');
+      errors.forEach((error, index) => {
+        console.log(`${index + 1}. 第${error.row}行 ${error.field}: ${error.message}`);
+      });
+    }
+    
     // 添加一些警告信息
+    console.log('\n🔍 检查数据量...');
     if (data.length > 1000) {
+      const warning = `数据量较大（${data.length}条），导入可能需要较长时间`;
+      console.log(`⚠️ ${warning}`);
       warnings.push({
         row: 0,
-        message: `数据量较大（${data.length}条），导入可能需要较长时间`
+        message: warning
       });
     }
     
     // 检查是否有重复的员工
+    console.log('🔍 检查重复员工...');
     const employeeNames = data.map(row => row['员工姓名'] || row['employee_name']).filter(Boolean);
     const duplicates = employeeNames.filter((name, index) => employeeNames.indexOf(name) !== index);
     if (duplicates.length > 0) {
+      const uniqueDuplicates = [...new Set(duplicates)];
+      const warning = `发现重复的员工：${uniqueDuplicates.join(', ')}`;
+      console.log(`⚠️ ${warning}`);
       warnings.push({
         row: 0,
-        message: `发现重复的员工：${[...new Set(duplicates)].join(', ')}`
+        message: warning
       });
+    } else {
+      console.log('✅ 未发现重复员工');
     }
     
+    const isValid = errors.length === 0;
+    console.log(`\n🎯 验证结果: ${isValid ? '✅ 通过' : '❌ 失败'}`);
+    console.log('🏁 数据验证完成\n');
+    
     return {
-      isValid: errors.length === 0,
+      isValid,
       errors,
       warnings
     };
-  }, []);
+  }, [getValidationRules]);
 
   // 导入薪资项目明细数据（动态获取薪资组件）
   const importPayrollItems = useCallback(async (
@@ -478,6 +842,35 @@ export function usePayrollImportExport() {
       console.log('⚠️ 未匹配的数据列:', unmatchedColumns);
     }
     
+    // 批量查询优化：预先获取所有需要的员工数据
+    console.log('\n🚀 批量预加载数据优化...');
+    const employeeNames = [...new Set(data.map(row => 
+      row['员工姓名'] || row['employee_name']
+    ).filter(Boolean))];
+    
+    console.log(`📊 需要查询的员工数量: ${employeeNames.length}`);
+    const { data: allEmployees, error: employeesError } = await supabase
+      .from('employees')
+      .select('id, employee_name')
+      .in('employee_name', employeeNames);
+    
+    if (employeesError) {
+      console.error('❌ 批量查询员工失败:', employeesError);
+      throw new Error(`批量查询员工失败: ${employeesError.message}`);
+    }
+    
+    // 创建员工映射表（姓名 -> 员工信息）
+    const employeeMap = new Map(
+      (allEmployees || []).map(emp => [emp.employee_name, emp])
+    );
+    console.log(`✅ 成功预加载 ${employeeMap.size} 个员工数据`);
+    
+    // 检查是否有找不到的员工
+    const missingEmployees = employeeNames.filter(name => !employeeMap.has(name));
+    if (missingEmployees.length > 0) {
+      console.warn('⚠️ 以下员工在数据库中不存在:', missingEmployees);
+    }
+    
     console.log(`\n🔄 开始逐行处理 ${data.length} 条数据...`);
     
     for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
@@ -485,19 +878,11 @@ export function usePayrollImportExport() {
       console.log(`\n--- 处理第 ${rowIndex + 1}/${data.length} 行数据 ---`);
       console.log('📋 当前行数据:', row);
       try {
-        // 查找员工
+        // 从映射表中查找员工（避免每次查询数据库）
         const employeeName = row['员工姓名'] || row['employee_name'];
         console.log(`👤 查找员工: "${employeeName}"`);
         
-        const { data: employee, error: employeeError } = await supabase
-          .from('employees')
-          .select('id, employee_name')
-          .or(`employee_name.eq.${employeeName},employee_name.eq.${employeeName}`)
-          .single();
-        
-        if (employeeError) {
-          console.error('❌ 员工查询出错:', employeeError);
-        }
+        const employee = employeeMap.get(employeeName);
         
         if (!employee) {
           console.error(`❌ 未找到员工: "${employeeName}"`);
@@ -567,7 +952,7 @@ export function usePayrollImportExport() {
             employee_id: employee.id,
             period_id: periodId,
             pay_date: payDate,
-            status: 'draft'
+            status: 'draft' as const
             // 不设置 gross_pay、total_deductions、net_pay
             // 这些字段由存储过程计算
           };
@@ -604,7 +989,7 @@ export function usePayrollImportExport() {
         
         // 遍历Excel数据的所有列，匹配薪资组件
         for (const [columnName, value] of Object.entries(row)) {
-          // 跳过非薪资数据列
+          // 跳过非薪资项目列
           if (columnName === '员工姓名' || columnName === 'employee_name' || 
               columnName === '部门' || columnName === '职位' || 
               columnName === 'rowNumber' || columnName === '_sheetName') {
@@ -656,6 +1041,13 @@ export function usePayrollImportExport() {
           
           if (insertError) {
             console.error('❌ 插入薪资项失败:', insertError);
+            
+            // 处理重复数据的友好提示
+            if (insertError.code === '23505' && insertError.message.includes('unique_payroll_item_component')) {
+              throw new Error(`该员工本月薪资数据已存在，请先删除原有数据再重新导入`);
+            }
+            
+            // 其他错误
             throw new Error(`插入薪资项失败: ${insertError.message}`);
           }
           
@@ -685,22 +1077,44 @@ export function usePayrollImportExport() {
         // 更新全局进度和当前数据组进度
         if (globalProgressRef) {
           globalProgressRef.current++;
-          setImportProgress(prev => ({
-            ...prev,
-            global: {
-              ...prev.global,
-              processedRecords: globalProgressRef.current
-            },
-            current: {
-              ...prev.current,
-              processedRecords: prev.current.processedRecords + 1
-            }
-          }));
-          
-          console.log(`📈 进度更新: 全局 ${globalProgressRef.current} / 当前组 ${prev.current.processedRecords + 1}`);
+          setImportProgress(prev => {
+            const newProgress = {
+              ...prev,
+              global: {
+                ...prev.global,
+                processedRecords: globalProgressRef.current
+              },
+              current: {
+                ...prev.current,
+                processedRecords: prev.current.processedRecords + 1
+              }
+            };
+            console.log(`📈 进度更新: 全局 ${globalProgressRef.current} / 当前组 ${newProgress.current.processedRecords}`);
+            return newProgress;
+          });
         }
       }
     }
+    
+    // 最终统计
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.filter(r => !r.success).length;
+    
+    console.log('\n📊 薪资项目导入完成统计:');
+    console.log(`✅ 成功: ${successCount} 条`);
+    console.log(`❌ 失败: ${failureCount} 条`);
+    console.log(`📊 总计: ${results.length} 条`);
+    console.log(`📈 成功率: ${((successCount / results.length) * 100).toFixed(1)}%`);
+    
+    if (failureCount > 0) {
+      console.log('\n❌ 失败详情:');
+      results.filter(r => !r.success).forEach((result, index) => {
+        console.log(`${index + 1}. ${result.error}`);
+        console.log(`   数据:`, result.row);
+      });
+    }
+    
+    console.log('🏁 importPayrollItems 函数执行完成\n');
     
     return results;
   }, []);
@@ -726,14 +1140,15 @@ export function usePayrollImportExport() {
     for (const row of data) {
       try {
         // 查找员工
+        const employeeName = row['员工姓名'] || row['employee_name'];
         const { data: employee } = await supabase
           .from('employees')
           .select('id')
-          .or(`employee_name.eq.${row['员工姓名']},employee_name.eq.${row['employee_name']}`)
+          .eq('employee_name', employeeName)
           .single();
         
         if (!employee) {
-          throw new Error(`找不到员工: ${row['员工姓名'] || row['employee_name']}`);
+          throw new Error(`找不到员工: ${employeeName}`);
         }
         
         // 社保基数字段映射 - 扩展支持更多基数类型
@@ -987,28 +1402,81 @@ export function usePayrollImportExport() {
     
     const results = [];
     
+    // 批量查询优化：预先加载所有相关数据
+    console.log('\n🚀 批量预加载职务分配相关数据...');
+    
+    // 1. 预加载所有员工
+    const employeeNames = [...new Set(data.map(row => 
+      row['员工姓名'] || row['employee_name']
+    ).filter(Boolean))];
+    
+    console.log(`📊 需要查询的员工数量: ${employeeNames.length}`);
+    const { data: allEmployees } = await supabase
+      .from('employees')
+      .select('id, employee_name')
+      .in('employee_name', employeeNames);
+    
+    const employeeMap = new Map((allEmployees || []).map(emp => [emp.employee_name, emp]));
+    console.log(`✅ 预加载 ${employeeMap.size} 个员工数据`);
+    
+    // 2. 预加载所有部门
+    const departmentNames = [...new Set(data.map(row => 
+      row['部门'] || row['department_name']
+    ).filter(Boolean))];
+    
+    console.log(`📊 需要查询的部门数量: ${departmentNames.length}`);
+    const { data: allDepartments } = await supabase
+      .from('departments')
+      .select('id, name')
+      .in('name', departmentNames);
+    
+    const departmentMap = new Map((allDepartments || []).map(dept => [dept.name, dept]));
+    console.log(`✅ 预加载 ${departmentMap.size} 个部门数据`);
+    
+    // 3. 预加载所有职位
+    const positionNames = [...new Set(data.map(row => 
+      row['职位'] || row['position_name']
+    ).filter(Boolean))];
+    
+    console.log(`📊 需要查询的职位数量: ${positionNames.length}`);
+    const { data: allPositions } = await supabase
+      .from('positions')
+      .select('id, name')
+      .in('name', positionNames);
+    
+    const positionMap = new Map((allPositions || []).map(pos => [pos.name, pos]));
+    console.log(`✅ 预加载 ${positionMap.size} 个职位数据`);
+    
+    // 4. 预加载所有职级（如果有）
+    const rankNames = [...new Set(data.map(row => 
+      row['职级'] || row['rank_name']
+    ).filter(Boolean))];
+    
+    let rankMap = new Map();
+    if (rankNames.length > 0) {
+      console.log(`📊 需要查询的职级数量: ${rankNames.length}`);
+      const { data: allRanks } = await supabase
+        .from('job_ranks')
+        .select('id, name')
+        .in('name', rankNames);
+      
+      rankMap = new Map((allRanks || []).map(rank => [rank.name, rank]));
+      console.log(`✅ 预加载 ${rankMap.size} 个职级数据`);
+    }
+    
+    console.log('\n🔄 开始逐行处理数据...');
+    
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       console.log(`\n--- 处理第 ${i + 1}/${data.length} 行数据 ---`);
       console.log('🔍 当前行数据:', row);
       
       try {
-        // 提取员工信息
+        // 从映射表中查找员工（避免每次查询数据库）
         const employeeName = row['员工姓名'] || row['employee_name'];
         console.log(`👤 查找员工: "${employeeName}"`);
         
-        // 查找员工
-        const { data: employee, error: employeeError } = await supabase
-          .from('employees')
-          .select('id, employee_name')
-          .or(`employee_name.eq.${employeeName},employee_name.eq.${employeeName}`)
-          .single();
-          
-        if (employeeError) {
-          console.error('❌ 员工查询错误:', employeeError);
-        }
-        
-        console.log('👤 员工查询结果:', employee);
+        const employee = employeeMap.get(employeeName);
         
         if (!employee) {
           throw new Error(`找不到员工: ${employeeName}`);
@@ -1049,22 +1517,12 @@ export function usePayrollImportExport() {
           console.log(`ℹ️ 无Excel时间，使用当前时间: ${assignmentData.created_at}`);
         }
         
-        // 查找部门
+        // 从映射表中查找部门（避免每次查询数据库）
         const departmentName = row['部门'] || row['department_name'];
         console.log(`🏢 查找部门: "${departmentName}"`);
         
         if (departmentName) {
-          const { data: department, error: deptError } = await supabase
-            .from('departments')
-            .select('id, name')
-            .eq('name', departmentName)
-            .single();
-          
-          if (deptError) {
-            console.error('❌ 部门查询错误:', deptError);
-          }
-          
-          console.log('🏢 部门查询结果:', department);
+          const department = departmentMap.get(departmentName);
           
           if (department) {
             assignmentData.department_id = department.id;
@@ -1076,22 +1534,12 @@ export function usePayrollImportExport() {
           console.log('⚠️ 未提供部门信息');
         }
         
-        // 查找职位
+        // 从映射表中查找职位（避免每次查询数据库）
         const positionName = row['职位'] || row['position_name'];
         console.log(`💼 查找职位: "${positionName}"`);
         
         if (positionName) {
-          const { data: position, error: posError } = await supabase
-            .from('positions')
-            .select('id, name')
-            .eq('name', positionName)
-            .single();
-          
-          if (posError) {
-            console.error('❌ 职位查询错误:', posError);
-          }
-          
-          console.log('💼 职位查询结果:', position);
+          const position = positionMap.get(positionName);
           
           if (position) {
             assignmentData.position_id = position.id;
@@ -1103,22 +1551,12 @@ export function usePayrollImportExport() {
           console.log('⚠️ 未提供职位信息');
         }
         
-        // 查找职级
+        // 从映射表中查找职级（避免每次查询数据库）
         const rankName = row['职级'] || row['rank_name'];
         console.log(`🎖️ 查找职级: "${rankName}"`);
         
         if (rankName) {
-          const { data: rank, error: rankError } = await supabase
-            .from('job_ranks')
-            .select('id, name')
-            .eq('name', rankName)
-            .single();
-          
-          if (rankError) {
-            console.error('❌ 职级查询错误:', rankError);
-          }
-          
-          console.log('🎖️ 职级查询结果:', rank);
+          const rank = rankMap.get(rankName);
           
           if (rank) {
             assignmentData.rank_id = rank.id;
@@ -1223,14 +1661,15 @@ export function usePayrollImportExport() {
     for (const row of data) {
       try {
         // 查找员工
+        const employeeName = row['员工姓名'] || row['employee_name'];
         const { data: employee } = await supabase
           .from('employees')
           .select('id')
-          .or(`employee_name.eq.${row['员工姓名']},employee_name.eq.${row['employee_name']}`)
+          .eq('employee_name', employeeName)
           .single();
         
         if (!employee) {
-          throw new Error(`找不到员工: ${row['员工姓名'] || row['employee_name']}`);
+          throw new Error(`找不到员工: ${employeeName}`);
         }
         
         // 查找或创建薪资记录
@@ -1396,7 +1835,7 @@ export function usePayrollImportExport() {
         // 获取数据组显示名称
         const getDataGroupDisplayName = (group: ImportDataGroup): string => {
           const groupNames: Record<ImportDataGroup, string> = {
-            [ImportDataGroup.EARNINGS]: '薪资数据',
+            [ImportDataGroup.EARNINGS]: '薪资项目明细',
             [ImportDataGroup.CONTRIBUTION_BASES]: '缴费基数',
             [ImportDataGroup.CATEGORY_ASSIGNMENT]: '人员类别',
             [ImportDataGroup.JOB_ASSIGNMENT]: '职务信息',
@@ -1527,7 +1966,7 @@ export function usePayrollImportExport() {
           
           // 根据数据组类型执行对应的导入
           if (dataGroup === 'earnings') {
-            console.log(`💰 导入薪资数据：${groupData.length} 行`);
+            console.log(`💰 导入薪资项目明细：${groupData.length} 行`);
             const earningsResults = await importPayrollItems(groupData, params.periodId, {
               includeCategories: ['basic_salary', 'benefits', 'personal_tax']
             }, globalProgressRef);
@@ -1693,7 +2132,7 @@ export function usePayrollImportExport() {
     ws['!cols'] = colWidths;
     
     // 添加工作表到工作簿
-    XLSX.utils.book_append_sheet(wb, ws, '薪资数据');
+    XLSX.utils.book_append_sheet(wb, ws, '薪资项目明细');
     
     // 生成Excel文件
     const wbout = XLSX.write(wb, { 
@@ -1727,7 +2166,7 @@ export function usePayrollImportExport() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `薪资数据_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.download = `薪资项目明细_${new Date().toISOString().slice(0, 10)}.xlsx`;
       link.click();
       window.URL.revokeObjectURL(url);
       
@@ -1841,6 +2280,14 @@ export function usePayrollImportExport() {
 
     // 工具函数
     utils: {
+      // 分析Excel字段映射
+      analyzeFieldMapping,
+      
+      // 获取字段映射分析结果
+      getFieldMappingAnalysis: () => {
+        return importProgress.current.fieldMappingAnalysis;
+      },
+
       // 获取导入阶段描述
       getPhaseDescription: (phase: ImportProgress['phase']) => {
         const descriptions = {

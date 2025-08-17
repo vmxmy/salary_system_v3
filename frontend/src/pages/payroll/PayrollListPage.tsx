@@ -14,7 +14,6 @@ import {
 import { useClearPayrollPeriod } from '@/hooks/payroll/useClearPayrollPeriod';
 import { type PayrollPeriod } from '@/hooks/payroll/usePayrollPeriod';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
-import { useTableConfiguration } from '@/hooks/core';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
 import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
 import { PayrollCompletenessModal } from '@/components/payroll/PayrollCompletenessModal';
@@ -98,16 +97,97 @@ export default function PayrollListPage() {
     )
   }), [handleViewDetail]);
 
-  // 表格配置管理
-  const {
-    metadata,
-    metadataLoading,
-    metadataError,
-    userConfig,
-    columns,
-    updateUserConfig,
-    resetToDefault,
-  } = useTableConfiguration('payroll', actionsConfig);
+  // 直接定义表格列配置
+  const columns = useMemo(() => [
+    {
+      id: 'employee_name',
+      accessorKey: 'employee_name',
+      header: '员工姓名',
+      size: 120,
+    },
+    {
+      id: 'department_name',
+      accessorKey: 'department_name', 
+      header: '部门',
+      size: 100,
+    },
+    {
+      id: 'position_name',
+      accessorKey: 'position_name',
+      header: '职位',
+      size: 100,
+    },
+    {
+      id: 'actual_pay_date',
+      accessorKey: 'actual_pay_date',
+      header: '实际发薪日期',
+      size: 120,
+      cell: ({ getValue }: any) => {
+        const value = getValue();
+        if (!value) return '-';
+        return new Date(value).toLocaleDateString('zh-CN');
+      }
+    },
+    {
+      id: 'gross_pay',
+      accessorKey: 'gross_pay',
+      header: '应发工资',
+      size: 100,
+      cell: ({ getValue }: any) => {
+        const value = getValue();
+        if (value == null) return '-';
+        return formatCurrency(value);
+      }
+    },
+    {
+      id: 'total_deductions', 
+      accessorKey: 'total_deductions',
+      header: '扣除合计',
+      size: 100,
+      cell: ({ getValue }: any) => {
+        const value = getValue();
+        if (value == null) return '-';
+        return formatCurrency(value);
+      }
+    },
+    {
+      id: 'net_pay',
+      accessorKey: 'net_pay', 
+      header: '实发工资',
+      size: 100,
+      cell: ({ getValue }: any) => {
+        const value = getValue();
+        if (value == null) return '-';
+        return formatCurrency(value);
+      }
+    },
+    {
+      id: 'status',
+      accessorKey: 'status',
+      header: '薪资状态',
+      size: 100,
+      cell: ({ getValue }: any) => {
+        const status = getValue() as PayrollStatusType;
+        const statusLabels: Record<PayrollStatusType, string> = {
+          draft: '草稿',
+          calculating: '计算中',
+          calculated: '已计算',
+          approved: '已审批',
+          paid: '已发放',
+          cancelled: '已取消'
+        };
+        return statusLabels[status] || status;
+      }
+    },
+    {
+      id: 'actions',
+      header: '操作',
+      size: 120,
+      cell: ({ row }: any) => actionsConfig.render(row.original),
+      enableSorting: false,
+      enableColumnFilter: false,
+    }
+  ], [actionsConfig]);
 
   // 状态管理
   const [searchQuery, setSearchQuery] = useState('');
@@ -401,21 +481,7 @@ export default function PayrollListPage() {
   }, [statistics, selectedMonth, t]);
 
   // 处理加载状态
-  const totalLoading = isLoading || statsLoading || latestPeriodLoading || metadataLoading;
-
-  // 错误处理
-  if (metadataError) {
-    return <div className="alert alert-error">表格配置加载错误: {metadataError}</div>;
-  }
-
-  if (!metadata || !userConfig) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="loading loading-spinner loading-lg"></div>
-        <span className="ml-3">正在加载表格配置...</span>
-      </div>
-    );
-  }
+  const totalLoading = isLoading || statsLoading || latestPeriodLoading;
 
   return (
     <ManagementPageLayout
@@ -436,11 +502,7 @@ export default function PayrollListPage() {
       onSearchReset={handleSearchReset}
       searchPlaceholder="搜索员工姓名、部门名称、状态..."
       searchLoading={totalLoading}
-      showFieldSelector={true}
-      fields={metadata?.defaultFields || []}
-      userConfig={userConfig}
-      onFieldConfigChange={updateUserConfig}
-      onFieldConfigReset={resetToDefault}
+      showFieldSelector={false}
       primaryActions={[
         // 批量创建按钮已移除
         // <ModernButton
@@ -528,6 +590,8 @@ export default function PayrollListPage() {
                 >
                   <option value="all">{t('common:allStatus')}</option>
                   <option value={PayrollStatus.DRAFT}>{t('payroll:status.draft')}</option>
+                  <option value={PayrollStatus.CALCULATING}>{t('payroll:status.calculating')}</option>
+                  <option value={PayrollStatus.CALCULATED}>{t('payroll:status.calculated')}</option>
                   <option value={PayrollStatus.APPROVED}>{t('payroll:status.approved')}</option>
                   <option value={PayrollStatus.PAID}>{t('payroll:status.paid')}</option>
                   <option value={PayrollStatus.CANCELLED}>{t('payroll:status.cancelled')}</option>

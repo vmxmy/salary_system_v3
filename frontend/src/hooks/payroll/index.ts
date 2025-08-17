@@ -81,7 +81,9 @@ export {
   type ImportResult,
   type ExportConfig,
   type ImportProgress,
-  type ExcelDataRow
+  type ExcelDataRow,
+  type FieldMappingAnalysis,
+  type ColumnMatchResult
 } from './usePayrollImportExport';
 
 // 审批流程 - 轻量级单级审批
