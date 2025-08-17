@@ -97,11 +97,17 @@ export const useCurrentPayrollPeriod = () => {
   return useQuery({
     queryKey: payrollPeriodQueryKeys.current(),
     queryFn: async (): Promise<PayrollPeriod | null> => {
-      // 优先获取处理中的周期，如果没有则获取最新的草稿周期
+      // 获取当前日期，用于过滤未来月份
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth() + 1;
+      
+      // 优先获取处理中的周期（不超过当前月份）
       const { data: processingPeriod, error: processingError } = await supabase
         .from('payroll_periods')
         .select('*')
         .eq('status', PeriodStatus.PROCESSING)
+        .or(`period_year.lt.${currentYear},and(period_year.eq.${currentYear},period_month.lte.${currentMonth})`)
         .order('period_year', { ascending: false })
         .order('period_month', { ascending: false })
         .limit(1)
@@ -111,10 +117,12 @@ export const useCurrentPayrollPeriod = () => {
         return processingPeriod;
       }
       
+      // 获取最新的草稿周期（不超过当前月份）
       const { data, error } = await supabase
         .from('payroll_periods')
         .select('*')
         .eq('status', PeriodStatus.DRAFT)
+        .or(`period_year.lt.${currentYear},and(period_year.eq.${currentYear},period_month.lte.${currentMonth})`)
         .order('period_year', { ascending: false })
         .order('period_month', { ascending: false })
         .limit(1)

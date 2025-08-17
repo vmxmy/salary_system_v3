@@ -140,22 +140,39 @@ export default function PayrollListPage() {
   // 获取可用的薪资月份数据
   const { data: availableMonths } = useAvailablePayrollMonths(true);
 
-  // 自动设置为当前活跃周期或最近有记录的周期
+  // 自动设置为最近有记录的周期，而不是未来的空周期
   useEffect(() => {
     if (!selectedPeriodId) {
-      // 优先使用当前活跃周期
-      if (currentPeriod) {
-        setSelectedPeriodId(currentPeriod.id);
-        setPeriodYear(currentPeriod.period_year);
-        setPeriodMonth(currentPeriod.period_month);
-        setSelectedMonth(`${currentPeriod.period_year}-${currentPeriod.period_month?.toString().padStart(2, '0')}`);
-      } 
-      // 否则使用最近有记录的周期
-      else if (latestPeriod && !latestPeriodLoading) {
+      // 优先使用最近有记录的周期（有实际数据的）
+      if (latestPeriod && !latestPeriodLoading) {
         setSelectedPeriodId(latestPeriod.id);
         setPeriodYear(latestPeriod.year);
         setPeriodMonth(latestPeriod.month);
         setSelectedMonth(`${latestPeriod.year}-${latestPeriod.month?.toString().padStart(2, '0')}`);
+      }
+      // 如果没有任何薪资记录，才使用当前活跃周期（可能是空的草稿）
+      else if (currentPeriod && !latestPeriod && !latestPeriodLoading) {
+        // 只有当周期不是未来月份时才使用
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1;
+        const periodYear = currentPeriod.period_year || currentYear;
+        const periodMonth = currentPeriod.period_month || currentMonth;
+        
+        // 检查是否为未来月份
+        const isFuture = periodYear > currentYear || 
+                        (periodYear === currentYear && periodMonth > currentMonth);
+        
+        if (!isFuture) {
+          setSelectedPeriodId(currentPeriod.id);
+          setPeriodYear(periodYear);
+          setPeriodMonth(periodMonth);
+          setSelectedMonth(`${periodYear}-${periodMonth.toString().padStart(2, '0')}`);
+        } else {
+          // 如果是未来月份，使用当前月份
+          const currentYearMonth = getCurrentYearMonth();
+          setSelectedMonth(currentYearMonth);
+        }
       }
     }
   }, [currentPeriod, latestPeriod, latestPeriodLoading, selectedPeriodId]);
