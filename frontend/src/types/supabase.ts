@@ -319,13 +319,6 @@ export type Database = {
             foreignKeyName: "employee_bank_accounts_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_bank_accounts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employees_active"
             referencedColumns: ["id"]
           },
@@ -431,13 +424,6 @@ export type Database = {
             foreignKeyName: "employee_category_assignments_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_category_assignments_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employees_active"
             referencedColumns: ["id"]
           },
@@ -475,6 +461,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "employee_category_assignments_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
           },
         ]
       }
@@ -519,13 +512,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_contacts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
           {
@@ -585,13 +571,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "employee_contribution_bases_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
             foreignKeyName: "employee_contribution_bases_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -613,6 +592,13 @@ export type Database = {
             referencedColumns: ["period_id"]
           },
           {
+            foreignKeyName: "employee_contribution_bases_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
+          },
+          {
             foreignKeyName: "fk_employee_contribution_bases_employee_id"
             columns: ["employee_id"]
             isOneToOne: false
@@ -624,13 +610,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_contribution_bases_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
           {
@@ -700,13 +679,6 @@ export type Database = {
             foreignKeyName: "fk_employee_documents_employee_id"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_documents_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employees_active"
             referencedColumns: ["id"]
           },
@@ -770,13 +742,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_education_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
           {
@@ -881,13 +846,6 @@ export type Database = {
             foreignKeyName: "employee_job_history_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employees_active"
             referencedColumns: ["id"]
           },
@@ -925,6 +883,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "employee_job_history_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
           },
           {
             foreignKeyName: "employee_job_history_position_id_fkey"
@@ -1004,6 +969,13 @@ export type Database = {
             referencedColumns: ["period_id"]
           },
           {
+            foreignKeyName: "employee_special_deductions_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
+          },
+          {
             foreignKeyName: "fk_employee_special_deductions_employee_id"
             columns: ["employee_id"]
             isOneToOne: false
@@ -1015,13 +987,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_special_deductions_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
           {
@@ -1106,13 +1071,6 @@ export type Database = {
             columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
           {
@@ -1449,6 +1407,13 @@ export type Database = {
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
           },
+          {
+            foreignKeyName: "import_logs_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
+          },
         ]
       }
       import_templates: {
@@ -1556,13 +1521,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "insurance_types"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "insurance_type_category_rules_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["insurance_type_id"]
           },
         ]
       }
@@ -1715,61 +1673,14 @@ export type Database = {
             referencedRelation: "view_payroll_summary"
             referencedColumns: ["payroll_id"]
           },
+          {
+            foreignKeyName: "payroll_approval_logs_payroll_id_fkey"
+            columns: ["payroll_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["payroll_id"]
+          },
         ]
-      }
-      payroll_component_config: {
-        Row: {
-          base_value: number | null
-          calculation_method: string | null
-          code: string
-          component_type: string | null
-          created_at: string | null
-          display_order: number | null
-          formula: string | null
-          id: string
-          is_active: boolean | null
-          is_social_base: boolean | null
-          is_taxable: boolean | null
-          metadata: Json | null
-          name: string
-          percentage_rate: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          base_value?: number | null
-          calculation_method?: string | null
-          code: string
-          component_type?: string | null
-          created_at?: string | null
-          display_order?: number | null
-          formula?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_social_base?: boolean | null
-          is_taxable?: boolean | null
-          metadata?: Json | null
-          name: string
-          percentage_rate?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          base_value?: number | null
-          calculation_method?: string | null
-          code?: string
-          component_type?: string | null
-          created_at?: string | null
-          display_order?: number | null
-          formula?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_social_base?: boolean | null
-          is_taxable?: boolean | null
-          metadata?: Json | null
-          name?: string
-          percentage_rate?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
       }
       payroll_items: {
         Row: {
@@ -1836,6 +1747,13 @@ export type Database = {
             referencedColumns: ["payroll_id"]
           },
           {
+            foreignKeyName: "payroll_items_payroll_id_fkey"
+            columns: ["payroll_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["payroll_id"]
+          },
+          {
             foreignKeyName: "payroll_items_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -1856,6 +1774,13 @@ export type Database = {
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
           },
+          {
+            foreignKeyName: "payroll_items_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
+          },
         ]
       }
       payroll_periods: {
@@ -1867,6 +1792,7 @@ export type Database = {
           id: string
           locked_at: string | null
           locked_by: string | null
+          new_status: Database["public"]["Enums"]["unified_status"] | null
           pay_date: string
           period_code: string
           period_end: string
@@ -1887,6 +1813,7 @@ export type Database = {
           id?: string
           locked_at?: string | null
           locked_by?: string | null
+          new_status?: Database["public"]["Enums"]["unified_status"] | null
           pay_date: string
           period_code: string
           period_end: string
@@ -1907,6 +1834,7 @@ export type Database = {
           id?: string
           locked_at?: string | null
           locked_by?: string | null
+          new_status?: Database["public"]["Enums"]["unified_status"] | null
           pay_date?: string
           period_code?: string
           period_end?: string
@@ -1998,13 +1926,6 @@ export type Database = {
             foreignKeyName: "payrolls_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employees_active"
             referencedColumns: ["id"]
           },
@@ -2042,6 +1963,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
           },
         ]
       }
@@ -2116,13 +2044,6 @@ export type Database = {
             foreignKeyName: "personal_income_tax_calculation_logs_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "personal_income_tax_calculation_logs_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employees_active"
             referencedColumns: ["id"]
           },
@@ -2162,6 +2083,13 @@ export type Database = {
             referencedColumns: ["payroll_id"]
           },
           {
+            foreignKeyName: "personal_income_tax_calculation_logs_payroll_id_fkey"
+            columns: ["payroll_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["payroll_id"]
+          },
+          {
             foreignKeyName: "personal_income_tax_calculation_logs_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -2181,6 +2109,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "personal_income_tax_calculation_logs_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
           },
         ]
       }
@@ -2216,13 +2151,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "insurance_types"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "policy_rules_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["insurance_type_id"]
           },
           {
             foreignKeyName: "policy_rules_policy_id_fkey"
@@ -2832,13 +2760,6 @@ export type Database = {
             foreignKeyName: "user_profiles_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "user_profiles_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employees_active"
             referencedColumns: ["id"]
           },
@@ -2931,6 +2852,13 @@ export type Database = {
             referencedColumns: ["payroll_id"]
           },
           {
+            foreignKeyName: "payroll_approval_logs_payroll_id_fkey"
+            columns: ["payroll_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["payroll_id"]
+          },
+          {
             foreignKeyName: "payrolls_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -2950,6 +2878,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
           },
         ]
       }
@@ -3100,13 +3035,6 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
             referencedRelation: "view_employees_active"
             referencedColumns: ["id"]
           },
@@ -3166,13 +3094,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "employee_contribution_bases_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
             foreignKeyName: "employee_contribution_bases_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -3194,6 +3115,13 @@ export type Database = {
             referencedColumns: ["period_id"]
           },
           {
+            foreignKeyName: "employee_contribution_bases_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
+          },
+          {
             foreignKeyName: "fk_employee_contribution_bases_employee_id"
             columns: ["employee_id"]
             isOneToOne: false
@@ -3205,13 +3133,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_contribution_bases_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
           {
@@ -3236,27 +3157,6 @@ export type Database = {
             referencedColumns: ["employee_id"]
           },
         ]
-      }
-      view_employee_insurance_base_monthly_latest: {
-        Row: {
-          base_ceiling: number | null
-          base_floor: number | null
-          base_last_updated: string | null
-          base_period_display: string | null
-          base_period_month: number | null
-          base_period_year: number | null
-          employee_id: string | null
-          employee_name: string | null
-          employee_rate: number | null
-          employer_rate: number | null
-          employment_status: string | null
-          id_number: string | null
-          insurance_type_id: string | null
-          insurance_type_key: string | null
-          insurance_type_name: string | null
-          latest_contribution_base: number | null
-        }
-        Relationships: []
       }
       view_employees_active: {
         Row: {
@@ -3317,13 +3217,6 @@ export type Database = {
             columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
           {
@@ -3522,13 +3415,6 @@ export type Database = {
             foreignKeyName: "payrolls_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employees_active"
             referencedColumns: ["id"]
           },
@@ -3566,6 +3452,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
           },
         ]
       }
@@ -3660,13 +3553,6 @@ export type Database = {
             foreignKeyName: "payrolls_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employees_active"
             referencedColumns: ["id"]
           },
@@ -3704,6 +3590,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_payroll_trend_unified"
             referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
           },
         ]
       }
@@ -3748,6 +3641,8 @@ export type Database = {
           employee_id: string | null
           employee_name: string | null
           gross_pay: number | null
+          insurance_type_key: string | null
+          is_employer_contribution: boolean | null
           item_id: string | null
           item_notes: string | null
           net_pay: number | null
@@ -3795,6 +3690,13 @@ export type Database = {
             referencedColumns: ["payroll_id"]
           },
           {
+            foreignKeyName: "payroll_items_payroll_id_fkey"
+            columns: ["payroll_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["payroll_id"]
+          },
+          {
             foreignKeyName: "payrolls_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
@@ -3806,13 +3708,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
           {
@@ -3922,17 +3817,86 @@ export type Database = {
         }
         Relationships: []
       }
+      view_unified_status_mapping: {
+        Row: {
+          employee_id: string | null
+          original_payroll_status: string | null
+          original_period_status: string | null
+          payroll_id: string | null
+          period_id: string | null
+          period_id_ref: string | null
+          status_consistency: string | null
+          unified_payroll_status: string | null
+          unified_period_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payrolls_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payrolls_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "view_employee_basic_info"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payrolls_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "view_employees_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payrolls_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "view_employees_all"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payrolls_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "view_employees_deleted"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_payroll_trend_unified"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "payrolls_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_unified_status_mapping"
+            referencedColumns: ["period_id_ref"]
+          },
+        ]
+      }
     }
     Functions: {
-      adjust_insurance_base: {
-        Args: {
-          p_insurance_type?: string
-          p_max_base: number
-          p_min_base: number
-          p_original_base: number
-        }
-        Returns: Json
-      }
       analyze_function_performance: {
         Args: {
           p_end_date?: string
@@ -3951,14 +3915,6 @@ export type Database = {
           total_calls: number
         }[]
       }
-      api_manage_payroll_config: {
-        Args: { p_action: string; p_params: Json }
-        Returns: Json
-      }
-      api_payroll_reports: {
-        Args: { p_period_id?: string; report_type: string }
-        Returns: Json
-      }
       api_system_health: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -3976,48 +3932,8 @@ export type Database = {
         Args: { p_amount: number }
         Returns: number
       }
-      batch_approve_payrolls: {
-        Args: { p_comments?: string; p_payroll_ids: string[] }
-        Returns: {
-          message: string
-          payroll_id: string
-          success: boolean
-        }[]
-      }
-      batch_calculate_personal_income_tax: {
-        Args: { p_period_id: string }
-        Returns: {
-          calculation_details: Json
-          employee_id: string
-          employee_name: string
-          gross_income: number
-          tax_amount: number
-          taxable_income: number
-        }[]
-      }
       batch_mark_as_paid: {
         Args: { p_comments?: string; p_payroll_ids: string[] }
-        Returns: {
-          message: string
-          payroll_id: string
-          success: boolean
-        }[]
-      }
-      batch_recalculate_social_insurances: {
-        Args: { p_period_id: string }
-        Returns: {
-          calculation_details: Json
-          employee_id: string
-          employee_name: string
-          endowment_insurance: number
-          housing_fund: number
-          medical_insurance: number
-          total_deductions: number
-          unemployment_insurance: number
-        }[]
-      }
-      batch_reject_payrolls: {
-        Args: { p_payroll_ids: string[]; p_reason: string }
         Returns: {
           message: string
           payroll_id: string
@@ -4045,102 +3961,45 @@ export type Database = {
         }
         Returns: number
       }
-      calc_and_save_insurance: {
-        Args: {
-          p_employee_id: string
-          p_insurance_type_key: string
-          p_is_employer?: boolean
-          p_period_id: string
-        }
-        Returns: Json
-      }
-      calc_housing_fund_new: {
-        Args: {
-          p_employee_id: string
-          p_is_employer?: boolean
-          p_period_id: string
-        }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
-      }
-      calc_insurance_component_new: {
-        Args: {
-          p_employee_id: string
-          p_insurance_type_key: string
-          p_is_employer: boolean
-          p_period_id: string
-        }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
-      }
-      calc_medical_insurance_new: {
-        Args: {
-          p_employee_id: string
-          p_is_employer?: boolean
-          p_period_id: string
-        }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
-      }
-      calc_occupational_pension_new: {
-        Args: {
-          p_calculation_date: string
-          p_employee_id: string
-          p_is_employer?: boolean
-        }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
-      }
-      calc_payroll_summary_batch: {
-        Args: { p_period_id: string }
+      calc_employee_insurance: {
+        Args: { p_employee_id: string; p_period_id: string }
         Returns: {
-          category_name: string
-          department_name: string
-          employee_id: string
-          employee_name: string
-          net_salary: number
-          period_code: string
-          period_name: string
-          position_name: string
-          total_deductions: number
-          total_earnings: number
+          employee_contributions: number
+          employer_contributions: number
+          items_calculated: number
+          message: string
+          success: boolean
         }[]
       }
-      calc_pension_insurance_new: {
-        Args: {
-          p_employee_id: string
-          p_is_employer?: boolean
-          p_period_id: string
-        }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
+      calc_insurance_contributions_batch: {
+        Args: { p_employee_ids: string[]; p_period_id: string }
+        Returns: {
+          employee_id: string
+          items_processed: number
+          message: string
+          success: boolean
+          total_amount: number
+        }[]
       }
-      calc_personal_income_tax: {
-        Args: {
-          p_context: Database["public"]["CompositeTypes"]["employee_calculation_context"]
-          p_current_month?: number
-          p_taxable_income: number
-        }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
+      calc_payroll_summary: {
+        Args: { p_payroll_id: string }
+        Returns: Json
       }
-      calc_serious_illness_new: {
-        Args: {
-          p_calculation_date: string
-          p_employee_id: string
-          p_is_employer?: boolean
-        }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
-      }
-      calc_unemployment_insurance_new: {
-        Args: {
-          p_employee_id: string
-          p_is_employer?: boolean
-          p_period_id: string
-        }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
-      }
-      calc_work_injury_insurance_new: {
-        Args: {
-          p_employee_id: string
-          p_is_employer?: boolean
-          p_period_id: string
-        }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
+      calc_payroll_summary_batch: {
+        Args:
+          | { p_employee_ids?: string[]; p_period_id?: string }
+          | { p_payroll_ids: string[] }
+          | { p_period_id: string }
+        Returns: {
+          calculation_success: boolean
+          employee_id: string
+          employee_name: string
+          error_message: string
+          gross_pay: number
+          net_pay: number
+          payroll_id: string
+          total_deductions: number
+        }[]
       }
       can_access_all_data: {
         Args: Record<PropertyKey, never>
@@ -4158,6 +4017,18 @@ export type Database = {
         Args: { p_employee_id: string; p_period_id: string }
         Returns: boolean
       }
+      check_payroll_calculation_permissions: {
+        Args: { p_payroll_id: string }
+        Returns: boolean
+      }
+      check_payroll_calculation_permissions_unified: {
+        Args: { p_payroll_id: string }
+        Returns: boolean
+      }
+      check_period_status_for_calculation: {
+        Args: { p_period_id: string }
+        Returns: boolean
+      }
       check_rls_coverage: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -4172,26 +4043,6 @@ export type Database = {
       }
       cleanup_old_logs: {
         Args: { p_days_to_keep?: number }
-        Returns: number
-      }
-      clear_multiple_payroll_periods: {
-        Args: { p_clear_strategy?: string; p_period_ids: string[] }
-        Returns: Json
-      }
-      clear_payroll_by_month: {
-        Args: { p_clear_strategy?: string; p_month: number; p_year: number }
-        Returns: Json
-      }
-      clear_payroll_period: {
-        Args: { p_clear_strategy?: string; p_period_id: string }
-        Returns: Json
-      }
-      close_payroll_period: {
-        Args: { p_period_id: string }
-        Returns: boolean
-      }
-      copy_payroll_from_previous_period: {
-        Args: { p_from_period_id: string; p_to_period_id: string }
         Returns: number
       }
       create_admin_user: {
@@ -4292,14 +4143,6 @@ export type Database = {
       decrypt_sensitive_data: {
         Args: { encrypted_data: string }
         Returns: string
-      }
-      disable_social_insurance_triggers: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      enable_social_insurance_triggers: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
       }
       encrypt_sensitive_data: {
         Args: { data: string }
@@ -4545,10 +4388,6 @@ export type Database = {
           period_start: string
         }[]
       }
-      generate_payroll_items: {
-        Args: { p_payroll_id: string; p_period_id: string }
-        Returns: undefined
-      }
       generate_performance_report: {
         Args: { p_period?: unknown }
         Returns: Json
@@ -4584,14 +4423,6 @@ export type Database = {
           rates: Json
         }[]
       }
-      get_available_payroll_months: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          has_data: boolean
-          month: string
-          payroll_count: number
-        }[]
-      }
       get_batch_employee_contexts: {
         Args:
           | { p_effective_date?: string; p_employee_ids: string[] }
@@ -4604,13 +4435,6 @@ export type Database = {
           context_data: Json
           employee_id: string
         }[]
-      }
-      get_calculation_base_for_type: {
-        Args: {
-          p_context: Database["public"]["CompositeTypes"]["employee_calculation_context"]
-          p_insurance_type: string
-        }
-        Returns: number
       }
       get_change_tracking_stats: {
         Args: Record<PropertyKey, never>
@@ -4642,17 +4466,6 @@ export type Database = {
       get_department_full_path_name: {
         Args: { p_department_id: string }
         Returns: string
-      }
-      get_department_salary_stats: {
-        Args: { target_month: string }
-        Returns: {
-          avg_salary: number
-          department_name: string
-          employee_count: number
-          max_salary: number
-          min_salary: number
-          total_cost: number
-        }[]
       }
       get_department_tree: {
         Args: { p_parent_id?: string }
@@ -4723,16 +4536,6 @@ export type Database = {
         Args: { p_employee_id: string; p_mask_output?: boolean }
         Returns: string
       }
-      get_employee_salary_history: {
-        Args: { employee_id: string; months_back?: number }
-        Returns: {
-          allowances: number
-          basic_salary: number
-          deductions: number
-          pay_month: string
-          total_amount: number
-        }[]
-      }
       get_employee_stats_by_category: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4763,21 +4566,9 @@ export type Database = {
         Args: { employee_id: string }
         Returns: Json
       }
-      get_employees_payroll_estimation: {
-        Args: { employee_ids: string[] }
-        Returns: {
-          avg_estimated_amount: number
-          total_employees: number
-          total_estimated_amount: number
-        }[]
-      }
       get_import_history: {
         Args: { p_import_type?: string; p_limit?: number }
         Returns: Json
-      }
-      get_insurance_component_name: {
-        Args: { p_insurance_type: string }
-        Returns: string
       }
       get_mapping_coverage_stats: {
         Args: Record<PropertyKey, never>
@@ -4823,28 +4614,6 @@ export type Database = {
       }
       get_realtime_performance_metrics: {
         Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_salary_fields_by_category_and_month: {
-        Args: { category_filter?: string; target_month?: string }
-        Returns: {
-          avg_amount: number
-          component_category: string
-          data_coverage_percentage: number
-          field_display_name: string
-          field_name: string
-          has_positive_data: boolean
-          max_amount: number
-          min_amount: number
-          pay_month: string
-          pay_month_string: string
-          positive_record_count: number
-          record_count: number
-          source_table: string
-        }[]
-      }
-      get_social_insurance_summary: {
-        Args: { p_department_id?: string; p_period_id: string }
         Returns: Json
       }
       get_table_columns: {
@@ -4898,14 +4667,6 @@ export type Database = {
         Args: { p_data: Json; p_user_id: string }
         Returns: Json
       }
-      initialize_payroll_period: {
-        Args: {
-          p_copy_from_period_id?: string
-          p_month: number
-          p_year: number
-        }
-        Returns: string
-      }
       insert_department: {
         Args: {
           p_code: string
@@ -4955,32 +4716,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      log_insurance_calculation: {
-        Args: {
-          p_adjusted_base?: number
-          p_contribution_base?: number
-          p_employee_amount?: number
-          p_employee_id: string
-          p_employee_rate?: number
-          p_employer_amount?: number
-          p_employer_rate?: number
-          p_insurance_type_id: string
-          p_is_applicable: boolean
-          p_payroll_id: string
-          p_skip_reason?: string
-        }
-        Returns: undefined
-      }
-      log_payroll_approval: {
-        Args: {
-          p_action: string
-          p_comments?: string
-          p_from_status: string
-          p_payroll_id: string
-          p_to_status: string
-        }
-        Returns: undefined
-      }
       manage_period_status: {
         Args: { p_lock?: boolean; p_new_status: string; p_period_id: string }
         Returns: Json
@@ -4988,6 +4723,10 @@ export type Database = {
       map_pgs_personnel_category: {
         Args: { pgs_category: string }
         Returns: string
+      }
+      map_to_unified_status: {
+        Args: { status_value: string; table_name: string }
+        Returns: Database["public"]["Enums"]["unified_status"]
       }
       mask_account_number: {
         Args: { account_number: string }
@@ -4997,41 +4736,25 @@ export type Database = {
         Args: { p_department_id: string; p_new_parent_id?: string }
         Returns: boolean
       }
-      preview_payroll_calculation: {
-        Args: {
-          p_config_overrides?: Json
-          p_employee_id: string
-          p_month: number
-          p_year: number
-        }
-        Returns: Json
-      }
-      process_monthly_payroll_v2: {
-        Args: {
-          p_department_ids?: string[]
-          p_dry_run?: boolean
-          p_month: number
-          p_year: number
-        }
-        Returns: {
-          details: Json
-          error_count: number
-          processed_count: number
-          processing_time_ms: number
-          status: string
-          total_gross_pay: number
-          total_net_pay: number
-        }[]
-      }
-      quick_export_payroll_summary: {
-        Args: { p_period?: string }
-        Returns: Json
-      }
-      reopen_payroll_period: {
-        Args: { p_period_id: string }
-        Returns: boolean
-      }
       save_insurance_calculation_new: {
+        Args:
+          | {
+              p_amount: number
+              p_employee_id: string
+              p_insurance_type_key: string
+              p_is_employer: boolean
+              p_period_id: string
+            }
+          | {
+              p_amount: number
+              p_employee_id: string
+              p_insurance_type_key: string
+              p_is_employer?: boolean
+              p_period_id: string
+            }
+        Returns: Json
+      }
+      save_insurance_calculation_with_status_check: {
         Args: {
           p_amount: number
           p_employee_id: string
@@ -5084,10 +4807,6 @@ export type Database = {
         Args: { p_dry_run?: boolean }
         Returns: Json
       }
-      transform_social_insurance_configs: {
-        Args: { p_dry_run?: boolean }
-        Returns: Json
-      }
       transform_social_security_rates: {
         Args: { p_dry_run?: boolean }
         Returns: Json
@@ -5100,15 +4819,6 @@ export type Database = {
         Args: { p_period_hours?: number }
         Returns: undefined
       }
-      validate_employee_salary_reasonableness: {
-        Args: { current_total: number; employee_id: string }
-        Returns: {
-          historical_average: number
-          is_reasonable: boolean
-          issue_description: string
-          variance_percentage: number
-        }[]
-      }
       validate_infrastructure: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -5116,10 +4826,6 @@ export type Database = {
       validate_migration_data: {
         Args: Record<PropertyKey, never>
         Returns: Json
-      }
-      validate_payroll_period: {
-        Args: { p_period_id: string }
-        Returns: boolean
       }
       validate_personnel_category: {
         Args: { category_key: string }
@@ -5189,6 +4895,16 @@ export type Database = {
         | "employer_insurance"
         | "personal_tax"
         | "other_deductions"
+      unified_status:
+        | "draft"
+        | "processing"
+        | "calculating"
+        | "calculated"
+        | "approved"
+        | "paid"
+        | "completed"
+        | "cancelled"
+        | "archived"
     }
     CompositeTypes: {
       batch_processing_result: {
@@ -5468,6 +5184,17 @@ export const Constants = {
         "employer_insurance",
         "personal_tax",
         "other_deductions",
+      ],
+      unified_status: [
+        "draft",
+        "processing",
+        "calculating",
+        "calculated",
+        "approved",
+        "paid",
+        "completed",
+        "cancelled",
+        "archived",
       ],
     },
   },

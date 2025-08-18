@@ -588,8 +588,20 @@ export const useEmployeeInsuranceDetails = (payrollId: string) => {
       // 注意：这里我们需要导入并使用 useEmployeeContributionBasesByPeriod
       // 但由于这是在 queryFn 内部，我们需要直接调用相关的查询逻辑
       
-      // 从薪资明细视图获取五险一金实际扣款数据
-      const { data, error } = await supabase
+      // 1. 先获取所有激活的保险类型
+      const { data: insuranceTypes, error: typesError } = await supabase
+        .from('insurance_types')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (typesError) {
+        handleError(typesError, { customMessage: '获取保险类型失败' });
+        throw typesError;
+      }
+
+      // 2. 获取薪资明细中的五险一金数据（现在包含 insurance_type_key 和 is_employer_contribution）
+      const { data: payrollItems, error } = await supabase
         .from('view_payroll_unified')
         .select('*')
         .eq('payroll_id', payrollId)
@@ -601,85 +613,63 @@ export const useEmployeeInsuranceDetails = (payrollId: string) => {
         throw error;
       }
       
-      // 获取保险类型映射（用于匹配组件名称）
-      const { data: insuranceTypes } = await supabase
-        .from('insurance_types')
-        .select('*')
-        .eq('is_active', true);
-      
-      // 创建组件名称到保险类型的映射
-      const insuranceTypeMap = new Map();
-      (insuranceTypes || []).forEach(type => {
-        // 为每个保险类型创建多种可能的匹配模式
-        const patterns = [
-          type.system_key,
-          type.name,
-          type.name.replace('保险', ''),
-          type.name.replace('险', ''),
-        ];
-        patterns.forEach(pattern => {
-          if (pattern && pattern.length > 1) {
-            insuranceTypeMap.set(pattern, type);
+      // 3. 构建保险数据，基于保险类型而不是基于薪资项目
+      const insuranceData = (insuranceTypes || []).map(insuranceType => {
+        // 初始化每个保险类型的记录
+        const record = {
+          id: `${payrollId}-${insuranceType.id}`,
+          payroll_id: payrollId,
+          employee_id: payrollInfo.employee_id,
+          insurance_type_id: insuranceType.id,
+          calculation_date: new Date().toISOString(),
+          is_applicable: false,
+          contribution_base: 0,
+          adjusted_base: 0,
+          employee_rate: 0,
+          employer_rate: 0,
+          employee_amount: 0,
+          employer_amount: 0,
+          skip_reason: null,
+          insurance_type: {
+            id: insuranceType.id,
+            system_key: insuranceType.system_key,
+            name: insuranceType.name,
+            description: insuranceType.description || insuranceType.name
           }
+        };
+
+        // 查找该保险类型对应的薪资项目
+        // 使用结构化数据精确匹配，不再依赖字符串匹配
+        const employeeItem = (payrollItems || []).find(item => {
+          // 使用视图提供的 insurance_type_key 和 is_employer_contribution 字段
+          return item.insurance_type_key === insuranceType.system_key && 
+                 item.is_employer_contribution === false;
         });
-      });
-      
-      // 从薪资明细中提取五险一金信息
-      const insuranceData = (data || []).reduce((acc: any[], item) => {
-        // 尝试匹配保险类型
-        let matchedType = null;
-        const componentName = item.component_name || '';
-        
-        for (const [pattern, type] of insuranceTypeMap.entries()) {
-          if (componentName.includes(pattern)) {
-            matchedType = type;
-            break;
-          }
-        }
-        
-        if (!matchedType) {
-          return acc;
-        }
-        
-        const isEmployer = item.category === 'employer_insurance' || componentName.includes('单位');
-        
-        // 查找或创建保险记录
-        let record = acc.find(r => r.insurance_type?.system_key === matchedType.system_key);
-        if (!record) {
-          record = {
-            id: item.item_id || '',
-            payroll_id: payrollId,
-            employee_id: item.employee_id || '',
-            insurance_type_id: matchedType.id,
-            calculation_date: new Date().toISOString(),
-            is_applicable: true,
-            contribution_base: 0,
-            adjusted_base: 0,
-            employee_rate: 0,
-            employer_rate: 0,
-            employee_amount: 0,
-            employer_amount: 0,
-            skip_reason: null,
-            insurance_type: {
-              id: matchedType.id,
-              system_key: matchedType.system_key,
-              name: matchedType.name,
-              description: matchedType.description || matchedType.name
-            }
-          };
-          acc.push(record);
-        }
-        
+
+        const employerItem = (payrollItems || []).find(item => {
+          // 使用视图提供的 insurance_type_key 和 is_employer_contribution 字段
+          return item.insurance_type_key === insuranceType.system_key && 
+                 item.is_employer_contribution === true;
+        });
+
         // 设置金额
-        const amount = item.amount || 0;
-        if (isEmployer) {
-          record.employer_amount = amount;
-        } else {
-          record.employee_amount = amount;
+        if (employeeItem) {
+          record.employee_amount = employeeItem.amount || 0;
+          record.is_applicable = true;
         }
-        
-        return acc;
-      }, []);
+        if (employerItem) {
+          record.employer_amount = employerItem.amount || 0;
+          record.is_applicable = true;
+        }
+
+        // 如果没有任何金额，标记为不适用
+        if (record.employee_amount === 0 && record.employer_amount === 0) {
+          record.is_applicable = false;
+          record.skip_reason = '未配置';
+        }
+
+        return record;
+      });
       
       return insuranceData;
     },
