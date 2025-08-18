@@ -1058,42 +1058,12 @@ function InsuranceDetailsSection({
         </div>
       )
     }),
-    insuranceColumnHelper.accessor('contribution_base' as keyof InsuranceDetail, {
-      header: () => <div className="text-right">缴费基数</div>,
-      cell: info => (
-        <div className="text-right">
-          <span className="text-sm font-mono text-base-content">
-            {formatCurrency(info.getValue() as number)}
-          </span>
-        </div>
-      )
-    }),
-    insuranceColumnHelper.accessor('employee_rate' as keyof InsuranceDetail, {
-      header: () => <div className="text-right">个人费率</div>,
-      cell: info => (
-        <div className="text-right">
-          <span className="text-sm font-mono text-base-content/70">
-            {((info.getValue() as number) * 100).toFixed(2)}%
-          </span>
-        </div>
-      )
-    }),
     insuranceColumnHelper.accessor('employee_amount' as keyof InsuranceDetail, {
       header: () => <div className="text-right">个人缴费</div>,
       cell: info => (
         <div className="text-right">
           <span className="text-sm font-semibold font-mono text-red-600">
             -{formatCurrency((info.getValue() as number) || 0)}
-          </span>
-        </div>
-      )
-    }),
-    insuranceColumnHelper.accessor('employer_rate' as keyof InsuranceDetail, {
-      header: () => <div className="text-right">企业费率</div>,
-      cell: info => (
-        <div className="text-right">
-          <span className="text-sm font-mono text-base-content/70">
-            {((info.getValue() as number) * 100).toFixed(2)}%
           </span>
         </div>
       )
