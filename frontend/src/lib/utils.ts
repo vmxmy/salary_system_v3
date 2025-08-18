@@ -319,7 +319,7 @@ export const cardEffects = {
     'hover:bg-base-100/90 transition-all duration-200'
   ),
   gradient: cn(
-    'card bg-gradient-to-br from-base-100 to-base-50/50',
+    'card bg-gradient-to-br from-base-100 to-base-100/50',
     'shadow-sm border border-base-200/60',
     'hover:shadow-md transition-all duration-200'
   )

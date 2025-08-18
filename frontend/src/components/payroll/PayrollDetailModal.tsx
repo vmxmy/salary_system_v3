@@ -6,9 +6,12 @@ import { AccordionSection, AccordionContent } from '@/components/common/Accordio
 import { DetailField } from '@/components/common/DetailField';
 import { ModernButton } from '@/components/common/ModernButton';
 import { PayrollStatusBadge } from './PayrollStatusBadge';
-import { PayrollStatus, type PayrollStatusType } from '@/hooks/payroll';
+import { PayrollStatus, type PayrollStatusType, useEmployeeInsuranceDetails } from '@/hooks/payroll';
 import { useEmployeeCategoryByPeriod } from '@/hooks/payroll/useEmployeeCategory';
-import { useEmployeePositionByPeriod, useEmployeePositionHistory } from '@/hooks/payroll/useEmployeePosition';
+import { useEmployeePositionByPeriod, useEmployeePositionHistory, useAssignEmployeePosition } from '@/hooks/payroll/useEmployeePosition';
+import { useDepartmentList } from '@/hooks/department/useDepartments';
+import { useEmployeePositions } from '@/hooks/payroll/useEmployeePosition';
+import { useEmployeeContributionBasesByPeriod } from '@/hooks/payroll/useContributionBase';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -94,26 +97,45 @@ interface InsuranceDetail {
   };
 }
 
-// 缴费基数数据类型
+// 缴费基数数据类型 - 与 useContributionBase 兼容
 interface ContributionBase {
+  id: string;
   employee_id: string;
-  employee_name: string;
-  id_number: string;
-  employment_status: string;
+  employee_name?: string;
+  id_number?: string;
+  employment_status?: string;
   insurance_type_id: string;
   insurance_type_name: string;
   insurance_type_key: string;
-  base_period_year: number;
-  base_period_month: number;
-  base_period_display: string;
-  latest_contribution_base: number;
-  latest_is_applicable: boolean;
-  latest_adjusted_base: number;
-  latest_employee_rate: number;
-  latest_employer_rate: number;
-  latest_employee_amount: number;
-  latest_employer_amount: number;
-  base_last_updated: string;
+  period_id: string | null;
+  period_name?: string;
+  contribution_base: number;
+  base_period_year?: number;
+  base_period_month?: number;
+  base_period_display?: string;
+  latest_contribution_base?: number;
+  latest_is_applicable?: boolean;
+  latest_adjusted_base?: number;
+  latest_employee_rate?: number;
+  latest_employer_rate?: number;
+  latest_employee_amount?: number;
+  latest_employer_amount?: number;
+  base_last_updated?: string;
+  // v3数据库中不存在的字段（向后兼容）
+  adjusted_base?: number;
+  adjustment_reason?: string;
+  effective_date: string;
+  end_date?: string | null;
+  is_active: boolean;
+  notes?: string;
+  // 保险规则相关
+  insurance_rules?: {
+    employee_rate: number;
+    employer_rate: number;
+    min_base: number;
+    max_base: number;
+    is_mandatory: boolean;
+  };
 }
 
 // 个税项目数据类型（从薪资明细中筛选）
@@ -145,7 +167,9 @@ interface JobInfo {
     end_date?: string;
     is_current: boolean;
     notes?: string;
-    created_at: string;
+    created_at?: string;
+    period_id?: string;
+    period_name?: string;
   }>;
 }
 
@@ -177,13 +201,20 @@ export function PayrollDetailModal({
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [payrollData, setPayrollData] = useState<PayrollDetailData | null>(null);
   const [payrollItems, setPayrollItems] = useState<PayrollItemDetail[]>([]);
-  const [insuranceDetails, setInsuranceDetails] = useState<InsuranceDetail[]>([]);
-  const [contributionBases, setContributionBases] = useState<ContributionBase[]>([]);
+  // contributionBases现在从hook中获取，不需要单独的state
   const [taxItems, setTaxItems] = useState<TaxItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { showSuccess, showError, showInfo } = useToast();
+  
+  // 使用hook获取五险一金数据
+  const { data: insuranceDetails = [], isLoading: insuranceLoading } = useEmployeeInsuranceDetails(payrollId || '');
+  
+  // 使用hook获取缴费基数数据
+  const [employeeId, setEmployeeId] = useState<string>('');
+  const [periodId, setPeriodId] = useState<string>('');
+  const { data: contributionBasesData = [], isLoading: basesLoading } = useEmployeeContributionBasesByPeriod(employeeId, periodId);
 
   // 获取薪资详情数据
   const fetchPayrollData = useCallback(async () => {
@@ -207,6 +238,7 @@ export function PayrollDetailModal({
         id: payrollData.payroll_id,
         employee_id: payrollData.employee_id,
         employee_name: payrollData.employee_name,
+        period_id: payrollData.period_id,
         pay_period_start: payrollData.period_start,
         pay_period_end: payrollData.period_end,
         pay_date: payrollData.actual_pay_date || payrollData.scheduled_pay_date,
@@ -222,52 +254,13 @@ export function PayrollDetailModal({
       } : null;
       if (payroll) {
         setPayrollData(payroll as unknown as PayrollDetailData);
-
-        // 获取五险一金详情
-        const { data: insurance, error: insuranceError } = await supabase
-          .from('insurance_calculation_logs')
-          .select(`
-            id,
-            payroll_id,
-            employee_id,
-            insurance_type_id,
-            calculation_date,
-            is_applicable,
-            contribution_base,
-            adjusted_base,
-            employee_rate,
-            employer_rate,
-            employee_amount,
-            employer_amount,
-            skip_reason,
-            insurance_type:insurance_types(
-              id,
-              system_key,
-              name,
-              description
-            )
-          `)
-          .eq('payroll_id', payrollId)
-          .not('insurance_type_id', 'is', null)
-          .order('insurance_type_id');
         
-        if (insuranceError) throw insuranceError;
-        setInsuranceDetails(insurance as unknown as InsuranceDetail[]);
-
-        // 获取缴费基数信息（基于薪资期间）
+        // 设置员工ID和周期ID，让hooks自动获取数据
         if (payroll.employee_id) {
-          const yearMonth = payroll.pay_period_start?.substring(0, 7) || new Date().toISOString().substring(0, 7); // YYYY-MM
-          const [year, month] = yearMonth.split('-');
-          const { data: bases, error: baseError } = await supabase
-            .from('view_employee_insurance_base_monthly_latest')
-            .select('*')
-            .eq('employee_id', payroll.employee_id)
-            .eq('base_period_year', parseInt(year))
-            .eq('base_period_month', parseInt(month))
-            .order('insurance_type_key');
-          
-          if (baseError) throw baseError;
-          setContributionBases(bases as ContributionBase[]);
+          setEmployeeId(payroll.employee_id);
+        }
+        if (payroll.period_id) {
+          setPeriodId(payroll.period_id);
         }
       }
 
@@ -536,7 +529,7 @@ export function PayrollDetailModal({
 
             {/* Main Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {isLoading ? (
+              {(isLoading || insuranceLoading || basesLoading) ? (
                 <div className="flex items-center justify-center h-full">
                   <span className="loading loading-spinner loading-lg"></span>
                 </div>
@@ -563,7 +556,7 @@ export function PayrollDetailModal({
                     <InsuranceTab insuranceDetails={insuranceDetails} />
                   )}
                   {activeTab === 'contribution' && (
-                    <ContributionTab contributionBases={contributionBases} />
+                    <ContributionTab contributionBases={contributionBasesData} />
                   )}
                   {activeTab === 'tax' && (
                     <TaxTab taxItems={taxItems} />
@@ -691,28 +684,45 @@ interface JobTabProps {
 
 function JobTab({ employeeId, payrollId }: JobTabProps) {
   const [periodId, setPeriodId] = useState<string | undefined>(undefined);
+  const [allPeriodsMap, setAllPeriodsMap] = useState<Map<string, any>>(new Map());
 
-  // 从薪资记录获取周期ID
+  // 从薪资记录获取周期ID，并预加载所有周期信息
   useEffect(() => {
-    const fetchPeriodId = async () => {
+    const fetchPeriodInfo = async () => {
       if (!payrollId) return;
       
       try {
         // 从薪资记录中获取period_id
-        const { data } = await supabase
+        const { data: payrollData } = await supabase
           .from('payrolls')
           .select('period_id')
           .eq('id', payrollId)
           .single();
         
-        setPeriodId(data?.period_id || undefined);
+        if (payrollData?.period_id) {
+          setPeriodId(payrollData.period_id);
+          
+          // 获取所有周期信息（用于历史记录日期显示）
+          const { data: allPeriodsData } = await supabase
+            .from('payroll_periods')
+            .select('id, period_name, period_start, period_end, period_year, period_month');
+          
+          if (allPeriodsData) {
+            const periodsMap = new Map();
+            allPeriodsData.forEach(period => {
+              periodsMap.set(period.id, period);
+            });
+            setAllPeriodsMap(periodsMap);
+          }
+        }
       } catch (error) {
-        console.warn('Failed to get period ID from payroll:', error);
+        console.warn('Failed to get period info from payroll:', error);
         setPeriodId(undefined);
+        setAllPeriodsMap(new Map());
       }
     };
 
-    fetchPeriodId();
+    fetchPeriodInfo();
   }, [payrollId]);
 
   // 严格查询当前薪资周期的数据 - 只有当periodId存在时才查询
@@ -737,42 +747,57 @@ function JobTab({ employeeId, payrollId }: JobTabProps) {
     error: historyError 
   } = useEmployeePositionHistory(employeeId || '');
   
-  // 过滤职务历史：只显示当前薪资周期的记录
-  const currentPeriodJobHistory = useMemo(() => {
-    if (!allJobHistory || !periodId) return [];
+  // 显示所有职务历史记录（已解决重复数据问题）
+  const jobHistory = useMemo(() => {
+    if (!allJobHistory) return [];
     
-    // 只返回该周期的职务记录
-    return allJobHistory.filter(job => job.period_id === periodId);
-  }, [allJobHistory, periodId]);
+    // 显示所有历史记录，按周期时间倒序排列（优先使用period_name中的日期信息）
+    return allJobHistory.sort((a, b) => {
+      // 如果有周期信息，按周期排序
+      if (a.period_name && b.period_name) {
+        return b.period_name.localeCompare(a.period_name);
+      }
+      // 否则保持原有顺序
+      return 0;
+    });
+  }, [allJobHistory]);
 
-  // 构建jobInfo对象 - 严格基于当前薪资周期
+  // 构建jobInfo对象 - 包含所有历史记录，使用对应周期的日期范围
   const jobInfo: JobInfo | null = useMemo(() => {
-    if (!employeeId || !periodId) return null;
+    if (!employeeId) return null;
     
-    // 只有当periodId存在时才构建数据，确保严格按周期查询
     return {
       employee_category: employeeCategory ? {
         id: employeeCategory.id,
         name: employeeCategory.category_name,
         assigned_at: employeeCategory.effective_date || new Date().toISOString()
       } : undefined,
-      // 只显示当前薪资周期的职务记录
-      job_history: currentPeriodJobHistory.map(job => ({
-        id: job.id,
-        employee_id: job.employee_id,
-        department_id: job.department_id,
-        department_name: job.department_name,
-        position_id: job.position_id,
-        position_name: job.position_name,
-        employment_status: 'active', // Hook数据中没有此字段，设为默认值
-        start_date: job.effective_date || '',
-        end_date: job.end_date || undefined,
-        is_current: job.is_active,
-        notes: undefined, // Hook数据中没有此字段
-        created_at: new Date().toISOString() // Hook数据中没有此字段，设为默认值
-      }))
+      // 显示所有职务历史记录，每个记录使用其对应薪资周期的日期范围
+      job_history: jobHistory.map(job => {
+        // 从周期映射中获取对应的周期信息
+        const periodInfo = job.period_id ? allPeriodsMap.get(job.period_id) : null;
+        const startDate = periodInfo ? periodInfo.period_start : '';
+        const endDate = periodInfo ? periodInfo.period_end : undefined;
+        
+        return {
+          id: job.id,
+          employee_id: job.employee_id,
+          department_id: job.department_id,
+          department_name: job.department_name,
+          position_id: job.position_id,
+          position_name: job.position_name,
+          employment_status: 'active', // Hook数据中没有此字段，设为默认值
+          start_date: startDate,
+          end_date: endDate,
+          period_id: job.period_id,
+          period_name: job.period_name,
+          is_current: job.is_active,
+          notes: undefined, // Hook数据中没有此字段
+          created_at: undefined // Hook数据中没有此字段
+        };
+      })
     };
-  }, [employeeId, periodId, employeeCategory, currentPeriodJobHistory]);
+  }, [employeeId, employeeCategory, jobHistory, allPeriodsMap]);
 
   const isLoading = categoryLoading || positionLoading || historyLoading;
   const hasError = categoryError || positionError || historyError;
@@ -816,7 +841,7 @@ function JobTab({ employeeId, payrollId }: JobTabProps) {
 
   return (
     <div className="space-y-6">
-      <JobInfoSection jobInfo={jobInfo} periodId={periodId} />
+      <JobInfoSection jobInfo={jobInfo} periodId={periodId} employeeId={employeeId} />
     </div>
   );
 }
@@ -1222,22 +1247,6 @@ function ContributionBaseSection({
         </span>
       )
     }),
-    contributionColumnHelper.accessor('base_period_display' as keyof ContributionBase, {
-      header: '月份',
-      cell: info => (
-        <span className="text-sm text-base-content/70">
-          {info.getValue() as React.ReactNode}
-        </span>
-      )
-    }),
-    contributionColumnHelper.accessor('employment_status' as keyof ContributionBase, {
-      header: '就业状态',
-      cell: info => (
-        <span className="badge badge-sm badge-ghost">
-          {info.getValue() as React.ReactNode}
-        </span>
-      )
-    }),
     contributionColumnHelper.accessor('latest_contribution_base' as keyof ContributionBase, {
       header: () => <div className="text-right">缴费基数</div>,
       cell: info => (
@@ -1248,8 +1257,52 @@ function ContributionBaseSection({
         </div>
       )
     }),
+    contributionColumnHelper.accessor('latest_employee_rate' as keyof ContributionBase, {
+      header: () => <div className="text-right">个人费率</div>,
+      cell: info => (
+        <div className="text-right">
+          <span className="text-sm font-mono text-info">
+            {((info.getValue() as number || 0) * 100).toFixed(2)}%
+          </span>
+        </div>
+      )
+    }),
+    contributionColumnHelper.accessor('latest_employer_rate' as keyof ContributionBase, {
+      header: () => <div className="text-right">单位费率</div>,
+      cell: info => (
+        <div className="text-right">
+          <span className="text-sm font-mono text-success">
+            {((info.getValue() as number || 0) * 100).toFixed(2)}%
+          </span>
+        </div>
+      )
+    }),
+    contributionColumnHelper.display({
+      id: 'total_rate',
+      header: () => <div className="text-right">合计费率</div>,
+      cell: ({ row }) => {
+        const employeeRate = row.original.latest_employee_rate || 0;
+        const employerRate = row.original.latest_employer_rate || 0;
+        const totalRate = employeeRate + employerRate;
+        return (
+          <div className="text-right">
+            <span className="text-sm font-semibold font-mono">
+              {(totalRate * 100).toFixed(2)}%
+            </span>
+          </div>
+        );
+      }
+    }),
+    contributionColumnHelper.accessor('base_period_display' as keyof ContributionBase, {
+      header: '月份',
+      cell: info => (
+        <span className="text-sm text-base-content/70">
+          {info.getValue() as React.ReactNode}
+        </span>
+      )
+    }),
     contributionColumnHelper.accessor('base_last_updated' as keyof ContributionBase, {
-      header: '基数更新时间',
+      header: '更新时间',
       cell: info => (
         <span className="text-sm text-base-content/60">
           {formatDate(String(info.getValue() || ''))}
@@ -1519,26 +1572,186 @@ const jobHistoryColumnHelper = createColumnHelper<JobInfo['job_history'][0]>();
 interface JobInfoSectionProps {
   jobInfo: JobInfo | null;
   periodId?: string; // 添加周期ID信息用于显示
+  employeeId?: string; // 添加员工ID用于编辑
 }
 
-function JobInfoSection({ jobInfo, periodId }: JobInfoSectionProps) {
+function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) {
   const { t } = useTranslation(['payroll', 'common']);
+  
+  // 编辑状态管理
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  const [editingData, setEditingData] = useState<{
+    department_id: string;
+    position_id: string;
+    notes?: string;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // 新建状态管理
+  const [isCreating, setIsCreating] = useState(false);
+  const [newRecordData, setNewRecordData] = useState<{
+    department_id: string;
+    position_id: string;
+    notes?: string;
+  } | null>(null);
+  
+  // 获取部门和职位数据
+  const { data: departments } = useDepartmentList();
+  const { data: positions } = useEmployeePositions();
+  const assignPosition = useAssignEmployeePosition();
+  const { showSuccess, showError } = useToast();
+
+  // 编辑处理函数
+  const handleStartEdit = useCallback((row: JobInfo['job_history'][0]) => {
+    setEditingRowId(row.id);
+    setEditingData({
+      department_id: row.department_id,
+      position_id: row.position_id,
+      notes: row.notes || ''
+    });
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingRowId(null);
+    setEditingData(null);
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editingRowId || !editingData || !employeeId || !periodId) return;
+
+    setIsLoading(true);
+    try {
+      await assignPosition.mutateAsync({
+        employeeId,
+        positionId: editingData.position_id,
+        departmentId: editingData.department_id,
+        periodId,
+        notes: editingData.notes
+      });
+
+      showSuccess('职务信息更新成功');
+      setEditingRowId(null);
+      setEditingData(null);
+    } catch (error) {
+      showError('职务信息更新失败');
+      console.error('Update position error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [editingRowId, editingData, employeeId, periodId, assignPosition, showSuccess, showError]);
+
+  // 新建记录处理函数
+  const handleStartCreate = useCallback(() => {
+    setIsCreating(true);
+    setNewRecordData({
+      department_id: '',
+      position_id: '',
+      notes: ''
+    });
+  }, []);
+
+  const handleCancelCreate = useCallback(() => {
+    setIsCreating(false);
+    setNewRecordData(null);
+  }, []);
+
+  const handleSaveCreate = useCallback(async () => {
+    if (!newRecordData || !employeeId || !periodId) return;
+    if (!newRecordData.department_id || !newRecordData.position_id) {
+      showError('请选择部门和职位');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await assignPosition.mutateAsync({
+        employeeId,
+        positionId: newRecordData.position_id,
+        departmentId: newRecordData.department_id,
+        periodId,
+        notes: newRecordData.notes
+      });
+
+      showSuccess('职务记录创建成功');
+      setIsCreating(false);
+      setNewRecordData(null);
+    } catch (error) {
+      showError('职务记录创建失败');
+      console.error('Create position error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [newRecordData, employeeId, periodId, assignPosition, showSuccess, showError]);
 
   // 定义职务历史表格列
   const jobHistoryColumns = useMemo(() => [
     jobHistoryColumnHelper.accessor('department_name', {
       header: '部门',
-      cell: info => (
-        <span className="text-sm font-medium text-base-content">
-          {info.getValue()}
-        </span>
-      )
+      cell: info => {
+        const row = info.row.original;
+        const isEditing = editingRowId === row.id;
+        
+        if (isEditing && editingData) {
+          return (
+            <select
+              value={editingData.department_id}
+              onChange={(e) => setEditingData(prev => prev ? {
+                ...prev,
+                department_id: e.target.value
+              } : null)}
+              className="select select-sm select-bordered w-full max-w-xs"
+            >
+              <option value="">选择部门</option>
+              {departments?.filter(dept => dept.id).map(dept => (
+                <option key={dept.id} value={dept.id!}>{dept.name}</option>
+              ))}
+            </select>
+          );
+        }
+        
+        return (
+          <span className="text-sm font-medium text-base-content">
+            {info.getValue()}
+          </span>
+        );
+      }
     }),
     jobHistoryColumnHelper.accessor('position_name', {
       header: '职位',
+      cell: info => {
+        const row = info.row.original;
+        const isEditing = editingRowId === row.id;
+        
+        if (isEditing && editingData) {
+          return (
+            <select
+              value={editingData.position_id}
+              onChange={(e) => setEditingData(prev => prev ? {
+                ...prev,
+                position_id: e.target.value
+              } : null)}
+              className="select select-sm select-bordered w-full max-w-xs"
+            >
+              <option value="">选择职位</option>
+              {positions?.filter(pos => pos.id).map(pos => (
+                <option key={pos.id} value={pos.id!}>{pos.name}</option>
+              ))}
+            </select>
+          );
+        }
+        
+        return (
+          <span className="text-sm font-medium text-base-content">
+            {info.getValue()}
+          </span>
+        );
+      }
+    }),
+    jobHistoryColumnHelper.accessor('period_name', {
+      header: '薪资周期',
       cell: info => (
-        <span className="text-sm font-medium text-base-content">
-          {info.getValue()}
+        <span className="text-sm font-medium text-primary">
+          {info.getValue() || '-'}
         </span>
       )
     }),
@@ -1587,13 +1800,87 @@ function JobInfoSection({ jobInfo, periodId }: JobInfoSectionProps) {
     }),
     jobHistoryColumnHelper.accessor('notes', {
       header: '备注',
-      cell: info => (
-        <span className="text-sm text-base-content/60">
-          {info.getValue() || '-'}
-        </span>
-      )
+      cell: info => {
+        const row = info.row.original;
+        const isEditing = editingRowId === row.id;
+        
+        if (isEditing && editingData) {
+          return (
+            <input
+              type="text"
+              value={editingData.notes || ''}
+              onChange={(e) => setEditingData(prev => prev ? {
+                ...prev,
+                notes: e.target.value
+              } : null)}
+              className="input input-sm input-bordered w-full"
+              placeholder="输入备注"
+            />
+          );
+        }
+        
+        return (
+          <span className="text-sm text-base-content/60">
+            {info.getValue() || '-'}
+          </span>
+        );
+      }
+    }),
+    // 操作列
+    jobHistoryColumnHelper.display({
+      id: 'actions',
+      header: '操作',
+      cell: info => {
+        const row = info.row.original;
+        const isEditing = editingRowId === row.id;
+        
+        if (isEditing) {
+          return (
+            <div className="flex gap-1">
+              <button
+                onClick={handleSaveEdit}
+                disabled={isLoading || !editingData?.department_id || !editingData?.position_id}
+                className="btn btn-xs btn-success"
+                title="保存"
+              >
+                {isLoading ? (
+                  <span className="loading loading-spinner loading-xs"></span>
+                ) : (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                disabled={isLoading}
+                className="btn btn-xs btn-ghost"
+                title="取消"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          );
+        }
+        
+        return (
+          <div className="flex gap-1">
+            <button
+              onClick={() => handleStartEdit(row)}
+              className="btn btn-xs btn-ghost text-primary"
+              title="编辑"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          </div>
+        );
+      }
     })
-  ], []);
+  ], [editingRowId, editingData, isLoading, departments, positions, handleStartEdit, handleCancelEdit, handleSaveEdit]);
 
   // 创建职务历史表格实例
   const jobHistoryTable = useReactTable({
@@ -1704,11 +1991,27 @@ function JobInfoSection({ jobInfo, periodId }: JobInfoSectionProps) {
 
             {/* 职务历史表格 */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                  <BriefcaseIcon className="w-4 h-4" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                    <BriefcaseIcon className="w-4 h-4" />
+                  </div>
+                  <h6 className="text-sm font-semibold text-primary">职务变更历史</h6>
                 </div>
-                <h6 className="text-sm font-semibold text-primary">职务变更历史</h6>
+                
+                {/* 添加新记录按钮 */}
+                {employeeId && periodId && !isCreating && (
+                  <button
+                    onClick={handleStartCreate}
+                    className="btn btn-primary btn-xs"
+                    title="添加新的职务记录"
+                  >
+                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    添加记录
+                  </button>
+                )}
               </div>
 
               <div className="overflow-x-auto">
@@ -1745,17 +2048,209 @@ function JobInfoSection({ jobInfo, periodId }: JobInfoSectionProps) {
                   </tbody>
                 </table>
               </div>
+              
+              {/* 新建记录表单（在表格下方显示） */}
+              {isCreating && (
+                <div className="bg-base-100 rounded-lg p-4 border border-primary/20 mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h6 className="text-sm font-semibold text-primary flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      添加新的职务记录
+                    </h6>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* 部门选择 */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-base-content/70">部门 *</label>
+                      <select
+                        value={newRecordData?.department_id || ''}
+                        onChange={(e) => setNewRecordData(prev => prev ? {
+                          ...prev,
+                          department_id: e.target.value
+                        } : null)}
+                        className="select select-bordered w-full"
+                      >
+                        <option value="">选择部门</option>
+                        {departments?.filter(dept => dept.id).map(dept => (
+                          <option key={dept.id} value={dept.id!}>{dept.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {/* 职位选择 */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-base-content/70">职位 *</label>
+                      <select
+                        value={newRecordData?.position_id || ''}
+                        onChange={(e) => setNewRecordData(prev => prev ? {
+                          ...prev,
+                          position_id: e.target.value
+                        } : null)}
+                        className="select select-bordered w-full"
+                      >
+                        <option value="">选择职位</option>
+                        {positions?.filter(pos => pos.id).map(pos => (
+                          <option key={pos.id} value={pos.id!}>{pos.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* 备注 */}
+                  <div className="space-y-2 mb-4">
+                    <label className="text-sm font-medium text-base-content/70">备注</label>
+                    <textarea
+                      value={newRecordData?.notes || ''}
+                      onChange={(e) => setNewRecordData(prev => prev ? {
+                        ...prev,
+                        notes: e.target.value
+                      } : null)}
+                      className="textarea textarea-bordered w-full"
+                      placeholder="请输入备注信息（可选）"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  {/* 操作按钮 */}
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={handleCancelCreate}
+                      disabled={isLoading}
+                      className="btn btn-ghost btn-sm"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={handleSaveCreate}
+                      disabled={isLoading || !newRecordData?.department_id || !newRecordData?.position_id}
+                      className="btn btn-primary btn-sm"
+                    >
+                      {isLoading ? (
+                        <span className="loading loading-spinner loading-xs"></span>
+                      ) : (
+                        <>保存</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (
-          <div className="text-center py-8 bg-base-200/30 rounded-lg">
-            <BriefcaseIcon className="w-12 h-12 mx-auto mb-3 text-base-content/30" />
-            <p className="text-base-content/60 text-sm">
-              {periodId ? `当前薪资周期暂无职务记录` : '暂无职务历史记录'}
-            </p>
-            <p className="text-base-content/40 text-xs mt-2">
-              该员工在当前薪资周期内未创建职务分配记录
-            </p>
+          <div className="space-y-4">
+            {/* 无职务记录时的显示和创建界面 */}
+            {!isCreating ? (
+              <div className="text-center py-8 bg-base-200/30 rounded-lg">
+                <BriefcaseIcon className="w-12 h-12 mx-auto mb-3 text-base-content/30" />
+                <p className="text-base-content/60 text-sm">
+                  {periodId ? `当前薪资周期暂无职务记录` : '暂无职务历史记录'}
+                </p>
+                <p className="text-base-content/40 text-xs mt-2 mb-4">
+                  该员工在当前薪资周期内未创建职务分配记录
+                </p>
+                {employeeId && periodId && (
+                  <button
+                    onClick={handleStartCreate}
+                    className="btn btn-primary btn-sm"
+                    title="创建职务记录"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    创建职务记录
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="bg-base-100 rounded-lg p-4 border border-base-300">
+                <div className="flex items-center justify-between mb-4">
+                  <h6 className="text-sm font-semibold text-primary flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    创建新的职务记录
+                  </h6>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {/* 部门选择 */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-base-content/70">部门 *</label>
+                    <select
+                      value={newRecordData?.department_id || ''}
+                      onChange={(e) => setNewRecordData(prev => prev ? {
+                        ...prev,
+                        department_id: e.target.value
+                      } : null)}
+                      className="select select-bordered w-full"
+                    >
+                      <option value="">选择部门</option>
+                      {departments?.filter(dept => dept.id).map(dept => (
+                        <option key={dept.id} value={dept.id!}>{dept.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* 职位选择 */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-base-content/70">职位 *</label>
+                    <select
+                      value={newRecordData?.position_id || ''}
+                      onChange={(e) => setNewRecordData(prev => prev ? {
+                        ...prev,
+                        position_id: e.target.value
+                      } : null)}
+                      className="select select-bordered w-full"
+                    >
+                      <option value="">选择职位</option>
+                      {positions?.filter(pos => pos.id).map(pos => (
+                        <option key={pos.id} value={pos.id!}>{pos.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                {/* 备注 */}
+                <div className="space-y-2 mb-4">
+                  <label className="text-sm font-medium text-base-content/70">备注</label>
+                  <textarea
+                    value={newRecordData?.notes || ''}
+                    onChange={(e) => setNewRecordData(prev => prev ? {
+                      ...prev,
+                      notes: e.target.value
+                    } : null)}
+                    className="textarea textarea-bordered w-full"
+                    placeholder="请输入备注信息（可选）"
+                    rows={2}
+                  />
+                </div>
+                
+                {/* 操作按钮 */}
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={handleCancelCreate}
+                    disabled={isLoading}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleSaveCreate}
+                    disabled={isLoading || !newRecordData?.department_id || !newRecordData?.position_id}
+                    className="btn btn-primary btn-sm"
+                  >
+                    {isLoading ? (
+                      <span className="loading loading-spinner loading-xs"></span>
+                    ) : (
+                      <>保存</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -4,9 +4,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { 
   usePayrolls, 
   useUpdateBatchPayrollStatus, 
-  useCalculatePayrolls, 
   useLatestPayrollPeriod,
-  useCurrentPayrollPeriod,
   useAvailablePayrollMonths,
   PayrollStatus,
   type PayrollStatusType 
@@ -211,8 +209,7 @@ export default function PayrollListPage() {
   const [periodYear, setPeriodYear] = useState<number | undefined>();
   const [periodMonth, setPeriodMonth] = useState<number | undefined>();
 
-  // 获取当前活跃周期
-  const { data: currentPeriod } = useCurrentPayrollPeriod();
+  // 移除有问题的 useCurrentPayrollPeriod hook
   
   // 获取最近有薪资记录的周期
   const { data: latestPeriod, isLoading: latestPeriodLoading } = useLatestPayrollPeriod();
@@ -230,32 +227,13 @@ export default function PayrollListPage() {
         setPeriodMonth(latestPeriod.month);
         setSelectedMonth(`${latestPeriod.year}-${latestPeriod.month?.toString().padStart(2, '0')}`);
       }
-      // 如果没有任何薪资记录，才使用当前活跃周期（可能是空的草稿）
-      else if (currentPeriod && !latestPeriod && !latestPeriodLoading) {
-        // 只有当周期不是未来月份时才使用
-        const currentDate = new Date();
-        const currentYear = currentDate.getFullYear();
-        const currentMonth = currentDate.getMonth() + 1;
-        const periodYear = currentPeriod.period_year || currentYear;
-        const periodMonth = currentPeriod.period_month || currentMonth;
-        
-        // 检查是否为未来月份
-        const isFuture = periodYear > currentYear || 
-                        (periodYear === currentYear && periodMonth > currentMonth);
-        
-        if (!isFuture) {
-          setSelectedPeriodId(currentPeriod.id);
-          setPeriodYear(periodYear);
-          setPeriodMonth(periodMonth);
-          setSelectedMonth(`${periodYear}-${periodMonth.toString().padStart(2, '0')}`);
-        } else {
-          // 如果是未来月份，使用当前月份
-          const currentYearMonth = getCurrentYearMonth();
-          setSelectedMonth(currentYearMonth);
-        }
+      // 如果没有任何薪资记录，使用当前月份
+      else if (!latestPeriod && !latestPeriodLoading) {
+        const currentYearMonth = getCurrentYearMonth();
+        setSelectedMonth(currentYearMonth);
       }
     }
-  }, [currentPeriod, latestPeriod, latestPeriodLoading, selectedPeriodId]);
+  }, [latestPeriod, latestPeriodLoading, selectedPeriodId]);
 
   // 搜索处理函数 - 手动触发搜索
   const handleSearch = useCallback(() => {
@@ -288,10 +266,21 @@ export default function PayrollListPage() {
   
   // 获取四要素完整度数据
   const { data: completenessData, isLoading: completenessLoading } = usePayrollPeriodCompleteness(selectedPeriodId);
+  
+  // 检查四要素完整度是否全部达到100%
+  const isCompletenessReady = useMemo(() => {
+    if (!completenessData) return false;
+    
+    return (
+      completenessData.earnings_percentage === 100 &&
+      completenessData.bases_percentage === 100 &&
+      completenessData.category_percentage === 100 &&
+      completenessData.job_percentage === 100
+    );
+  }, [completenessData]);
 
   // Mutations
   const updateBatchStatus = useUpdateBatchPayrollStatus();
-  const calculatePayrolls = useCalculatePayrolls();
 
   // 数据处理流程 - 前端过滤和搜索
   const processedData = useMemo(() => {
@@ -363,16 +352,6 @@ export default function PayrollListPage() {
   }, []); // 空依赖数组，使用ref访问最新数据
 
   // 批量操作处理
-  const handleBatchCalculate = useCallback(async () => {
-    try {
-      await calculatePayrolls.mutateAsync(selectedIds);
-      showSuccess(t('calculateSuccess'));
-      setSelectedIds([]);
-      refetch();
-    } catch (error) {
-      showError(t('calculateError'));
-    }
-  }, [selectedIds, calculatePayrolls, t, refetch]);
 
   const handleBatchApprove = useCallback(async () => {
     try {
@@ -436,6 +415,7 @@ export default function PayrollListPage() {
       }
     );
   }, [selectedPeriodId, selectedMonth, clearPayrollPeriod, showError, refetch]);
+
 
   // 准备统计卡片数据 - 移除本地定义，使用 ManagementPageLayout 的类型
   
@@ -519,7 +499,7 @@ export default function PayrollListPage() {
         // >
         //   {t('payroll:createBatch')}
         // </ModernButton>,
-        
+
         ...(hasPermission(PERMISSIONS.PAYROLL_CLEAR) ? [
           <ModernButton
             key="clear-month"
@@ -638,14 +618,10 @@ export default function PayrollListPage() {
           {selectedIds.length > 0 && (
             <PayrollBatchActions
               selectedCount={selectedIds.length}
-              onCalculate={handleBatchCalculate}
               onApprove={handleBatchApprove}
               onMarkPaid={handleBatchMarkPaid}
               onExport={() => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id)), 'payroll-selected')}
-              loading={
-                updateBatchStatus.isPending ||
-                calculatePayrolls.isPending
-              }
+              loading={updateBatchStatus.isPending}
             />
           )}
         </div>

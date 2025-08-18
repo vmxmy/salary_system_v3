@@ -319,13 +319,6 @@ export type Database = {
             foreignKeyName: "employee_bank_accounts_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_bank_accounts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
@@ -438,13 +431,6 @@ export type Database = {
             foreignKeyName: "employee_category_assignments_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_category_assignments_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
@@ -475,20 +461,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employee_category_assignments_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "employee_category_assignments_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
           },
           {
             foreignKeyName: "employee_category_assignments_period_id_fkey"
@@ -547,13 +519,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_contacts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
             referencedColumns: ["employee_id"]
           },
           {
@@ -623,21 +588,7 @@ export type Database = {
             foreignKeyName: "employee_contribution_bases_insurance_type_id_fkey"
             columns: ["insurance_type_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
-            foreignKeyName: "employee_contribution_bases_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
-            foreignKeyName: "employee_contribution_bases_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
             referencedColumns: ["insurance_type_id"]
           },
           {
@@ -646,20 +597,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employee_contribution_bases_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "employee_contribution_bases_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
           },
           {
             foreignKeyName: "employee_contribution_bases_period_id_fkey"
@@ -687,13 +624,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_contribution_bases_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
             referencedColumns: ["employee_id"]
           },
           {
@@ -770,13 +700,6 @@ export type Database = {
             foreignKeyName: "fk_employee_documents_employee_id"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_documents_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
@@ -847,13 +770,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_education_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
             referencedColumns: ["employee_id"]
           },
           {
@@ -965,13 +881,6 @@ export type Database = {
             foreignKeyName: "employee_job_history_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
@@ -1002,20 +911,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
           },
           {
             foreignKeyName: "employee_job_history_period_id_fkey"
@@ -1098,20 +993,6 @@ export type Database = {
             foreignKeyName: "employee_special_deductions_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "employee_special_deductions_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "employee_special_deductions_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
             referencedRelation: "view_payroll_period_completeness"
             referencedColumns: ["period_id"]
           },
@@ -1134,13 +1015,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_special_deductions_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
             referencedColumns: ["employee_id"]
           },
           {
@@ -1232,13 +1106,6 @@ export type Database = {
             columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
             referencedColumns: ["employee_id"]
           },
           {
@@ -1572,20 +1439,6 @@ export type Database = {
             foreignKeyName: "import_logs_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "import_logs_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "import_logs_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
             referencedRelation: "view_payroll_period_completeness"
             referencedColumns: ["period_id"]
           },
@@ -1642,194 +1495,6 @@ export type Database = {
           validation_rules?: Json | null
         }
         Relationships: []
-      }
-      insurance_calculation_logs: {
-        Row: {
-          adjusted_base: number | null
-          calculation_date: string | null
-          contribution_base: number | null
-          created_at: string | null
-          employee_amount: number | null
-          employee_id: string
-          employee_rate: number | null
-          employer_amount: number | null
-          employer_rate: number | null
-          id: string
-          insurance_type_id: string | null
-          is_applicable: boolean
-          payroll_id: string
-          period_id: string | null
-          skip_reason: string | null
-        }
-        Insert: {
-          adjusted_base?: number | null
-          calculation_date?: string | null
-          contribution_base?: number | null
-          created_at?: string | null
-          employee_amount?: number | null
-          employee_id: string
-          employee_rate?: number | null
-          employer_amount?: number | null
-          employer_rate?: number | null
-          id?: string
-          insurance_type_id?: string | null
-          is_applicable: boolean
-          payroll_id: string
-          period_id?: string | null
-          skip_reason?: string | null
-        }
-        Update: {
-          adjusted_base?: number | null
-          calculation_date?: string | null
-          contribution_base?: number | null
-          created_at?: string | null
-          employee_amount?: number | null
-          employee_id?: string
-          employee_rate?: number | null
-          employer_amount?: number | null
-          employer_rate?: number | null
-          id?: string
-          insurance_type_id?: string | null
-          is_applicable?: boolean
-          payroll_id?: string
-          period_id?: string | null
-          skip_reason?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_employee"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_employee"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_employee"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_employee"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_employee"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_active"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_employee"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_all"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_employee"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employees_deleted"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_insurance_type"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "insurance_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_insurance_type"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_insurance_type"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_insurance_type"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_payroll"
-            columns: ["payroll_id"]
-            isOneToOne: false
-            referencedRelation: "payrolls"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_payroll"
-            columns: ["payroll_id"]
-            isOneToOne: false
-            referencedRelation: "view_payroll_approval_summary"
-            referencedColumns: ["payroll_id"]
-          },
-          {
-            foreignKeyName: "fk_insurance_calculation_logs_payroll"
-            columns: ["payroll_id"]
-            isOneToOne: false
-            referencedRelation: "view_payroll_summary"
-            referencedColumns: ["payroll_id"]
-          },
-          {
-            foreignKeyName: "insurance_calculation_logs_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "payroll_periods"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "insurance_calculation_logs_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "insurance_calculation_logs_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "insurance_calculation_logs_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_payroll_period_completeness"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "insurance_calculation_logs_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_payroll_trend_unified"
-            referencedColumns: ["period_id"]
-          },
-        ]
       }
       insurance_type_category_rules: {
         Row: {
@@ -1896,21 +1561,7 @@ export type Database = {
             foreignKeyName: "insurance_type_category_rules_insurance_type_id_fkey"
             columns: ["insurance_type_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
-            foreignKeyName: "insurance_type_category_rules_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
-            foreignKeyName: "insurance_type_category_rules_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
             referencedColumns: ["insurance_type_id"]
           },
         ]
@@ -2195,20 +1846,6 @@ export type Database = {
             foreignKeyName: "payroll_items_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "payroll_items_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "payroll_items_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
             referencedRelation: "view_payroll_period_completeness"
             referencedColumns: ["period_id"]
           },
@@ -2361,13 +1998,6 @@ export type Database = {
             foreignKeyName: "payrolls_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
@@ -2398,20 +2028,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payrolls_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "payrolls_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
           },
           {
             foreignKeyName: "payrolls_period_id_fkey"
@@ -2500,13 +2116,6 @@ export type Database = {
             foreignKeyName: "personal_income_tax_calculation_logs_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "personal_income_tax_calculation_logs_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
@@ -2563,20 +2172,6 @@ export type Database = {
             foreignKeyName: "personal_income_tax_calculation_logs_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "personal_income_tax_calculation_logs_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "personal_income_tax_calculation_logs_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
             referencedRelation: "view_payroll_period_completeness"
             referencedColumns: ["period_id"]
           },
@@ -2626,21 +2221,7 @@ export type Database = {
             foreignKeyName: "policy_rules_insurance_type_id_fkey"
             columns: ["insurance_type_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
-            foreignKeyName: "policy_rules_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
-            foreignKeyName: "policy_rules_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
             referencedColumns: ["insurance_type_id"]
           },
           {
@@ -3251,13 +2832,6 @@ export type Database = {
             foreignKeyName: "user_profiles_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "user_profiles_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
@@ -3362,20 +2936,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payrolls_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "payrolls_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
           },
           {
             foreignKeyName: "payrolls_period_id_fkey"
@@ -3540,13 +3100,6 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
@@ -3583,194 +3136,26 @@ export type Database = {
         }
         Relationships: []
       }
-      view_employee_insurance_base_monthly: {
+      view_employee_contribution_bases_by_period: {
         Row: {
-          adjusted_base: number | null
-          applicability_status: string | null
-          base_adjustment: number | null
-          base_adjustment_rate: number | null
-          base_assigned_date: string | null
-          base_change: number | null
-          base_change_rate: number | null
-          calculation_date: string | null
-          contribution_base: number | null
-          data_quality: string | null
-          department_id: string | null
-          department_name: string | null
-          employee_amount: number | null
-          employee_id: string | null
-          employee_name: string | null
-          employee_rate: number | null
-          employer_amount: number | null
-          employer_rate: number | null
-          employment_status: string | null
-          id_number: string | null
-          insurance_type_id: string | null
-          insurance_type_key: string | null
-          insurance_type_name: string | null
-          is_applicable: boolean | null
-          is_current_period: boolean | null
-          is_recent_12_months: boolean | null
-          last_updated: string | null
-          period_avg_base: number | null
-          period_code: string | null
-          period_display: string | null
-          period_id: string | null
-          period_month: number | null
-          period_name: string | null
-          period_year: number | null
-          position_id: string | null
-          position_name: string | null
-          prev_period_base: number | null
-          prev_period_employee_amount: number | null
-          rank_in_period: number | null
-          skip_reason: string | null
-          total_insurance_amount: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employee_job_history_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "view_department_payroll_statistics"
-            referencedColumns: ["department_id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_position_id_fkey"
-            columns: ["position_id"]
-            isOneToOne: false
-            referencedRelation: "positions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_position_id_fkey"
-            columns: ["position_id"]
-            isOneToOne: false
-            referencedRelation: "view_positions_with_details"
-            referencedColumns: ["position_id"]
-          },
-        ]
-      }
-      view_employee_insurance_base_monthly_latest: {
-        Row: {
-          base_data_freshness: string | null
+          base_ceiling: number | null
+          base_floor: number | null
           base_last_updated: string | null
-          base_period_code: string | null
           base_period_display: string | null
           base_period_month: number | null
-          base_period_name: string | null
           base_period_year: number | null
-          calc_data_freshness: string | null
-          calc_period_code: string | null
-          calc_period_display: string | null
-          calc_period_month: number | null
-          calc_period_name: string | null
-          calc_period_year: number | null
-          data_completeness: string | null
-          department_id: string | null
-          department_name: string | null
-          employee_id: string | null
-          employee_name: string | null
-          employee_status_display: string | null
-          employment_status: string | null
-          hire_date: string | null
-          historical_base_count: number | null
-          historical_calc_count: number | null
-          id_number: string | null
-          insurance_applicability_status: string | null
-          insurance_type_active: boolean | null
-          insurance_type_id: string | null
-          insurance_type_key: string | null
-          insurance_type_name: string | null
-          is_active_record: boolean | null
-          latest_adjusted_base: number | null
-          latest_base_adjustment: number | null
-          latest_base_adjustment_rate: number | null
-          latest_calculation_date: string | null
-          latest_contribution_base: number | null
-          latest_employee_amount: number | null
-          latest_employee_rate: number | null
-          latest_employer_amount: number | null
-          latest_employer_rate: number | null
-          latest_is_applicable: boolean | null
-          latest_skip_reason: string | null
-          overall_last_updated: string | null
-          position_id: string | null
-          position_name: string | null
-          termination_date: string | null
-          total_latest_insurance_amount: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employee_job_history_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "view_department_payroll_statistics"
-            referencedColumns: ["department_id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_position_id_fkey"
-            columns: ["position_id"]
-            isOneToOne: false
-            referencedRelation: "positions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_position_id_fkey"
-            columns: ["position_id"]
-            isOneToOne: false
-            referencedRelation: "view_positions_with_details"
-            referencedColumns: ["position_id"]
-          },
-        ]
-      }
-      view_employee_insurance_base_unified: {
-        Row: {
-          adjusted_base: number | null
-          applicability_status: string | null
-          base_created_at: string | null
-          calculation_date: string | null
-          contribution_base: number | null
-          contribution_base_id: string | null
-          department_id: string | null
-          department_name: string | null
-          employee_amount: number | null
           employee_id: string | null
           employee_name: string | null
           employee_rate: number | null
-          employer_amount: number | null
           employer_rate: number | null
+          employment_status: string | null
+          id: string | null
           id_number: string | null
-          insurance_type_description: string | null
           insurance_type_id: string | null
           insurance_type_key: string | null
           insurance_type_name: string | null
-          is_applicable: boolean | null
-          is_current_period: boolean | null
-          is_latest: boolean | null
-          period_code: string | null
-          period_display: string | null
+          latest_contribution_base: number | null
           period_id: string | null
-          period_month: number | null
-          period_name: string | null
-          period_year: number | null
-          position_id: string | null
-          position_name: string | null
-          skip_reason: string | null
         }
         Relationships: [
           {
@@ -3784,21 +3169,7 @@ export type Database = {
             foreignKeyName: "employee_contribution_bases_insurance_type_id_fkey"
             columns: ["insurance_type_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
-            foreignKeyName: "employee_contribution_bases_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
-            referencedColumns: ["insurance_type_id"]
-          },
-          {
-            foreignKeyName: "employee_contribution_bases_insurance_type_id_fkey"
-            columns: ["insurance_type_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
             referencedColumns: ["insurance_type_id"]
           },
           {
@@ -3807,20 +3178,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employee_contribution_bases_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "employee_contribution_bases_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
           },
           {
             foreignKeyName: "employee_contribution_bases_period_id_fkey"
@@ -3837,34 +3194,6 @@ export type Database = {
             referencedColumns: ["period_id"]
           },
           {
-            foreignKeyName: "employee_job_history_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "view_department_payroll_statistics"
-            referencedColumns: ["department_id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_position_id_fkey"
-            columns: ["position_id"]
-            isOneToOne: false
-            referencedRelation: "positions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employee_job_history_position_id_fkey"
-            columns: ["position_id"]
-            isOneToOne: false
-            referencedRelation: "view_positions_with_details"
-            referencedColumns: ["position_id"]
-          },
-          {
             foreignKeyName: "fk_employee_contribution_bases_employee_id"
             columns: ["employee_id"]
             isOneToOne: false
@@ -3876,13 +3205,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_employee_contribution_bases_employee_id"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
             referencedColumns: ["employee_id"]
           },
           {
@@ -3914,6 +3236,27 @@ export type Database = {
             referencedColumns: ["employee_id"]
           },
         ]
+      }
+      view_employee_insurance_base_monthly_latest: {
+        Row: {
+          base_ceiling: number | null
+          base_floor: number | null
+          base_last_updated: string | null
+          base_period_display: string | null
+          base_period_month: number | null
+          base_period_year: number | null
+          employee_id: string | null
+          employee_name: string | null
+          employee_rate: number | null
+          employer_rate: number | null
+          employment_status: string | null
+          id_number: string | null
+          insurance_type_id: string | null
+          insurance_type_key: string | null
+          insurance_type_name: string | null
+          latest_contribution_base: number | null
+        }
+        Relationships: []
       }
       view_employees_active: {
         Row: {
@@ -3974,13 +3317,6 @@ export type Database = {
             columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
             referencedColumns: ["employee_id"]
           },
           {
@@ -4100,46 +3436,6 @@ export type Database = {
         }
         Relationships: []
       }
-      view_insurance_base_monthly_summary: {
-        Row: {
-          adjusted_base_count: number | null
-          adjustment_rate: number | null
-          applicable_count: number | null
-          avg_contribution_base: number | null
-          avg_employee_amount: number | null
-          avg_employee_rate: number | null
-          avg_employer_amount: number | null
-          avg_employer_rate: number | null
-          calculation_records: number | null
-          contribution_base_records: number | null
-          data_completeness: string | null
-          department_count: number | null
-          employee_count: number | null
-          insurance_type_id: string | null
-          insurance_type_key: string | null
-          insurance_type_name: string | null
-          is_current_period: boolean | null
-          is_recent_12_months: boolean | null
-          last_base_update: string | null
-          last_calculation_date: string | null
-          max_contribution_base: number | null
-          min_contribution_base: number | null
-          not_applicable_count: number | null
-          participating_departments: string[] | null
-          participation_rate: number | null
-          period_code: string | null
-          period_display: string | null
-          period_id: string | null
-          period_month: number | null
-          period_name: string | null
-          period_year: number | null
-          total_contribution_base: number | null
-          total_employee_amount: number | null
-          total_employer_amount: number | null
-          total_insurance_amount: number | null
-        }
-        Relationships: []
-      }
       view_metadata: {
         Row: {
           active_count: number | null
@@ -4226,13 +3522,6 @@ export type Database = {
             foreignKeyName: "payrolls_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
@@ -4263,20 +3552,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payrolls_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "payrolls_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
           },
           {
             foreignKeyName: "payrolls_period_id_fkey"
@@ -4385,13 +3660,6 @@ export type Database = {
             foreignKeyName: "payrolls_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
             referencedRelation: "view_employee_insurance_base_monthly_latest"
             referencedColumns: ["employee_id"]
           },
@@ -4422,20 +3690,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payrolls_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "payrolls_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "view_insurance_base_monthly_summary"
-            referencedColumns: ["period_id"]
           },
           {
             foreignKeyName: "payrolls_period_id_fkey"
@@ -4552,13 +3806,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "view_employee_basic_info"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "payrolls_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "view_employee_insurance_base_monthly"
             referencedColumns: ["employee_id"]
           },
           {
@@ -4797,6 +4044,15 @@ export type Database = {
           updated_by?: string
         }
         Returns: number
+      }
+      calc_and_save_insurance: {
+        Args: {
+          p_employee_id: string
+          p_insurance_type_key: string
+          p_is_employer?: boolean
+          p_period_id: string
+        }
+        Returns: Json
       }
       calc_housing_fund_new: {
         Args: {
@@ -5771,13 +5027,19 @@ export type Database = {
         Args: { p_period?: string }
         Returns: Json
       }
-      recalculate_all_payrolls: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
       reopen_payroll_period: {
         Args: { p_period_id: string }
         Returns: boolean
+      }
+      save_insurance_calculation_new: {
+        Args: {
+          p_amount: number
+          p_employee_id: string
+          p_insurance_type_key: string
+          p_is_employer?: boolean
+          p_period_id: string
+        }
+        Returns: Json
       }
       schedule_mapping_refresh: {
         Args: { p_interval_seconds?: number }

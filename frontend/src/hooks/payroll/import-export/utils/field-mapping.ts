@@ -19,14 +19,8 @@ export const getSalaryComponents = async (dataGroup?: ImportDataGroup): Promise<
     // 根据数据组筛选薪资组件
     if (dataGroup && dataGroup !== 'all') {
       switch (dataGroup) {
-        case 'payroll':
-          // 薪资项目：获取所有活跃的薪资组件
-          break;
         case 'earnings':
           query = query.eq('type', 'earning');
-          break;
-        case 'deductions':
-          query = query.eq('type', 'deduction');
           break;
         case 'bases':
         case 'category':
@@ -74,7 +68,7 @@ export const buildDbFieldsMapping = (
   salaryComponents.forEach(component => {
     dbFields.set(component.name, { 
       type: component.type === 'earning' ? 'earning' : 'deduction', 
-      required: component.is_required 
+      required: component.is_required || false 
     });
   });
   

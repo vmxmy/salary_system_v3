@@ -126,13 +126,19 @@ export interface ValidationRule {
   params?: any;
 }
 
-// 薪资组件类型
+// 薪资组件类型 - 匹配实际数据库结构
 export interface SalaryComponent {
-  component_id: string;
+  id: string;
   name: string;
-  category: SalaryComponentCategory;
+  category: SalaryComponentCategory | null;
   type: 'earning' | 'deduction';
-  is_active: boolean;
-  is_required: boolean;
-  display_order: number;
+  is_taxable: boolean;
+  base_dependency: boolean | null;
+  description: string | null;
+  stability_level: string | null;
+  copy_strategy: string | null;
+  copy_notes: string | null;
+  created_at: string;
+  // 兼容字段（用于业务逻辑）
+  is_required?: boolean;
 }

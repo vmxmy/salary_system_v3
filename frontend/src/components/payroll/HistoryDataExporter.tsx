@@ -4,8 +4,7 @@ import { usePayrollExport } from '@/hooks/payroll/usePayrollExport';
 import { useToast, ToastContainer } from '@/components/common/Toast';
 import { InfoIcon, XCircleIcon, RefreshIcon } from '@/components/common/Icons';
 import { MonthPicker } from '@/components/common/MonthPicker';
-import { DataGroupSelector } from '@/components/common/DataGroupSelector';
-import { DataGroupSelectAllController } from '@/components/common/DataGroupSelectAllController';
+import { DataGroupSelectorWithControls } from '@/components/common/DataGroupSelectorWithControls';
 import { useAvailablePayrollMonths, type AvailablePayrollMonth } from '@/hooks/payroll';
 
 interface HistoryDataExporterProps {
@@ -100,37 +99,38 @@ export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClos
   return (
     <>
       <ToastContainer messages={messages} onClose={removeToast} />
-      <div className="card bg-base-100 shadow-xl max-w-4xl mx-auto">
-        <div className="card-body">
-          <h2 className="card-title text-2xl mb-4">
-            导出历史薪资数据
-            {onClose && (
-              <button
-                className="btn btn-sm btn-circle btn-ghost ml-auto"
-                onClick={onClose}
-              >
-                ✕
-              </button>
-            )}
-          </h2>
+      <div className="w-full">
+        {/* 移除内部标题，因为外层已经有"导出配置"标题 */}
 
         {/* 薪资周期选择 */}
-        <div className="form-control mb-6">
-          <label className="label">
-            <span className="label-text font-semibold">选择要导出的薪资月份</span>
-            <span className="label-text-alt text-base-content/60">显示有薪资数据的月份</span>
-          </label>
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-base-content">薪资周期</h3>
+                <p className="text-sm text-base-content/60">选择要导出数据的薪资周期</p>
+              </div>
+            </div>
+          </div>
           
-          <MonthPicker
-            value={selectedMonth}
-            onChange={setSelectedMonth}
-            showDataIndicators={true}
-            availableMonths={availableMonths}
-            onlyShowMonthsWithData={true}
-            className="w-full"
-            placeholder="请选择有薪资数据的月份"
-            disabled={isLoading}
-          />
+          <div className="p-6 bg-base-200/50 rounded-xl border border-base-300/30 mt-4">
+            <MonthPicker
+              value={selectedMonth}
+              onChange={setSelectedMonth}
+              showDataIndicators={true}
+              availableMonths={availableMonths}
+              onlyShowMonthsWithData={true}
+              className="w-full"
+              placeholder="请选择有薪资数据的月份"
+              disabled={isLoading}
+            />
+          </div>
           
           {selectedMonth && availableMonths && (
             <div className="mt-2 text-sm text-base-content/70">
@@ -152,24 +152,20 @@ export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClos
         </div>
 
         {/* 数据类型选择 */}
-        <div className="mb-6">
-          <div className="form-control mb-4">
-            <div className="flex items-center gap-4 mb-2">
-              <span className="label-text font-semibold">选择数据类型</span>
-              <DataGroupSelectAllController
-                selectedGroups={selectedGroups}
-                onSelectAll={handleSelectAll}
-              />
-            </div>
-          </div>
-          
-          <DataGroupSelector
-            selectedGroups={selectedGroups}
-            onGroupToggle={handleGroupToggle}
-            multiple={true}
-            className="mt-0"
-          />
-        </div>
+        <DataGroupSelectorWithControls
+          selectedGroups={selectedGroups}
+          onGroupToggle={handleGroupToggle}
+          onSelectAll={handleSelectAll}
+          title="数据类型选择"
+          subtitle="选择要导出的数据类型（可多选）"
+          iconColor="accent"
+          icon={
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+          }
+        />
 
         {/* 导出信息摘要 */}
         {selectedMonth && selectedGroups.length > 0 && (
@@ -205,7 +201,7 @@ export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClos
         )}
 
         {/* 操作按钮 */}
-        <div className="card-actions justify-end">
+        <div className="flex justify-end gap-3 mt-6">
           {onClose && (
             <button
               className="btn btn-ghost"
@@ -234,7 +230,6 @@ export const HistoryDataExporter: React.FC<HistoryDataExporterProps> = ({ onClos
             <li>数据按照薪资周期自动筛选</li>
             <li>导出的文件可以直接用于数据备份或分析</li>
           </ul>
-        </div>
         </div>
       </div>
     </>

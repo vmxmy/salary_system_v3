@@ -27,13 +27,11 @@ export const parseExcelFile = async (
         const workbook = XLSX.read(data, { type: 'binary' });
         
         // 定义工作表名称映射
-        const sheetNameMapping: Record<Exclude<ImportDataGroup, 'all'>, string[]> = {
-          'payroll': EXCEL_PARSING_CONSTANTS.SHEET_NAMES.PAYROLL_ITEMS,
-          'earnings': EXCEL_PARSING_CONSTANTS.SHEET_NAMES.PAYROLL_ITEMS,
-          'deductions': EXCEL_PARSING_CONSTANTS.SHEET_NAMES.DEDUCTIONS,
-          'bases': EXCEL_PARSING_CONSTANTS.SHEET_NAMES.CONTRIBUTION_BASES,
-          'category': EXCEL_PARSING_CONSTANTS.SHEET_NAMES.CATEGORY_ASSIGNMENTS,
-          'job': EXCEL_PARSING_CONSTANTS.SHEET_NAMES.JOB_ASSIGNMENTS
+        const sheetNameMapping: Record<Exclude<ImportDataGroup, 'all' | 'payroll' | 'deductions'>, string[]> = {
+          'earnings': [...EXCEL_PARSING_CONSTANTS.SHEET_NAMES.PAYROLL_ITEMS],
+          'bases': [...EXCEL_PARSING_CONSTANTS.SHEET_NAMES.CONTRIBUTION_BASES],
+          'category': [...EXCEL_PARSING_CONSTANTS.SHEET_NAMES.CATEGORY_ASSIGNMENTS],
+          'job': [...EXCEL_PARSING_CONSTANTS.SHEET_NAMES.JOB_ASSIGNMENTS]
         };
         
         // 根据数据组选择对应的工作表

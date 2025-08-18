@@ -79,148 +79,200 @@ export const ClearPayrollModal: React.FC<ClearPayrollModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <dialog className="modal modal-open">
-      <div className="modal-box max-w-md">
-        <h3 className="font-bold text-lg mb-4">确认清空薪资数据</h3>
-        
-        <div className="space-y-4">
-          <div className="alert alert-warning">
-            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-base-100 rounded-xl shadow-2xl border border-base-300/60 overflow-hidden transform transition-all duration-300">
+        {/* 紧凑头部 */}
+        <div className="bg-gradient-to-r from-error/10 to-error/5 px-4 py-3 border-b border-base-300/60">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-error/20 flex items-center justify-center">
+              <svg className="w-4 h-4 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-base-content">确认清空薪资数据</h3>
+              <p className="text-xs text-base-content/60">{month}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 紧凑内容区域 */}
+        <div className="p-4 space-y-4">
+          {/* 简化风险提示 */}
+          <div className="alert alert-warning py-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
-            <span className="text-sm">
-              此操作不可恢复！
-            </span>
+            <span className="text-xs">此操作不可恢复，请谨慎确认！</span>
           </div>
 
-          {/* 数据预览 */}
+          {/* 紧凑数据预览 */}
           {loading ? (
-            <div className="flex justify-center py-4">
-              <span className="loading loading-spinner loading-sm"></span>
-              <span className="ml-2 text-sm">加载数据预览...</span>
+            <div className="text-center py-3">
+              <span className="loading loading-spinner loading-xs"></span>
+              <span className="text-xs text-base-content/70 ml-2">加载中...</span>
             </div>
           ) : dataPreview ? (
-            <div className="bg-base-200 rounded-lg p-3 space-y-2">
-              <p className="text-sm font-semibold">{month} 数据统计：</p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="flex justify-between">
-                  <span>草稿状态：</span>
-                  <span className="font-semibold text-warning">{dataPreview.draftCount} 条</span>
+            <div className="bg-base-200/50 rounded-lg p-3">
+              <h4 className="text-sm font-medium mb-2">{month} 数据统计</h4>
+              <div className="stats stats-horizontal w-full text-xs">
+                <div className="stat py-2 px-3">
+                  <div className="stat-title text-xs">草稿</div>
+                  <div className="stat-value text-sm text-warning">{dataPreview.draftCount}</div>
                 </div>
-                <div className="flex justify-between">
-                  <span>已审批：</span>
-                  <span className="font-semibold text-info">{dataPreview.approvedCount} 条</span>
+                <div className="stat py-2 px-3">
+                  <div className="stat-title text-xs">已审批</div>
+                  <div className="stat-value text-sm text-info">{dataPreview.approvedCount}</div>
                 </div>
-                <div className="flex justify-between">
-                  <span>已支付：</span>
-                  <span className="font-semibold text-success">{dataPreview.paidCount} 条</span>
+                <div className="stat py-2 px-3">
+                  <div className="stat-title text-xs">已支付</div>
+                  <div className="stat-value text-sm text-success">{dataPreview.paidCount}</div>
                 </div>
-                <div className="flex justify-between">
-                  <span>总计：</span>
-                  <span className="font-semibold">{dataPreview.totalCount} 条</span>
+                <div className="stat py-2 px-3">
+                  <div className="stat-title text-xs">总计</div>
+                  <div className="stat-value text-sm">{dataPreview.totalCount}</div>
                 </div>
               </div>
             </div>
           ) : null}
 
-          {/* 清除策略选择 */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text text-sm">清除策略</span>
-            </label>
-            <div className="space-y-2">
-              <label className="label cursor-pointer">
-                <span className="label-text text-xs">仅清除草稿状态的薪资记录（推荐）</span>
-                <input 
-                  type="radio" 
-                  name="clearStrategy" 
-                  className="radio radio-sm radio-primary" 
-                  checked={clearStrategy === 'draft_only'}
-                  onChange={() => setClearStrategy('draft_only')}
-                />
+          {/* 紧凑策略选择 */}
+          <div>
+            <h4 className="text-sm font-medium mb-2">清除策略</h4>
+            <div className="form-control space-y-2">
+              <label className="label cursor-pointer py-2">
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="radio" 
+                    name="clearStrategy" 
+                    className="radio radio-sm radio-primary" 
+                    checked={clearStrategy === 'draft_only'}
+                    onChange={() => setClearStrategy('draft_only')}
+                  />
+                  <div>
+                    <span className="text-sm">仅清除草稿状态</span>
+                    <div className="badge badge-success badge-xs ml-2">推荐</div>
+                  </div>
+                </div>
               </label>
-              <label className="label cursor-pointer">
-                <span className="label-text text-xs text-error">
-                  清除所有薪资记录（包括已审批和已支付）
-                  {(!dataPreview || dataPreview.totalCount === 0) && (
-                    <span className="text-base-content/50">（无数据）</span>
-                  )}
-                </span>
-                <input 
-                  type="radio" 
-                  name="clearStrategy" 
-                  className="radio radio-sm radio-error" 
-                  checked={clearStrategy === 'all'}
-                  onChange={() => setClearStrategy('all')}
-                  disabled={!dataPreview || dataPreview.totalCount === 0}
-                />
+              <label className="label cursor-pointer py-2">
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="radio" 
+                    name="clearStrategy" 
+                    className="radio radio-sm radio-error" 
+                    checked={clearStrategy === 'all'}
+                    onChange={() => setClearStrategy('all')}
+                    disabled={!dataPreview || dataPreview.totalCount === 0}
+                  />
+                  <div className={(!dataPreview || dataPreview.totalCount === 0) ? 'opacity-50' : ''}>
+                    <span className="text-sm text-error">清除所有记录</span>
+                    <div className="badge badge-error badge-xs ml-2">危险</div>
+                    {(!dataPreview || dataPreview.totalCount === 0) && (
+                      <span className="text-xs text-base-content/50 block">（无数据）</span>
+                    )}
+                  </div>
+                </div>
               </label>
             </div>
           </div>
 
-          <div className="text-sm space-y-2">
-            <p>即将清除的数据：</p>
-            <ul className="list-disc list-inside ml-2 text-xs space-y-1">
+          {/* 简化影响范围 */}
+          <div className="bg-base-200/30 rounded-lg p-3">
+            <h4 className="text-xs font-medium text-base-content/80 mb-2">即将清除的数据：</h4>
+            <div className="text-xs space-y-1">
               {clearStrategy === 'draft_only' ? (
                 <>
-                  <li className="text-warning">草稿状态的薪资记录（{dataPreview?.draftCount || 0} 条）</li>
-                  <li>相关的薪资项目明细</li>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-warning"></div>
+                    <span>草稿状态记录 ({dataPreview?.draftCount || 0} 条)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-base-content/40"></div>
+                    <span className="text-base-content/70">相关薪资明细</span>
+                  </div>
                 </>
               ) : (
                 <>
-                  <li className="text-error">所有薪资记录（{dataPreview?.totalCount || 0} 条）</li>
-                  <li>所有薪资项目明细</li>
-                  <li>相关的缴费基数、人员类别、职务信息</li>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-error"></div>
+                    <span className="text-error">所有薪资记录 ({dataPreview?.totalCount || 0} 条)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-base-content/40"></div>
+                    <span className="text-base-content/70">薪资明细、基数、类别等数据</span>
+                  </div>
                 </>
               )}
-            </ul>
+            </div>
           </div>
 
-          <div className="form-control">
+          {/* 紧凑安全确认 */}
+          <div>
             <label className="label">
-              <span className="label-text">
-                请输入 <span className="font-semibold text-error">确认清空</span> 以继续：
+              <span className="label-text text-sm">
+                输入 <span className="font-bold text-error">"确认清空"</span> 继续
               </span>
             </label>
-            <input
-              type="text"
-              value={confirmText}
-              onChange={(e) => {
-                setConfirmText(e.target.value);
-                setError('');
-              }}
-              placeholder="确认清空"
-              className={`input input-bordered ${error ? 'input-error' : ''}`}
-              autoFocus
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={confirmText}
+                onChange={(e) => {
+                  setConfirmText(e.target.value);
+                  setError('');
+                }}
+                placeholder="确认清空"
+                className={`input input-sm input-bordered w-full ${
+                  error ? 'input-error' : 
+                  confirmText === '确认清空' ? 'input-success' : ''
+                }`}
+                autoFocus
+              />
+              {confirmText === '确认清空' && (
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                  <svg className="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+            </div>
             {error && (
-              <label className="label">
-                <span className="label-text-alt text-error">{error}</span>
-              </label>
+              <div className="label">
+                <span className="label-text-alt text-error text-xs">{error}</span>
+              </div>
             )}
           </div>
         </div>
 
-        <div className="modal-action">
-          <button 
-            className="btn btn-ghost"
-            onClick={handleCancel}
-          >
-            取消
-          </button>
-          <button 
-            className="btn btn-error"
-            onClick={handleConfirm}
-            disabled={!confirmText}
-          >
-            确认清空
-          </button>
+        {/* 紧凑页脚 */}
+        <div className="border-t border-base-300/60 px-4 py-3">
+          <div className="flex justify-end gap-2">
+            <button 
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={handleCancel}
+            >
+              取消
+            </button>
+            <button 
+              type="button"
+              className="btn btn-sm btn-error"
+              onClick={handleConfirm}
+              disabled={!confirmText || confirmText !== '确认清空'}
+            >
+              确认清空
+            </button>
+          </div>
         </div>
       </div>
       
-      <form method="dialog" className="modal-backdrop" onClick={handleCancel}>
-        <button type="button">close</button>
-      </form>
-    </dialog>
+      {/* 背景遮罩 */}
+      <div 
+        className="absolute inset-0 -z-10" 
+        onClick={handleCancel}
+        aria-label="关闭对话框"
+      />
+    </div>
   );
 };

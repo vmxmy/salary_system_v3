@@ -201,6 +201,10 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
+            element: <Navigate to="/payroll/list" replace />,
+          },
+          {
+            path: 'list',
             element: (
               <Suspense fallback={<LoadingScreen />}>
                 <PayrollListPage />

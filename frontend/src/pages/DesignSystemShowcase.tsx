@@ -73,10 +73,10 @@ export function DesignSystemShowcase() {
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-50 to-base-100">
+    <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-100">
       {/* 现代化页面标题 */}
       <div className={cn(
-        'bg-gradient-to-r from-base-100 via-base-50/50 to-base-100',
+        'bg-gradient-to-r from-base-100 via-base-100/50 to-base-100',
         'border-b border-base-200/60 mb-8',
         'shadow-[0_1px_3px_0_rgba(0,0,0,0.05),0_1px_2px_-1px_rgba(0,0,0,0.04)]'
       )}>

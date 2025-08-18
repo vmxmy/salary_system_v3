@@ -234,19 +234,14 @@ export function usePayrollExport() {
         // 获取缴费基数数据 - 使用视图获取所有保险类型的基数
         if (config.includeInsurance || config.selectedDataGroups?.includes('bases')) {
           let basesQuery = supabase
-            .from('view_employee_insurance_base_monthly')
+            .from('view_employee_insurance_base_monthly_latest')
             .select(`
               employee_id,
               employee_name,
-              period_id,
-              period_display,
               insurance_type_key,
               insurance_type_name,
-              contribution_base,
-              employee_amount,
-              employer_amount,
-              department_name,
-              position_name
+              latest_contribution_base,
+              base_period_display
             `);
 
           if (config.periodId) {
@@ -264,10 +259,7 @@ export function usePayrollExport() {
               employeeBasesMap.set(item.employee_id, {
                 employee_id: item.employee_id,
                 employee_name: item.employee_name,
-                period_id: item.period_id,
-                period_display: item.period_display,
-                department_name: item.department_name,
-                position_name: item.position_name,
+                period_display: item.base_period_display || '',
                 pension_base: 0,
                 medical_base: 0,
                 unemployment_base: 0,
@@ -283,28 +275,28 @@ export function usePayrollExport() {
             // 根据保险类型key设置对应的基数
             switch(item.insurance_type_key) {
               case 'pension':
-                employeeData.pension_base = item.contribution_base;
+                employeeData.pension_base = item.latest_contribution_base;
                 break;
               case 'medical':
-                employeeData.medical_base = item.contribution_base;
+                employeeData.medical_base = item.latest_contribution_base;
                 break;
               case 'unemployment':
-                employeeData.unemployment_base = item.contribution_base;
+                employeeData.unemployment_base = item.latest_contribution_base;
                 break;
               case 'work_injury':
-                employeeData.work_injury_base = item.contribution_base;
+                employeeData.work_injury_base = item.latest_contribution_base;
                 break;
               case 'maternity':
-                employeeData.maternity_base = item.contribution_base;
+                employeeData.maternity_base = item.latest_contribution_base;
                 break;
               case 'housing_fund':
-                employeeData.housing_fund_base = item.contribution_base;
+                employeeData.housing_fund_base = item.latest_contribution_base;
                 break;
               case 'occupational_pension':
-                employeeData.occupational_pension_base = item.contribution_base;
+                employeeData.occupational_pension_base = item.latest_contribution_base;
                 break;
               case 'serious_illness':
-                employeeData.serious_illness_base = item.contribution_base;
+                employeeData.serious_illness_base = item.latest_contribution_base;
                 break;
             }
           });
@@ -474,19 +466,14 @@ export function usePayrollExport() {
             
             if (employeeIdsWithPayroll.length > 0) {
               let basesQuery = supabase
-                .from('view_employee_insurance_base_monthly')
+                .from('view_employee_insurance_base_monthly_latest')
                 .select(`
                   employee_id,
                   employee_name,
-                  period_id,
-                  period_display,
                   insurance_type_key,
                   insurance_type_name,
-                  contribution_base,
-                  employee_amount,
-                  employer_amount,
-                  department_name,
-                  position_name
+                  latest_contribution_base,
+                  base_period_display
                 `)
                 .in('employee_id', employeeIdsWithPayroll); // 只查询有薪资记录的员工
 
@@ -505,10 +492,7 @@ export function usePayrollExport() {
                 employeeBasesMap.set(item.employee_id, {
                   employee_id: item.employee_id,
                   employee_name: item.employee_name,
-                  period_id: item.period_id,
-                  period_display: item.period_display,
-                  department_name: item.department_name,
-                  position_name: item.position_name,
+                  period_display: item.base_period_display || '',
                   pension_base: 0,
                   medical_base: 0,
                   unemployment_base: 0,
@@ -524,28 +508,28 @@ export function usePayrollExport() {
               // 根据保险类型key设置对应的基数
               switch(item.insurance_type_key) {
                 case 'pension':
-                  employeeData.pension_base = item.contribution_base;
+                  employeeData.pension_base = item.latest_contribution_base;
                   break;
                 case 'medical':
-                  employeeData.medical_base = item.contribution_base;
+                  employeeData.medical_base = item.latest_contribution_base;
                   break;
                 case 'unemployment':
-                  employeeData.unemployment_base = item.contribution_base;
+                  employeeData.unemployment_base = item.latest_contribution_base;
                   break;
                 case 'work_injury':
-                  employeeData.work_injury_base = item.contribution_base;
+                  employeeData.work_injury_base = item.latest_contribution_base;
                   break;
                 case 'maternity':
-                  employeeData.maternity_base = item.contribution_base;
+                  employeeData.maternity_base = item.latest_contribution_base;
                   break;
                 case 'housing_fund':
-                  employeeData.housing_fund_base = item.contribution_base;
+                  employeeData.housing_fund_base = item.latest_contribution_base;
                   break;
                 case 'occupational_pension':
-                  employeeData.occupational_pension_base = item.contribution_base;
+                  employeeData.occupational_pension_base = item.latest_contribution_base;
                   break;
                 case 'serious_illness':
-                  employeeData.serious_illness_base = item.contribution_base;
+                  employeeData.serious_illness_base = item.latest_contribution_base;
                   break;
               }
             });

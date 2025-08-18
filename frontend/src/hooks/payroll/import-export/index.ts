@@ -173,16 +173,6 @@ export function usePayrollImportExport() {
             );
             break;
 
-          case 'deductions':
-            setMessage('导入扣除项数据...');
-            importResult = await importDeductions(
-              data,
-              periodId,
-              (progress) => updateProgress(progress),
-              globalProgressRef
-            );
-            break;
-
           default:
             throw new Error(`不支持的数据组类型: ${config.dataGroup}`);
         }

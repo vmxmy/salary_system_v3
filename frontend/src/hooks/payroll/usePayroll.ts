@@ -519,28 +519,6 @@ export const useUpdateBatchPayrollStatus = () => {
   });
 };
 
-// 计算薪资
-export const useCalculatePayrolls = () => {
-  const queryClient = useQueryClient();
-  const { handleError } = useErrorHandler();
-
-  return useMutation({
-    mutationFn: async (payrollIds: string[]) => {
-      const { data, error } = await (supabase as any).rpc('calculate_payrolls', {
-        payroll_ids: payrollIds
-      });
-
-      if (error) {
-        handleError(error, { customMessage: '计算薪资失败' });
-        throw error;
-      }
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: payrollQueryKeys.all });
-    },
-  });
-};
 
 // 删除薪资记录
 export const useDeletePayroll = () => {
@@ -590,49 +568,120 @@ export const useEmployeeInsuranceDetails = (payrollId: string) => {
   return useQuery({
     queryKey: payrollQueryKeys.insurance(payrollId),
     queryFn: async () => {
+      // 先获取薪资记录的基本信息，包括员工ID和周期ID
+      const { data: payrollInfo, error: payrollError } = await supabase
+        .from('payrolls')
+        .select('employee_id, period_id')
+        .eq('id', payrollId)
+        .single();
+      
+      if (payrollError) {
+        handleError(payrollError, { customMessage: '获取薪资信息失败' });
+        throw payrollError;
+      }
+      
+      if (!payrollInfo || !payrollInfo.employee_id || !payrollInfo.period_id) {
+        return [];
+      }
+      
+      // 使用现有的 hook 获取缴费基数和费率信息
+      // 注意：这里我们需要导入并使用 useEmployeeContributionBasesByPeriod
+      // 但由于这是在 queryFn 内部，我们需要直接调用相关的查询逻辑
+      
+      // 从薪资明细视图获取五险一金实际扣款数据
       const { data, error } = await supabase
-        .from('insurance_calculation_logs')
-        .select(`
-          id,
-          payroll_id,
-          employee_id,
-          insurance_type_id,
-          calculation_date,
-          is_applicable,
-          contribution_base,
-          adjusted_base,
-          employee_rate,
-          employer_rate,
-          employee_amount,
-          employer_amount,
-          skip_reason,
-          insurance_type:insurance_types(
-            id,
-            system_key,
-            name,
-            description
-          )
-        `)
+        .from('view_payroll_unified')
+        .select('*')
         .eq('payroll_id', payrollId)
-        .order('insurance_type_id');
+        .in('category', ['personal_insurance', 'employer_insurance'])
+        .order('component_name');
 
       if (error) {
         handleError(error, { customMessage: '获取员工五险一金信息失败' });
         throw error;
       }
       
-      // 处理数据格式，确保数值字段保持正确的小数位数
-      const processedData = (data || []).map(item => ({
-        ...item,
-        contribution_base: formatNumber(item.contribution_base, 2),
-        adjusted_base: formatNumber(item.adjusted_base, 2),
-        employee_rate: formatNumber(item.employee_rate, 4),
-        employer_rate: formatNumber(item.employer_rate, 4),
-        employee_amount: formatNumber(item.employee_amount, 2),
-        employer_amount: formatNumber(item.employer_amount, 2)
-      }));
+      // 获取保险类型映射（用于匹配组件名称）
+      const { data: insuranceTypes } = await supabase
+        .from('insurance_types')
+        .select('*')
+        .eq('is_active', true);
       
-      return processedData;
+      // 创建组件名称到保险类型的映射
+      const insuranceTypeMap = new Map();
+      (insuranceTypes || []).forEach(type => {
+        // 为每个保险类型创建多种可能的匹配模式
+        const patterns = [
+          type.system_key,
+          type.name,
+          type.name.replace('保险', ''),
+          type.name.replace('险', ''),
+        ];
+        patterns.forEach(pattern => {
+          if (pattern && pattern.length > 1) {
+            insuranceTypeMap.set(pattern, type);
+          }
+        });
+      });
+      
+      // 从薪资明细中提取五险一金信息
+      const insuranceData = (data || []).reduce((acc: any[], item) => {
+        // 尝试匹配保险类型
+        let matchedType = null;
+        const componentName = item.component_name || '';
+        
+        for (const [pattern, type] of insuranceTypeMap.entries()) {
+          if (componentName.includes(pattern)) {
+            matchedType = type;
+            break;
+          }
+        }
+        
+        if (!matchedType) {
+          return acc;
+        }
+        
+        const isEmployer = item.category === 'employer_insurance' || componentName.includes('单位');
+        
+        // 查找或创建保险记录
+        let record = acc.find(r => r.insurance_type?.system_key === matchedType.system_key);
+        if (!record) {
+          record = {
+            id: item.item_id || '',
+            payroll_id: payrollId,
+            employee_id: item.employee_id || '',
+            insurance_type_id: matchedType.id,
+            calculation_date: new Date().toISOString(),
+            is_applicable: true,
+            contribution_base: 0,
+            adjusted_base: 0,
+            employee_rate: 0,
+            employer_rate: 0,
+            employee_amount: 0,
+            employer_amount: 0,
+            skip_reason: null,
+            insurance_type: {
+              id: matchedType.id,
+              system_key: matchedType.system_key,
+              name: matchedType.name,
+              description: matchedType.description || matchedType.name
+            }
+          };
+          acc.push(record);
+        }
+        
+        // 设置金额
+        const amount = item.amount || 0;
+        if (isEmployer) {
+          record.employer_amount = amount;
+        } else {
+          record.employee_amount = amount;
+        }
+        
+        return acc;
+      }, []);
+      
+      return insuranceData;
     },
     enabled: !!payrollId,
     staleTime: 5 * 60 * 1000,
@@ -650,7 +699,7 @@ export const useEmployeeMonthlyContributionBases = (
     queryKey: payrollQueryKeys.contributionBases(employeeId, yearMonth),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('view_employee_insurance_base_monthly_latest')
+        .from('view_employee_contribution_bases_by_period')
         .select(`
           employee_id,
           employee_name,
@@ -660,6 +709,10 @@ export const useEmployeeMonthlyContributionBases = (
           insurance_type_name,
           insurance_type_key,
           latest_contribution_base,
+          employee_rate,
+          employer_rate,
+          base_floor,
+          base_ceiling,
           base_period_display,
           base_period_year,
           base_period_month,
@@ -760,7 +813,6 @@ export function usePayroll(options: UsePayrollOptions = {}) {
   const createBatchPayrollsMutation = useCreateBatchPayrolls();
   const updateStatusMutation = useUpdatePayrollStatus();
   const updateBatchStatusMutation = useUpdateBatchPayrollStatus();
-  const calculatePayrollsMutation = useCalculatePayrolls();
   const deletePayrollMutation = useDeletePayroll();
 
   // 设置实时订阅
@@ -798,14 +850,14 @@ export function usePayroll(options: UsePayrollOptions = {}) {
         }
       );
 
-    // 订阅保险计算日志变更
+    // 订阅薪资项目变更（包括保险项目）
     const insuranceChannel = supabase
       .channel('insurance-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'insurance_calculation_logs' },
+        { event: '*', schema: 'public', table: 'payroll_items' },
         (payload) => {
-          console.log('[Payroll] Insurance calculation change detected:', payload.eventType);
+          console.log('[Payroll] Payroll item (insurance) change detected:', payload.eventType);
           if (payload.new && 'payroll_id' in payload.new) {
             queryClient.invalidateQueries({ 
               queryKey: payrollQueryKeys.insurance(payload.new.payroll_id as string) 
@@ -862,7 +914,6 @@ export function usePayroll(options: UsePayrollOptions = {}) {
       createBatchPayrolls: createBatchPayrollsMutation,
       updateStatus: updateStatusMutation,
       updateBatchStatus: updateBatchStatusMutation,
-      calculatePayrolls: calculatePayrollsMutation,
       deletePayroll: deletePayrollMutation,
     },
 

@@ -4,8 +4,7 @@ import { HistoryDataExporter } from './HistoryDataExporter';
 import { ImportDataGroup, ImportMode } from '@/types/payroll-import';
 import type { ImportConfig, ExcelDataRow } from '@/types/payroll-import';
 import { usePayrollImportExport } from '@/hooks/payroll/import-export';
-import { DataGroupSelector } from '@/components/common/DataGroupSelector';
-import { DataGroupSelectAllController } from '@/components/common/DataGroupSelectAllController';
+import { DataGroupSelectorWithControls } from '@/components/common/DataGroupSelectorWithControls';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { useAvailablePayrollMonths, usePayrollPeriod } from '@/hooks/payroll';
 import * as XLSX from 'xlsx';
@@ -748,7 +747,7 @@ export const PayrollImportPage: React.FC = () => {
           </div>
           <div className="flex flex-col gap-6">
             {/* 导入配置 - 高级专业设计 */}
-            <div className="card bg-gradient-to-br from-base-100 via-base-50 to-base-100 shadow-2xl border border-base-300/50">
+            <div className="card bg-gradient-to-br from-base-100 via-base-100 to-base-100 shadow-2xl border border-base-300/50">
               <div className="card-body p-8">
                 {/* 标题区域 */}
                 <div className="flex items-center gap-4 mb-8">
@@ -868,36 +867,23 @@ export const PayrollImportPage: React.FC = () => {
 
                   {/* 数据类型选择区域 */}
                   <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
-                          <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                              d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-base-content">数据类型选择</h3>
-                          <p className="text-sm text-base-content/60">选择要导入的数据类型（可多选）</p>
-                        </div>
-                      </div>
+                    <DataGroupSelectorWithControls
+                      selectedGroups={selectedDataGroups}
+                      onGroupToggle={handleGroupToggle}
+                      onSelectAll={handleSelectAllDataGroups}
+                      title="数据类型选择"
+                      subtitle="选择要导入的数据类型（可多选）"
+                      className="mt-0"
+                      iconColor="accent"
+                      icon={
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                      }
+                    />
                       
-                      <DataGroupSelectAllController
-                        selectedGroups={selectedDataGroups}
-                        onSelectAll={handleSelectAllDataGroups}
-                      />
-                    </div>
-                    
-                    <div className="p-6 bg-gradient-to-br from-base-200/30 to-base-200/50 rounded-xl border border-base-300/30">
-                      <DataGroupSelector
-                        selectedGroups={selectedDataGroups}
-                        onGroupToggle={handleGroupToggle}
-                        multiple={true}
-                        variant="default"
-                        showDescriptions={true}
-                      />
-                      
-                      {selectedDataGroups.length > 0 && (
+                    {selectedDataGroups.length > 0 && (
                         <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0">
@@ -917,7 +903,6 @@ export const PayrollImportPage: React.FC = () => {
                           </div>
                         </div>
                       )}
-                    </div>
                   </div>
 
                 </div>
@@ -1157,12 +1142,12 @@ export const PayrollImportPage: React.FC = () => {
                                   <div key={idx} className={`p-4 rounded-xl border transition-all ${
                                     sheet.isEmpty 
                                       ? 'bg-base-200 border-base-300 opacity-60' 
-                                      : 'bg-gradient-to-r from-base-100 to-base-50 border-base-300 hover:shadow-sm'
+                                      : 'bg-gradient-to-r from-base-100 to-base-100 border-base-300 hover:shadow-sm'
                                   }`}>
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-3">
                                         <div className={`w-3 h-3 rounded-full ${
-                                          sheet.isEmpty ? 'bg-base-400' : 'bg-success'
+                                          sheet.isEmpty ? 'bg-base-content/20' : 'bg-success'
                                         }`}></div>
                                         <span className={`font-medium ${sheet.isEmpty ? 'text-base-content/50' : 'text-base-content'}`}>
                                           {sheet.name}
@@ -1426,38 +1411,89 @@ export const PayrollImportPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* 数据预览 */}
-                    {parsedData.length > 0 && (
+                    {/* 数据预览 - 按Sheet分Tab显示 */}
+                    {parsedData.length > 0 && parseResult && (
                       <div className="card bg-base-200">
                         <div className="card-body">
-                          <h3 className="card-title text-base">数据预览（前5行）</h3>
-                          <div className="overflow-x-auto">
-                            <table className="table table-zebra">
-                              <thead>
-                                <tr>
-                                  <th>行号</th>
-                                  <th>员工编号</th>
-                                  <th>员工姓名</th>
-                                  <th>身份证号</th>
-                                  <th>更多</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {parsedData.slice(0, 5).map((row, index) => (
-                                  <tr key={index}>
-                                    <td>{row.rowNumber}</td>
-                                    <td>{row['员工编号'] || '-'}</td>
-                                    <td>{row['员工姓名'] || '-'}</td>
-                                    <td>{row['身份证号'] ? '****' + row['身份证号'].slice(-4) : '-'}</td>
-                                    <td>
-                                      <span className="badge badge-ghost">
-                                        {Object.keys(row).length - 4} 个字段
-                                      </span>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                          <h3 className="card-title text-base">数据预览（按工作表）</h3>
+                          
+                          {/* Sheet Tab导航 */}
+                          <div className="tabs tabs-bordered">
+                            {parseResult.sheets
+                              .filter(sheet => sheet.name !== '使用说明' && sheet.hasData)
+                              .map((sheet, index) => (
+                                <React.Fragment key={sheet.name}>
+                                  <input
+                                    type="radio"
+                                    name="data_preview_tabs"
+                                    className="tab"
+                                    aria-label={`${sheet.name} (${sheet.rowCount}行)`}
+                                    defaultChecked={index === 0}
+                                  />
+                                  <div className="tab-content bg-base-100 border-base-300 rounded-box p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                      <div>
+                                        <h4 className="font-semibold">{sheet.name}</h4>
+                                        <p className="text-sm text-base-content/60">
+                                          {sheet.rowCount} 行数据，{sheet.columnCount} 列
+                                        </p>
+                                      </div>
+                                      <div className="badge badge-primary">
+                                        前5行预览
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="overflow-x-auto">
+                                      <table className="table table-zebra table-sm">
+                                        <thead>
+                                          <tr>
+                                            <th>行号</th>
+                                            {sheet.headers.slice(0, 6).map(header => (
+                                              <th key={header} className="min-w-24">
+                                                {header}
+                                              </th>
+                                            ))}
+                                            {sheet.headers.length > 6 && (
+                                              <th>更多字段</th>
+                                            )}
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {parsedData
+                                            .filter(row => row._sheetName === sheet.name)
+                                            .slice(0, 5)
+                                            .map((row, rowIndex) => (
+                                              <tr key={rowIndex}>
+                                                <td>{row.rowNumber}</td>
+                                                {sheet.headers.slice(0, 6).map(header => (
+                                                  <td key={header} className="max-w-32 truncate">
+                                                    {header === '身份证号' && row[header] 
+                                                      ? '****' + String(row[header]).slice(-4)
+                                                      : (row[header] || '-')
+                                                    }
+                                                  </td>
+                                                ))}
+                                                {sheet.headers.length > 6 && (
+                                                  <td>
+                                                    <span className="badge badge-ghost badge-sm">
+                                                      +{sheet.headers.length - 6} 列
+                                                    </span>
+                                                  </td>
+                                                )}
+                                              </tr>
+                                            ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                    
+                                    {parsedData.filter(row => row._sheetName === sheet.name).length > 5 && (
+                                      <div className="text-sm text-base-content/60 mt-2">
+                                        还有 {parsedData.filter(row => row._sheetName === sheet.name).length - 5} 行未显示...
+                                      </div>
+                                    )}
+                                  </div>
+                                </React.Fragment>
+                              ))}
                           </div>
                         </div>
                       </div>
@@ -1717,11 +1753,39 @@ export const PayrollImportPage: React.FC = () => {
           onChange={() => setActiveTab('export')}
         />
         <div className="tab-content border-base-300 bg-base-100 p-6">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-6">
             <FolderIcon className="w-5 h-5" />
             <h2 className="text-xl font-semibold">导出数据</h2>
           </div>
-          <HistoryDataExporter />
+          <div className="flex flex-col gap-6">
+            {/* 导出配置 - 高级专业设计 */}
+            <div className="card bg-gradient-to-br from-base-100 via-base-100 to-base-100 shadow-2xl border border-base-300/50">
+              <div className="card-body p-8">
+                {/* 标题区域 */}
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center">
+                      <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold text-base-content bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                      导出配置
+                    </h2>
+                    <p className="text-base-content/70 text-sm mt-1">
+                      选择要导出的数据类型和格式选项
+                    </p>
+                  </div>
+                </div>
+                
+                {/* 导出器组件 */}
+                <HistoryDataExporter />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1744,9 +1808,8 @@ export const PayrollImportPage: React.FC = () => {
               <div className="stat">
                 <div className="stat-title">导入模式</div>
                 <div className="stat-value text-sm">
-                  {importConfig.mode === ImportMode.CREATE ? '仅创建' : 
-                   importConfig.mode === ImportMode.UPDATE ? '仅更新' :
-                   importConfig.mode === ImportMode.UPSERT ? '更新或创建' : '追加'}
+                  {importConfig.mode === ImportMode.UPSERT ? '更新或创建' : 
+                   importConfig.mode === ImportMode.REPLACE ? '替换模式' : '未知'}
                 </div>
               </div>
             </div>

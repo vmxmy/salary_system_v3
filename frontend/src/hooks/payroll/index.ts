@@ -30,7 +30,6 @@ export {
   useCreateBatchPayrolls,
   useUpdatePayrollStatus,
   useUpdateBatchPayrollStatus,
-  useCalculatePayrolls,
   useDeletePayroll,
   useEmployeeInsuranceDetails,
   useEmployeeMonthlyContributionBases,

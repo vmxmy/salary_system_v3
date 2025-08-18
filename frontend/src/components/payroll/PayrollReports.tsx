@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
-import { usePayrolls, useUpdateBatchPayrollStatus, useCalculatePayrolls, useLatestPayrollPeriod } from '@/hooks/payroll';
+import { usePayrolls, useUpdateBatchPayrollStatus, useLatestPayrollPeriod } from '@/hooks/payroll';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
 import { useTableConfiguration } from '@/hooks/core';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
@@ -134,7 +134,6 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
 
   // Mutations
   const updateBatchStatus = useUpdateBatchPayrollStatus();
-  const calculatePayrolls = useCalculatePayrolls();
 
   // 数据处理流程 - 前端过滤和搜索
   const processedData = useMemo(() => {
@@ -214,17 +213,6 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
   }, []); // 空依赖数组，使用ref访问最新数据
 
   // 批量操作处理
-  const handleBatchCalculate = useCallback(async () => {
-    try {
-      await calculatePayrolls.mutateAsync(selectedIds);
-      showSuccess(t('calculateSuccess'));
-      setSelectedIds([]);
-      refetch();
-    } catch (error) {
-      showError(t('calculateError'));
-    }
-  }, [selectedIds, calculatePayrolls, t, refetch, showSuccess, showError]);
-
   const handleBatchApprove = useCallback(async () => {
     try {
       await updateBatchStatus.mutateAsync({
@@ -505,14 +493,10 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
       {selectedIds.length > 0 && (
         <PayrollBatchActions
           selectedCount={selectedIds.length}
-          onCalculate={handleBatchCalculate}
           onApprove={handleBatchApprove}
           onMarkPaid={handleBatchMarkPaid}
           onExport={() => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id)), 'payroll-selected')}
-          loading={
-            updateBatchStatus.isPending ||
-            calculatePayrolls.isPending
-          }
+          loading={updateBatchStatus.isPending}
         />
       )}
 

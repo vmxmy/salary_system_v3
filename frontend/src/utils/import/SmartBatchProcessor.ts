@@ -20,12 +20,12 @@ export interface BatchProcessorState {
   lastUpdateTime: number;
 }
 
-export interface BatchResult<T> {
+export interface BatchResult<T, R = T> {
   success: boolean;
   processedItems: T[];
   errors: Array<{
     index: number;
-    item: T;
+    item: R;
     error: string;
   }>;
   processingTime: number;
@@ -96,7 +96,7 @@ export class SmartBatchProcessor<T> {
   async processBatches<R>(
     items: T[],
     processor: (batch: T[], signal: AbortSignal) => Promise<R[]>,
-    onBatchComplete?: (result: BatchResult<R>, batchIndex: number) => void
+    onBatchComplete?: (result: BatchResult<R, T>, batchIndex: number) => void
   ): Promise<{
     results: R[];
     errors: Array<{ index: number; item: T; error: string }>;
@@ -144,7 +144,7 @@ export class SmartBatchProcessor<T> {
 
           // 调用批次完成回调
           if (onBatchComplete) {
-            const batchResult: BatchResult<R> = {
+            const batchResult: BatchResult<R, T> = {
               success: true,
               processedItems: batchResults,
               errors: [],
@@ -171,7 +171,7 @@ export class SmartBatchProcessor<T> {
 
           // 调用批次完成回调
           if (onBatchComplete) {
-            const batchResult: BatchResult<R> = {
+            const batchResult: BatchResult<R, T> = {
               success: false,
               processedItems: [],
               errors: batchErrors,

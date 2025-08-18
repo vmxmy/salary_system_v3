@@ -56,7 +56,7 @@ export function AccordionSection({
         "collapse-title flex items-center justify-between",
         isCompact ? "text-sm font-medium" : "text-lg font-semibold",
         "peer-checked:border-b peer-checked:border-base-200/60 peer-checked:bg-gradient-to-r peer-checked:from-primary/5 peer-checked:to-transparent",
-        "hover:bg-gradient-to-r hover:from-base-50 hover:to-transparent",
+        "hover:bg-gradient-to-r hover:from-base-100 hover:to-transparent",
         "hover:translate-y-[-1px] cursor-pointer transition-all duration-300 ease-out",
         isCompact ? "min-h-[3rem] py-3 px-4" : "min-h-[4.5rem] py-5 px-6"
       )}>

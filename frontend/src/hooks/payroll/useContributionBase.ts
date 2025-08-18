@@ -96,40 +96,39 @@ export const useEmployeeContributionBasesByPeriod = (employeeId: string, periodI
   return useQuery({
     queryKey: contributionBaseQueryKeys.employeeBases(employeeId, periodId),
     queryFn: async (): Promise<ContributionBase[]> => {
-      let query = supabase
-        .from('employee_contribution_bases')
+      // 根据是否有 periodId 选择不同的视图
+      let query;
+      
+      // 使用新的缴费基数视图获取数据
+      query = supabase
+        .from('view_employee_contribution_bases_by_period')
         .select(`
-          id,
           employee_id,
+          employee_name,
+          id_number,
+          employment_status,
           insurance_type_id,
-          period_id,
-          contribution_base,
-          created_at,
-          employee:employees(
-            id,
-            employee_name
-          ),
-          insurance_type:insurance_types(
-            id,
-            system_key,
-            name,
-            description,
-            is_active
-          ),
-          period:payroll_periods(
-            id,
-            period_name,
-            period_year,
-            period_month
-          )
+          insurance_type_name,
+          insurance_type_key,
+          latest_contribution_base,
+          employee_rate,
+          employer_rate,
+          base_floor,
+          base_ceiling,
+          base_period_display,
+          base_period_year,
+          base_period_month,
+          base_last_updated
         `)
         .eq('employee_id', employeeId);
-      
+
+      // 如果提供了periodId，则只查询该周期的数据
       if (periodId) {
         query = query.eq('period_id', periodId);
       }
       
-      // Cannot order by nested field in Supabase, will sort client-side
+      query = query.order('insurance_type_key');
+      
       const { data, error } = await query;
 
       if (error) {
@@ -137,37 +136,71 @@ export const useEmployeeContributionBasesByPeriod = (employeeId: string, periodI
         throw error;
       }
       
-      // Sort by insurance type system_key client-side
-      const sortedData = (data || []).sort((a, b) => {
-        const keyA = (a.insurance_type as any)?.system_key || '';
-        const keyB = (b.insurance_type as any)?.system_key || '';
-        return keyA.localeCompare(keyB);
-      });
+      if (!data || data.length === 0) return [];
       
-      return sortedData.map(item => ({
-        id: item.id,
-        employee_id: item.employee_id,
-        employee_name: (item.employee as any)?.employee_name || '',
-        insurance_type_id: item.insurance_type_id,
-        insurance_type_name: (item.insurance_type as any)?.name || '',
-        insurance_type_key: (item.insurance_type as any)?.system_key || '',
-        period_id: item.period_id,
-        period_name: (item.period as any)?.period_name || '',
-        contribution_base: item.contribution_base || 0,
-        adjusted_base: undefined, // v3数据库不支持此字段
-        adjustment_reason: undefined, // v3数据库不支持此字段
-        effective_date: '', // v3使用period替代日期管理
-        end_date: null, // v3使用period替代日期管理
-        is_active: true, // v3中默认为激活状态
-        notes: undefined, // v3数据库不支持此字段
-        insurance_rules: item.insurance_type ? {
-          employee_rate: 0.08, // 默认员工缴费率
-          employer_rate: 0.16, // 默认单位缴费率
-          min_base: 3000, // 默认最低基数
-          max_base: 30000, // 默认最高基数
-          is_mandatory: (item.insurance_type as any)?.is_active || false
-        } : undefined
-      }));
+      return (data || []).map(item => {
+        // 直接使用视图中的费率信息（视图已经处理了人员类别匹配）
+        const base = item.latest_contribution_base || 0;
+        const employeeRate = item.employee_rate || 0;
+        const employerRate = item.employer_rate || 0;
+        const employeeAmount = base * employeeRate;
+        const employerAmount = base * employerRate;
+        
+        return {
+          // 基础字段
+          id: item.insurance_type_id || '', // Use insurance_type_id as id
+          employee_id: item.employee_id || '',
+          employee_name: item.employee_name || '',
+          id_number: item.id_number || '', // 视图中暂无此字段
+          employment_status: item.employment_status || 'active', // 添加默认值
+          
+          // 保险类型信息
+          insurance_type_id: item.insurance_type_id || '',
+          insurance_type_name: item.insurance_type_name || '',
+          insurance_type_key: item.insurance_type_key || '',
+          
+          // 周期信息
+          period_id: periodId || '',
+          period_name: item.base_period_display || '',
+          base_period_display: item.base_period_display || '',
+          base_period_year: item.base_period_year || new Date().getFullYear(),
+          base_period_month: item.base_period_month || new Date().getMonth() + 1,
+          
+          // 缴费基数 - 同时保留两种字段名以兼容不同组件
+          contribution_base: base,
+          latest_contribution_base: base,
+          adjusted_base: base, // v3中与基数相同
+          latest_adjusted_base: base,
+          
+          // 费率信息 - 同时保留两种字段名
+          employee_rate: employeeRate,
+          employer_rate: employerRate,
+          latest_employee_rate: employeeRate,
+          latest_employer_rate: employerRate,
+          
+          // 计算金额
+          latest_employee_amount: employeeAmount,
+          latest_employer_amount: employerAmount,
+          
+          // 其他字段
+          latest_is_applicable: true,
+          base_last_updated: item.base_last_updated || new Date().toISOString(),
+          adjustment_reason: undefined, // v3数据库不支持此字段
+          effective_date: '', // v3使用period替代日期管理
+          end_date: null, // v3使用period替代日期管理
+          is_active: true, // v3中默认为激活状态
+          notes: undefined, // v3数据库不支持此字段
+          
+          // 规则信息
+          insurance_rules: {
+            employee_rate: employeeRate,
+            employer_rate: employerRate,
+            min_base: item.base_floor || 0,
+            max_base: item.base_ceiling || 999999,
+            is_mandatory: true
+          }
+        };
+      });
     },
     enabled: !!employeeId,
     staleTime: 5 * 60 * 1000,

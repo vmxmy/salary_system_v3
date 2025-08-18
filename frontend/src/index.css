@@ -83,6 +83,85 @@
   .modal-compact .modal-box {
     @apply p-4;
   }
+
+  /* 增强的模态框动画 */
+  .modal-enhanced {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .modal-enhanced .modal-box {
+    @apply transform transition-all duration-300 ease-out;
+    animation: modal-slide-in 0.3s ease-out;
+  }
+
+  @keyframes modal-slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes modal-slide-out {
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+  }
+
+  .modal-enhanced.modal-closing .modal-box {
+    animation: modal-slide-out 0.2s ease-in;
+  }
+
+  /* 增强的背景模糊效果 */
+  .modal-backdrop-enhanced {
+    @apply backdrop-blur-sm bg-black/30;
+    transition: all 0.3s ease-out;
+  }
+
+  /* 模态框头部增强样式 */
+  .modal-header-enhanced {
+    @apply relative overflow-hidden;
+  }
+
+  .modal-header-enhanced::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent;
+    transform: translateX(-100%);
+    transition: transform 0.6s ease-out;
+  }
+
+  .modal-header-enhanced:hover::before {
+    transform: translateX(100%);
+  }
+
+  /* 模态框内容区域优化滚动 */
+  .modal-content-enhanced {
+    @apply overflow-y-auto;
+  }
+
+  .modal-content-enhanced::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .modal-content-enhanced::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .modal-content-enhanced::-webkit-scrollbar-thumb {
+    @apply bg-base-300 rounded-full;
+  }
+
+  .modal-content-enhanced::-webkit-scrollbar-thumb:hover {
+    @apply bg-base-content/30;
+  }
   
   /* 紧凑化表单控件 */
   .form-compact .form-control {

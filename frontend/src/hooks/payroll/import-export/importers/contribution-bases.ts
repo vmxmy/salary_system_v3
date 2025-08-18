@@ -60,7 +60,7 @@ export const importContributionBases = async (
   ];
   
   // 准备批量数据
-  const allContributionBases = [];
+  const allContributionBases: any[] = [];
   
   for (let i = 0; i < data.length; i++) {
     const row = data[i];

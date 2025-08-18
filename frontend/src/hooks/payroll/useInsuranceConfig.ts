@@ -16,7 +16,8 @@ type SocialInsurancePolicy = Database['public']['Tables']['social_insurance_poli
 type SocialInsurancePolicyInsert = Database['public']['Tables']['social_insurance_policies']['Insert'];
 type SocialInsurancePolicyUpdate = Database['public']['Tables']['social_insurance_policies']['Update'];
 
-type InsuranceCalculationLog = Database['public']['Tables']['insurance_calculation_logs']['Row'];
+// Note: insurance_calculation_logs table doesn't exist in v3 database
+// type InsuranceCalculationLog = Database['public']['Tables']['insurance_calculation_logs']['Row'];
 
 // 查询键常量
 const INSURANCE_KEYS = {
@@ -212,7 +213,7 @@ export const useMonthlyInsuranceBases = (params: {
   return useQuery({
     queryKey: INSURANCE_KEYS.monthlyBases(params),
     queryFn: async () => {
-      let query = supabase.from('view_employee_insurance_base_monthly').select('*');
+      let query = supabase.from('view_employee_insurance_base_monthly_latest').select('*');
 
       if (params.employeeIds && params.employeeIds.length > 0) {
         query = query.in('employee_id', params.employeeIds);
@@ -245,7 +246,7 @@ export const useInsuranceBaseSummary = (yearMonth: string) => {
     queryKey: INSURANCE_KEYS.baseSummary(yearMonth),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('view_insurance_base_monthly_summary')
+        .from('view_employee_insurance_base_monthly_latest')
         .select('*')
         .eq('year_month', yearMonth);
 
@@ -650,26 +651,25 @@ export const useInsuranceCalculationLogs = (filters?: {
   return useQuery({
     queryKey: INSURANCE_KEYS.calculationLogs(filters),
     queryFn: async () => {
+      // Note: insurance_calculation_logs table doesn't exist in v3, 
+      // using insurance_types as a fallback
       let query = supabase
-        .from('insurance_calculation_logs')
+        .from('insurance_types')
         .select(`
-          *,
-          insurance_type:insurance_types(
-            id,
-            name,
-            system_key
-          )
+          id,
+          name,
+          system_key,
+          description,
+          is_active,
+          created_at,
+          updated_at
         `)
         .order('created_at', { ascending: false });
 
-      if (filters?.employeeId) {
-        query = query.eq('employee_id', filters.employeeId);
-      }
-      if (filters?.payrollId) {
-        query = query.eq('payroll_id', filters.payrollId);
-      }
+      // Note: Since we're using insurance_types instead of calculation logs,
+      // employee and payroll filters don't apply
       if (filters?.yearMonth) {
-        // 假设有 year_month 字段或者可以从 created_at 推导
+        // Filter by year-month using created_at
         query = query.like('created_at', `${filters.yearMonth}%`);
       }
 

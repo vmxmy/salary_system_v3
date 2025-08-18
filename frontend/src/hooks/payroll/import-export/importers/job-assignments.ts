@@ -243,7 +243,9 @@ export const importJobAssignments = async (
     totalRows: data.length,
     successCount,
     failedCount: failCount,
+    skippedCount: 0,
     errors,
+    warnings: [],
     results
   };
 };
