@@ -182,6 +182,7 @@ temp/
 tmp/
 
 # Claude Code specific
+.claude/
 .claude/settings.local.json
 
 # Application specific
@@ -236,8 +237,13 @@ reports/
 # Development tools and artifacts
 backup_tool/backups/
 backup_tool/*.log
+features/
 features/*/implementation-*
 features/*/progress-*
+.kiro/
+.mcp.json
+backend/
+backup_moved/
 
 # Additional temporary patterns
 *.orig

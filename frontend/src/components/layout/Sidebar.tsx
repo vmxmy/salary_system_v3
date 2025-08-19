@@ -81,6 +81,16 @@ const menuItems: MenuItem[] = [
         ),
         permissions: ['payroll:approve'],
       },
+      {
+        key: 'insuranceConfig',
+        path: '/payroll/insurance-config',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        ),
+        permissions: ['payroll:config'],
+      },
     ],
   },
   {
@@ -156,6 +166,27 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const location = useLocation();
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['payroll', 'testFeatures']); // 默认展开薪资和测试菜单
 
+  // 临时翻译映射，保持界面友好
+  const getDisplayName = (key: string): string => {
+    const translations: Record<string, string> = {
+      'dashboard': '工作台',
+      'employees': '员工管理',
+      'departments': '部门管理',
+      'payroll': '薪资管理',
+      'payrollImport': '薪资导入',
+      'payrollManagement': '薪资列表',
+      'payrollApproval': '薪资审批',
+      'insuranceConfig': '五险一金配置',
+      'testFeatures': '测试功能',
+      'newTableArchitecture': '新表格架构',
+      'testMetadata': '元数据测试',
+      'insuranceCalculation': '保险计算测试',
+      'fontTest': '字体测试',
+      'validationTest': '验证测试'
+    };
+    return translations[key] || String(t(`common:nav.${key}`));
+  };
+
   // 简化的权限检查
   const hasPermission = (permissions: string[]) => {
     if (permissions.length === 0) return true;
@@ -210,7 +241,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               <span className="w-4 h-4 flex-shrink-0">
                 {item.icon}
               </span>
-              <span className="truncate">{String(t(`common:nav.${item.key}`))}</span>
+              <span className="truncate">{getDisplayName(item.key)}</span>
             </summary>
             <ul className="ml-4">
               {item.children?.map(child => renderMenuItem(child, level + 1))}
@@ -236,7 +267,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           <span className="w-4 h-4 flex-shrink-0">
             {item.icon}
           </span>
-          <span className="truncate">{String(t(`common:nav.${item.key}`))}</span>
+          <span className="truncate">{getDisplayName(item.key)}</span>
         </NavLink>
       </li>
     );

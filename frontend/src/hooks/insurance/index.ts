@@ -14,3 +14,13 @@ export type { AllInsuranceResult, InsuranceCalculationDetail } from './useAllIns
 
 export { useBatchInsuranceCalculation } from './useBatchInsuranceCalculation';
 export type { BatchInsuranceResult } from './useBatchInsuranceCalculation';
+
+// 配置管理 hooks 导出
+export { useInsuranceRuleConfig } from './useInsuranceConfig';
+// 类型从统一的类型文件导出
+export type { 
+  InsuranceTypeInfo, 
+  EmployeeCategory, 
+  InsuranceRuleConfig, 
+  BatchConfigParams 
+} from '@/types/insurance';

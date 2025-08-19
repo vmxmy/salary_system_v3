@@ -64,7 +64,8 @@
       "Bash(for:*)",
       "Bash(do)",
       "Bash(sed:*)",
-      "Bash(timeout 10 npm run dev)"
+      "Bash(timeout 10 npm run dev)",
+      "Bash(git gc:*)"
     ],
     "deny": []
   },

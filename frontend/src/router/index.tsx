@@ -39,6 +39,8 @@ const DebugPage = lazy(() => import('@/pages/DebugPage'));
 const NewTableArchitectureTestPage = lazy(() => import('@/pages/test/NewTableArchitectureTestPage'));
 const TestMetadata = lazy(() => import('@/pages/test/TestMetadata'));
 const InsuranceCalculationTest = lazy(() => import('@/pages/test/InsuranceCalculationTest'));
+const InsuranceConfigTest = lazy(() => import('@/pages/test/InsuranceConfigTest'));
+const InsuranceConfigPage = lazy(() => import('@/pages/payroll/InsuranceConfigPage'));
 // Test pages moved to archive
 // const HookTestPage = lazy(() => import('@/pages/test/AuthenticatedHookTestPage'));
 // const EmployeeCreateTestPage = lazy(() => import('@/pages/EmployeeCreateTestPage'));
@@ -132,6 +134,14 @@ export const router = createBrowserRouter([
     element: (
       <Suspense fallback={<LoadingScreen />}>
         <InsuranceCalculationTest />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/test/insurance-config',
+    element: (
+      <Suspense fallback={<LoadingScreen />}>
+        <InsuranceConfigTest />
       </Suspense>
     ),
   },
@@ -233,6 +243,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingScreen />}>
                 <PayrollApprovalPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'insurance-config',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <InsuranceConfigPage />
               </Suspense>
             ),
           },

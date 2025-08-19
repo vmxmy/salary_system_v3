@@ -1,0 +1,2 @@
+origin	https://github.com/vmxmy/salary_system_v3.git (fetch)
+origin	https://github.com/vmxmy/salary_system_v3.git (push)
