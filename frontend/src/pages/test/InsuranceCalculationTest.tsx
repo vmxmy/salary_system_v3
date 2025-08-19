@@ -12,6 +12,7 @@ const InsuranceCalculationTest: React.FC = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [testResults, setTestResults] = useState<any[]>([]);
+  const [saveToDatabase, setSaveToDatabase] = useState<boolean>(false);
 
   // 使用现有的薪资期间 hook
   const { data: periodsData, isLoading: periodsLoading } = usePayrollPeriods({
@@ -119,16 +120,18 @@ const InsuranceCalculationTest: React.FC = () => {
     const result = await calculateAllInsurance({
       employeeId: selectedEmployee,
       periodId: selectedPeriod,
-      includeOccupationalPension: true
+      includeOccupationalPension: true,
+      saveToDatabase: saveToDatabase
     });
 
     setTestResults([{
-      type: '综合计算结果',
+      type: saveToDatabase ? '综合计算结果（已写入数据库）' : '综合计算结果（仅计算）',
       success: result.success,
       totalEmployeeAmount: result.totalEmployeeAmount,
       totalEmployerAmount: result.totalEmployerAmount,
       details: result.details,
-      errors: result.errors
+      errors: result.errors,
+      saveToDatabase: saveToDatabase
     }]);
   };
 
@@ -143,14 +146,19 @@ const InsuranceCalculationTest: React.FC = () => {
     const employeeIds = employees.map(e => e.id);
     
     // 显示确认提示
-    if (!confirm(`确定要对当前周期的 ${employeeIds.length} 名员工进行批量五险一金计算吗？`)) {
+    const confirmMessage = saveToDatabase 
+      ? `确定要对当前周期的 ${employeeIds.length} 名员工进行批量五险一金计算并写入数据库吗？` 
+      : `确定要对当前周期的 ${employeeIds.length} 名员工进行批量五险一金计算吗？（仅计算，不写入数据库）`;
+    
+    if (!confirm(confirmMessage)) {
       return;
     }
     
     const results = await calculateBatchInsurance({
       periodId: selectedPeriod,
       employeeIds,
-      includeOccupationalPension: true
+      includeOccupationalPension: true,
+      saveToDatabase: saveToDatabase
     });
 
     setTestResults(results);
@@ -312,6 +320,25 @@ const InsuranceCalculationTest: React.FC = () => {
           </div>
         </div>
 
+        {/* 综合计算选项 */}
+        <div className="mt-4 p-3 bg-base-300 rounded-lg">
+          <h3 className="text-sm font-medium mb-2">综合计算选项</h3>
+          <label className="cursor-pointer label justify-start gap-2">
+            <input 
+              type="checkbox" 
+              className="checkbox checkbox-primary checkbox-sm" 
+              checked={saveToDatabase}
+              onChange={(e) => setSaveToDatabase(e.target.checked)}
+            />
+            <span className="label-text text-sm">
+              将计算结果保存到数据库 
+              <span className="text-warning text-xs ml-1">
+                (勾选后会实际写入薪资记录)
+              </span>
+            </span>
+          </label>
+        </div>
+
         {/* 测试按钮 */}
         <div className="flex flex-wrap gap-4 mt-6">
           <button 
@@ -334,17 +361,18 @@ const InsuranceCalculationTest: React.FC = () => {
             className="btn btn-secondary"
             onClick={testAllInsurance}
             disabled={allLoading || !selectedEmployee || !selectedPeriod}
+            title={saveToDatabase ? '将计算结果保存到数据库' : '仅计算不保存到数据库'}
           >
-            {allLoading ? '计算中...' : '测试综合计算'}
+            {allLoading ? '计算中...' : (saveToDatabase ? '测试综合计算（写入数据库）' : '测试综合计算（仅计算）')}
           </button>
 
           <button 
             className="btn btn-accent"
             onClick={testBatchCalculation}
             disabled={batchLoading || !selectedPeriod || employees.length === 0}
-            title={`对当前周期的 ${employees.length} 名员工进行五险一金批量计算`}
+            title={saveToDatabase ? `对当前周期的 ${employees.length} 名员工进行五险一金批量计算并写入数据库` : `对当前周期的 ${employees.length} 名员工进行五险一金批量计算（仅计算）`}
           >
-            {batchLoading ? `处理中 (${progress.current}/${progress.total})` : `批量计算全部员工 (${employees.length}人)`}
+            {batchLoading ? `处理中 (${progress.current}/${progress.total})` : (saveToDatabase ? `批量计算全部员工并写入 (${employees.length}人)` : `批量计算全部员工 (${employees.length}人)`)}
           </button>
         </div>
       </div>
@@ -368,6 +396,21 @@ const InsuranceCalculationTest: React.FC = () => {
         <div className="bg-base-100 rounded-lg overflow-hidden">
           <div className="p-4 bg-base-200">
             <h2 className="text-lg font-semibold">测试结果</h2>
+            
+            {/* 组件名称格式验证图例 */}
+            {testResults.some(r => r.componentName || r.componentDetails) && (
+              <div className="mt-2 text-sm space-y-1">
+                <div className="flex gap-4">
+                  <span className="flex items-center gap-1">
+                    <span className="badge badge-success badge-xs">✓</span> 标准格式（含"应缴费额"后缀）
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="badge badge-warning badge-xs">⚠</span> 非标准格式
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* 显示图例（仅在保险适用关系测试时显示） */}
             {testResults.some(r => r.is_applicable !== undefined) && (
               <div className="mt-2 text-sm space-y-1">
@@ -394,6 +437,7 @@ const InsuranceCalculationTest: React.FC = () => {
                 <tr>
                   <th>类型</th>
                   <th>保险名称</th>
+                  <th>使用的组件名称</th>
                   <th>状态</th>
                   <th>金额/基数</th>
                   <th>费率</th>
@@ -410,6 +454,41 @@ const InsuranceCalculationTest: React.FC = () => {
                       {/* 保险名称列 - 显示中文名称 */}
                       {result.details?.insuranceTypeName || 
                        (result.type && result.type.includes('(') ? result.type.split(' ')[0] : '-')}
+                    </td>
+                    <td>
+                      {/* 使用的组件名称列 - 显示标准格式验证 */}
+                      {result.componentName ? (
+                        <div>
+                          <div className={`badge ${result.componentName.includes('应缴费额') ? 'badge-success' : 'badge-warning'} badge-sm mb-1`}>
+                            {result.componentName.includes('应缴费额') ? '✓ 标准格式' : '⚠ 非标准'}
+                          </div>
+                          <div className="text-xs break-all">{result.componentName}</div>
+                        </div>
+                      ) : result.componentDetails ? (
+                        <div className="space-y-1">
+                          {result.componentDetails.map((detail: any, detailIndex: number) => (
+                            <div key={detailIndex} className="border-l-2 border-primary/20 pl-2">
+                              <div className="font-medium text-xs mb-1">{detail.insuranceTypeName}</div>
+                              {detail.employeeComponent && (
+                                <div className="mb-1">
+                                  <span className={`badge ${detail.employeeComponent.componentName.includes('应缴费额') ? 'badge-success' : 'badge-warning'} badge-xs mr-1`}>
+                                    {detail.employeeComponent.componentName.includes('应缴费额') ? '✓' : '⚠'}
+                                  </span>
+                                  <span className="text-xs">{detail.employeeComponent.componentName}</span>
+                                </div>
+                              )}
+                              {detail.employerComponent && (
+                                <div>
+                                  <span className={`badge ${detail.employerComponent.componentName.includes('应缴费额') ? 'badge-success' : 'badge-warning'} badge-xs mr-1`}>
+                                    {detail.employerComponent.componentName.includes('应缴费额') ? '✓' : '⚠'}
+                                  </span>
+                                  <span className="text-xs">{detail.employerComponent.componentName}</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : '-'}
                     </td>
                     <td>
                       <span className={`badge ${result.success ? 'badge-success' : 'badge-error'}`}>
@@ -528,13 +607,13 @@ const InsuranceCalculationTest: React.FC = () => {
                               const children = childCategories[rootName] || [];
                               
                               return (
-                                <>
+                                <React.Fragment key={`root-group-${rootName}-${index}`}>
                                   {/* 在非第一个分组前添加空行 */}
                                   {index > 0 && (
-                                    <div key={`spacer-${index}`} className="h-2"></div>
+                                    <div className="h-2"></div>
                                   )}
                                   
-                                  <div key={rootName} className="flex items-start gap-2">
+                                  <div className="flex items-start gap-2">
                                     <span className="text-xs font-medium text-base-content/60 min-w-[3rem] pt-0.5">
                                       {rootName}:
                                     </span>
@@ -563,7 +642,7 @@ const InsuranceCalculationTest: React.FC = () => {
                                       )}
                                     </div>
                                   </div>
-                                </>
+                                </React.Fragment>
                               );
                             });
                           })()}
