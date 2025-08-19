@@ -13,6 +13,7 @@ const InsuranceCalculationTest: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [testResults, setTestResults] = useState<any[]>([]);
   const [saveToDatabase, setSaveToDatabase] = useState<boolean>(false);
+  const [isCalculating, setIsCalculating] = useState<boolean>(false);
 
   // 使用现有的薪资期间 hook
   const { data: periodsData, isLoading: periodsLoading } = usePayrollPeriods({
@@ -76,8 +77,13 @@ const InsuranceCalculationTest: React.FC = () => {
       return;
     }
 
-    const results = [];
-    const insuranceTypes = ['pension', 'medical', 'unemployment', 'work_injury', 'housing_fund', 'occupational_pension'];
+    // 清除旧结果并设置加载状态
+    setTestResults([]);
+    setIsCalculating(true);
+    
+    try {
+      const results = [];
+      const insuranceTypes = ['pension', 'medical', 'unemployment', 'work_injury', 'housing_fund', 'occupational_pension', 'serious_illness', 'maternity'];
     
     for (const type of insuranceTypes) {
       // 计算个人部分
@@ -105,9 +111,18 @@ const InsuranceCalculationTest: React.FC = () => {
         type: `${type} (单位)`,
         ...employerResult
       });
-    }
+      }
 
-    setTestResults(results);
+      setTestResults(results);
+    } catch (error) {
+      setTestResults([{
+        type: '错误',
+        success: false,
+        message: error instanceof Error ? error.message : '计算失败'
+      }]);
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
   // 测试综合计算
@@ -117,7 +132,12 @@ const InsuranceCalculationTest: React.FC = () => {
       return;
     }
 
-    const result = await calculateAllInsurance({
+    // 清除旧结果并设置加载状态
+    setTestResults([]);
+    setIsCalculating(true);
+    
+    try {
+      const result = await calculateAllInsurance({
       employeeId: selectedEmployee,
       periodId: selectedPeriod,
       includeOccupationalPension: true,
@@ -130,9 +150,18 @@ const InsuranceCalculationTest: React.FC = () => {
       totalEmployeeAmount: result.totalEmployeeAmount,
       totalEmployerAmount: result.totalEmployerAmount,
       details: result.details,
-      errors: result.errors,
-      saveToDatabase: saveToDatabase
-    }]);
+        errors: result.errors,
+        saveToDatabase: saveToDatabase
+      }]);
+    } catch (error) {
+      setTestResults([{
+        type: '错误',
+        success: false,
+        message: error instanceof Error ? error.message : '计算失败'
+      }]);
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
   // 测试批量计算 - 对当前周期所有员工进行计算
@@ -142,7 +171,12 @@ const InsuranceCalculationTest: React.FC = () => {
       return;
     }
 
-    // 对当前周期的所有员工进行批量计算
+    // 清除旧结果并设置加载状态
+    setTestResults([]);
+    setIsCalculating(true);
+    
+    try {
+      // 对当前周期的所有员工进行批量计算
     const employeeIds = employees.map(e => e.id);
     
     // 显示确认提示
@@ -159,9 +193,18 @@ const InsuranceCalculationTest: React.FC = () => {
       employeeIds,
       includeOccupationalPension: true,
       saveToDatabase: saveToDatabase
-    });
+      });
 
-    setTestResults(results);
+      setTestResults(results);
+    } catch (error) {
+      setTestResults([{
+        type: '错误',
+        success: false,
+        message: error instanceof Error ? error.message : '批量计算失败'
+      }]);
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
   // 测试员工保险类型适用关系
@@ -171,6 +214,10 @@ const InsuranceCalculationTest: React.FC = () => {
       return;
     }
 
+    // 清除旧结果并设置加载状态
+    setTestResults([]);
+    setIsCalculating(true);
+    
     try {
       // 使用现有的 hook 获取保险基础数据
       const { InsuranceDataService } = await import('@/hooks/insurance/core/insuranceDataService');
@@ -241,6 +288,8 @@ const InsuranceCalculationTest: React.FC = () => {
         success: false,
         message: error instanceof Error ? error.message : '未知错误'
       }]);
+    } finally {
+      setIsCalculating(false);
     }
   };
 
@@ -391,13 +440,30 @@ const InsuranceCalculationTest: React.FC = () => {
         </div>
       )}
 
+      {/* 加载状态 */}
+      {isCalculating && (
+        <div className="flex items-center justify-center p-8 bg-base-200 rounded-lg mb-6">
+          <span className="loading loading-spinner loading-lg text-primary"></span>
+          <span className="ml-4 text-lg">正在计算五险一金...</span>
+        </div>
+      )}
+
       {/* 测试结果 */}
-      {testResults.length > 0 && (
+      {!isCalculating && testResults.length > 0 && (
         <div className="bg-base-100 rounded-lg overflow-hidden">
-          <div className="p-4 bg-base-200">
+          <div className="p-4 bg-base-200 flex justify-between items-center">
             <h2 className="text-lg font-semibold">测试结果</h2>
-            
-            {/* 组件名称格式验证图例 */}
+            <button 
+              className="btn btn-sm btn-ghost"
+              onClick={() => setTestResults([])}
+              title="清除结果"
+            >
+              清除结果
+            </button>
+          </div>
+          
+          {/* 组件名称格式验证图例 */}
+          <div className="px-4 pb-2">
             {testResults.some(r => r.componentName || r.componentDetails) && (
               <div className="mt-2 text-sm space-y-1">
                 <div className="flex gap-4">
@@ -589,13 +655,13 @@ const InsuranceCalculationTest: React.FC = () => {
                               
                               if (!rootCategory) {
                                 // 没有root_category说明这是根类别本身
-                                rootCategories[categoryName] = isApplicable;
+                                rootCategories[categoryName] = isApplicable as boolean;
                               } else {
                                 // 有root_category说明这是子类别
                                 if (!childCategories[rootCategory]) {
                                   childCategories[rootCategory] = [];
                                 }
-                                childCategories[rootCategory].push([categoryName, isApplicable]);
+                                childCategories[rootCategory].push([categoryName, isApplicable as boolean]);
                               }
                             });
                             

@@ -27,7 +27,15 @@ export interface AllInsuranceResult {
       employee: InsuranceCalculationDetail | null;
       employer: InsuranceCalculationDetail | null;
     };
+    maternity: {
+      employee: InsuranceCalculationDetail | null;
+      employer: InsuranceCalculationDetail | null;
+    };
     housingFund: {
+      employee: InsuranceCalculationDetail | null;
+      employer: InsuranceCalculationDetail | null;
+    };
+    seriousIllness: {
       employee: InsuranceCalculationDetail | null;
       employer: InsuranceCalculationDetail | null;
     };
@@ -66,6 +74,22 @@ const getStandardComponentId = (insuranceKey: string, isEmployer: boolean): stri
   return isEmployer ? config.componentIdEmployer || null : config.componentIdEmployee || null;
 };
 
+// 将保险类型key映射到结果详情的属性名
+const getDetailKey = (insuranceKey: string): keyof AllInsuranceResult['details'] => {
+  const keyMap: Record<string, keyof AllInsuranceResult['details']> = {
+    'pension': 'pension',
+    'medical': 'medical', 
+    'unemployment': 'unemployment',
+    'work_injury': 'workInjury',
+    'maternity': 'maternity',
+    'housing_fund': 'housingFund',
+    'serious_illness': 'seriousIllness',
+    'occupational_pension': 'occupationalPension'
+  };
+  
+  return keyMap[insuranceKey] || 'pension'; // 默认返回pension作为fallback
+};
+
 /**
  * 综合保险计算 Hook
  * 基于核心组件重构，大幅减少代码量
@@ -93,7 +117,9 @@ export const useAllInsuranceCalculation = () => {
         medical: { employee: null, employer: null },
         unemployment: { employee: null, employer: null },
         workInjury: { employee: null, employer: null },
+        maternity: { employee: null, employer: null },
         housingFund: { employee: null, employer: null },
+        seriousIllness: { employee: null, employer: null },
         occupationalPension: { employee: null, employer: null }
       },
       errors: []
@@ -134,14 +160,8 @@ export const useAllInsuranceCalculation = () => {
           }
 
           // 设置结果
-          const detailKey = typeConfig.key === 'work_injury' ? 'workInjury' : 
-                           typeConfig.key === 'housing_fund' ? 'housingFund' :
-                           typeConfig.key === 'occupational_pension' ? 'occupationalPension' :
-                           typeConfig.key as keyof typeof result.details;
-
-          if (detailKey in result.details) {
-            result.details[detailKey as keyof typeof result.details].employee = employeeResult;
-          }
+          const detailKey = getDetailKey(typeConfig.key);
+          result.details[detailKey].employee = employeeResult;
         }
 
         // 计算单位部分
@@ -162,14 +182,8 @@ export const useAllInsuranceCalculation = () => {
           }
 
           // 设置结果
-          const detailKey = typeConfig.key === 'work_injury' ? 'workInjury' : 
-                           typeConfig.key === 'housing_fund' ? 'housingFund' :
-                           typeConfig.key === 'occupational_pension' ? 'occupationalPension' :
-                           typeConfig.key as keyof typeof result.details;
-
-          if (detailKey in result.details) {
-            result.details[detailKey as keyof typeof result.details].employer = employerResult;
-          }
+          const detailKey = getDetailKey(typeConfig.key);
+          result.details[detailKey].employer = employerResult;
         }
       }
 
@@ -202,12 +216,8 @@ export const useAllInsuranceCalculation = () => {
           for (const typeConfig of typesToCalculate) {
             // 处理个人部分
             if (typeConfig.hasEmployee) {
-              const detailKey = typeConfig.key === 'work_injury' ? 'workInjury' : 
-                               typeConfig.key === 'housing_fund' ? 'housingFund' :
-                               typeConfig.key === 'occupational_pension' ? 'occupationalPension' :
-                               typeConfig.key as keyof typeof result.details;
-
-              const employeeDetail = result.details[detailKey as keyof typeof result.details]?.employee;
+              const detailKey = getDetailKey(typeConfig.key);
+              const employeeDetail = result.details[detailKey]?.employee;
               
               if (employeeDetail && employeeDetail.success && employeeDetail.amount > 0) {
                 const componentId = getStandardComponentId(typeConfig.key, false);
@@ -227,12 +237,8 @@ export const useAllInsuranceCalculation = () => {
 
             // 处理单位部分
             if (typeConfig.hasEmployer) {
-              const detailKey = typeConfig.key === 'work_injury' ? 'workInjury' : 
-                               typeConfig.key === 'housing_fund' ? 'housingFund' :
-                               typeConfig.key === 'occupational_pension' ? 'occupationalPension' :
-                               typeConfig.key as keyof typeof result.details;
-
-              const employerDetail = result.details[detailKey as keyof typeof result.details]?.employer;
+              const detailKey = getDetailKey(typeConfig.key);
+              const employerDetail = result.details[detailKey]?.employer;
               
               if (employerDetail && employerDetail.success && employerDetail.amount > 0) {
                 const componentId = getStandardComponentId(typeConfig.key, true);

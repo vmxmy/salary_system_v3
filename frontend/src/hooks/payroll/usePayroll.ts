@@ -665,7 +665,7 @@ export const useEmployeeInsuranceDetails = (payrollId: string) => {
         // 如果没有任何金额，标记为不适用
         if (record.employee_amount === 0 && record.employer_amount === 0) {
           record.is_applicable = false;
-          record.skip_reason = '未配置';
+          record.skip_reason = null;
         }
 
         return record;

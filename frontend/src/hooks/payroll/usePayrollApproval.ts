@@ -217,16 +217,36 @@ export function usePayrollApproval() {
     mutationFn: async ({ payrollIds, comments }: ApprovalParams) => {
       setIsProcessing(true);
       
-      const { data, error } = await supabase.rpc('batch_approve_payrolls', {
-        p_payroll_ids: payrollIds,
-        p_comments: comments,
-      });
+      // 使用前端批量更新替代RPC函数
+      const results: BatchResult[] = [];
+      
+      for (const payrollId of payrollIds) {
+        try {
+          const { error } = await supabase
+            .from('payrolls')
+            .update({
+              status: 'approved',
+              approved_at: new Date().toISOString(),
+              approval_comments: comments,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', payrollId);
 
-      if (error) {
-        throw error;
+          if (error) {
+            results.push({ payroll_id: payrollId, success: false, message: error.message });
+          } else {
+            results.push({ payroll_id: payrollId, success: true, message: '审批成功' });
+          }
+        } catch (err) {
+          results.push({ 
+            payroll_id: payrollId, 
+            success: false, 
+            message: err instanceof Error ? err.message : '审批失败' 
+          });
+        }
       }
 
-      return (data || []) as BatchResult[];
+      return results;
     },
     onSuccess: (results) => {
       const successCount = results.filter(r => r.success).length;
@@ -262,16 +282,36 @@ export function usePayrollApproval() {
 
       setIsProcessing(true);
       
-      const { data, error } = await supabase.rpc('batch_reject_payrolls', {
-        p_payroll_ids: payrollIds,
-        p_reason: reason,
-      });
+      // 使用前端批量更新替代RPC函数
+      const results: BatchResult[] = [];
+      
+      for (const payrollId of payrollIds) {
+        try {
+          const { error } = await supabase
+            .from('payrolls')
+            .update({
+              status: 'cancelled',
+              rejected_at: new Date().toISOString(),
+              rejection_reason: reason,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', payrollId);
 
-      if (error) {
-        throw error;
+          if (error) {
+            results.push({ payroll_id: payrollId, success: false, message: error.message });
+          } else {
+            results.push({ payroll_id: payrollId, success: true, message: '驳回成功' });
+          }
+        } catch (err) {
+          results.push({ 
+            payroll_id: payrollId, 
+            success: false, 
+            message: err instanceof Error ? err.message : '驳回失败' 
+          });
+        }
       }
 
-      return (data || []) as BatchResult[];
+      return results;
     },
     onSuccess: (results) => {
       const successCount = results.filter(r => r.success).length;
@@ -344,17 +384,36 @@ export function usePayrollApproval() {
     mutationFn: async ({ payrollIds, comments }: ApprovalParams) => {
       setIsProcessing(true);
       
-      // 直接调用审批函数（因为系统设计为单级审批）
-      const { data, error } = await supabase.rpc('batch_approve_payrolls', {
-        p_payroll_ids: payrollIds,
-        p_comments: comments || '提交审批',
-      });
+      // 使用前端批量更新替代RPC函数（因为系统设计为单级审批）
+      const results: BatchResult[] = [];
+      
+      for (const payrollId of payrollIds) {
+        try {
+          const { error } = await supabase
+            .from('payrolls')
+            .update({
+              status: 'approved',
+              approved_at: new Date().toISOString(),
+              approval_comments: comments || '提交审批',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', payrollId);
 
-      if (error) {
-        throw error;
+          if (error) {
+            results.push({ payroll_id: payrollId, success: false, message: error.message });
+          } else {
+            results.push({ payroll_id: payrollId, success: true, message: '提交成功' });
+          }
+        } catch (err) {
+          results.push({ 
+            payroll_id: payrollId, 
+            success: false, 
+            message: err instanceof Error ? err.message : '提交失败' 
+          });
+        }
       }
 
-      return (data || []) as BatchResult[];
+      return results;
     },
     onSuccess: (results) => {
       const successCount = results.filter(r => r.success).length;

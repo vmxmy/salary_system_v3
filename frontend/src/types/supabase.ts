@@ -1461,6 +1461,48 @@ export type Database = {
         }
         Relationships: []
       }
+      insurance_component_mapping: {
+        Row: {
+          component_id: string | null
+          created_at: string | null
+          id: string
+          insurance_type: Database["public"]["Enums"]["insurance_type_enum"]
+          payer_type: Database["public"]["Enums"]["payer_type_enum"]
+          standard_name: string
+        }
+        Insert: {
+          component_id?: string | null
+          created_at?: string | null
+          id?: string
+          insurance_type: Database["public"]["Enums"]["insurance_type_enum"]
+          payer_type: Database["public"]["Enums"]["payer_type_enum"]
+          standard_name: string
+        }
+        Update: {
+          component_id?: string | null
+          created_at?: string | null
+          id?: string
+          insurance_type?: Database["public"]["Enums"]["insurance_type_enum"]
+          payer_type?: Database["public"]["Enums"]["payer_type_enum"]
+          standard_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_component_mapping_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "salary_components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_component_mapping_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "view_salary_component_fields_statistics"
+            referencedColumns: ["component_id"]
+          },
+        ]
+      }
       insurance_type_category_rules: {
         Row: {
           base_ceiling: number | null
@@ -2808,6 +2850,37 @@ export type Database = {
       }
     }
     Views: {
+      v_standard_insurance_components: {
+        Row: {
+          category: Database["public"]["Enums"]["salary_category"] | null
+          component_id: string | null
+          component_type: Database["public"]["Enums"]["component_type"] | null
+          description: string | null
+          insurance_type:
+            | Database["public"]["Enums"]["insurance_type_enum"]
+            | null
+          insurance_type_cn: string | null
+          payer_type: Database["public"]["Enums"]["payer_type_enum"] | null
+          payer_type_cn: string | null
+          standard_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_component_mapping_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "salary_components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_component_mapping_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "view_salary_component_fields_statistics"
+            referencedColumns: ["component_id"]
+          },
+        ]
+      }
       view_approval_history: {
         Row: {
           action: string | null
@@ -3928,10 +4001,6 @@ export type Database = {
         }
         Returns: Json
       }
-      apply_housing_fund_rounding: {
-        Args: { p_amount: number }
-        Returns: number
-      }
       batch_mark_as_paid: {
         Args: { p_comments?: string; p_payroll_ids: string[] }
         Returns: {
@@ -3961,74 +4030,6 @@ export type Database = {
         }
         Returns: number
       }
-      calc_all_employees_insurance: {
-        Args: { p_period_id: string }
-        Returns: {
-          employee_id: string
-          employee_name: string
-          message: string
-          success: boolean
-          total_employee_amount: number
-          total_employer_amount: number
-        }[]
-      }
-      calc_employee_all_insurance: {
-        Args: { p_employee_id: string; p_period_id: string }
-        Returns: {
-          details: Json
-          message: string
-          success: boolean
-          total_employee_amount: number
-          total_employer_amount: number
-        }[]
-      }
-      calc_housing_fund_new: {
-        Args:
-          | {
-              p_employee_id: string
-              p_is_employer?: boolean
-              p_period_id: string
-            }
-          | { p_employee_id: string; p_period_id: string }
-        Returns: {
-          employee_amount: number
-          employer_amount: number
-          message: string
-          success: boolean
-        }[]
-      }
-      calc_insurance_component_new: {
-        Args: {
-          p_employee_id: string
-          p_insurance_type_key: string
-          p_is_employer: boolean
-          p_period_id: string
-        }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
-      }
-      calc_medical_insurance_new: {
-        Args:
-          | {
-              p_employee_id: string
-              p_is_employer?: boolean
-              p_period_id: string
-            }
-          | { p_employee_id: string; p_period_id: string }
-        Returns: {
-          employee_amount: number
-          employer_amount: number
-          message: string
-          success: boolean
-        }[]
-      }
-      calc_occupational_pension_new: {
-        Args: {
-          p_employee_id: string
-          p_is_employer?: boolean
-          p_period_id: string
-        }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
-      }
       calc_payroll_summary: {
         Args: { p_payroll_id: string }
         Returns: Json
@@ -4048,41 +4049,6 @@ export type Database = {
           payroll_id: string
           total_deductions: number
         }[]
-      }
-      calc_pension_insurance_new: {
-        Args:
-          | {
-              p_employee_id: string
-              p_is_employer?: boolean
-              p_period_id: string
-            }
-          | { p_employee_id: string; p_period_id: string }
-        Returns: {
-          employee_amount: number
-          employer_amount: number
-          message: string
-          success: boolean
-        }[]
-      }
-      calc_unemployment_insurance_new: {
-        Args:
-          | {
-              p_employee_id: string
-              p_is_employer?: boolean
-              p_period_id: string
-            }
-          | { p_employee_id: string; p_period_id: string }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
-      }
-      calc_work_injury_insurance_new: {
-        Args:
-          | {
-              p_employee_id: string
-              p_is_employer?: boolean
-              p_period_id: string
-            }
-          | { p_employee_id: string; p_period_id: string }
-        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
       }
       can_access_all_data: {
         Args: Record<PropertyKey, never>
@@ -4699,6 +4665,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_standard_insurance_component_id: {
+        Args: {
+          p_insurance_type: Database["public"]["Enums"]["insurance_type_enum"]
+          p_payer_type: Database["public"]["Enums"]["payer_type_enum"]
+        }
+        Returns: string
+      }
       get_table_columns: {
         Args: { schema_name_param?: string; table_name_param: string }
         Returns: {
@@ -4819,34 +4792,6 @@ export type Database = {
         Args: { p_department_id: string; p_new_parent_id?: string }
         Returns: boolean
       }
-      save_insurance_calculation_new: {
-        Args:
-          | {
-              p_amount: number
-              p_employee_id: string
-              p_insurance_type_key: string
-              p_is_employer: boolean
-              p_period_id: string
-            }
-          | {
-              p_amount: number
-              p_employee_id: string
-              p_insurance_type_key: string
-              p_is_employer?: boolean
-              p_period_id: string
-            }
-        Returns: Json
-      }
-      save_insurance_calculation_with_status_check: {
-        Args: {
-          p_amount: number
-          p_employee_id: string
-          p_insurance_type_key: string
-          p_is_employer?: boolean
-          p_period_id: string
-        }
-        Returns: Json
-      }
       schedule_mapping_refresh: {
         Args: { p_interval_seconds?: number }
         Returns: string
@@ -4898,27 +4843,6 @@ export type Database = {
         Args: { p_employee_id: string }
         Returns: Json
       }
-      update_payroll_insurance_items: {
-        Args: { p_period_id: string }
-        Returns: {
-          employee_name: string
-          items_updated: number
-          payroll_id: string
-          status: string
-        }[]
-      }
-      update_payroll_insurance_items_v2: {
-        Args: { p_period_id: string }
-        Returns: {
-          out_employee_name: string
-          out_items_created: number
-          out_items_updated: number
-          out_payroll_id: string
-          out_status: string
-          out_total_employee_amount: number
-          out_total_employer_amount: number
-        }[]
-      }
       update_performance_stats: {
         Args: { p_period_hours?: number }
         Returns: undefined
@@ -4964,6 +4888,16 @@ export type Database = {
         | "contract"
         | "intern"
         | "consultant"
+      insurance_type_enum:
+        | "pension"
+        | "medical"
+        | "unemployment"
+        | "work_injury"
+        | "maternity"
+        | "housing_fund"
+        | "serious_illness"
+        | "occupational_pension"
+      payer_type_enum: "employee" | "employer"
       payroll_status:
         | "draft"
         | "approved"
@@ -5250,6 +5184,17 @@ export const Constants = {
         "intern",
         "consultant",
       ],
+      insurance_type_enum: [
+        "pension",
+        "medical",
+        "unemployment",
+        "work_injury",
+        "maternity",
+        "housing_fund",
+        "serious_illness",
+        "occupational_pension",
+      ],
+      payer_type_enum: ["employee", "employer"],
       payroll_status: [
         "draft",
         "approved",

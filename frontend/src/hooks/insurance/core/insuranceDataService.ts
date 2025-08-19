@@ -20,19 +20,105 @@ export interface InsuranceBaseData {
 export interface InsuranceTypeConfig {
   key: string;
   name: string;
+  standardNameEmployee?: string;  // 个人标准名称，如"养老保险个人应缴费额"
+  standardNameEmployer?: string;  // 单位标准名称，如"养老保险单位应缴费额"
+  componentIdEmployee?: string;   // 个人组件ID
+  componentIdEmployer?: string;   // 单位组件ID
   hasEmployee: boolean;
   hasEmployer: boolean;
 }
 
-// 保险类型配置
-export const INSURANCE_TYPE_CONFIGS: InsuranceTypeConfig[] = [
+// 保险类型配置 - 初始值，将被数据库值覆盖
+export let INSURANCE_TYPE_CONFIGS: InsuranceTypeConfig[] = [
   { key: 'pension', name: '养老保险', hasEmployee: true, hasEmployer: true },
   { key: 'medical', name: '医疗保险', hasEmployee: true, hasEmployer: true },
   { key: 'unemployment', name: '失业保险', hasEmployee: true, hasEmployer: true },
   { key: 'work_injury', name: '工伤保险', hasEmployee: false, hasEmployer: true },
+  { key: 'maternity', name: '生育保险', hasEmployee: false, hasEmployer: true },
   { key: 'housing_fund', name: '住房公积金', hasEmployee: true, hasEmployer: true },
+  { key: 'serious_illness', name: '大病医疗', hasEmployee: true, hasEmployer: true },
   { key: 'occupational_pension', name: '职业年金', hasEmployee: true, hasEmployer: true }
 ];
+
+// 配置加载状态
+let configsLoaded = false;
+let loadingPromise: Promise<void> | null = null;
+
+/**
+ * 从数据库加载标准保险组件配置
+ * 确保使用数据库中的标准命名格式
+ * 防止重复加载
+ */
+export async function loadStandardInsuranceConfigs(): Promise<void> {
+  // 如果已经加载完成，直接返回
+  if (configsLoaded) {
+    return;
+  }
+  
+  // 如果正在加载中，返回现有的Promise
+  if (loadingPromise) {
+    return loadingPromise;
+  }
+  
+  // 创建新的加载Promise
+  loadingPromise = loadConfigsInternal();
+  
+  try {
+    await loadingPromise;
+    configsLoaded = true;
+  } finally {
+    loadingPromise = null;
+  }
+}
+
+async function loadConfigsInternal(): Promise<void> {
+  try {
+    // 从视图获取标准组件映射，添加超时控制
+    const { data, error } = await supabase
+      .from('v_standard_insurance_components')
+      .select('*')
+      .abortSignal(AbortSignal.timeout(10000)); // 10秒超时
+
+    if (error) {
+      console.error('Failed to load standard insurance configs:', error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn('No standard insurance components found');
+      return;
+    }
+
+    // 构建新的配置数组
+    const configMap = new Map<string, InsuranceTypeConfig>();
+    
+    // 初始化配置
+    INSURANCE_TYPE_CONFIGS.forEach(config => {
+      configMap.set(config.key, { ...config });
+    });
+
+    // 更新标准名称和组件ID
+    data.forEach((item: any) => {
+      const config = configMap.get(item.insurance_type);
+      if (config) {
+        if (item.payer_type === 'employee') {
+          config.standardNameEmployee = item.standard_name;
+          config.componentIdEmployee = item.component_id;
+        } else if (item.payer_type === 'employer') {
+          config.standardNameEmployer = item.standard_name;
+          config.componentIdEmployer = item.component_id;
+        }
+      }
+    });
+
+    // 更新全局配置
+    INSURANCE_TYPE_CONFIGS = Array.from(configMap.values());
+    
+    console.log('Standard insurance configs loaded:', INSURANCE_TYPE_CONFIGS);
+  } catch (err) {
+    console.error('Error loading standard insurance configs:', err);
+  }
+}
 
 /**
  * 保险数据服务 - 统一管理所有数据获取逻辑
@@ -137,7 +223,13 @@ export class InsuranceDataService {
     );
 
     const insuranceRules = new Map(
-      rulesResult.data.map(rule => [rule.insurance_type_id, rule])
+      rulesResult.data.map(rule => [rule.insurance_type_id, {
+        ...rule,
+        employee_rate: rule.employee_rate ?? 0,
+        employer_rate: rule.employer_rate ?? 0,
+        base_floor: rule.base_floor ?? 0,
+        base_ceiling: rule.base_ceiling ?? Number.MAX_SAFE_INTEGER
+      }])
     );
 
     // 返回结构化数据

@@ -86,10 +86,14 @@ export const generateExcelBuffer = async (
  * 导出薪资数据到Excel
  */
 export const exportPayrollToExcel = async (config: ExportConfig): Promise<void> => {
-  // 获取数据
-  const { data, error } = await supabase.rpc('quick_export_payroll_summary', {
-    p_period: config.filters?.periodId || new Date().toISOString().slice(0, 7)
-  });
+  // TODO: 临时使用视图数据替代RPC函数
+  // 原RPC: quick_export_payroll_summary 尚未创建
+  const exportPeriodId = config.filters?.periodId || new Date().toISOString().slice(0, 7);
+  
+  const { data, error } = await supabase
+    .from('view_payroll_summary')
+    .select('*')
+    .eq('pay_month', exportPeriodId);
   
   if (error) {
     throw new Error(`导出数据失败: ${error.message}`);
@@ -107,8 +111,7 @@ export const exportPayrollToExcel = async (config: ExportConfig): Promise<void> 
   link.href = url;
   
   // 生成文件名
-  const periodId = config.filters?.periodId || new Date().toISOString().slice(0, 7);
-  const fileName = `薪资数据导出_${periodId}.${config.format || 'xlsx'}`;
+  const fileName = `薪资数据导出_${exportPeriodId}.${config.format || 'xlsx'}`;
   link.download = fileName;
   
   // 触发下载

@@ -49,15 +49,8 @@ export function useCurrentBases(employeeIds: string[], yearMonth?: string) {
 
       // 使用视图获取员工最新的缴费基数信息
       let query = supabase
-        .from('view_employee_insurance_base_monthly_latest')
-        .select(`
-          employee_id,
-          employee_name,
-          insurance_type_id,
-          insurance_type_name,
-          latest_contribution_base,
-          base_last_updated
-        `)
+        .from('view_employee_contribution_bases_by_period')
+        .select('*')
         .in('employee_id', employeeIds);
 
       const { data, error } = await query;
@@ -68,13 +61,13 @@ export function useCurrentBases(employeeIds: string[], yearMonth?: string) {
       }
 
       // 转换数据格式
-      return (data || []).map(item => ({
+      return (data || []).map((item: any) => ({
         employee_id: item.employee_id,
         employee_name: item.employee_name,
         insurance_type_id: item.insurance_type_id,
         insurance_type_name: item.insurance_type_name,
-        current_base: item.latest_contribution_base || 0,
-        last_updated: item.base_last_updated
+        current_base: item.base_amount || 0,
+        last_updated: item.effective_date || new Date().toISOString()
       })) as EmployeeBaseData[];
     },
     enabled: employeeIds.length > 0,
