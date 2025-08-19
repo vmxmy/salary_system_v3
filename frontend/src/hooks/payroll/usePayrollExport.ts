@@ -234,7 +234,7 @@ export function usePayrollExport() {
         // 获取缴费基数数据 - 使用视图获取所有保险类型的基数
         if (config.includeInsurance || config.selectedDataGroups?.includes('bases')) {
           let basesQuery = supabase
-            .from('view_employee_insurance_base_monthly_latest')
+            .from('view_employee_contribution_bases_by_period')
             .select(`
               employee_id,
               employee_name,
@@ -466,7 +466,7 @@ export function usePayrollExport() {
             
             if (employeeIdsWithPayroll.length > 0) {
               let basesQuery = supabase
-                .from('view_employee_insurance_base_monthly_latest')
+                .from('view_employee_contribution_bases_by_period')
                 .select(`
                   employee_id,
                   employee_name,

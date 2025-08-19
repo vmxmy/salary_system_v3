@@ -88,7 +88,7 @@ interface InsuranceDetail {
   employer_rate: number;
   employee_amount: number;
   employer_amount: number;
-  skip_reason?: string;
+  skip_reason?: string | null;
   insurance_type: {
     id: string;
     system_key: string;

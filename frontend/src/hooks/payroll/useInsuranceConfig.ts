@@ -213,7 +213,7 @@ export const useMonthlyInsuranceBases = (params: {
   return useQuery({
     queryKey: INSURANCE_KEYS.monthlyBases(params),
     queryFn: async () => {
-      let query = supabase.from('view_employee_insurance_base_monthly_latest').select('*');
+      let query = supabase.from('view_employee_contribution_bases_by_period').select('*');
 
       if (params.employeeIds && params.employeeIds.length > 0) {
         query = query.in('employee_id', params.employeeIds);
@@ -246,7 +246,7 @@ export const useInsuranceBaseSummary = (yearMonth: string) => {
     queryKey: INSURANCE_KEYS.baseSummary(yearMonth),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('view_employee_insurance_base_monthly_latest')
+        .from('view_employee_contribution_bases_by_period')
         .select('*')
         .eq('year_month', yearMonth);
 
