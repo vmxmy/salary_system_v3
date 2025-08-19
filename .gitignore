@@ -199,4 +199,7 @@ pnpm-lock.yaml
 
 # Runtime configuration
 config.local.json
-settings.local.jsondocs/
+settings.local.json
+
+# Documentation
+docs/
