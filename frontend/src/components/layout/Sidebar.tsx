@@ -83,6 +83,67 @@ const menuItems: MenuItem[] = [
       },
     ],
   },
+  {
+    key: 'testFeatures',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+    permissions: [],
+    children: [
+      {
+        key: 'newTableArchitecture',
+        path: '/test/new-table-architecture',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        ),
+        permissions: [],
+      },
+      {
+        key: 'testMetadata',
+        path: '/test/metadata',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        ),
+        permissions: [],
+      },
+      {
+        key: 'insuranceCalculation',
+        path: '/test/insurance-calculation',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+        ),
+        permissions: [],
+      },
+      {
+        key: 'fontTest',
+        path: '/font-test',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+        permissions: [],
+      },
+      {
+        key: 'validationTest',
+        path: '/validation-test',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+        permissions: [],
+      },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -93,7 +154,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const { t } = useTranslation(['common']);
   const location = useLocation();
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(['payroll']); // 默认展开薪资菜单
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['payroll', 'testFeatures']); // 默认展开薪资和测试菜单
 
   // 简化的权限检查
   const hasPermission = (permissions: string[]) => {

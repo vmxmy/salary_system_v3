@@ -64,7 +64,7 @@ export const useSalaryComponents = (filters?: {
         query = query.eq('component_type', filters.type);
       }
 
-      query = query.order('display_order').order('name');
+      query = query.order('name');
 
       const { data, error } = await query;
 
@@ -90,7 +90,6 @@ export const useDeductionComponents = () => {
         .select('*')
         .eq('component_type', 'deduction')
         .eq('is_active', true)
-        .order('display_order')
         .order('name');
 
       if (error) {

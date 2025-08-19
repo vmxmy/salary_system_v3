@@ -39,7 +39,7 @@ export function useImportTemplates() {
         .select('*')
         .eq('category', 'payroll')
         .eq('is_active', true)
-        .order('display_order');
+        .order('name');
 
       if (error) {
         handleError(error, { customMessage: '获取导入模板失败' });

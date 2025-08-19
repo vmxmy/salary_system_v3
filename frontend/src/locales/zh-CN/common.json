@@ -21,7 +21,13 @@
     "admin": "系统管理",
     "profile": "个人中心",
     "settings": "设置",
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "testFeatures": "测试功能",
+    "newTableArchitecture": "新表格架构测试",
+    "testMetadata": "元数据测试",
+    "insuranceCalculation": "五险一金计算测试",
+    "fontTest": "字体测试",
+    "validationTest": "验证测试"
   },
   "viewMode": "视图模式",
   "tableView": "表格",

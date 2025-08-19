@@ -3961,25 +3961,73 @@ export type Database = {
         }
         Returns: number
       }
-      calc_employee_insurance: {
+      calc_all_employees_insurance: {
+        Args: { p_period_id: string }
+        Returns: {
+          employee_id: string
+          employee_name: string
+          message: string
+          success: boolean
+          total_employee_amount: number
+          total_employer_amount: number
+        }[]
+      }
+      calc_employee_all_insurance: {
         Args: { p_employee_id: string; p_period_id: string }
         Returns: {
-          employee_contributions: number
-          employer_contributions: number
-          items_calculated: number
+          details: Json
+          message: string
+          success: boolean
+          total_employee_amount: number
+          total_employer_amount: number
+        }[]
+      }
+      calc_housing_fund_new: {
+        Args:
+          | {
+              p_employee_id: string
+              p_is_employer?: boolean
+              p_period_id: string
+            }
+          | { p_employee_id: string; p_period_id: string }
+        Returns: {
+          employee_amount: number
+          employer_amount: number
           message: string
           success: boolean
         }[]
       }
-      calc_insurance_contributions_batch: {
-        Args: { p_employee_ids: string[]; p_period_id: string }
+      calc_insurance_component_new: {
+        Args: {
+          p_employee_id: string
+          p_insurance_type_key: string
+          p_is_employer: boolean
+          p_period_id: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
+      }
+      calc_medical_insurance_new: {
+        Args:
+          | {
+              p_employee_id: string
+              p_is_employer?: boolean
+              p_period_id: string
+            }
+          | { p_employee_id: string; p_period_id: string }
         Returns: {
-          employee_id: string
-          items_processed: number
+          employee_amount: number
+          employer_amount: number
           message: string
           success: boolean
-          total_amount: number
         }[]
+      }
+      calc_occupational_pension_new: {
+        Args: {
+          p_employee_id: string
+          p_is_employer?: boolean
+          p_period_id: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
       }
       calc_payroll_summary: {
         Args: { p_payroll_id: string }
@@ -4000,6 +4048,41 @@ export type Database = {
           payroll_id: string
           total_deductions: number
         }[]
+      }
+      calc_pension_insurance_new: {
+        Args:
+          | {
+              p_employee_id: string
+              p_is_employer?: boolean
+              p_period_id: string
+            }
+          | { p_employee_id: string; p_period_id: string }
+        Returns: {
+          employee_amount: number
+          employer_amount: number
+          message: string
+          success: boolean
+        }[]
+      }
+      calc_unemployment_insurance_new: {
+        Args:
+          | {
+              p_employee_id: string
+              p_is_employer?: boolean
+              p_period_id: string
+            }
+          | { p_employee_id: string; p_period_id: string }
+        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
+      }
+      calc_work_injury_insurance_new: {
+        Args:
+          | {
+              p_employee_id: string
+              p_is_employer?: boolean
+              p_period_id: string
+            }
+          | { p_employee_id: string; p_period_id: string }
+        Returns: Database["public"]["CompositeTypes"]["calculation_result"]
       }
       can_access_all_data: {
         Args: Record<PropertyKey, never>
@@ -4814,6 +4897,27 @@ export type Database = {
       trigger_mapping_refresh_for_employee: {
         Args: { p_employee_id: string }
         Returns: Json
+      }
+      update_payroll_insurance_items: {
+        Args: { p_period_id: string }
+        Returns: {
+          employee_name: string
+          items_updated: number
+          payroll_id: string
+          status: string
+        }[]
+      }
+      update_payroll_insurance_items_v2: {
+        Args: { p_period_id: string }
+        Returns: {
+          out_employee_name: string
+          out_items_created: number
+          out_items_updated: number
+          out_payroll_id: string
+          out_status: string
+          out_total_employee_amount: number
+          out_total_employer_amount: number
+        }[]
       }
       update_performance_stats: {
         Args: { p_period_hours?: number }

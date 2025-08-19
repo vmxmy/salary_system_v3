@@ -185,6 +185,11 @@
     @apply px-1.5 py-0.5 text-xs;
   }
   
+  /* 全局徽章样式 - 防止文字换行 */
+  .badge {
+    @apply whitespace-nowrap;
+  }
+  
   /* 紧凑化页面容器 */
   .page-compact {
     @apply p-2 lg:p-3 space-y-3;

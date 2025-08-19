@@ -75,7 +75,7 @@ export function useSalaryComponentFields() {
     tableConfig: {
       tableName: 'salary_components',
       viewName: 'salary_components', // 如果有视图可以使用视图
-      orderBy: { column: 'display_order', ascending: true },
+      orderBy: { column: 'name', ascending: true },
       transform: (data) => ({
         ...data,
         metadata: data.metadata || {}
