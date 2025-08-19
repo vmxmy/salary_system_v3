@@ -148,11 +148,19 @@ backend/.pytype/
 # Cython debug symbols
 backend/cython_debug/
 
-# Supabase
+# Supabase (保留配置和迁移文件，忽略运行时生成的文件)
 supabase/.branches
 supabase/.temp
 supabase/.env
+supabase/.env.*
 supabase/postgres_logs/
+supabase/logs/
+supabase/volumes/
+supabase/.cache/
+supabase/storage/
+supabase/functions/_utils/
+supabase/seed.sql
+supabase/.gitignore
 
 # Database
 *.db
