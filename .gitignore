@@ -203,3 +203,50 @@ settings.local.json
 
 # Documentation
 docs/
+
+# Excel temporary files
+~$*.xlsx
+~$*.xls
+~$*.csv
+
+# Backup and archive files
+*.bak
+*.backup
+*_backup*
+*_archived*
+*_archive*
+backup_*.tar.gz
+archived_*.tar.gz
+**/archived_*
+**/backup_*
+
+# Data files (production data should not be in git)
+工资数据/
+exports/
+reports/
+
+# Development tools and artifacts
+backup_tool/backups/
+backup_tool/*.log
+features/*/implementation-*
+features/*/progress-*
+
+# Additional temporary patterns
+*.orig
+*.rej
+.tmp/
+**/.tmp
+**/temp/
+**/*.tmp
+
+# IDE and editor backup files
+*~
+#*#
+.#*
+*.autosave
+*.save
+
+# Project-specific patterns
+**/archived_*/**
+**/backup_*/**
+wizard_archived/

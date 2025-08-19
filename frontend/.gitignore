@@ -25,3 +25,41 @@ dist-ssr
 
 # Documentation
 docs/
+
+# Frontend-specific temporary files
+.vite/
+.vite-temp/
+dist-ssr/
+*.tsbuildinfo
+
+# React/Vite development files
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing artifacts
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Excel temporary files
+~$*.xlsx
+~$*.xls
+~$*.csv
+
+# Backup files
+*.bak
+*.backup
+*_backup*
+*_archived*
+archived_*
+
+# Temporary development files
+*.tmp
+*.temp
+.tmp/
+temp/
