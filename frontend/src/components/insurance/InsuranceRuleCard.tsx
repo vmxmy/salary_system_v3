@@ -65,19 +65,22 @@ const InsuranceRuleCard: React.FC<InsuranceRuleCardProps> = ({
   const validateForm = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (formData.employee_rate !== undefined && (formData.employee_rate < 0 || formData.employee_rate > 1)) {
+    if (formData.employee_rate !== undefined && formData.employee_rate !== null && 
+        (formData.employee_rate < 0 || formData.employee_rate > 1)) {
       newErrors.employee_rate = '个人费率必须在 0-100% 之间';
     }
 
-    if (formData.employer_rate !== undefined && (formData.employer_rate < 0 || formData.employer_rate > 1)) {
+    if (formData.employer_rate !== undefined && formData.employer_rate !== null && 
+        (formData.employer_rate < 0 || formData.employer_rate > 1)) {
       newErrors.employer_rate = '单位费率必须在 0-100% 之间';
     }
 
-    if (formData.base_floor !== undefined && formData.base_floor < 0) {
+    if (formData.base_floor !== undefined && formData.base_floor !== null && formData.base_floor < 0) {
       newErrors.base_floor = '基数下限不能为负数';
     }
 
-    if (formData.base_ceiling !== undefined && formData.base_floor !== undefined && 
+    if (formData.base_ceiling !== undefined && formData.base_ceiling !== null && 
+        formData.base_floor !== undefined && formData.base_floor !== null && 
         formData.base_ceiling <= formData.base_floor) {
       newErrors.base_ceiling = '基数上限必须大于下限';
     }
@@ -157,13 +160,13 @@ const InsuranceRuleCard: React.FC<InsuranceRuleCardProps> = ({
   }, [onDelete, insuranceType.name, category.name]);
 
   // 格式化费率显示
-  const formatRate = (rate?: number): string => {
+  const formatRate = (rate?: number | null): string => {
     if (rate === undefined || rate === null) return '-';
     return `${(rate * 100).toFixed(2)}%`;
   };
 
   // 格式化金额显示
-  const formatAmount = (amount?: number): string => {
+  const formatAmount = (amount?: number | null): string => {
     if (amount === undefined || amount === null) return '-';
     return new Intl.NumberFormat('zh-CN', {
       style: 'currency',

@@ -7,7 +7,7 @@ import InsuranceConfigManager from '@/components/insurance/InsuranceConfigManage
  */
 const InsuranceConfigPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-base-200">
+    <div className="h-full bg-base-200">
       <InsuranceConfigManager />
     </div>
   );

@@ -7,8 +7,8 @@ export interface InsuranceTypeInfo {
   id: string;
   system_key: string;
   name: string;
-  description?: string;
-  is_active: boolean;
+  description?: string | null;
+  is_active: boolean | null;
 }
 
 // 员工类别接口
@@ -27,13 +27,15 @@ export interface InsuranceRuleConfig {
   insurance_type_id: string;
   employee_category_id: string;
   is_applicable: boolean;
-  employee_rate?: number;
-  employer_rate?: number;
-  base_floor?: number;
-  base_ceiling?: number;
-  effective_date?: string;
-  end_date?: string;
-  description?: string;
+  employee_rate?: number | null;
+  employer_rate?: number | null;
+  base_floor?: number | null;
+  base_ceiling?: number | null;
+  effective_date?: string | null;
+  end_date?: string | null;
+  description?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // 批量配置接口

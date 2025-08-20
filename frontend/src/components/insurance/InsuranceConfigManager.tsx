@@ -403,16 +403,15 @@ const InsuranceConfigManager: React.FC = () => {
   }
 
   return (
-    <div className="page-compact">
-      {/* 使用统一的页面布局 */}
-      <div className="space-y-6">
-        {/* 页面标题 - 独立行 */}
+    <div className="h-full flex flex-col">
+      {/* 页面标题 - 固定区域 */}
+      <div className="flex-shrink-0 space-y-6 mb-6">
         <div>
           <h1 className="text-2xl font-bold">五险一金配置管理</h1>
           <p className="text-base-content/60">管理保险类型对各员工类别的适用规则</p>
         </div>
 
-        {/* 统计卡片 - 独立行，响应式布局 */}
+        {/* 统计卡片 - 响应式布局 */}
         <div className="stats stats-vertical lg:stats-horizontal shadow w-full">
           {statCards.map((card, index) => (
             <div key={index} className="stat">
@@ -440,9 +439,10 @@ const InsuranceConfigManager: React.FC = () => {
             </button>
           </div>
         )}
+      </div>
 
-        {/* 主内容区域 - 固定高度 */}
-        <div className="h-[600px] grid grid-cols-12 gap-6">
+      {/* 主内容区域 - 弹性填充剩余空间 */}
+      <div className="flex-1 min-h-0 grid grid-cols-12 gap-6">
           {/* 左侧：员工类别树 */}
           <div className="col-span-4">
             <EmployeeCategoryTree
@@ -520,9 +520,8 @@ const InsuranceConfigManager: React.FC = () => {
             )}
           </div>
         </div>
-      </div>
 
-      {/* 批量配置模态框 */}
+        {/* 批量配置模态框 */}
       <BatchConfigModal
         isOpen={showBatchModal}
         onClose={() => setShowBatchModal(false)}
