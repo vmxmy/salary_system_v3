@@ -54,6 +54,7 @@ export function MonthPicker({
     return new Date().getFullYear();
   });
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Fetch available payroll months data when indicators are enabled and no predefined data
@@ -73,6 +74,33 @@ export function MonthPicker({
     return completenessData.find(c => c.period_year === year && c.period_month === month);
   };
   
+  // 计算最佳弹出位置
+  const calculateDropdownPosition = () => {
+    if (!containerRef.current) return 'bottom';
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    
+    // 根据是否显示指示器动态估算下拉面板高度
+    let dropdownHeight = 320; // 基础高度
+    if (showDataIndicators || showCompletenessIndicators) {
+      dropdownHeight += 80; // 为状态图例增加高度
+    }
+    
+    const spaceBelow = window.innerHeight - rect.bottom - 20; // 保留20px边距
+    const spaceAbove = rect.top - 20; // 保留20px边距
+    const padding = 8; // mt-2 和 mb-2 的间距
+    
+    // 优先选择下方，除非空间严重不足
+    if (spaceBelow >= dropdownHeight + padding) {
+      return 'bottom';
+    } else if (spaceAbove >= dropdownHeight + padding) {
+      return 'top';
+    } else {
+      // 都不够的情况下选择空间更大的一方
+      return spaceAbove > spaceBelow ? 'top' : 'bottom';
+    }
+  };
+  
   // 使用 DaisyUI 5 标准样式
   const getSizeClass = () => {
     switch (size) {
@@ -82,7 +110,7 @@ export function MonthPicker({
     }
   };
 
-  // 处理外部点击关闭
+  // 处理外部点击关闭和窗口大小变化
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -90,9 +118,32 @@ export function MonthPicker({
       }
     };
 
+    const handleResize = () => {
+      if (isOpen) {
+        // 窗口大小变化时重新计算位置
+        const newPosition = calculateDropdownPosition();
+        setDropdownPosition(newPosition);
+      }
+    };
+
+    const handleScroll = () => {
+      if (isOpen) {
+        // 滚动时重新计算位置
+        const newPosition = calculateDropdownPosition();
+        setDropdownPosition(newPosition);
+      }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, true); // 捕获所有滚动事件
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [isOpen]);
 
   // 格式化显示值
   const formatDisplayValue = (yearMonth: string) => {
@@ -148,6 +199,19 @@ export function MonthPicker({
     return false;
   };
 
+  // 处理打开/关闭下拉框
+  const handleToggleDropdown = () => {
+    if (disabled) return;
+    
+    if (!isOpen) {
+      // 打开时计算位置
+      const position = calculateDropdownPosition();
+      setDropdownPosition(position);
+    }
+    
+    setIsOpen(!isOpen);
+  };
+
   // 选择月份
   const handleSelectMonth = (month: number) => {
     const yearMonth = `${displayYear}-${String(month).padStart(2, '0')}`;
@@ -184,7 +248,7 @@ export function MonthPicker({
     <div ref={containerRef} className={cn("relative", isOpen && "z-[10000]")}>
       {/* 输入框 */}
       <div
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={handleToggleDropdown}
         className={cn(
           'input input-bordered',
           getSizeClass(),
@@ -217,7 +281,11 @@ export function MonthPicker({
         <svg 
           className={cn(
             'w-4 h-4 transition-all duration-300',
-            isOpen ? 'rotate-180 text-primary' : 'text-base-content/60'
+            isOpen 
+              ? dropdownPosition === 'top' 
+                ? '-rotate-0 text-primary' // 向上弹出时箭头不旋转（向上）
+                : 'rotate-180 text-primary' // 向下弹出时箭头旋转180度（向上）
+              : 'text-base-content/60' // 关闭时向下
           )} 
           fill="none" 
           stroke="currentColor" 
@@ -227,17 +295,29 @@ export function MonthPicker({
         </svg>
       </div>
 
-      {/* 下拉面板 */}
+      {/* 下拉面板 - 自适应方向 */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            initial={{ 
+              opacity: 0, 
+              y: dropdownPosition === 'bottom' ? -10 : 10, 
+              scale: 0.95 
+            }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            exit={{ 
+              opacity: 0, 
+              y: dropdownPosition === 'bottom' ? -10 : 10, 
+              scale: 0.95 
+            }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className={cn(
               'card bg-base-100 shadow-lg border border-base-200',
-              'absolute top-full mt-2 p-6 min-w-[320px] z-[10001]'
+              'absolute p-6 min-w-[320px] z-[10001]',
+              // 根据位置调整方向
+              dropdownPosition === 'bottom' 
+                ? 'top-full mt-2' 
+                : 'bottom-full mb-2'
             )}
           >
             {/* 年份选择 */}

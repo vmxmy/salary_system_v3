@@ -45,7 +45,7 @@ export interface PayrollApprovalSummary {
 export interface ApprovalLog {
   id: string;
   payroll_id: string;
-  action: 'submit' | 'approve' | 'reject' | 'pay' | 'cancel';
+  action: 'submit' | 'approve' | 'reject' | 'pay' | 'cancel' | 'rollback';
   from_status: string;
   to_status: string;
   operator_id?: string;
@@ -71,6 +71,13 @@ export interface ApprovalParams {
 export interface RejectParams {
   payrollIds: string[];
   reason: string;
+}
+
+// 回滚参数
+export interface RollbackParams {
+  payrollIds: string[];
+  reason: string;
+  operator?: string;
 }
 
 // 查询键
@@ -134,9 +141,33 @@ export function usePayrollApproval() {
 
   /**
    * 获取待审批列表（支持周期筛选）
+   * 包括草稿和已计算状态的记录
    */
   const usePendingApprovals = (periodId?: string) => {
-    return useApprovalSummary({ status: 'draft', periodId });
+    return useQuery({
+      queryKey: [...queryKeys.summary({ periodId }), 'pending'],
+      queryFn: async () => {
+        let query = supabase
+          .from('view_payroll_approval_summary')
+          .select('*')
+          .in('status', ['draft', 'calculated']) // 包括草稿和已计算状态
+          .order('created_at', { ascending: false });
+
+        if (periodId) {
+          query = query.eq('period_id', periodId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error('获取待审批列表失败:', error);
+          throw error;
+        }
+
+        return (data || []) as PayrollApprovalSummary[];
+      },
+      staleTime: 30 * 1000, // 30秒缓存
+    });
   };
 
   /**
@@ -493,6 +524,147 @@ export function usePayrollApproval() {
     },
   });
 
+  /**
+   * 批量回滚审批状态
+   */
+  const rollbackPayrolls = useMutation({
+    mutationFn: async ({ payrollIds, reason, operator }: RollbackParams) => {
+      if (!reason || reason.trim() === '') {
+        throw new Error('回滚原因不能为空');
+      }
+
+      setIsProcessing(true);
+      
+      // 首先获取当前状态以确定回滚目标状态
+      const { data: currentPayrolls, error: fetchError } = await supabase
+        .from('payrolls')
+        .select('id, status')
+        .in('id', payrollIds);
+
+      if (fetchError) {
+        throw new Error(`获取薪资状态失败: ${fetchError.message}`);
+      }
+
+      const results: BatchResult[] = [];
+      const rollbackLogs: any[] = [];
+      
+      for (const payroll of currentPayrolls || []) {
+        try {
+          let targetStatus: PayrollStatus;
+          let canRollback = true;
+          
+          // 确定回滚目标状态
+          switch (payroll.status) {
+            case 'approved':
+              targetStatus = 'calculated'; // 已审批 -> 已计算
+              break;
+            case 'paid':
+              targetStatus = 'approved'; // 已支付 -> 已审批
+              break;
+            default:
+              canRollback = false;
+              results.push({ 
+                payroll_id: payroll.id, 
+                success: false, 
+                message: `状态 ${payroll.status} 不支持回滚` 
+              });
+              continue;
+          }
+
+          if (canRollback) {
+            // 执行状态回滚
+            const { error: updateError } = await supabase
+              .from('payrolls')
+              .update({
+                status: targetStatus,
+                // 清除相关的审批信息（如果字段存在）
+                ...(payroll.status === 'approved' && {
+                  approved_at: null,
+                }),
+                ...(payroll.status === 'paid' && {
+                  // 暂时不清除已支付时间，保留审计信息
+                }),
+                // 记录回滚信息到备注字段
+                rejection_reason: `回滚操作: ${reason}`,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', payroll.id);
+
+            if (updateError) {
+              results.push({ 
+                payroll_id: payroll.id, 
+                success: false, 
+                message: updateError.message 
+              });
+            } else {
+              results.push({ 
+                payroll_id: payroll.id, 
+                success: true, 
+                message: '回滚成功' 
+              });
+
+              // 准备回滚日志
+              rollbackLogs.push({
+                payroll_id: payroll.id,
+                action: 'rollback',
+                from_status: payroll.status,
+                to_status: targetStatus,
+                operator_id: user?.id,
+                operator_name: operator || user?.email || 'System',
+                comments: `回滚原因: ${reason}`,
+              });
+            }
+          }
+        } catch (err) {
+          results.push({ 
+            payroll_id: payroll.id, 
+            success: false, 
+            message: err instanceof Error ? err.message : '回滚失败' 
+          });
+        }
+      }
+
+      // 批量插入回滚日志
+      if (rollbackLogs.length > 0) {
+        const { error: logError } = await supabase
+          .from('payroll_approval_logs')
+          .insert(rollbackLogs);
+
+        if (logError) {
+          console.error('记录回滚日志失败:', logError);
+          // 不影响主要操作，仅记录警告
+        }
+      }
+
+      return results;
+    },
+    onSuccess: (results) => {
+      const successCount = results.filter(r => r.success).length;
+      const failedCount = results.filter(r => !r.success).length;
+
+      if (successCount > 0) {
+        showSuccess(`成功回滚 ${successCount} 条薪资记录的审批状态`);
+      }
+      if (failedCount > 0) {
+        showWarning(`${failedCount} 条记录回滚失败`);
+        
+        // 显示失败详情
+        const failedResults = results.filter(r => !r.success);
+        console.error('回滚失败详情:', failedResults);
+      }
+
+      // 刷新相关查询
+      queryClient.invalidateQueries({ queryKey: queryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['payrolls'] });
+    },
+    onError: (error) => {
+      showError(`回滚失败: ${error.message}`);
+    },
+    onSettled: () => {
+      setIsProcessing(false);
+    },
+  });
+
   return {
     // 查询
     queries: {
@@ -509,6 +681,7 @@ export function usePayrollApproval() {
       markAsPaid,
       submitForApproval,
       cancelPayrolls,
+      rollbackPayrolls,
     },
 
     // 便捷方法
@@ -527,6 +700,9 @@ export function usePayrollApproval() {
       
       cancel: (payrollIds: string[], reason: string) => 
         cancelPayrolls.mutate({ payrollIds, reason }),
+
+      rollback: (payrollIds: string[], reason: string, operator?: string) => 
+        rollbackPayrolls.mutate({ payrollIds, reason, operator }),
     },
 
     // 状态
@@ -536,13 +712,14 @@ export function usePayrollApproval() {
       markPaid: markAsPaid.isPending,
       submit: submitForApproval.isPending,
       cancel: cancelPayrolls.isPending,
+      rollback: rollbackPayrolls.isPending,
       isProcessing,
     },
 
     // 工具函数
     utils: {
       // 检查是否可以审批
-      canApprove: (status: PayrollStatus) => status === 'draft',
+      canApprove: (status: PayrollStatus) => status === 'draft' || status === 'calculated',
       
       // 检查是否可以发放
       canMarkPaid: (status: PayrollStatus) => status === 'approved',
@@ -550,6 +727,80 @@ export function usePayrollApproval() {
       // 检查是否可以取消
       canCancel: (status: PayrollStatus) => 
         status !== 'paid' && status !== 'cancelled',
+      
+      // 检查是否可以回滚
+      canRollback: (status: PayrollStatus) => 
+        status === 'approved' || status === 'paid',
+      
+      // 获取回滚目标状态
+      getRollbackTargetStatus: (status: PayrollStatus): PayrollStatus | null => {
+        switch (status) {
+          case 'approved':
+            return 'calculated';
+          case 'paid':
+            return 'approved';
+          default:
+            return null;
+        }
+      },
+      
+      // 批量状态更新（用于前端调用）
+      batchUpdateStatus: async (payrollIds: string[], targetStatus: PayrollStatus) => {
+        try {
+          const results: BatchResult[] = [];
+          
+          for (const payrollId of payrollIds) {
+            const { error } = await supabase
+              .from('payrolls')
+              .update({
+                status: targetStatus,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', payrollId);
+
+            results.push({
+              payroll_id: payrollId,
+              success: !error,
+              message: error ? error.message : '更新成功'
+            });
+          }
+          
+          return {
+            success: results.every(r => r.success),
+            results,
+            message: results.every(r => r.success) ? '批量更新成功' : '部分更新失败'
+          };
+        } catch (error) {
+          return {
+            success: false,
+            results: [],
+            message: error instanceof Error ? error.message : '批量更新失败'
+          };
+        }
+      },
+      
+      // 批量回滚状态（用于前端调用）
+      batchRollbackStatus: async (payrollIds: string[], options: { reason: string; operator?: string }) => {
+        try {
+          const result = await rollbackPayrolls.mutateAsync({
+            payrollIds,
+            reason: options.reason,
+            operator: options.operator
+          });
+          
+          return {
+            success: result.every(r => r.success),
+            results: result,
+            message: result.every(r => r.success) ? '批量回滚成功' : '部分回滚失败'
+          };
+        } catch (error) {
+          return {
+            success: false,
+            results: [],
+            message: error instanceof Error ? error.message : '批量回滚失败'
+          };
+        }
+      },
       
       // 获取状态标签
       getStatusLabel: (status: PayrollStatus) => {

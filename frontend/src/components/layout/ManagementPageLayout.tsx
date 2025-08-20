@@ -159,15 +159,17 @@ export function ManagementPageLayout({
     if (!onSearchChange) return null;
     
     return (
-      <SimpleSearchBox
-        value={searchValue}
-        onChange={onSearchChange}
-        onSearch={onSearch || (() => {})}
-        onReset={onSearchReset || (() => {})}
-        loading={searchLoading}
-        placeholder={searchPlaceholder}
-        className="w-full"
-      />
+      <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
+        <SimpleSearchBox
+          value={searchValue}
+          onChange={onSearchChange}
+          onSearch={onSearch || (() => {})}
+          onReset={onSearchReset || (() => {})}
+          loading={searchLoading}
+          placeholder={searchPlaceholder}
+          className="w-full"
+        />
+      </div>
     );
   };
 

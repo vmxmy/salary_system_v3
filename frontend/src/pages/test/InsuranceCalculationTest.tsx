@@ -17,7 +17,7 @@ const InsuranceCalculationTest: React.FC = () => {
 
   // 使用现有的薪资期间 hook
   const { data: periodsData, isLoading: periodsLoading } = usePayrollPeriods({
-    pageSize: 10
+    pageSize: 50 // 增加页面大小以包含所有期间包括completed状态
   });
   
   // 从返回的对象中提取期间数组

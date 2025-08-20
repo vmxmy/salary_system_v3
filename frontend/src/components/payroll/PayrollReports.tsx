@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
-import { usePayrolls, useUpdateBatchPayrollStatus, useLatestPayrollPeriod } from '@/hooks/payroll';
+import { usePayrolls, useLatestPayrollPeriod } from '@/hooks/payroll';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
 import { useTableConfiguration } from '@/hooks/core';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
@@ -133,7 +133,7 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
   const { data: statistics, isLoading: statsLoading } = usePayrollStatistics(selectedMonth);
 
   // Mutations
-  const updateBatchStatus = useUpdateBatchPayrollStatus();
+  // Removed updateBatchStatus - approval actions moved to PayrollApprovalPage
 
   // 数据处理流程 - 前端过滤和搜索
   const processedData = useMemo(() => {
@@ -212,34 +212,7 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
     setSelectedIds(selectedRows);
   }, []); // 空依赖数组，使用ref访问最新数据
 
-  // 批量操作处理
-  const handleBatchApprove = useCallback(async () => {
-    try {
-      await updateBatchStatus.mutateAsync({
-        payrollIds: selectedIds,
-        status: PayrollStatus.APPROVED
-      });
-      showSuccess(t('approveSuccess'));
-      setSelectedIds([]);
-      refetch();
-    } catch (error) {
-      showError(t('approveError'));
-    }
-  }, [selectedIds, updateBatchStatus, t, refetch, showSuccess, showError]);
-
-  const handleBatchMarkPaid = useCallback(async () => {
-    try {
-      await updateBatchStatus.mutateAsync({
-        payrollIds: selectedIds,
-        status: PayrollStatus.PAID
-      });
-      showSuccess(t('markPaidSuccess'));
-      setSelectedIds([]);
-      refetch();
-    } catch (error) {
-      showError(t('markPaidError'));
-    }
-  }, [selectedIds, updateBatchStatus, t, refetch, showSuccess, showError]);
+  // 批量操作处理 - 审批功能已移除，只保留导出功能
 
   // 创建新的薪资批次 - 功能已移除
   // const handleCreateBatch = useCallback(() => {
@@ -493,10 +466,8 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
       {selectedIds.length > 0 && (
         <PayrollBatchActions
           selectedCount={selectedIds.length}
-          onApprove={handleBatchApprove}
-          onMarkPaid={handleBatchMarkPaid}
           onExport={() => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id)), 'payroll-selected')}
-          loading={updateBatchStatus.isPending}
+          loading={false}
         />
       )}
 

@@ -13,7 +13,7 @@ const PayrollCalculationTest: React.FC = () => {
 
   // 使用薪资期间 hook
   const { data: periodsData, isLoading: periodsLoading } = usePayrollPeriods({
-    pageSize: 10
+    pageSize: 50 // 增加页面大小以包含所有期间包括completed状态
   });
   const periods = periodsData?.data || [];
 

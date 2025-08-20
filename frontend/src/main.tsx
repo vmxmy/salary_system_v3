@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { queryClient } from './lib/queryClient'
 import App from './App.tsx'
+import './locales' // Initialize i18n
 import './index.css'
 
 // 开发环境下导入测试脚本

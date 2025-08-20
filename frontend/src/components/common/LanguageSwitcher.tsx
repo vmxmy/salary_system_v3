@@ -1,50 +1,126 @@
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/hooks/useTranslation';
+import { cn } from '@/lib/utils';
 
-export function LanguageSwitcher() {
+interface LanguageSwitcherProps {
+  className?: string;
+  size?: 'xs' | 'sm' | 'md' | 'lg';
+  variant?: 'dropdown' | 'buttons' | 'select';
+}
+
+export function LanguageSwitcher({
+  className,
+  size = 'sm',
+  variant = 'dropdown'
+}: LanguageSwitcherProps) {
   const { i18n } = useTranslation();
 
   const languages = [
-    { code: 'zh-CN', name: '中文' },
-    { code: 'en-US', name: 'English' },
+    { code: 'zh-CN', name: '中文', flag: '🇨🇳' },
+    { code: 'en-US', name: 'English', flag: '🇺🇸' }
   ];
+
+  const currentLang = languages.find(lang => lang.code === i18n.language) || languages[0];
 
   const handleLanguageChange = (languageCode: string) => {
     i18n.changeLanguage(languageCode);
   };
 
-  return (
-    <div className="dropdown dropdown-end">
-      <label tabIndex={0} className="btn btn-ghost btn-circle">
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          fill="none" 
-          viewBox="0 0 24 24" 
-          strokeWidth={1.5} 
-          stroke="currentColor" 
-          className="w-5 h-5"
+  if (variant === 'dropdown') {
+    return (
+      <div className={cn('dropdown dropdown-end', className)}>
+        <div 
+          tabIndex={0} 
+          role="button" 
+          className={cn(
+            'btn btn-ghost gap-2',
+            {
+              'btn-xs': size === 'xs',
+              'btn-sm': size === 'sm',
+              'btn-md': size === 'md',
+              'btn-lg': size === 'lg'
+            }
+          )}
         >
-          <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" 
-          />
-        </svg>
-      </label>
-      <ul 
-        tabIndex={0} 
-        className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52"
+          <span className="text-base">{currentLang.flag}</span>
+          <span className="hidden sm:inline">{currentLang.name}</span>
+          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+            <path d="M7 10l5 5 5-5z"/>
+          </svg>
+        </div>
+        <ul 
+          tabIndex={0} 
+          className="dropdown-content menu bg-base-100 rounded-box z-[1] w-32 p-2 shadow-lg border border-base-200"
+        >
+          {languages.map((lang) => (
+            <li key={lang.code}>
+              <button
+                onClick={() => handleLanguageChange(lang.code)}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-2 rounded-md text-sm',
+                  {
+                    'bg-primary/10 text-primary': i18n.language === lang.code,
+                    'hover:bg-base-200': i18n.language !== lang.code
+                  }
+                )}
+              >
+                <span className="text-base">{lang.flag}</span>
+                <span>{lang.name}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  if (variant === 'select') {
+    return (
+      <select
+        className={cn(
+          'select select-bordered',
+          {
+            'select-xs': size === 'xs',
+            'select-sm': size === 'sm',
+            'select-md': size === 'md',
+            'select-lg': size === 'lg'
+          },
+          className
+        )}
+        value={i18n.language}
+        onChange={(e) => handleLanguageChange(e.target.value)}
       >
         {languages.map((lang) => (
-          <li key={lang.code}>
-            <button
-              onClick={() => handleLanguageChange(lang.code)}
-              className={i18n.language === lang.code ? 'active' : ''}
-            >
-              {lang.name}
-            </button>
-          </li>
+          <option key={lang.code} value={lang.code}>
+            {lang.flag} {lang.name}
+          </option>
         ))}
-      </ul>
+      </select>
+    );
+  }
+
+  // Buttons variant
+  return (
+    <div className={cn('btn-group', className)}>
+      {languages.map((lang) => (
+        <button
+          key={lang.code}
+          onClick={() => handleLanguageChange(lang.code)}
+          className={cn(
+            'btn gap-2',
+            {
+              'btn-xs': size === 'xs',
+              'btn-sm': size === 'sm',
+              'btn-md': size === 'md',
+              'btn-lg': size === 'lg',
+              'btn-primary': i18n.language === lang.code,
+              'btn-outline': i18n.language !== lang.code
+            }
+          )}
+        >
+          <span className="text-base">{lang.flag}</span>
+          <span className="hidden sm:inline">{lang.name}</span>
+        </button>
+      ))}
     </div>
   );
 }

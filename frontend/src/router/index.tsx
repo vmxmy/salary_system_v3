@@ -31,13 +31,10 @@ const DesignSystemShowcase = lazy(() => import('@/pages/DesignSystemShowcase'));
 const TypographyShowcasePage = lazy(() => import('@/pages/TypographyShowcasePage'));
 const FontTestPage = lazy(() => import('@/pages/FontTestPage'));
 const MonthPickerDemoPage = lazy(() => import('@/pages/MonthPickerDemoPage'));
-const ValidationTestPage = lazy(() => import('@/pages/ValidationTestPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const DebugPage = lazy(() => import('@/pages/DebugPage'));
 // const PayrollHookTestPage = lazy(() => import('@/pages/PayrollHooksTestPage')); // 已删除
-const NewTableArchitectureTestPage = lazy(() => import('@/pages/test/NewTableArchitectureTestPage'));
-const TestMetadata = lazy(() => import('@/pages/test/TestMetadata'));
 const InsuranceCalculationTest = lazy(() => import('@/pages/test/InsuranceCalculationTest'));
 const InsuranceConfigTest = lazy(() => import('@/pages/test/InsuranceConfigTest'));
 const PayrollCalculationTest = lazy(() => import('@/pages/test/PayrollCalculationTest'));
@@ -114,22 +111,6 @@ export const router = createBrowserRouter([
   //     </Suspense>
   //   ),
   // }, // 已删除
-  {
-    path: '/test/new-table-architecture',
-    element: (
-      <Suspense fallback={<LoadingScreen />}>
-        <NewTableArchitectureTestPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/test/metadata',
-    element: (
-      <Suspense fallback={<LoadingScreen />}>
-        <TestMetadata />
-      </Suspense>
-    ),
-  },
   {
     path: '/test/insurance-calculation',
     element: (
@@ -326,14 +307,6 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingScreen />}>
             <FontTestPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'validation-test',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <ValidationTestPage />
           </Suspense>
         ),
       },
