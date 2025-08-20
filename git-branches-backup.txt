@@ -1,6 +1,0 @@
-  feature/enterprise-architecture-refactor
-  feature/frontend-rebuild
-* main
-  remotes/origin/HEAD -> origin/main
-  remotes/origin/feature/frontend-rebuild
-  remotes/origin/main
