@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   useInsuranceCalculation,
@@ -126,8 +126,12 @@ const InsuranceCalculationTest: React.FC = () => {
   };
 
   // 测试综合计算
-  const testAllInsurance = async () => {
+  const testAllInsurance = useCallback(async () => {
+    alert('函数被调用了！');
+    console.log('🚀 [测试页面] testAllInsurance函数开始执行');
+    
     if (!selectedEmployee || !selectedPeriod) {
+      console.log('❌ [测试页面] 缺少必要参数:', { selectedEmployee, selectedPeriod });
       alert('请选择员工和期间');
       return;
     }
@@ -137,6 +141,14 @@ const InsuranceCalculationTest: React.FC = () => {
     setIsCalculating(true);
     
     try {
+      // 🔍 调试：确认复选框状态
+      console.log('📋 [测试页面] 调用calculateAllInsurance前的参数:', {
+        employeeId: selectedEmployee,
+        periodId: selectedPeriod,
+        saveToDatabase: saveToDatabase,
+        checkboxChecked: saveToDatabase
+      });
+
       const result = await calculateAllInsurance({
       employeeId: selectedEmployee,
       periodId: selectedPeriod,
@@ -162,6 +174,12 @@ const InsuranceCalculationTest: React.FC = () => {
     } finally {
       setIsCalculating(false);
     }
+  }, [selectedEmployee, selectedPeriod, saveToDatabase]);
+
+  // 直接测试函数 - 排除React闭包问题
+  const directTest = () => {
+    alert('直接测试函数被调用！');
+    console.log('🔥 [直接测试] 函数执行成功');
   };
 
   // 测试批量计算 - 对当前周期所有员工进行计算
@@ -390,6 +408,13 @@ const InsuranceCalculationTest: React.FC = () => {
 
         {/* 测试按钮 */}
         <div className="flex flex-wrap gap-4 mt-6">
+          <button 
+            className="btn btn-error btn-sm"
+            onClick={directTest}
+          >
+            🔥 直接测试
+          </button>
+
           <button 
             className="btn btn-info"
             onClick={testInsuranceApplicability}

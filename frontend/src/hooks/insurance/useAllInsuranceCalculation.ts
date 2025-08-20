@@ -142,6 +142,17 @@ export const useAllInsuranceCalculation = () => {
       const calculations: CalculationResult[] = [];
       
       for (const typeConfig of typesToCalculate) {
+        // 🔍 调试日志：大病医疗计算追踪
+        if (typeConfig.key === 'serious_illness') {
+          console.log('🏥 [大病医疗] 开始计算:', {
+            employeeId,
+            periodId,
+            hasEmployee: typeConfig.hasEmployee,
+            hasEmployer: typeConfig.hasEmployer,
+            baseData: baseData
+          });
+        }
+
         // 计算个人部分
         if (typeConfig.hasEmployee) {
           const employeeResult = calculateSingleInsurance(
@@ -151,6 +162,11 @@ export const useAllInsuranceCalculation = () => {
             typeConfig.key,
             false
           );
+          
+          // 🔍 大病医疗个人部分结果
+          if (typeConfig.key === 'serious_illness') {
+            console.log('🏥 [大病医疗-个人] 计算结果:', employeeResult);
+          }
           
           if (employeeResult.success) {
             calculations.push(employeeResult);
@@ -174,6 +190,11 @@ export const useAllInsuranceCalculation = () => {
             true
           );
           
+          // 🔍 大病医疗单位部分结果
+          if (typeConfig.key === 'serious_illness') {
+            console.log('🏥 [大病医疗-单位] 计算结果:', employerResult);
+          }
+          
           if (employerResult.success) {
             calculations.push(employerResult);
             result.totalEmployerAmount += employerResult.amount;
@@ -191,6 +212,13 @@ export const useAllInsuranceCalculation = () => {
       if (result.errors.length > 0) {
         result.success = false;
       }
+
+      // 🔍 调试：检查saveToDatabase参数
+      console.log('💾 [数据库写入] 参数检查:', {
+        saveToDatabase: saveToDatabase,
+        resultSuccess: result.success,
+        willWriteToDatabase: saveToDatabase && result.success
+      });
 
       // 如果选择写入数据库且计算成功
       if (saveToDatabase && result.success) {
@@ -214,12 +242,30 @@ export const useAllInsuranceCalculation = () => {
 
           // 处理每种保险类型的写入
           for (const typeConfig of typesToCalculate) {
+            // 🔍 大病医疗写入条件检查
+            if (typeConfig.key === 'serious_illness') {
+              console.log('🏥 [大病医疗-写入检查] 开始检查写入条件:', {
+                hasEmployee: typeConfig.hasEmployee,
+                hasEmployer: typeConfig.hasEmployer
+              });
+            }
+
             // 处理个人部分
             if (typeConfig.hasEmployee) {
               const detailKey = getDetailKey(typeConfig.key);
               const employeeDetail = result.details[detailKey]?.employee;
               
-              if (employeeDetail && employeeDetail.success && employeeDetail.amount > 0) {
+              // 🔍 大病医疗个人部分写入检查
+              if (typeConfig.key === 'serious_illness') {
+                console.log('🏥 [大病医疗-个人写入] 检查条件:', {
+                  employeeDetail: employeeDetail,
+                  success: employeeDetail?.success,
+                  amount: employeeDetail?.amount,
+                  条件检查: employeeDetail && employeeDetail.success && employeeDetail.amount >= 0
+                });
+              }
+              
+              if (employeeDetail && employeeDetail.success && employeeDetail.amount >= 0) {
                 const componentId = getStandardComponentId(typeConfig.key, false);
                 const componentName = getStandardComponentName(typeConfig.key, false);
                 
@@ -231,7 +277,13 @@ export const useAllInsuranceCalculation = () => {
                     notes: `自动计算 - ${componentName}`,
                     period_id: periodId
                   });
+                  
+                  if (typeConfig.key === 'serious_illness') {
+                    console.log('🏥 [大病医疗-个人] ✅ 已添加到写入队列');
+                  }
                 }
+              } else if (typeConfig.key === 'serious_illness') {
+                console.log('🏥 [大病医疗-个人] ❌ 未满足写入条件');
               }
             }
 
@@ -240,7 +292,17 @@ export const useAllInsuranceCalculation = () => {
               const detailKey = getDetailKey(typeConfig.key);
               const employerDetail = result.details[detailKey]?.employer;
               
-              if (employerDetail && employerDetail.success && employerDetail.amount > 0) {
+              // 🔍 大病医疗单位部分写入检查
+              if (typeConfig.key === 'serious_illness') {
+                console.log('🏥 [大病医疗-单位写入] 检查条件:', {
+                  employerDetail: employerDetail,
+                  success: employerDetail?.success,
+                  amount: employerDetail?.amount,
+                  条件检查: employerDetail && employerDetail.success && employerDetail.amount >= 0
+                });
+              }
+              
+              if (employerDetail && employerDetail.success && employerDetail.amount >= 0) {
                 const componentId = getStandardComponentId(typeConfig.key, true);
                 const componentName = getStandardComponentName(typeConfig.key, true);
                 
@@ -252,7 +314,13 @@ export const useAllInsuranceCalculation = () => {
                     notes: `自动计算 - ${componentName}`,
                     period_id: periodId
                   });
+                  
+                  if (typeConfig.key === 'serious_illness') {
+                    console.log('🏥 [大病医疗-单位] ✅ 已添加到写入队列, 金额:', employerDetail.amount);
+                  }
                 }
+              } else if (typeConfig.key === 'serious_illness') {
+                console.log('🏥 [大病医疗-单位] ❌ 未满足写入条件');
               }
             }
           }

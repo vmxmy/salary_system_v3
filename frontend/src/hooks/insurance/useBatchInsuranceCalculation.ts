@@ -135,7 +135,8 @@ export const useBatchInsuranceCalculation = () => {
             const insuranceResult = await calculateAllInsurance({
               employeeId,
               periodId,
-              includeOccupationalPension
+              includeOccupationalPension,
+              saveToDatabase: saveToDatabase
             });
 
             if (!insuranceResult.success) {
@@ -178,7 +179,7 @@ export const useBatchInsuranceCalculation = () => {
               };
 
               // 处理个人部分
-              if (insuranceData.employee && insuranceData.employee.success && insuranceData.employee.amount > 0) {
+              if (insuranceData.employee && insuranceData.employee.success && insuranceData.employee.amount >= 0) {
                 const componentId = getStandardComponentId(insuranceKey, false);
                 const componentName = getStandardComponentName(insuranceKey, false);
                 
@@ -200,7 +201,7 @@ export const useBatchInsuranceCalculation = () => {
               }
 
               // 处理单位部分
-              if (insuranceData.employer && insuranceData.employer.success && insuranceData.employer.amount > 0) {
+              if (insuranceData.employer && insuranceData.employer.success && insuranceData.employer.amount >= 0) {
                 const componentId = getStandardComponentId(insuranceKey, true);
                 const componentName = getStandardComponentName(insuranceKey, true);
                 
