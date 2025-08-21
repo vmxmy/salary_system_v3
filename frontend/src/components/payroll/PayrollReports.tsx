@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { usePayrolls, useLatestPayrollPeriod } from '@/hooks/payroll';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
+import { useClearPayrollPeriod } from '@/hooks/payroll/useClearPayrollPeriod';
 import { useTableConfiguration } from '@/hooks/core';
 import { PayrollBatchActions, PayrollDetailModal } from '@/components/payroll';
 import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
@@ -43,9 +44,10 @@ interface PayrollData {
 interface PayrollReportsProps {
   selectedMonth: string;
   onMonthChange: (month: string) => void;
+  periodId?: string; // Add periodId to support clearing functionality
 }
 
-export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsProps) {
+export function PayrollReports({ selectedMonth, onMonthChange, periodId }: PayrollReportsProps) {
   const { t } = useTranslation(['common', 'payroll']);
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
@@ -131,6 +133,9 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
 
   // 获取统计数据
   const { data: statistics, isLoading: statsLoading } = usePayrollStatistics(selectedMonth);
+  
+  // 清空薪资数据
+  const clearPeriod = useClearPayrollPeriod();
 
   // Mutations
   // Removed updateBatchStatus - approval actions moved to PayrollApprovalPage
@@ -219,27 +224,26 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
   //   navigate('/payroll/create-cycle');
   // }, [navigate]);
 
-  // 清空本月数据 - 需要使用新的 hook 或 API
-  const handleClearCurrentMonth = useCallback(async () => {
-    try {
-      // TODO: 需要实现清空薪资数据的 hook 或直接调用 API
-      showError('清空功能暂时不可用，需要迁移到新的 hook 架构');
-      
-      // 原实现已注释，待迁移
-      // const monthDateRange = getMonthDateRange(selectedMonth);
-      // const result = await PayrollCreationService.clearPayrollDataByPeriod(
-      //   monthDateRange.startDate,
-      //   monthDateRange.endDate,
-      //   'CLEAR_PAYROLL_CONFIRMED'
-      // );
-      
-      refetch();
-    } catch (error) {
-      showError(`清空数据失败: ${error instanceof Error ? error.message : '未知错误'}`);
-    } finally {
-      setIsClearModalOpen(false);
+  // 清空本月数据
+  const handleClearCurrentMonth = useCallback(async (onProgress?: (step: string, completed: number, total: number) => void) => {
+    if (!periodId) {
+      showError('请先选择有效的薪资周期');
+      return;
     }
-  }, [selectedMonth, showError, refetch]);
+
+    try {
+      await clearPeriod.mutateAsync({ 
+        periodId, 
+        periodName: formatMonth(selectedMonth),
+        onProgress
+      });
+      refetch();
+      setIsClearModalOpen(false);
+    } catch (error) {
+      console.error('Clear period error:', error);
+      // Error is already handled by the hook's onError
+    }
+  }, [periodId, selectedMonth, clearPeriod, refetch]);
 
   // 处理加载状态
   const totalLoading = isLoading || statsLoading || latestMonthLoading || metadataLoading;
@@ -305,7 +309,7 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
             </ModernButton> */}
             
             {/* 清空本月按钮 */}
-            {can.deletePayroll() && (
+            {can.clearPayroll() && (
               <ModernButton
                 onClick={() => setIsClearModalOpen(true)}
                 variant="danger"
@@ -493,6 +497,7 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
       <ClearPayrollModal
         isOpen={isClearModalOpen}
         month={formatMonth(selectedMonth)}
+        periodId={periodId}
         onConfirm={handleClearCurrentMonth}
         onCancel={() => setIsClearModalOpen(false)}
       />

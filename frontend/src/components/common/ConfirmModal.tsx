@@ -115,7 +115,7 @@ export function ConfirmModal({
             onClick={handleCancel}
             disabled={loading}
           >
-            {cancelText || '取消'}
+            {cancelText || t('cancel')}
           </button>
           <button
             className={cn(
@@ -129,7 +129,7 @@ export function ConfirmModal({
             {loading ? (
               <span className="loading loading-spinner loading-sm mr-2"></span>
             ) : null}
-            {confirmText || '确认'}
+            {confirmText || t('confirm')}
           </button>
         </div>
       </div>

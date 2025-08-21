@@ -130,8 +130,8 @@ export function CompactSearch<TData>({
 }: AdvancedSearchProps<TData>) {
   const [searchValue, setSearchValue] = useState('');
 
-  // 获取所有可搜索的列
-  const searchableColumns = useMemo(() => {
+  // 获取所有可搜索的列（用于未来功能扩展）
+  const _searchableColumns = useMemo(() => {
     const allColumns = table.getAllColumns();
     
     if (searchableFields && searchableFields.length > 0) {

@@ -309,15 +309,18 @@ export default function PayrollListPage() {
   }, [availableMonths]);
 
   // 清空当月数据处理
-  const handleClearCurrentMonth = useCallback(async () => {
+  const handleClearCurrentMonth = useCallback(async (onProgress?: (step: string, completed: number, total: number) => void) => {
     if (!selectedPeriodId) {
       showError('请先选择有效的薪资周期');
       return;
     }
 
     try {
-      await clearPeriod.mutateAsync({ periodId: selectedPeriodId });
-      showSuccess(`已清空 ${formatMonth(selectedMonth)} 的薪资数据`);
+      await clearPeriod.mutateAsync({ 
+        periodId: selectedPeriodId,
+        periodName: formatMonth(selectedMonth),
+        onProgress
+      });
       refetch(); // 刷新数据
       setSelectedIds([]); // 清空选择
       setIsClearModalOpen(false);

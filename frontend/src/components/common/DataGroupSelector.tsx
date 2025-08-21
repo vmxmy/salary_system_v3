@@ -3,9 +3,9 @@ import {
   createColumnHelper,
   useReactTable,
   getCoreRowModel,
-  flexRender,
+  flexRender as _flexRender,
 } from '@tanstack/react-table';
-import type { VisibilityState } from '@tanstack/react-table';
+import type { VisibilityState as _VisibilityState } from '@tanstack/react-table';
 import { ImportDataGroup } from '@/types/payroll-import';
 import { MoneyIcon, BankIcon, PeopleIcon, BriefcaseIcon } from '@/components/common/Icons';
 

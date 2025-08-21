@@ -95,6 +95,7 @@ export function usePermission() {
     createPayroll: () => hasPermission(PERMISSIONS.PAYROLL_CREATE),
     updatePayroll: () => hasPermission(PERMISSIONS.PAYROLL_UPDATE),
     deletePayroll: () => hasPermission(PERMISSIONS.PAYROLL_DELETE),
+    clearPayroll: () => hasPermission(PERMISSIONS.PAYROLL_CLEAR),
     approvePayroll: () => hasPermission(PERMISSIONS.PAYROLL_APPROVE),
     exportPayroll: () => hasPermission(PERMISSIONS.PAYROLL_EXPORT),
     importPayroll: () => hasPermission(PERMISSIONS.PAYROLL_IMPORT),

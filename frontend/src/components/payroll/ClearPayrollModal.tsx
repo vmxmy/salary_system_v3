@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { ClearProgressModal } from './ClearProgressModal';
 
 interface ClearPayrollModalProps {
   isOpen: boolean;
   month: string;
   periodId?: string;
-  onConfirm: (clearStrategy?: 'all' | 'draft_only') => void;
+  onConfirm: (onProgress?: (step: string, completed: number, total: number) => void) => void;
   onCancel: () => void;
 }
 
@@ -18,14 +19,16 @@ export const ClearPayrollModal: React.FC<ClearPayrollModalProps> = ({
 }) => {
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState('');
-  const [clearStrategy, setClearStrategy] = useState<'all' | 'draft_only'>('draft_only');
   const [dataPreview, setDataPreview] = useState<{
-    draftCount: number;
-    approvedCount: number;
-    paidCount: number;
     totalCount: number;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // 进度状态
+  const [showProgress, setShowProgress] = useState(false);
+  const [currentStep, setCurrentStep] = useState('');
+  const [progressCompleted, setProgressCompleted] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
 
   // 获取数据预览
   useEffect(() => {
@@ -40,9 +43,6 @@ export const ClearPayrollModal: React.FC<ClearPayrollModalProps> = ({
 
           if (!error && data) {
             const preview = {
-              draftCount: data.filter(p => p.status === 'draft').length,
-              approvedCount: data.filter(p => p.status === 'approved').length,
-              paidCount: data.filter(p => p.status === 'paid').length,
               totalCount: data.length
             };
             setDataPreview(preview);
@@ -57,28 +57,51 @@ export const ClearPayrollModal: React.FC<ClearPayrollModalProps> = ({
     }
   }, [isOpen, periodId]);
 
+  // 进度回调函数
+  const handleProgress = useCallback((step: string, completed: number, total: number) => {
+    setCurrentStep(step);
+    setProgressCompleted(completed);
+    setProgressTotal(total);
+    
+    // 如果完成了，延迟2秒后关闭进度模态框
+    if (completed >= total) {
+      setTimeout(() => {
+        setShowProgress(false);
+        onCancel(); // 关闭原始模态框
+      }, 2000);
+    }
+  }, [onCancel]);
+
   const handleConfirm = useCallback(() => {
     if (confirmText !== '确认清空') {
       setError('请输入正确的确认文字');
       return;
     }
+    
+    // 显示进度模态框
+    setShowProgress(true);
+    setCurrentStep('准备开始清理...');
+    setProgressCompleted(0);
+    setProgressTotal(6);
+    
+    // 重置状态并调用清除函数
     setConfirmText('');
     setError('');
-    setClearStrategy('draft_only');
-    onConfirm(clearStrategy);
-  }, [confirmText, clearStrategy, onConfirm]);
+    onConfirm(handleProgress);
+  }, [confirmText, onConfirm, handleProgress]);
 
   const handleCancel = useCallback(() => {
     setConfirmText('');
     setError('');
-    setClearStrategy('draft_only');
     setDataPreview(null);
+    setShowProgress(false);
     onCancel();
   }, [onCancel]);
 
   if (!isOpen) return null;
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="w-full max-w-md bg-base-100 rounded-xl shadow-2xl border border-base-300/60 overflow-hidden transform transition-all duration-300">
         {/* 紧凑头部 */}
@@ -115,97 +138,29 @@ export const ClearPayrollModal: React.FC<ClearPayrollModalProps> = ({
           ) : dataPreview ? (
             <div className="bg-base-200/50 rounded-lg p-3">
               <h4 className="text-sm font-medium mb-2">{month} 数据统计</h4>
-              <div className="stats stats-horizontal w-full text-xs">
-                <div className="stat py-2 px-3">
-                  <div className="stat-title text-xs">草稿</div>
-                  <div className="stat-value text-sm text-warning">{dataPreview.draftCount}</div>
-                </div>
-                <div className="stat py-2 px-3">
-                  <div className="stat-title text-xs">已审批</div>
-                  <div className="stat-value text-sm text-info">{dataPreview.approvedCount}</div>
-                </div>
-                <div className="stat py-2 px-3">
-                  <div className="stat-title text-xs">已支付</div>
-                  <div className="stat-value text-sm text-success">{dataPreview.paidCount}</div>
-                </div>
-                <div className="stat py-2 px-3">
-                  <div className="stat-title text-xs">总计</div>
-                  <div className="stat-value text-sm">{dataPreview.totalCount}</div>
+              <div className="flex items-center justify-center">
+                <div className="stat py-2 px-3 text-center">
+                  <div className="stat-title text-xs">薪资记录</div>
+                  <div className="stat-value text-lg text-error">{dataPreview.totalCount}</div>
+                  <div className="stat-desc text-xs">条记录将被清除</div>
                 </div>
               </div>
             </div>
           ) : null}
 
-          {/* 紧凑策略选择 */}
-          <div>
-            <h4 className="text-sm font-medium mb-2">清除策略</h4>
-            <div className="form-control space-y-2">
-              <label className="label cursor-pointer py-2">
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="radio" 
-                    name="clearStrategy" 
-                    className="radio radio-sm radio-primary" 
-                    checked={clearStrategy === 'draft_only'}
-                    onChange={() => setClearStrategy('draft_only')}
-                  />
-                  <div>
-                    <span className="text-sm">仅清除草稿状态</span>
-                    <div className="badge badge-success badge-xs ml-2">推荐</div>
-                  </div>
-                </div>
-              </label>
-              <label className="label cursor-pointer py-2">
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="radio" 
-                    name="clearStrategy" 
-                    className="radio radio-sm radio-error" 
-                    checked={clearStrategy === 'all'}
-                    onChange={() => setClearStrategy('all')}
-                    disabled={!dataPreview || dataPreview.totalCount === 0}
-                  />
-                  <div className={(!dataPreview || dataPreview.totalCount === 0) ? 'opacity-50' : ''}>
-                    <span className="text-sm text-error">清除所有记录</span>
-                    <div className="badge badge-error badge-xs ml-2">危险</div>
-                    {(!dataPreview || dataPreview.totalCount === 0) && (
-                      <span className="text-xs text-base-content/50 block">（无数据）</span>
-                    )}
-                  </div>
-                </div>
-              </label>
+          {/* 清除说明 */}
+          <div className="bg-error/10 rounded-lg p-3 border border-error/20">
+            <h4 className="text-sm font-medium text-error mb-2">清除范围</h4>
+            <div className="text-xs text-base-content/80 space-y-1">
+              <p>✓ 所有薪资记录和明细项</p>
+              <p>✓ 员工缴费基数信息</p>
+              <p>✓ 员工身份类别分配</p>
+              <p>✓ 员工职务信息</p>
+              <p>✓ 特殊扣除信息</p>
+              <p>✓ 审批记录</p>
             </div>
           </div>
 
-          {/* 简化影响范围 */}
-          <div className="bg-base-200/30 rounded-lg p-3">
-            <h4 className="text-xs font-medium text-base-content/80 mb-2">即将清除的数据：</h4>
-            <div className="text-xs space-y-1">
-              {clearStrategy === 'draft_only' ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-1 rounded-full bg-warning"></div>
-                    <span>草稿状态记录 ({dataPreview?.draftCount || 0} 条)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-1 rounded-full bg-base-content/40"></div>
-                    <span className="text-base-content/70">相关薪资明细</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-1 rounded-full bg-error"></div>
-                    <span className="text-error">所有薪资记录 ({dataPreview?.totalCount || 0} 条)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-1 rounded-full bg-base-content/40"></div>
-                    <span className="text-base-content/70">薪资明细、基数、类别等数据</span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
 
           {/* 紧凑安全确认 */}
           <div>
@@ -274,5 +229,18 @@ export const ClearPayrollModal: React.FC<ClearPayrollModalProps> = ({
         aria-label="关闭对话框"
       />
     </div>
+    
+    {/* 进度模态框 */}
+    <ClearProgressModal
+      isOpen={showProgress}
+      currentStep={currentStep}
+      progress={progressCompleted}
+      total={progressTotal}
+      onCancel={() => {
+        setShowProgress(false);
+        onCancel();
+      }}
+    />
+  </>
   );
 };
