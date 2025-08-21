@@ -64,6 +64,7 @@ export interface ManagementPageLayoutProps {
   pageCount?: number;
   currentPage?: number;
   onPaginationChange?: (pagination: any) => void;
+  onColumnVisibilityChange?: (visibility: Record<string, boolean>) => void;
   enableRowSelection?: boolean;
   onRowSelectionChange?: (selection: any) => void;
   enableExport?: boolean;
@@ -110,6 +111,7 @@ export function ManagementPageLayout({
   pageCount,
   currentPage,
   onPaginationChange,
+  onColumnVisibilityChange,
   enableExport = false,
   showGlobalFilter = false,
   showColumnToggle = false,
@@ -239,6 +241,7 @@ export function ManagementPageLayout({
             pageCount={pageCount}
             currentPage={currentPage}
             onPaginationChange={onPaginationChange}
+            onColumnVisibilityChange={onColumnVisibilityChange}
             enableRowSelection={enableRowSelection}
             onRowSelectionChange={onRowSelectionChange}
             enableExport={enableExport}

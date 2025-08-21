@@ -718,8 +718,16 @@ export function usePayrollApproval() {
 
     // 工具函数
     utils: {
+      // 检查是否可以计算五险一金
+      canCalculateInsurance: (status: PayrollStatus) => 
+        status !== 'calculating',
+      
+      // 检查是否可以计算薪资汇总
+      canCalculatePayroll: (status: PayrollStatus) => 
+        status !== 'calculating',
+      
       // 检查是否可以审批
-      canApprove: (status: PayrollStatus) => status === 'draft' || status === 'calculated',
+      canApprove: (status: PayrollStatus) => status === 'calculated',
       
       // 检查是否可以发放
       canMarkPaid: (status: PayrollStatus) => status === 'approved',
@@ -731,6 +739,85 @@ export function usePayrollApproval() {
       // 检查是否可以回滚
       canRollback: (status: PayrollStatus) => 
         status === 'approved' || status === 'paid',
+      
+      // 批量操作验证函数
+      batchCanCalculateInsurance: (statuses: PayrollStatus[]) => {
+        if (statuses.length === 0) return { canOperate: false, reason: '未选择任何记录' };
+        const invalidStatuses = statuses.filter(status => status === 'calculating');
+        if (invalidStatuses.length > 0) {
+          return { 
+            canOperate: false, 
+            reason: `选中记录中有 ${invalidStatuses.length} 条正在计算中，无法操作` 
+          };
+        }
+        return { canOperate: true, reason: '' };
+      },
+      
+      batchCanCalculatePayroll: (statuses: PayrollStatus[]) => {
+        if (statuses.length === 0) return { canOperate: false, reason: '未选择任何记录' };
+        const invalidStatuses = statuses.filter(status => status === 'calculating');
+        if (invalidStatuses.length > 0) {
+          return { 
+            canOperate: false, 
+            reason: `选中记录中有 ${invalidStatuses.length} 条正在计算中，无法操作` 
+          };
+        }
+        return { canOperate: true, reason: '' };
+      },
+      
+      batchCanApprove: (statuses: PayrollStatus[]) => {
+        if (statuses.length === 0) return { canOperate: false, reason: '未选择任何记录' };
+        const validStatuses = statuses.filter(status => status === 'calculated');
+        if (validStatuses.length === 0) {
+          return { 
+            canOperate: false, 
+            reason: '选中记录中没有可审批的状态（仅已计算状态可审批）' 
+          };
+        }
+        if (validStatuses.length < statuses.length) {
+          return { 
+            canOperate: false, 
+            reason: `选中记录中只有 ${validStatuses.length} 条可审批，其余状态不符合条件` 
+          };
+        }
+        return { canOperate: true, reason: '' };
+      },
+      
+      batchCanMarkPaid: (statuses: PayrollStatus[]) => {
+        if (statuses.length === 0) return { canOperate: false, reason: '未选择任何记录' };
+        const validStatuses = statuses.filter(status => status === 'approved');
+        if (validStatuses.length === 0) {
+          return { 
+            canOperate: false, 
+            reason: '选中记录中没有可发放的状态（仅已审批状态可发放）' 
+          };
+        }
+        if (validStatuses.length < statuses.length) {
+          return { 
+            canOperate: false, 
+            reason: `选中记录中只有 ${validStatuses.length} 条可发放，其余状态不符合条件` 
+          };
+        }
+        return { canOperate: true, reason: '' };
+      },
+      
+      batchCanRollback: (statuses: PayrollStatus[]) => {
+        if (statuses.length === 0) return { canOperate: false, reason: '未选择任何记录' };
+        const validStatuses = statuses.filter(status => status === 'approved' || status === 'paid');
+        if (validStatuses.length === 0) {
+          return { 
+            canOperate: false, 
+            reason: '选中记录中没有可回滚的状态（仅已审批或已发放状态可回滚）' 
+          };
+        }
+        if (validStatuses.length < statuses.length) {
+          return { 
+            canOperate: false, 
+            reason: `选中记录中只有 ${validStatuses.length} 条可回滚，其余状态不符合条件` 
+          };
+        }
+        return { canOperate: true, reason: '' };
+      },
       
       // 获取回滚目标状态
       getRollbackTargetStatus: (status: PayrollStatus): PayrollStatus | null => {
@@ -818,14 +905,14 @@ export function usePayrollApproval() {
       // 获取状态颜色
       getStatusColor: (status: PayrollStatus) => {
         const colors: Record<string, string> = {
-          draft: 'warning',
-          calculating: 'processing',
-          calculated: 'processing',
-          approved: 'success',
-          paid: 'info',
-          cancelled: 'error',
+          draft: 'warning',        // 草稿 - 黄色警告
+          calculating: 'info',     // 计算中 - 蓝色信息
+          calculated: 'primary',   // 已计算 - 主色调
+          approved: 'success',     // 已审批 - 绿色成功
+          paid: 'accent',          // 已发放 - 强调色
+          cancelled: 'error',      // 已取消 - 红色错误
         };
-        return colors[status] || 'default';
+        return colors[status] || 'neutral';
       },
       
       // 获取下一步操作

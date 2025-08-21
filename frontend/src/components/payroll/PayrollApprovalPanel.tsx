@@ -237,7 +237,7 @@ export function PayrollApprovalPanel({ periodId, onClose }: PayrollApprovalPanel
                   <td>{formatCurrency(item.net_pay)}</td>
                   <td>
                     <span className={`badge badge-${utils.getStatusColor(item.status)}`}>
-                      {item.status_label}
+                      {utils.getStatusLabel(item.status)}
                     </span>
                   </td>
                   <td>

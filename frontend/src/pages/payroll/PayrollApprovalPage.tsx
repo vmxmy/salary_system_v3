@@ -9,6 +9,7 @@ import { MonthPicker } from '@/components/common/MonthPicker';
 import { ModernButton } from '@/components/common/ModernButton';
 import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
 import { useToast } from '@/contexts/ToastContext';
+import { ConfirmModal, BatchConfirmModal, RollbackConfirmModal } from '@/components/common/ConfirmModal';
 import type { PayrollApprovalSummary } from '@/hooks/payroll/usePayrollApproval';
 import type { Database } from '@/types/supabase';
 
@@ -30,6 +31,13 @@ export default function PayrollApprovalPage() {
   const [activeSearchQuery, setActiveSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<PayrollStatus | 'all'>('all');
+  
+  // 确认模态框状态
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    type: 'approve' | 'paid' | 'rollback';
+    loading: boolean;
+  }>({ open: false, type: 'approve', loading: false });
   
   const { queries, utils } = usePayrollApproval();
   
@@ -57,7 +65,7 @@ export default function PayrollApprovalPage() {
   
   // 计算实际的待审批列表（当状态筛选为'all'时仍显示待审批状态）
   const pendingList = statusFilter === 'all' 
-    ? approvalList?.filter(item => ['draft', 'calculated'].includes(item.status))
+    ? approvalList?.filter(item => ['draft', 'calculating', 'calculated'].includes(item.status))
     : approvalList;
   
   const pendingLoading = approvalLoading;
@@ -79,15 +87,18 @@ export default function PayrollApprovalPage() {
   const processedDataRef = useRef<any[]>([]);
   
   const handleRowSelectionChange = useCallback((rowSelection: any) => {
-    const selectedRows = Object.keys(rowSelection)
-      .filter(key => rowSelection[key])
-      .map(index => {
-        const rowIndex = parseInt(index);
-        const row = processedDataRef.current[rowIndex];
-        return row?.id || row?.payroll_id;
-      })
-      .filter(Boolean);
-    setSelectedIds(selectedRows);
+    // 使用 setTimeout 延迟状态更新，避免在渲染过程中更新状态
+    setTimeout(() => {
+      const selectedRows = Object.keys(rowSelection)
+        .filter(key => rowSelection[key])
+        .map(index => {
+          const rowIndex = parseInt(index);
+          const row = processedDataRef.current[rowIndex];
+          return row?.id || row?.payroll_id;
+        })
+        .filter(Boolean);
+      setSelectedIds(selectedRows);
+    }, 0);
   }, []); // 空依赖数组，使用ref访问最新数据
 
   // 准备统计卡片数据
@@ -186,33 +197,8 @@ export default function PayrollApprovalPage() {
     )
   }), [handleViewDetail]);
 
-  // 直接定义表格列配置 - 使用TanStack Table格式
-  const columns = useMemo(() => [
-    // 选择列
-    {
-      id: 'select',
-      header: ({ table }: any) => (
-        <input
-          type="checkbox"
-          className="checkbox checkbox-sm"
-          checked={table.getIsAllPageRowsSelected()}
-          onChange={table.getToggleAllPageRowsSelectedHandler()}
-          title="全选/取消全选"
-        />
-      ),
-      cell: ({ row }: any) => (
-        <input
-          type="checkbox"
-          className="checkbox checkbox-sm"
-          checked={row.getIsSelected()}
-          onChange={row.getToggleSelectedHandler()}
-          title="选择此行"
-        />
-      ),
-      size: 50,
-      enableSorting: false,
-      enableColumnFilter: false,
-    },
+  // 基础表格列配置 - 不包含选择列
+  const baseColumns = useMemo(() => [
     {
       id: 'employee_name',
       accessorKey: 'employee_name',
@@ -335,7 +321,6 @@ export default function PayrollApprovalPage() {
         // 搜索所有可能的字段
         const searchableFields = [
           payroll.employee_name,        // 员工姓名
-          payroll.department_name,      // 部门名称
           payroll.status,               // 状态
           payroll.pay_date,             // 支付日期
           payroll.gross_pay?.toString(), // 应发工资
@@ -356,6 +341,62 @@ export default function PayrollApprovalPage() {
     return processedItems;
   }, [pendingList, activeSearchQuery]);
 
+  // 完整的表格列配置 - 包含选择列
+  const columns = useMemo(() => [
+    // 选择列
+    {
+      id: 'select',
+      header: ({ table }: any) => {
+        const isAllSelected = processedData.length > 0 && selectedIds.length === processedData.length;
+        const isIndeterminate = selectedIds.length > 0 && selectedIds.length < processedData.length;
+        
+        return (
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={isAllSelected}
+            ref={(el) => {
+              if (el) el.indeterminate = isIndeterminate;
+            }}
+            onChange={(e) => {
+              if (e.target.checked) {
+                // 全选：选择所有数据
+                const allIds = processedData.map(item => item.id || item.payroll_id).filter(Boolean);
+                setSelectedIds(allIds);
+              } else {
+                // 取消全选
+                setSelectedIds([]);
+              }
+            }}
+            title={isAllSelected ? "取消全选" : "全选所有数据"}
+          />
+        );
+      },
+      cell: ({ row }: any) => {
+        const rowId = row.original.id || row.original.payroll_id;
+        return (
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={selectedIds.includes(rowId)}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setSelectedIds(prev => [...prev, rowId]);
+              } else {
+                setSelectedIds(prev => prev.filter(id => id !== rowId));
+              }
+            }}
+            title="选择此行"
+          />
+        );
+      },
+      size: 50,
+      enableSorting: false,
+      enableColumnFilter: false,
+    },
+    ...baseColumns
+  ], [processedData, selectedIds, baseColumns]);
+
   // 处理查看审批历史
   const handleViewHistory = () => {
     setShowHistoryModal(true);
@@ -367,67 +408,71 @@ export default function PayrollApprovalPage() {
   };
 
   // 批量审批处理函数
-  const handleBatchApprove = useCallback(async () => {
+  const handleBatchApprove = useCallback(() => {
     if (selectedIds.length === 0) {
       showError('请选择需要审批的记录');
       return;
     }
+    setConfirmModal({ open: true, type: 'approve', loading: false });
+  }, [selectedIds, showError]);
 
-    // 确认对话框
-    const confirmed = confirm(`确定要批量审批选中的 ${selectedIds.length} 条记录吗？\n\n审批后状态将变更为"已审批"，可通过回滚功能撤销此操作。`);
-    if (!confirmed) return;
-
+  // 执行批量审批
+  const executeBatchApprove = useCallback(async () => {
+    setConfirmModal(prev => ({ ...prev, loading: true }));
+    
     try {
-      // 调用批量审批API
       const result = await utils.batchUpdateStatus(selectedIds, 'approved');
       
       if (result.success) {
         showSuccess(`成功审批 ${selectedIds.length} 条记录`);
-        // 清除选择并刷新数据
         setSelectedIds([]);
-        // 这里应该刷新数据，具体方法取决于你的数据获取方式
-        window.location.reload(); // 临时解决方案，建议使用数据重新获取
+        setConfirmModal({ open: false, type: 'approve', loading: false });
+        window.location.reload();
       } else {
         showError(result.message || '批量审批失败');
+        setConfirmModal(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '批量审批失败';
       showError(errorMessage);
+      setConfirmModal(prev => ({ ...prev, loading: false }));
     }
   }, [selectedIds, utils, showSuccess, showError]);
 
   // 批量标记为已支付处理函数
-  const handleBatchMarkAsPaid = useCallback(async () => {
+  const handleBatchMarkAsPaid = useCallback(() => {
     if (selectedIds.length === 0) {
       showError('请选择需要标记的记录');
       return;
     }
+    setConfirmModal({ open: true, type: 'paid', loading: false });
+  }, [selectedIds, showError]);
 
-    // 确认对话框
-    const confirmed = confirm(`确定要将选中的 ${selectedIds.length} 条记录标记为已支付吗？\n\n标记后状态将变更为"已支付"。`);
-    if (!confirmed) return;
-
+  // 执行批量标记为已支付
+  const executeBatchMarkAsPaid = useCallback(async () => {
+    setConfirmModal(prev => ({ ...prev, loading: true }));
+    
     try {
-      // 调用批量标记为已支付API
       const result = await utils.batchUpdateStatus(selectedIds, 'paid');
       
       if (result.success) {
         showSuccess(`成功标记 ${selectedIds.length} 条记录为已支付`);
-        // 清除选择并刷新数据
         setSelectedIds([]);
-        // 这里应该刷新数据，具体方法取决于你的数据获取方式
-        window.location.reload(); // 临时解决方案，建议使用数据重新获取
+        setConfirmModal({ open: false, type: 'paid', loading: false });
+        window.location.reload();
       } else {
         showError(result.message || '批量标记失败');
+        setConfirmModal(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '批量标记失败';
       showError(errorMessage);
+      setConfirmModal(prev => ({ ...prev, loading: false }));
     }
   }, [selectedIds, utils, showSuccess, showError]);
 
   // 批量回滚处理函数
-  const handleBatchRollback = useCallback(async () => {
+  const handleBatchRollback = useCallback(() => {
     if (selectedIds.length === 0) {
       showError('请选择需要回滚的记录');
       return;
@@ -448,48 +493,69 @@ export default function PayrollApprovalPage() {
       return;
     }
 
-    // 询问回滚原因
-    const rollbackReason = prompt(`即将回滚 ${rollbackableRecords.length} 条记录的审批状态\n\n请输入回滚原因：`);
-    if (!rollbackReason || rollbackReason.trim() === '') {
-      showError('回滚原因不能为空');
-      return;
-    }
+    setConfirmModal({ open: true, type: 'rollback', loading: false });
+  }, [selectedIds, showError]);
 
-    // 最终确认
-    const confirmed = confirm(
-      `确认回滚操作：\n` +
-      `• 回滚记录数：${rollbackableRecords.length} 条\n` +
-      `• 回滚原因：${rollbackReason.trim()}\n` +
-      `• 已审批记录将回滚为"已计算"状态\n` +
-      `• 已支付记录将回滚为"已审批"状态\n\n` +
-      `此操作将记录在审批日志中，是否继续？`
-    );
-    if (!confirmed) return;
-
+  // 执行批量回滚
+  const executeBatchRollback = useCallback(async (reason: string) => {
+    setConfirmModal(prev => ({ ...prev, loading: true }));
+    
     try {
-      // 调用批量回滚API
+      const selectedRecords = processedDataRef.current.filter(record => 
+        selectedIds.includes(record.id || record.payroll_id)
+      );
+      
+      const rollbackableRecords = selectedRecords.filter(record => 
+        ['approved', 'paid'].includes(record.status)
+      );
+
       const rollbackIds = rollbackableRecords.map(r => r.id || r.payroll_id);
       const result = await utils.batchRollbackStatus(rollbackIds, {
-        reason: rollbackReason.trim(),
-        operator: 'current_user' // 应该从用户上下文获取
+        reason: reason,
+        operator: 'current_user'
       });
       
       if (result.success) {
         showSuccess(`成功回滚 ${rollbackableRecords.length} 条记录的审批状态`);
-        // 清除选择并刷新数据
         setSelectedIds([]);
+        setConfirmModal({ open: false, type: 'rollback', loading: false });
         window.location.reload();
       } else {
         showError(result.message || '批量回滚失败');
+        setConfirmModal(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '批量回滚失败';
       showError(errorMessage);
+      setConfirmModal(prev => ({ ...prev, loading: false }));
     }
   }, [selectedIds, utils, showSuccess, showError]);
 
   // 计算加载状态 - 包含数据初始化状态
   const totalLoading = statsLoading || pendingLoading || isPeriodLoading;
+
+  // 计算选中记录的状态验证结果
+  const selectedRecordsValidation = useMemo(() => {
+    if (selectedIds.length === 0) {
+      return {
+        approve: { canOperate: false, reason: '未选择任何记录' },
+        markPaid: { canOperate: false, reason: '未选择任何记录' },
+        rollback: { canOperate: false, reason: '未选择任何记录' }
+      };
+    }
+
+    // 获取选中记录的状态
+    const selectedRecords = processedDataRef.current.filter(record => 
+      selectedIds.includes(record.id || record.payroll_id)
+    );
+    const selectedStatuses = selectedRecords.map(record => record.status as PayrollStatus);
+
+    return {
+      approve: utils.batchCanApprove(selectedStatuses),
+      markPaid: utils.batchCanMarkPaid(selectedStatuses),
+      rollback: utils.batchCanRollback(selectedStatuses)
+    };
+  }, [selectedIds, utils]);
 
   // 薪资周期选择器区域 - 统一使用PayrollListPage的卡片结构（移除card-body层级）
   const periodSelectorContent = useMemo(() => (
@@ -531,6 +597,7 @@ export default function PayrollApprovalPage() {
           >
             <option value="all">全部状态</option>
             <option value="draft">草稿</option>
+            <option value="calculating">计算中</option>
             <option value="calculated">已计算</option>
             <option value="approved">已审批</option>
             <option value="paid">已发放</option>
@@ -612,6 +679,10 @@ export default function PayrollApprovalPage() {
                 label: '批量审批',
                 onClick: handleBatchApprove,
                 variant: 'outline',
+                disabled: !selectedRecordsValidation.approve.canOperate,
+                title: selectedRecordsValidation.approve.canOperate 
+                  ? '审批选中的记录' 
+                  : selectedRecordsValidation.approve.reason,
                 icon: (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -624,6 +695,10 @@ export default function PayrollApprovalPage() {
                 label: '标记已支付',
                 onClick: handleBatchMarkAsPaid,
                 variant: 'outline',
+                disabled: !selectedRecordsValidation.markPaid.canOperate,
+                title: selectedRecordsValidation.markPaid.canOperate 
+                  ? '标记选中记录为已支付' 
+                  : selectedRecordsValidation.markPaid.reason,
                 icon: (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -636,7 +711,10 @@ export default function PayrollApprovalPage() {
                 label: '批量回滚',
                 onClick: handleBatchRollback,
                 variant: 'outline',
-                title: '撤销已审批或已支付记录的状态',
+                disabled: !selectedRecordsValidation.rollback.canOperate,
+                title: selectedRecordsValidation.rollback.canOperate 
+                  ? '撤销已审批或已支付记录的状态' 
+                  : selectedRecordsValidation.rollback.reason,
                 icon: (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -688,6 +766,43 @@ export default function PayrollApprovalPage() {
             open={showHistoryModal}
             onClose={handleCloseHistoryModal}
           />
+
+          {/* 确认模态框 */}
+          {confirmModal.type === 'approve' && (
+            <BatchConfirmModal
+              open={confirmModal.open}
+              onClose={() => setConfirmModal({ open: false, type: 'approve', loading: false })}
+              onConfirm={executeBatchApprove}
+              action="审批"
+              selectedCount={selectedIds.length}
+              details="审批后状态将变更为'已审批'，可通过回滚功能撤销此操作。"
+              loading={confirmModal.loading}
+              variant="success"
+            />
+          )}
+
+          {confirmModal.type === 'paid' && (
+            <BatchConfirmModal
+              open={confirmModal.open}
+              onClose={() => setConfirmModal({ open: false, type: 'paid', loading: false })}
+              onConfirm={executeBatchMarkAsPaid}
+              action="标记为已支付"
+              selectedCount={selectedIds.length}
+              details="标记后状态将变更为'已支付'。"
+              loading={confirmModal.loading}
+              variant="primary"
+            />
+          )}
+
+          {confirmModal.type === 'rollback' && (
+            <RollbackConfirmModal
+              open={confirmModal.open}
+              onClose={() => setConfirmModal({ open: false, type: 'rollback', loading: false })}
+              onConfirm={executeBatchRollback}
+              selectedCount={selectedIds.length}
+              loading={confirmModal.loading}
+            />
+          )}
         </>
       }
     />

@@ -41,6 +41,7 @@ export interface PayrollSummary {
   employee_name: string;
   department_name?: string;
   position_name?: string;
+  category_name?: string;  // 新增身份类别字段
   pay_date: string;  // 从 actual_pay_date 或 scheduled_pay_date 映射
   actual_pay_date?: string;  // 实际发薪日期
   scheduled_pay_date?: string;  // 计划发薪日期
@@ -246,6 +247,7 @@ export const usePayrolls = (filters?: {
         employee_name: item.employee_name,
         department_name: item.department_name,
         position_name: item.position_name,
+        category_name: item.category_name, // 添加身份类别字段
         
         // 周期信息
         period_id: item.period_id,  // 现在视图直接提供此字段
@@ -260,7 +262,8 @@ export const usePayrolls = (filters?: {
         net_pay: formatNumber(item.net_pay),
         
         // 状态
-        status: item.payroll_status,
+        payroll_status: item.payroll_status,
+        status: item.payroll_status, // 兼容旧字段名
         
         // 兼容旧结构
         employee: {

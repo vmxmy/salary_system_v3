@@ -8,6 +8,7 @@ import {
   PayrollStatus,
   type PayrollStatusType 
 } from '@/hooks/payroll';
+import { usePayrollApproval } from '@/hooks/payroll/usePayrollApproval';
 import { useClearPayrollPeriod } from '@/hooks/payroll/useClearPayrollPeriod';
 import { type PayrollPeriod } from '@/hooks/payroll/usePayrollPeriod';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
@@ -18,6 +19,7 @@ import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
 import { PayrollCompletenessModal } from '@/components/payroll/PayrollCompletenessModal';
 import { PayrollCompletenessStats } from '@/components/payroll/PayrollCompletenessStats';
 import { usePayrollPeriodCompleteness } from '@/hooks/payroll/usePayrollPeriodCompleteness';
+import { ConfirmModal, BatchConfirmModal } from '@/components/common/ConfirmModal';
 import { DataTable } from '@/components/common/DataTable';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { ModernButton } from '@/components/common/ModernButton';
@@ -28,7 +30,10 @@ import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
 import { usePermission, PERMISSIONS } from '@/hooks/core';
 import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
+import type { FieldMetadata } from '@/components/common/FieldSelector';
+import { usePayrollTableColumns } from '@/hooks/payroll/usePayrollTableColumns';
 import type { PaginationState, Table } from '@tanstack/react-table';
+import { PayrollStatusBadge } from '@/components/common/PayrollStatusBadge';
 
 // 定义薪资数据接口 - 匹配 view_payroll_summary 结构
 interface PayrollData {
@@ -41,11 +46,14 @@ interface PayrollData {
   pay_period_end: string;
   employee_id: string;
   employee_name: string; // 使用数据库字段名
-  department_name: string;
+  department_name?: string;
+  position_name?: string;
+  category_name?: string; // 新增身份类别字段
   gross_pay: number;
   total_deductions: number;
   net_pay: number;
-  status: PayrollStatusType;
+  payroll_status: PayrollStatusType;
+  status?: PayrollStatusType; // 兼容字段
   // 兼容旧结构
   employee?: {
     id: string;
@@ -96,122 +104,57 @@ export default function PayrollListPage() {
     )
   }), [handleViewDetail]);
 
-  // 直接定义表格列配置
-  const columns = useMemo(() => [
-    // 选择列
-    {
-      id: 'select',
-      header: ({ table }: any) => (
-        <input
-          type="checkbox"
-          className="checkbox checkbox-sm"
-          checked={table.getIsAllPageRowsSelected()}
-          onChange={table.getToggleAllPageRowsSelectedHandler()}
-          title="全选/取消全选"
-        />
-      ),
-      cell: ({ row }: any) => (
-        <input
-          type="checkbox"
-          className="checkbox checkbox-sm"
-          checked={row.getIsSelected()}
-          onChange={row.getToggleSelectedHandler()}
-          title="选择此行"
-        />
-      ),
-      size: 50,
-      enableSorting: false,
-      enableColumnFilter: false,
-    },
-    {
-      id: 'employee_name',
-      accessorKey: 'employee_name',
-      header: '员工姓名',
-      size: 120,
-    },
-    {
-      id: 'department_name',
-      accessorKey: 'department_name', 
-      header: '部门',
-      size: 100,
-    },
-    {
-      id: 'position_name',
-      accessorKey: 'position_name',
-      header: '职位',
-      size: 100,
-    },
-    {
-      id: 'actual_pay_date',
-      accessorKey: 'actual_pay_date',
-      header: '实际发薪日期',
-      size: 120,
-      cell: ({ getValue }: any) => {
-        const value = getValue();
-        if (!value) return '-';
-        return new Date(value).toLocaleDateString('zh-CN');
-      }
-    },
-    {
-      id: 'gross_pay',
-      accessorKey: 'gross_pay',
-      header: '应发工资',
-      size: 100,
-      cell: ({ getValue }: any) => {
-        const value = getValue();
-        if (value == null) return '-';
-        return formatCurrency(value);
-      }
-    },
-    {
-      id: 'total_deductions', 
-      accessorKey: 'total_deductions',
-      header: '扣除合计',
-      size: 100,
-      cell: ({ getValue }: any) => {
-        const value = getValue();
-        if (value == null) return '-';
-        return formatCurrency(value);
-      }
-    },
-    {
-      id: 'net_pay',
-      accessorKey: 'net_pay', 
-      header: '实发工资',
-      size: 100,
-      cell: ({ getValue }: any) => {
-        const value = getValue();
-        if (value == null) return '-';
-        return formatCurrency(value);
-      }
-    },
-    {
-      id: 'status',
-      accessorKey: 'status',
-      header: '薪资状态',
-      size: 100,
-      cell: ({ getValue }: any) => {
-        const status = getValue() as PayrollStatusType;
-        const statusLabels: Record<PayrollStatusType, string> = {
-          draft: '草稿',
-          calculating: '计算中',
-          calculated: '已计算',
-          approved: '已审批',
-          paid: '已发放',
-          cancelled: '已取消'
+  // 使用动态列配置Hook
+  const { 
+    allColumnConfigs, 
+    generateFieldMetadata, 
+    getDefaultColumnVisibility,
+    getCoreColumns,
+    getOptionalColumns 
+  } = usePayrollTableColumns();
+
+  // TanStack Table列可见性状态
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+    return getDefaultColumnVisibility();
+  });
+
+  // 从配置生成基础表格列 - 不包含选择列
+  const baseColumns = useMemo(() => {
+    const dataColumns = allColumnConfigs.map(config => {
+      let cellRenderer = config.cell ? ({ getValue }: any) => config.cell!(getValue) : undefined;
+      
+      // 如果是状态字段且启用了徽章样式，使用徽章组件
+      if (config.useBadge && config.type === 'status') {
+        cellRenderer = ({ getValue }: any) => {
+          const status = getValue() as PayrollStatusType;
+          return <PayrollStatusBadge status={status} size="sm" />;
         };
-        return statusLabels[status] || status;
       }
-    },
-    {
+      
+      return {
+        id: config.id,
+        accessorKey: config.accessorKey,
+        header: config.header,
+        size: config.size,
+        cell: cellRenderer,
+        enableSorting: config.enableSorting ?? true,
+        enableColumnFilter: config.enableColumnFilter ?? true,
+      };
+    });
+
+    // 添加操作列
+    dataColumns.push({
       id: 'actions',
+      accessorKey: '', // 操作列不需要数据
       header: '操作',
       size: 120,
       cell: ({ row }: any) => actionsConfig.render(row.original),
       enableSorting: false,
       enableColumnFilter: false,
-    }
-  ], [actionsConfig]);
+    });
+
+    return dataColumns;
+  }, [allColumnConfigs, actionsConfig]);
 
   // 状态管理
   const [searchQuery, setSearchQuery] = useState('');
@@ -317,26 +260,31 @@ export default function PayrollListPage() {
   // 计算相关hooks
   const { calculateBatchInsurance, loading: batchInsuranceLoading, progress: insuranceProgress } = useBatchInsuranceCalculation();
   const payrollCalculation = usePayrollCalculation();
+  
+  // 审批验证相关hooks - 用于按钮约束逻辑
+  const { utils: approvalUtils } = usePayrollApproval();
 
   // 数据处理流程 - 前端过滤和搜索
   const processedData = useMemo(() => {
     let rawData = data?.data || [];
     
     // 先转换数据格式
-    let processedItems = rawData.map(item => ({
+    let processedItems = rawData.map((item: any) => ({
       ...item,
       id: item.id || item.payroll_id, // 确保有id字段用于选择
+      // 确保payroll_status字段存在（从原始数据中获取）
+      payroll_status: item.payroll_status,
       // 确保employee字段存在（用于兼容旧代码）
       employee: item.employee || {
         id: item.employee_id,
         employee_name: item.employee_name,
         id_number: null
       }
-    }));
+    } as PayrollData));
     
     // 状态过滤
     if (statusFilter !== 'all') {
-      processedItems = processedItems.filter(item => item.status === statusFilter);
+      processedItems = processedItems.filter(item => item.payroll_status === statusFilter);
     }
     
     // 全局模糊搜索 - 使用手动触发的搜索查询
@@ -346,8 +294,10 @@ export default function PayrollListPage() {
         // 搜索所有可能的字段
         const searchableFields = [
           payroll.employee_name,        // 员工姓名
-          (payroll as any).department_name,      // 部门名称 (直接从视图获取)
-          payroll.status,               // 状态
+          payroll.department_name,      // 部门名称
+          (payroll as any).position_name,        // 职位名称
+          (payroll as any).category_name,        // 身份类别
+          payroll.payroll_status,       // 状态
           payroll.actual_pay_date || payroll.scheduled_pay_date || payroll.pay_date,  // 支付日期
           payroll.gross_pay?.toString(), // 应发工资
           payroll.net_pay?.toString(),   // 实发工资
@@ -363,6 +313,104 @@ export default function PayrollListPage() {
     return processedItems;
   }, [data?.data, statusFilter, activeSearchQuery]);
 
+  // 使用Hook中的generateFieldMetadata
+  const getFieldMetadata = useCallback((table?: Table<any>): FieldMetadata[] => {
+    if (!table) {
+      // 没有table实例时，从配置生成
+      return generateFieldMetadata(columnVisibility);
+    }
+
+    // 从table实例获取运行时可见性状态
+    const runtimeVisibility: Record<string, boolean> = {};
+    table.getAllColumns().forEach(col => {
+      if (col.id !== 'select' && col.id !== 'actions') {
+        runtimeVisibility[col.id] = col.getIsVisible();
+      }
+    });
+
+    return generateFieldMetadata(runtimeVisibility);
+  }, [generateFieldMetadata, columnVisibility]);
+
+  // 处理列可见性变化
+  const handleColumnVisibilityChange = useCallback((updater: any) => {
+    setColumnVisibility(prev => {
+      const newVisibility = typeof updater === 'function' ? updater(prev) : updater;
+      return newVisibility;
+    });
+  }, []);
+
+  // 字段配置处理函数 - 转换为TanStack Table格式
+  const handleFieldConfigChange = useCallback((config: { columns: any[] }) => {
+    const newVisibility: Record<string, boolean> = {};
+    
+    config.columns.forEach(col => {
+      newVisibility[col.field] = col.visible;
+    });
+    
+    setColumnVisibility(newVisibility);
+  }, []);
+
+  const handleFieldConfigReset = useCallback(() => {
+    // 重置为默认可见性
+    setColumnVisibility(getDefaultColumnVisibility());
+  }, [getDefaultColumnVisibility]);
+
+  // 完整的表格列配置 - 包含选择列
+  const columns = useMemo(() => [
+    // 选择列
+    {
+      id: 'select',
+      header: ({ table }: any) => {
+        const isAllSelected = processedData.length > 0 && selectedIds.length === processedData.length;
+        const isIndeterminate = selectedIds.length > 0 && selectedIds.length < processedData.length;
+        
+        return (
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={isAllSelected}
+            ref={(el) => {
+              if (el) el.indeterminate = isIndeterminate;
+            }}
+            onChange={(e) => {
+              if (e.target.checked) {
+                // 全选：选择所有数据
+                const allIds = processedData.map(item => item.id || item.payroll_id).filter(Boolean);
+                setSelectedIds(allIds);
+              } else {
+                // 取消全选
+                setSelectedIds([]);
+              }
+            }}
+            title={isAllSelected ? "取消全选" : "全选所有数据"}
+          />
+        );
+      },
+      cell: ({ row }: any) => {
+        const rowId = row.original.id || row.original.payroll_id;
+        return (
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={selectedIds.includes(rowId)}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setSelectedIds(prev => [...prev, rowId]);
+              } else {
+                setSelectedIds(prev => prev.filter(id => id !== rowId));
+              }
+            }}
+            title="选择此行"
+          />
+        );
+      },
+      size: 50,
+      enableSorting: false,
+      enableColumnFilter: false,
+    },
+    ...baseColumns
+  ], [processedData, selectedIds, baseColumns]);
+
   // 关闭模态框
   const handleCloseModal = useCallback(() => {
     setIsDetailModalOpen(false);
@@ -376,15 +424,18 @@ export default function PayrollListPage() {
   processedDataRef.current = processedData;
   
   const handleRowSelectionChange = useCallback((rowSelection: any) => {
-    const selectedRows = Object.keys(rowSelection)
-      .filter(key => rowSelection[key])
-      .map(index => {
-        const rowIndex = parseInt(index);
-        const row = processedDataRef.current[rowIndex];
-        return row?.id || row?.payroll_id;
-      })
-      .filter(Boolean);
-    setSelectedIds(selectedRows);
+    // 使用 setTimeout 延迟状态更新，避免在渲染过程中更新状态
+    setTimeout(() => {
+      const selectedRows = Object.keys(rowSelection)
+        .filter(key => rowSelection[key])
+        .map(index => {
+          const rowIndex = parseInt(index);
+          const row = processedDataRef.current[rowIndex];
+          return row?.id || row?.payroll_id;
+        })
+        .filter(Boolean);
+      setSelectedIds(selectedRows);
+    }, 0);
   }, []); // 空依赖数组，使用ref访问最新数据
 
   // 批量操作处理
@@ -723,6 +774,29 @@ export default function PayrollListPage() {
     ];
   }, [statistics, selectedMonth, t]);
 
+  // 计算选中记录的状态验证结果 - 用于按钮约束
+  const selectedRecordsValidation = useMemo(() => {
+    if (selectedIds.length === 0) {
+      return {
+        calculateInsurance: { canOperate: false, reason: '未选择任何记录' },
+        calculatePayroll: { canOperate: false, reason: '未选择任何记录' },
+        calculateAll: { canOperate: false, reason: '未选择任何记录' }
+      };
+    }
+
+    // 获取选中记录的状态
+    const selectedRecords = processedData.filter(record => 
+      selectedIds.includes(record.id || record.payroll_id)
+    );
+    const selectedStatuses = selectedRecords.map(record => record.payroll_status as PayrollStatusType);
+
+    return {
+      calculateInsurance: approvalUtils.batchCanCalculateInsurance(selectedStatuses),
+      calculatePayroll: approvalUtils.batchCanCalculatePayroll(selectedStatuses),
+      calculateAll: approvalUtils.batchCanCalculateInsurance(selectedStatuses) // 使用相同的逻辑
+    };
+  }, [selectedIds, processedData, approvalUtils]);
+
   // 处理加载状态
   const totalLoading = isLoading || statsLoading || latestPeriodLoading || batchInsuranceLoading || payrollCalculation.loading;
 
@@ -745,7 +819,19 @@ export default function PayrollListPage() {
       onSearchReset={handleSearchReset}
       searchPlaceholder="搜索员工姓名、部门名称、状态..."
       searchLoading={totalLoading}
-      showFieldSelector={false}
+      showFieldSelector={true}
+      fields={getFieldMetadata(tableInstance || undefined)}
+      userConfig={{ 
+        columns: getFieldMetadata(tableInstance || undefined).map(field => ({
+          field: field.name,
+          visible: field.visible,
+          order: field.order,
+          label: field.label,
+          width: field.width
+        }))
+      }}
+      onFieldConfigChange={handleFieldConfigChange}
+      onFieldConfigReset={handleFieldConfigReset}
       primaryActions={[
         // 批量创建按钮已移除
         // <ModernButton
@@ -788,6 +874,8 @@ export default function PayrollListPage() {
       onTableReady={setTableInstance}
       initialSorting={[{ id: 'actual_pay_date', desc: true }]}
       initialPagination={{ pageIndex: 0, pageSize: 20 }}
+      initialColumnVisibility={columnVisibility}
+      onColumnVisibilityChange={handleColumnVisibilityChange}
       enableExport={false}
       showGlobalFilter={false}
       showColumnToggle={false}
@@ -881,11 +969,70 @@ export default function PayrollListPage() {
           {selectedIds.length > 0 && (
             <PayrollBatchActions
               selectedCount={selectedIds.length}
-              onExport={() => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id)), 'payroll-selected')}
-              onCalculateInsurance={handleBatchCalculateInsurance}
-              onCalculatePayroll={handleBatchCalculatePayroll}
-              onCalculateAll={handleBatchCalculateAll}
               loading={batchInsuranceLoading || payrollCalculation.loading}
+              onClearSelection={() => setSelectedIds([])}
+              actions={[
+                {
+                  key: 'calculate-insurance',
+                  label: '重算五险一金',
+                  onClick: handleBatchCalculateInsurance,
+                  variant: 'outline',
+                  disabled: !selectedRecordsValidation.calculateInsurance.canOperate,
+                  title: selectedRecordsValidation.calculateInsurance.canOperate 
+                    ? '批量重算五险一金' 
+                    : selectedRecordsValidation.calculateInsurance.reason,
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16z" />
+                    </svg>
+                  )
+                },
+                {
+                  key: 'calculate-payroll',
+                  label: '重算薪资汇总',
+                  onClick: handleBatchCalculatePayroll,
+                  variant: 'outline',
+                  disabled: !selectedRecordsValidation.calculatePayroll.canOperate,
+                  title: selectedRecordsValidation.calculatePayroll.canOperate 
+                    ? '批量重算薪资汇总' 
+                    : selectedRecordsValidation.calculatePayroll.reason,
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
+                    </svg>
+                  )
+                },
+                {
+                  key: 'calculate-all',
+                  label: '重算全部',
+                  onClick: handleBatchCalculateAll,
+                  variant: 'outline',
+                  disabled: !selectedRecordsValidation.calculateAll.canOperate,
+                  title: selectedRecordsValidation.calculateAll.canOperate 
+                    ? '重算全部（五险一金+薪资汇总）' 
+                    : selectedRecordsValidation.calculateAll.reason,
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  )
+                },
+                {
+                  key: 'export',
+                  label: '导出',
+                  onClick: () => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id)), 'payroll-selected'),
+                  variant: 'outline',
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  )
+                }
+              ]}
             />
           )}
         </div>
