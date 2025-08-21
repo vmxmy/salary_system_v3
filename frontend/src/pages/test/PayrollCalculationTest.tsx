@@ -233,8 +233,8 @@ const PayrollCalculationTest: React.FC = () => {
                 >
                   <option value="">请选择期间</option>
                   {periods?.map(period => (
-                    <option key={period.id} value={period.id}>
-                      {period.period_name || period.period_code}
+                    <option key={period.period_id} value={period.period_id}>
+                      {period.period_name}
                     </option>
                   ))}
                 </select>

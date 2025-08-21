@@ -10,13 +10,14 @@
 
 import { supabase } from './supabase';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
+import { ROLE_PERMISSIONS, PERMISSIONS } from '@/constants/permissions';
 
 // 简化的用户接口
 export interface AuthUser {
   id: string;
   email: string;
   role: string;
-  permissions: string[];
+  permissions: readonly string[];
 }
 
 // 认证状态接口
@@ -27,46 +28,19 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
-// 角色权限映射
-const ROLE_PERMISSIONS: Record<string, string[]> = {
-  'super_admin': ['*'],
-  'admin': ['employee.view', 'employee.create', 'payroll.view', 'system.settings'],
-  'hr_manager': ['employee.view', 'employee.create', 'department.view'],
-  'finance_admin': ['payroll.view', 'payroll.create', 'payroll.approve'],
-  'manager': ['employee.view', 'department.view', 'payroll.view'],
-  'employee': ['employee.view']
-};
+// 使用统一的权限配置（从constants/permissions.ts导入）
 
 /**
  * 从Supabase用户构建AuthUser对象
+ * 注意：角色信息将通过专门的useUserRole hook异步获取和更新
  */
-async function buildAuthUser(user: User): Promise<AuthUser> {
-  // 获取用户角色
-  let role = 'employee';
-  try {
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
-    
-    if (roleData?.role) {
-      role = roleData.role;
-    }
-  } catch (error) {
-    console.warn('[Auth] Failed to get user role, using default:', error);
-  }
-
-  // 获取权限
-  const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS['employee'];
-
+function buildAuthUser(user: User): AuthUser {
+  // 基础用户信息，角色将由useUserRole hook异步更新
   return {
     id: user.id,
     email: user.email!,
-    role,
-    permissions
+    role: 'employee', // 默认角色，将由hook更新
+    permissions: ROLE_PERMISSIONS['employee']
   };
 }
 

@@ -39,61 +39,39 @@ export function useAvailablePayrollMonths(enabled: boolean = true) {
       
       // 使用视图获取薪资数据，按月份分组统计
       const { data, error } = await supabase
-        .from('view_payroll_summary')
-        .select('period_code, period_id, employee_id');
+        .from('view_payroll_period_completeness')
+        .select('period_name, period_id, total_employees');
 
       if (error) throw error;
 
-      // 按月份分组统计（每个月份统计不重复的员工数）
-      const monthDataMap = new Map<string, { 
-        employeeSet: Set<string>; 
-        periodId?: string;
-        periodStatus?: 'draft' | 'processing' | 'completed';
-        isLocked?: boolean;
-      }>();
+      // 直接使用视图中的数据，无需复杂的分组统计
+      const monthDataList: AvailablePayrollMonth[] = [];
       
       (data || []).forEach(row => {
-        // 使用 period_code 字段（格式：YYYY-MM）
-        if (row.period_code && row.employee_id) {
-          const monthString = row.period_code;
-          
-          // 验证月份格式
-          if (monthString && /^\d{4}-\d{2}$/.test(monthString)) {
-            if (!monthDataMap.has(monthString)) {
-              const periodInfo = row.period_id ? periodStatusMap.get(row.period_id) : undefined;
-              monthDataMap.set(monthString, { 
-                employeeSet: new Set<string>(),
-                periodId: row.period_id || undefined,
-                periodStatus: periodInfo?.status as any || 'draft',
-                isLocked: periodInfo?.isLocked || false
-              });
-            }
-            const monthData = monthDataMap.get(monthString)!;
-            monthData.employeeSet.add(row.employee_id);
-            // 保留最新的 period_id 和状态
-            if (row.period_id) {
-              monthData.periodId = row.period_id;
-              const periodInfo = periodStatusMap.get(row.period_id);
-              if (periodInfo) {
-                monthData.periodStatus = periodInfo.status as any;
-                monthData.isLocked = periodInfo.isLocked;
-              }
-            }
+        // 从 period_name 提取月份格式 (如：2025年1月 -> 2025-01)
+        if (row.period_name && row.period_id) {
+          const match = row.period_name.match(/(\d{4})年(\d{1,2})月/);
+          if (match) {
+            const year = match[1];
+            const month = match[2].padStart(2, '0');
+            const monthString = `${year}-${month}`;
+            
+            const periodInfo = periodStatusMap.get(row.period_id);
+            
+            monthDataList.push({
+              month: monthString,
+              payrollCount: row.total_employees || 0, // 使用视图中的动态员工数量
+              hasData: (row.total_employees || 0) > 0,
+              periodId: row.period_id,
+              periodStatus: periodInfo?.status as any || 'draft',
+              isLocked: periodInfo?.isLocked || false
+            });
           }
         }
       });
 
-      // 转换为数组并排序（使用Set的size来获取不重复的员工数）
-      return Array.from(monthDataMap.entries())
-        .map(([month, data]) => ({
-          month,
-          payrollCount: data.employeeSet.size, // 使用Set的size获取不重复的员工数
-          hasData: true,
-          periodId: data.periodId,
-          periodStatus: data.periodStatus,
-          isLocked: data.isLocked
-        }))
-        .sort((a, b) => b.month.localeCompare(a.month));
+      // 按月份排序
+      return monthDataList.sort((a, b) => b.month.localeCompare(a.month));
     },
     staleTime: 5 * 60 * 1000, // 5 minutes cache
     refetchOnWindowFocus: false,

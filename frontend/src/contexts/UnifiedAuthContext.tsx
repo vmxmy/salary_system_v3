@@ -13,6 +13,7 @@ import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { auth, type AuthUser, type AuthState } from '@/lib/auth';
+import { useUserRole } from '@/hooks/core/useUserRole';
 
 interface AuthContextType extends AuthState {
   // 认证操作
@@ -33,8 +34,18 @@ const UnifiedAuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [baseUser, setBaseUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // 使用useUserRole hook获取角色信息
+  const userRoleData = useUserRole(baseUser?.email);
+
+  // 合并基础用户信息和角色信息
+  const user = baseUser && !userRoleData.loading ? {
+    ...baseUser,
+    role: userRoleData.role,
+    permissions: userRoleData.permissions
+  } : baseUser;
 
   const isAuthenticated = !!user;
 
@@ -58,17 +69,17 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
           try {
             const currentUser = await auth.getCurrentUser();
             if (mounted) {
-              setUser(currentUser);
+              setBaseUser(currentUser);
             }
           } catch (error) {
             console.error('[UnifiedAuth] Error building user:', error);
             if (mounted) {
-              setUser(null);
+              setBaseUser(null);
             }
           }
         } else {
           console.log('[UnifiedAuth] No session found');
-          setUser(null);
+          setBaseUser(null);
         }
         
         if (mounted) {
@@ -78,7 +89,7 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('[UnifiedAuth] Initialization error:', error);
         if (mounted) {
           setSession(null);
-          setUser(null);
+          setBaseUser(null);
           setLoading(false);
         }
       }
@@ -100,19 +111,19 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (event === 'SIGNED_OUT') {
         // 登出
         console.log('[UnifiedAuth] User signed out');
-        setUser(null);
+        setBaseUser(null);
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
         // 令牌刷新 - 重新构建用户信息
         console.log('[UnifiedAuth] Token refreshed, rebuilding user...');
         try {
           const currentUser = await auth.getCurrentUser();
           if (mounted) {
-            setUser(currentUser);
+            setBaseUser(currentUser);
           }
         } catch (error) {
           console.error('[UnifiedAuth] Error rebuilding user after token refresh:', error);
           if (mounted) {
-            setUser(null);
+            setBaseUser(null);
           }
         }
       } else if (event === 'USER_UPDATED' && session?.user) {
@@ -121,12 +132,12 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           const currentUser = await auth.getCurrentUser();
           if (mounted) {
-            setUser(currentUser);
+            setBaseUser(currentUser);
           }
         } catch (error) {
           console.error('[UnifiedAuth] Error rebuilding user after update:', error);
           if (mounted) {
-            setUser(null);
+            setBaseUser(null);
           }
         }
       }
@@ -144,7 +155,7 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
     const authUser = await auth.signIn(email, password);
     
     // 直接设置用户状态，避免等待onAuthStateChange
-    setUser(authUser);
+    setBaseUser(authUser);
     console.log('[UnifiedAuth] User state updated after signIn');
     
     return authUser;

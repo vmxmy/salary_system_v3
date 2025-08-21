@@ -8,6 +8,31 @@ import type { Database } from '@/types/supabase';
 export type PayrollPeriod = Database['public']['Tables']['payroll_periods']['Row'];
 export type PayrollPeriodInsert = Database['public']['Tables']['payroll_periods']['Insert'];
 
+// 视图类型定义，基于 view_payroll_period_completeness
+export type PayrollPeriodWithStats = {
+  period_id: string;
+  period_name: string;
+  period_year: number;
+  period_month: number;
+  period_status: string;
+  total_employees: number;
+  earnings_count: number;
+  earnings_percentage: string;
+  earnings_status: string;
+  bases_count: number;
+  bases_percentage: string;
+  bases_status: string;
+  category_count: number;
+  category_percentage: string;
+  category_status: string;
+  job_count: number;
+  job_percentage: string;
+  job_status: string;
+  complete_employees_count: number;
+  overall_completeness_percentage: string;
+  metadata_status: string;
+};
+
 type PayrollPeriodUpdate = Database['public']['Tables']['payroll_periods']['Update'];
 
 // 周期状态枚举
@@ -53,11 +78,11 @@ export const usePayrollPeriods = (filters?: {
       const to = from + pageSize - 1;
 
       let query = supabase
-        .from('payroll_periods')
+        .from('view_payroll_period_completeness')
         .select('*', { count: 'exact' });
 
       if (filters?.status) {
-        query = query.eq('status', filters.status);
+        query = query.eq('period_status', filters.status);
       }
       if (filters?.year) {
         query = query.eq('period_year', filters.year);
@@ -79,7 +104,7 @@ export const usePayrollPeriods = (filters?: {
       }
 
       return {
-        data: data || [],
+        data: (data || []) as unknown as PayrollPeriodWithStats[],
         total: count || 0,
         page,
         pageSize,

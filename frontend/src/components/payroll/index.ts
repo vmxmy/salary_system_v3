@@ -12,3 +12,8 @@ export * from './PayrollApprovalPanel';
 export * from './PayrollApprovalActions';
 export * from './ApprovalTimeline';
 export * from './ApprovalHistoryModal';
+
+// 导出通用组件
+export * from './PayrollTableContainer';
+export * from './PayrollSearchAndFilter';
+export * from './PayrollPeriodSelector';

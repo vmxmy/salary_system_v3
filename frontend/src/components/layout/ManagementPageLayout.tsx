@@ -191,6 +191,10 @@ export function ManagementPageLayout({
 
   // 渲染导出组件
   const renderExportComponent = () => {
+    // 如果显式传递 null，则不显示导出按钮
+    if (exportComponent === null) return null;
+    
+    // 如果传递了自定义导出组件，使用它
     if (exportComponent) return exportComponent;
     
     // 默认的导出按钮

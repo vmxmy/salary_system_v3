@@ -48,3 +48,4 @@ export type { UniversalTableOptions, TableAction } from './useUniversalTable';
 export { useTableConfiguration } from './useTableConfiguration';
 export { usePermission, PERMISSIONS } from './usePermission';
 export { useConfirmDialog } from './useConfirmDialog';
+export { useUserRole } from './useUserRole';
