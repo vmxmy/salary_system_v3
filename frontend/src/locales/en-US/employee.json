@@ -2,12 +2,21 @@
   "title": "Employee Management",
   "list": {
     "title": "Employee List",
+    "description": "Manage basic information and status of all company employees",
+    "empty": "No employee data",
     "addEmployee": "Add Employee",
     "importEmployees": "Batch Import",
-    "exportEmployees": "Export Employees"
+    "exportEmployees": "Export Employees",
+    "actions": {
+      "add": "Add Employee",
+      "view": "View Details",
+      "edit": "Edit Information",
+      "delete": "Delete Employee"
+    }
   },
   "fields": {
     "employeeId": "Employee ID",
+    "name": "Name",
     "fullName": "Full Name",
     "gender": "Gender",
     "dateOfBirth": "Date of Birth",
@@ -17,20 +26,29 @@
     "jobRank": "Job Rank",
     "employeeCategory": "Employee Category",
     "hireDate": "Hire Date",
+    "joinDate": "Join Date",
+    "birthDate": "Birth Date",
     "terminationDate": "Termination Date",
     "employmentStatus": "Employment Status",
     "manager": "Direct Manager",
     "email": "Email",
+    "mobilePhone": "Mobile Phone",
     "phone": "Phone",
     "address": "Address",
     "bankName": "Bank Name",
     "bankAccount": "Bank Account",
-    "accountHolder": "Account Holder"
+    "branchName": "Branch Name",
+    "accountHolder": "Account Holder",
+    "category": "Personnel Category",
+    "categoryName": "Personnel Category",
+    "baseSalary": "Base Salary"
   },
   "status": {
     "active": "Active",
     "inactive": "Inactive",
-    "onLeave": "On Leave"
+    "onLeave": "On Leave",
+    "probation": "Probation",
+    "leave": "Leave"
   },
   "gender": {
     "male": "Male",
@@ -53,6 +71,15 @@
     "documents": "Related Documents",
     "jobHistory": "Job History",
     "salaryHistory": "Salary History"
+  },
+  "sections": {
+    "basicInfo": "Basic Information",
+    "jobInfo": "Job Information",
+    "contactInfo": "Contact Information",
+    "bankInfo": "Bank Information",
+    "educationInfo": "Education Information",
+    "documents": "Document Management",
+    "auditLogs": "Audit Logs"
   },
   "form": {
     "addTitle": "Add Employee",
@@ -79,11 +106,54 @@
     "phoneInvalid": "Invalid phone number format",
     "hireDateRequired": "Please select hire date"
   },
+  "statistics": {
+    "totalEmployees": "Total Employees",
+    "departmentDistribution": "Department Distribution",
+    "ageStructure": "Age Structure",
+    "regularStaff": "Regular Staff",
+    "contractStaff": "Contract Staff",
+    "hired": "Hired",
+    "male": "Male",
+    "female": "Female",
+    "masters": "Master's",
+    "bachelorsAndBelow": "Bachelor's and Below",
+    "units": {
+      "people": "People",
+      "departments": "Departments"
+    }
+  },
   "message": {
     "addSuccess": "Employee added successfully",
     "updateSuccess": "Employee information updated successfully",
     "deleteSuccess": "Employee deleted successfully",
     "importSuccess": "Successfully imported {{count}} employees",
-    "exportSuccess": "Employee data exported successfully"
+    "exportSuccess": "Employee data exported successfully",
+    "noChangesDetected": "No changes detected",
+    "saveFailed": "Failed to save employee information"
+  },
+  "cancelEdit": "Cancel Edit",
+  "education": {
+    "title": "Education Information",
+    "institution": "Institution",
+    "unknownInstitution": "Unknown Institution",
+    "degree": "Degree",
+    "unknownDegree": "Degree Unknown",
+    "highSchoolOrBelow": "High School or Below",
+    "major": "Major",
+    "unspecifiedMajor": "Unspecified Major",
+    "graduationDate": "Graduation Date",
+    "notes": "Notes",
+    "notesPlaceholder": "Migrated from old system, original degree: University Bachelor's",
+    "noData": "No education information",
+    "add": "Add Education Information",
+    "edit": "Edit Education Information",
+    "createSuccess": "Education information added successfully",
+    "createFailed": "Failed to add education information",
+    "updateSuccess": "Education information updated successfully",
+    "updateFailed": "Failed to update education information",
+    "deleteSuccess": "Education information deleted successfully",
+    "deleteFailed": "Failed to delete education information",
+    "loadFailed": "Failed to load education information",
+    "confirmDelete": "Are you sure you want to delete this education record?"
   }
 }

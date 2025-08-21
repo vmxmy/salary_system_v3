@@ -38,8 +38,8 @@ export default function DashboardPage() {
         <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span>{error instanceof Error ? error.message : '数据加载失败'}</span>
-        <button className="btn btn-sm" onClick={actions.refresh}>重试</button>
+        <span>{error instanceof Error ? error.message : t('dashboard:error.loadFailed')}</span>
+        <button className="btn btn-sm" onClick={actions.refresh}>{t('dashboard:error.retry')}</button>
       </div>
     );
   }
@@ -53,7 +53,10 @@ export default function DashboardPage() {
           <div className="stat-title">{t('dashboard:stats.totalEmployees')}</div>
           <div className="stat-value text-primary">{stats?.totalEmployees || 0}</div>
           <div className="stat-desc">
-            在职 {stats?.activeEmployees || 0} / 离职 {stats?.terminatedEmployees || 0}
+            {t('dashboard:stats.activeInactive', { 
+              active: stats?.activeEmployees || 0, 
+              inactive: stats?.terminatedEmployees || 0 
+            })}
           </div>
         </div>
 
@@ -61,7 +64,7 @@ export default function DashboardPage() {
           <div className="stat-title">{t('dashboard:stats.departments')}</div>
           <div className="stat-value text-secondary">{stats?.totalDepartments || 0}</div>
           <div className="stat-desc">
-            本月新增 {stats?.newDepartmentsThisMonth || 0} 个
+            {t('dashboard:stats.newDepartmentsThisMonth', { count: stats?.newDepartmentsThisMonth || 0 })}
           </div>
         </div>
 
@@ -69,7 +72,10 @@ export default function DashboardPage() {
           <div className="stat-title">{t('dashboard:stats.payrollTotal')}</div>
           <div className="stat-value">{currency(stats?.lastPayrollTotal || 0)}</div>
           <div className="stat-desc">
-            {stats?.daysUntilNextPayroll ? `${stats.daysUntilNextPayroll} 天后发薪` : '待定'}
+            {stats?.daysUntilNextPayroll ? 
+              t('dashboard:stats.daysUntilPayroll', { days: stats.daysUntilNextPayroll }) : 
+              t('dashboard:stats.pending')
+            }
           </div>
         </div>
 
@@ -77,7 +83,7 @@ export default function DashboardPage() {
           <div className="stat-title">{t('dashboard:stats.activePositions')}</div>
           <div className="stat-value">{stats?.totalPositions || 0}</div>
           <div className="stat-desc">
-            本月新入职 {stats?.newEmployeesThisMonth || 0} 人
+            {t('dashboard:stats.newEmployeesThisMonth', { count: stats?.newEmployeesThisMonth || 0 })}
           </div>
         </div>
       </div>
@@ -97,7 +103,7 @@ export default function DashboardPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-base-content/60">暂无最近活动</p>
+                <p className="text-base-content/60">{t('dashboard:activities.noRecentActivities')}</p>
               )}
             </div>
           </div>
@@ -138,18 +144,18 @@ export default function DashboardPage() {
 
       <div className="card bg-base-100 shadow">
         <div className="card-body">
-          <h2 className="card-title">薪资发放信息</h2>
+          <h2 className="card-title">{t('dashboard:payrollInfo.title')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <p className="text-sm text-base-content/60">上次发薪日期</p>
+              <p className="text-sm text-base-content/60">{t('dashboard:payrollInfo.lastPayDate')}</p>
               <p className="text-lg font-semibold">{date(stats?.lastPayrollDate || null)}</p>
             </div>
             <div>
-              <p className="text-sm text-base-content/60">上次发薪人数</p>
-              <p className="text-lg font-semibold">{stats?.lastPayrollEmployeeCount || 0} 人</p>
+              <p className="text-sm text-base-content/60">{t('dashboard:payrollInfo.lastPayCount')}</p>
+              <p className="text-lg font-semibold">{stats?.lastPayrollEmployeeCount || 0} {t('dashboard:payrollInfo.people')}</p>
             </div>
             <div>
-              <p className="text-sm text-base-content/60">下次发薪日期</p>
+              <p className="text-sm text-base-content/60">{t('dashboard:payrollInfo.nextPayDate')}</p>
               <p className="text-lg font-semibold">{date(stats?.nextPayrollDate || null)}</p>
             </div>
           </div>

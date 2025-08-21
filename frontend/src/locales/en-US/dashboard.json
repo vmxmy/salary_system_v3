@@ -8,7 +8,12 @@
     "fromLastMonth": "↗︎ {{percent}}% from last month",
     "newThisMonth": "{{count}} new this month",
     "nextRunIn": "Next run in {{days}} days",
-    "vacantPositions": "↘︎ {{count}} vacant positions"
+    "vacantPositions": "↘︎ {{count}} vacant positions",
+    "activeInactive": "Active {{active}} / Inactive {{inactive}}",
+    "newDepartmentsThisMonth": "{{count}} new this month",
+    "daysUntilPayroll": "{{days}} days until payday",
+    "newEmployeesThisMonth": "{{count}} new employees this month",
+    "pending": "Pending"
   },
   "recentActivities": {
     "title": "Recent Activities",
@@ -22,5 +27,19 @@
     "runPayroll": "Run Payroll",
     "viewReports": "View Reports",
     "settings": "Settings"
+  },
+  "payrollInfo": {
+    "title": "Payroll Information",
+    "lastPayDate": "Last Pay Date",
+    "lastPayCount": "Last Pay Count",
+    "nextPayDate": "Next Pay Date",
+    "people": "People"
+  },
+  "error": {
+    "loadFailed": "Failed to load data",
+    "retry": "Retry"
+  },
+  "activities": {
+    "noRecentActivities": "No recent activities"
   }
 }

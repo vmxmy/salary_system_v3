@@ -8,7 +8,12 @@
     "fromLastMonth": "较上月增长 {{percent}}%",
     "newThisMonth": "本月新增 {{count}} 个",
     "nextRunIn": "{{days}} 天后执行",
-    "vacantPositions": "{{count}} 个空缺职位"
+    "vacantPositions": "{{count}} 个空缺职位",
+    "activeInactive": "在职 {{active}} / 离职 {{inactive}}",
+    "newDepartmentsThisMonth": "本月新增 {{count}} 个",
+    "daysUntilPayroll": "{{days}} 天后发薪",
+    "newEmployeesThisMonth": "本月新入职 {{count}} 人",
+    "pending": "待定"
   },
   "recentActivities": {
     "title": "最近活动",
@@ -22,5 +27,19 @@
     "runPayroll": "执行薪资",
     "viewReports": "查看报表",
     "settings": "系统设置"
+  },
+  "payrollInfo": {
+    "title": "薪资发放信息",
+    "lastPayDate": "上次发薪日期",
+    "lastPayCount": "上次发薪人数",
+    "nextPayDate": "下次发薪日期",
+    "people": "人"
+  },
+  "error": {
+    "loadFailed": "数据加载失败",
+    "retry": "重试"
+  },
+  "activities": {
+    "noRecentActivities": "暂无最近活动"
   }
 }

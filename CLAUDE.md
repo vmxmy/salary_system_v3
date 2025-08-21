@@ -482,3 +482,4 @@ npm run dev
 3. **状态同步**：使用事件机制同步组件间的主题状态
 4. **性能优化**：避免频繁切换主题，使用防抖
 5. **用户体验**：保存用户选择的主题到 localStorage
+- 归档文件夹: /Users/xumingyang/app/高新区工资信息管理/salary_system/webapp/v3/archived

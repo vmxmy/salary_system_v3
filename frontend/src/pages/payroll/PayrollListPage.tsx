@@ -17,7 +17,12 @@ import { usePayrollCalculation } from '@/hooks/payroll/usePayrollCalculation';
 import { 
   PayrollBatchActions, 
   PayrollDetailModal, 
-  CalculationProgressModal, 
+  CalculationProgressModal,
+  BatchApprovalProgressModal,
+  createBatchApprovalItems,
+  updateBatchApprovalItem,
+  calculateBatchSummary,
+  type BatchApprovalItem,
   PayrollTableContainer,
   PayrollSearchAndFilter,
   PayrollPeriodSelector,
@@ -91,6 +96,23 @@ export default function PayrollListPage() {
   const [calculationSteps, setCalculationSteps] = useState<any[]>([]);
   const [currentCalculationStep, setCurrentCalculationStep] = useState<string>('');
   const [calculationProgress, setCalculationProgress] = useState(0);
+
+  // 提交审批进度模态框状态
+  const [submitProgressModal, setSubmitProgressModal] = useState<{
+    open: boolean;
+    items: BatchApprovalItem[];
+    currentItemId?: string;
+    totalProgress: number;
+    allowCancel: boolean;
+  }>({
+    open: false,
+    items: [],
+    currentItemId: '',
+    totalProgress: 0,
+    allowCancel: true
+  });
+  
+  const submitAbortControllerRef = useRef<AbortController | null>(null);
 
   // 从选中的周期获取年月信息
   const [periodYear, setPeriodYear] = useState<number | undefined>();
@@ -243,19 +265,178 @@ export default function PayrollListPage() {
       return;
     }
 
-    setConfirmModal(prev => ({ ...prev, loading: true }));
+    // 关闭确认模态框
+    setConfirmModal(prev => ({ ...prev, open: false, loading: false }));
     
+    // 启动提交进度模态框
+    startSubmitOperation();
+  }, [selectedIds, showError]);
+
+  // 启动提交操作
+  const startSubmitOperation = useCallback(() => {
+    // 从薪资列表数据中筛选选中的记录
+    const selectedPayrollData = (allData || []).filter((payroll: any) => 
+      selectedIds.includes(payroll.payroll_id)
+    );
+    
+    // 创建批量提交项目
+    const items = createBatchApprovalItems(
+      selectedPayrollData.length > 0 ? 
+        selectedPayrollData.map((payroll: any) => ({
+          payroll_id: payroll.payroll_id || payroll.id,
+          employee_name: payroll.employee_name || '未知员工',
+          net_pay: payroll.net_pay || 0
+        })) : 
+        selectedIds.map(id => ({
+          payroll_id: id,
+          employee_name: '未知员工',
+          net_pay: 0
+        }))
+    );
+    
+    setSubmitProgressModal({
+      open: true,
+      items,
+      currentItemId: undefined,
+      totalProgress: 0,
+      allowCancel: true
+    });
+    
+    // 创建新的取消控制器
+    submitAbortControllerRef.current = new AbortController();
+    
+    // 开始执行提交操作
+    executeSubmitOperation(items);
+  }, [selectedIds, allData]);
+
+  // 执行提交操作
+  const executeSubmitOperation = useCallback(async (items: BatchApprovalItem[]) => {
     try {
-      // 调用审批hook的提交方法
-      await approval.actions.submit(selectedIds, '批量提交审批');
-      showSuccess(`成功提交 ${selectedIds.length} 条薪资记录`);
-      setSelectedIds([]);
-      setConfirmModal(prev => ({ ...prev, open: false, loading: false }));
+      const batchSize = 5; // 每批处理5条记录
+      const totalItems = items.length;
+      let processedCount = 0;
+      
+      // 分批处理以显示进度
+      for (let i = 0; i < totalItems; i += batchSize) {
+        // 检查是否被取消
+        if (submitAbortControllerRef.current?.signal.aborted) {
+          console.log('提交操作被取消');
+          return;
+        }
+        
+        const batch = selectedIds.slice(i, i + batchSize);
+        
+        // 更新当前处理项目的状态为processing
+        batch.forEach(payrollId => {
+          setSubmitProgressModal(prev => ({
+            ...prev,
+            items: updateBatchApprovalItem(prev.items, payrollId, {
+              status: 'processing',
+              message: '正在提交...'
+            }),
+            currentItemId: payrollId
+          }));
+        });
+        
+        try {
+          // 执行提交操作
+          const results = await new Promise<any>((resolve) => {
+            approval.mutations.submitForApproval.mutate(
+              { payrollIds: batch, comments: '批量提交审批' },
+              {
+                onSuccess: (data) => resolve(data),
+                onError: (error) => {
+                  // 处理错误情况
+                  const errorResults = batch.map(payrollId => ({
+                    payroll_id: payrollId,
+                    success: false,
+                    message: error.message
+                  }));
+                  resolve(errorResults);
+                }
+              }
+            );
+          });
+          
+          // 更新结果状态
+          results.forEach((result: any) => {
+            setSubmitProgressModal(prev => ({
+              ...prev,
+              items: updateBatchApprovalItem(prev.items, result.payroll_id, {
+                status: result.success ? 'completed' : 'error',
+                message: result.message,
+                error: result.success ? undefined : result.message
+              })
+            }));
+          });
+          
+        } catch (error) {
+          // 处理批次错误
+          batch.forEach(payrollId => {
+            setSubmitProgressModal(prev => ({
+              ...prev,
+              items: updateBatchApprovalItem(prev.items, payrollId, {
+                status: 'error',
+                error: error instanceof Error ? error.message : '提交失败'
+              })
+            }));
+          });
+        }
+        
+        processedCount += batch.length;
+        const progress = Math.min((processedCount / totalItems) * 100, 100);
+        setSubmitProgressModal(prev => ({
+          ...prev,
+          totalProgress: progress,
+          currentItemId: undefined
+        }));
+        
+        // 短暂延迟以显示进度效果
+        if (i + batchSize < totalItems) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      // 操作完成，清空选择并触发成功回调
+      setTimeout(() => {
+        setSelectedIds([]);
+        // 刷新数据
+        // payrollsQuery.refetch();
+      }, 1000);
+      
     } catch (error) {
-      showError(`提交失败: ${error instanceof Error ? error.message : '未知错误'}`);
-      setConfirmModal(prev => ({ ...prev, loading: false }));
+      console.error('提交操作执行失败:', error);
+      // 将所有剩余项目标记为错误
+      setSubmitProgressModal(prev => ({
+        ...prev,
+        items: prev.items.map(item => 
+          item.status === 'pending' || item.status === 'processing' ? {
+            ...item,
+            status: 'error' as const,
+            error: error instanceof Error ? error.message : '操作失败'
+          } : item
+        ),
+        totalProgress: 100
+      }));
     }
-  }, [selectedIds, approval.actions, showSuccess, showError]);
+  }, [selectedIds, approval.mutations.submitForApproval]);
+
+  // 取消提交操作
+  const cancelSubmitOperation = useCallback(() => {
+    submitAbortControllerRef.current?.abort();
+    setSubmitProgressModal(prev => ({ ...prev, open: false }));
+  }, []);
+
+  // 关闭提交进度模态框
+  const closeSubmitProgressModal = useCallback(() => {
+    setSubmitProgressModal({
+      open: false,
+      items: [],
+      currentItemId: '',
+      totalProgress: 0,
+      allowCancel: true
+    });
+  }, []);
 
 
   // 统计卡片数据
@@ -892,6 +1073,20 @@ export default function PayrollListPage() {
             loading={confirmModal.loading}
             onConfirm={handleBatchSubmit}
             onClose={() => setConfirmModal(prev => ({ ...prev, open: false, loading: false }))}
+          />
+
+          {/* 提交审批进度模态框 */}
+          <BatchApprovalProgressModal
+            isOpen={submitProgressModal.open}
+            onClose={closeSubmitProgressModal}
+            title="批量提交审批"
+            operationType="approve"
+            items={submitProgressModal.items}
+            currentItemId={submitProgressModal.currentItemId}
+            totalProgress={submitProgressModal.totalProgress}
+            allowCancel={submitProgressModal.allowCancel}
+            onCancel={cancelSubmitOperation}
+            summary={submitProgressModal.items.length > 0 ? calculateBatchSummary(submitProgressModal.items) : undefined}
           />
         </>
       }

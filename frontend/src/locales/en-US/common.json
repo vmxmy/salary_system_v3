@@ -12,12 +12,20 @@
     "payrollManagement": "Payroll Management",
     "payrollMetadata": "Payroll Metadata",
     "payrollImport": "Import Payroll",
+    "payrollApproval": "Payroll Approval",
     "organization": "Organization",
     "departments": "Departments",
     "positions": "Positions",
     "admin": "Admin",
     "profile": "Profile",
-    "logout": "Logout"
+    "settings": "Settings",
+    "logout": "Logout",
+    "testFeatures": "Test Features",
+    "newTableArchitecture": "New Table Architecture Test",
+    "testMetadata": "Metadata Test",
+    "insuranceCalculation": "Insurance Calculation Test",
+    "fontTest": "Font Test",
+    "validationTest": "Validation Test"
   },
   "viewMode": "View Mode",
   "tableView": "Table",
@@ -84,7 +92,13 @@
     "updatedAt": "Updated At",
     "createdBy": "Created By",
     "updatedBy": "Updated By",
-    "filterHelp": "Enter text to filter this column"
+    "filterHelp": "Enter text to filter this column",
+    "person": "Person",
+    "allStatus": "All Status",
+    "unknown": "Unknown",
+    "applicable": "Applicable",
+    "notApplicable": "Not Applicable",
+    "ongoing": "Ongoing"
   },
   "table": {
     "noData": "No Data",
@@ -106,6 +120,18 @@
     "unique": "This value already exists",
     "confirm": "The two inputs do not match"
   },
+  "status": {
+    "online": "Online",
+    "offline": "Offline",
+    "busy": "Busy",
+    "away": "Away"
+  },
+  "priority": {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
   "message": {
     "saveSuccess": "Saved successfully",
     "deleteSuccess": "Deleted successfully",
@@ -118,8 +144,12 @@
     "serverError": "Server error, please contact administrator",
     "sessionExpired": "Session expired, please login again"
   },
+  "error": {
+    "loadFailed": "Failed to load data"
+  },
   "placeholder": {
     "search": "Please enter search content",
+    "searchEmployee": "Search employees, departments, payroll...",
     "select": "Please select", 
     "input": "Please enter",
     "date": "Please select date",
@@ -159,5 +189,87 @@
     "noData": "No data available",
     "noDataDescription": "Try adjusting your search criteria or clear filters",
     "showingRows": "Showing {{from}} - {{to}} of {{total}} rows"
+  },
+  "filter": {
+    "advanced": "Advanced Filter",
+    "advancedFilters": "Advanced Filters",
+    "addFilter": "Add Filter",
+    "clearAll": "Clear All",
+    "noFiltersAdded": "No filters added yet",
+    "clickAddFilterToStart": "Click \"Add Filter\" to get started",
+    "equals": "Equals",
+    "contains": "Contains",
+    "startsWith": "Starts with",
+    "endsWith": "Ends with",
+    "greaterThan": "Greater than",
+    "lessThan": "Less than",
+    "between": "Between",
+    "in": "In",
+    "enterValue": "Enter value",
+    "enterSecondValue": "Enter second value",
+    "and": "And"
+  },
+  "sort": {
+    "advanced": "Advanced Sort",
+    "advancedSorting": "Advanced Sorting",
+    "addSort": "Add Sort",
+    "clearAll": "Clear All",
+    "noSortingApplied": "No sorting applied",
+    "clickAddSortToStart": "Click \"Add Sort\" to get started",
+    "priority": "Priority",
+    "column": "Column",
+    "direction": "Direction",
+    "ascending": "Ascending",
+    "descending": "Descending",
+    "moveUp": "Move Up",
+    "moveDown": "Move Down",
+    "remove": "Remove",
+    "multiSortInfo": "Multi-Column Sort Info",
+    "multiSortDescription": "Sorting will be applied in priority order, with Priority 1 having the highest weight",
+    "allColumnsSorted": "All sortable columns have been added"
+  },
+  "columns": {
+    "columns": "Columns",
+    "columnVisibility": "Column Visibility",
+    "searchColumns": "Search columns...",
+    "showAll": "Show All",
+    "hideAll": "Hide All",
+    "reset": "Reset",
+    "hidden": "Hidden",
+    "noColumnsFound": "No matching columns found",
+    "presets": "Presets",
+    "actions": "Actions",
+    "saveAsPreset": "Save as Preset",
+    "deletePreset": "Delete Preset",
+    "tip": "Tip",
+    "tipDescription": "You can save multiple column display presets for quick switching between different view modes",
+    "enterPresetName": "Enter preset name",
+    "presetSaved": "Preset \"{{name}}\" saved"
+  },
+  "export": {
+    "export": "Export",
+    "exportData": "Export Data",
+    "format": "Export Format",
+    "fileName": "File Name",
+    "enterFileName": "Enter file name",
+    "includeHeaders": "Include Headers",
+    "includeHeadersDescription": "Include column headers in exported file",
+    "visibleColumnsOnly": "Visible columns only",
+    "selectedRowsOnly": "Selected rows only",
+    "summary": "Export Summary",
+    "rowsToExport": "Rows to export",
+    "columnsToExport": "Columns to export",
+    "fileFormat": "File Format",
+    "startExport": "Start Export",
+    "exporting": "Exporting...",
+    "noDataToExport": "No data to export",
+    "exportFailed": "Export failed",
+    "noDataAvailable": "No data available",
+    "csvDescription": "Universal format, good compatibility",
+    "excelDescription": "Supports complex formatting and formulas",
+    "jsonDescription": "Developer-friendly format",
+    "pdfDescription": "Suitable for printing and archiving",
+    "columnsCount": "{{count}} columns total",
+    "selectedRowsCount": "{{count}} / {{total}} rows selected"
   }
 }

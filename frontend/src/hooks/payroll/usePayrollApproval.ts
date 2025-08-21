@@ -415,22 +415,53 @@ export function usePayrollApproval() {
   });
 
   /**
-   * 批量标记为已发放
+   * 批量标记为已发放 - 前端实现，不使用RPC函数
    */
   const markAsPaid = useMutation({
     mutationFn: async ({ payrollIds, comments }: ApprovalParams) => {
       setIsProcessing(true);
       
-      const { data, error } = await supabase.rpc('batch_mark_as_paid', {
-        p_payroll_ids: payrollIds,
-        p_comments: comments,
+      // 使用分批 UPDATE 纯更新操作 - 前端实现
+      const currentTime = new Date().toISOString();
+      const BATCH_SIZE = 20;
+      const allUpdatedIds: string[] = [];
+      
+      // 分批处理避免 URL 过长
+      for (let i = 0; i < payrollIds.length; i += BATCH_SIZE) {
+        const batch = payrollIds.slice(i, i + BATCH_SIZE);
+        
+        const { data: batchData, error: batchError } = await supabase
+          .from('payrolls')
+          .update({
+            status: 'paid',
+            paid_at: currentTime,
+            notes: comments || '标记已发放',
+            updated_at: currentTime
+          })
+          .in('id', batch)
+          .eq('status', 'approved') // 只更新已审批状态的记录
+          .select('id');
+          
+        if (batchError) {
+          throw batchError;
+        }
+        
+        allUpdatedIds.push(...(batchData?.map(item => item.id) || []));
+      }
+      
+      const data = allUpdatedIds.map(id => ({ id }));
+
+      // 构建批量操作结果
+      const results: BatchResult[] = payrollIds.map(payrollId => {
+        const wasUpdated = data?.some(item => item.id === payrollId);
+        return {
+          payroll_id: payrollId,
+          success: wasUpdated ?? false,
+          message: wasUpdated ? '标记发放成功' : '未找到记录或状态不符合条件（只能标记已审批状态的记录）'
+        };
       });
 
-      if (error) {
-        throw error;
-      }
-
-      return (data || []) as BatchResult[];
+      return results;
     },
     onSuccess: async (results, variables) => {
       const successCount = results.filter(r => r.success).length;
@@ -724,6 +755,9 @@ export function usePayrollApproval() {
         }
       }
 
+      console.log('rollbackPayrolls mutation - 完成处理，返回结果:', results);
+      console.log('rollbackPayrolls mutation - 结果数量:', results.length);
+      console.log('rollbackPayrolls mutation - 成功数量:', results.filter(r => r.success).length);
       return results;
     },
     onSuccess: (results) => {
