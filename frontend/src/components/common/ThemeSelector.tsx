@@ -294,7 +294,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
         className={`btn ${buttonSize} btn-primary gap-2 transition-colors`}
         aria-label="选择主题"
       >
-        <SwatchIcon className={iconSize} />
+        <PaintBrushIcon className={iconSize} />
         {showLabels && (
           <span className="hidden sm:inline">
             {currentThemeLabel}

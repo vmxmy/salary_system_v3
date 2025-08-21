@@ -9,9 +9,10 @@ import {
 } from '@/components/employee';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useConfirmDialog } from '@/hooks/core';
-import { UserPlusIcon } from '@heroicons/react/24/outline';
+import { UserPlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
 import type { EmployeeListItem } from '@/types/employee';
+import * as XLSX from 'xlsx';
 
 /**
  * 员工管理页面
@@ -60,7 +61,7 @@ export default function EmployeeManagementPage() {
 
   // 使用员工表格 Hook
   const {
-    data,
+    data: allData,
     loading,
     error,
     statistics,
@@ -79,6 +80,27 @@ export default function EmployeeManagementPage() {
     onDeleteEmployee: handleDeleteAction,
     statusFilter: statusFilter === 'all' ? undefined : statusFilter as any,
   });
+
+  // 客户端搜索和筛选处理
+  const data = useMemo(() => {
+    let filteredData = [...(allData || [])];
+    
+    // 搜索筛选
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filteredData = filteredData.filter((item: any) => {
+        return (
+          item.employee_name?.toLowerCase().includes(query) ||
+          item.department_name?.toLowerCase().includes(query) ||
+          item.position_name?.toLowerCase().includes(query) ||
+          item.category_name?.toLowerCase().includes(query) ||
+          item.employment_status?.toLowerCase().includes(query)
+        );
+      });
+    }
+    
+    return filteredData;
+  }, [allData, searchQuery]);
   
   // 更新删除函数引用
   useEffect(() => {
@@ -303,6 +325,164 @@ export default function EmployeeManagementPage() {
     }
   }, [selectedIds, batchUpdate]);
 
+  // 通用Excel导出函数
+  const generateExcelFile = useCallback(async (exportData: any[], filename: string) => {
+    try {
+      // 准备Excel数据
+      const headers = ['员工姓名', '部门', '职位', '人员类别', '状态', '入职日期'];
+      const worksheetData = [];
+      
+      // 添加表头
+      worksheetData.push(headers);
+      
+      // 添加数据行
+      exportData.forEach((row: any) => {
+        const rowData = [
+          row.employee_name || '',
+          row.department_name || '',
+          row.position_name || '',
+          row.category_name || '',
+          row.employment_status === 'active' ? '在职' : row.employment_status === 'inactive' ? '离职' : '停职',
+          row.hire_date ? new Date(row.hire_date).toLocaleDateString('zh-CN') : ''
+        ];
+        worksheetData.push(rowData);
+      });
+      
+      // 创建工作表
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      
+      // 设置列宽
+      const columnWidths = [
+        { wch: 12 }, // 员工姓名
+        { wch: 15 }, // 部门
+        { wch: 15 }, // 职位
+        { wch: 12 }, // 人员类别
+        { wch: 8 },  // 状态
+        { wch: 12 }  // 入职日期
+      ];
+      worksheet['!cols'] = columnWidths;
+      
+      // 设置表头样式
+      const headerRange = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:F1');
+      for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+        if (!worksheet[cellAddress]) continue;
+        
+        worksheet[cellAddress].s = {
+          font: { bold: true },
+          alignment: { horizontal: 'center' },
+          fill: { fgColor: { rgb: 'E3F2FD' } }
+        };
+      }
+      
+      // 创建工作簿
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, '员工数据');
+      
+      // 生成Excel文件
+      const excelBuffer = XLSX.write(workbook, { 
+        bookType: 'xlsx', 
+        type: 'array',
+        compression: true 
+      });
+      
+      // 创建Blob并下载
+      const blob = new Blob([excelBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log('Excel文件导出成功:', filename);
+      
+    } catch (error) {
+      console.error('Excel导出失败:', error);
+      alert('Excel导出失败，请重试');
+    }
+  }, []);
+
+  // 导出处理函数
+  const handleExportCSV = useCallback(() => {
+    console.log('CSV导出被调用，数据长度：', data?.length);
+    if (!data || data.length === 0) {
+      alert('没有数据可导出');
+      return;
+    }
+    
+    // 简化的CSV导出
+    const headers = ['员工姓名', '部门', '职位', '人员类别', '状态', '入职日期'];
+    const csvContent = [
+      '\uFEFF' + headers.join(','), // BOM for UTF-8
+      ...data.map((row: any) => [
+        row.employee_name || '',
+        row.department_name || '',
+        row.position_name || '',
+        row.category_name || '',
+        row.employment_status === 'active' ? '在职' : row.employment_status === 'inactive' ? '离职' : '停职',
+        row.hire_date ? new Date(row.hire_date).toLocaleDateString('zh-CN') : ''
+      ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `员工数据_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [data]);
+
+  const handleExportExcel = useCallback(async () => {
+    console.log('Excel导出被调用，数据长度：', data?.length);
+    if (!data || data.length === 0) {
+      alert('没有数据可导出');
+      return;
+    }
+
+    const filename = `员工数据_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    await generateExcelFile(data, filename);
+  }, [data, generateExcelFile]);
+
+  const handleExportJSON = useCallback(() => {
+    console.log('JSON导出被调用，数据长度：', data?.length);
+    if (!data || data.length === 0) {
+      alert('没有数据可导出');
+      return;
+    }
+    
+    const jsonContent = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `员工数据_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [data]);
+
+  const handleExportSelected = useCallback(async () => {
+    if (selectedIds.length === 0) {
+      alert('请先选择要导出的员工');
+      return;
+    }
+    
+    const selectedData = data.filter((item: any) => selectedIds.includes(item.employee_id));
+    const filename = `员工数据_选中${selectedIds.length}项_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    
+    await generateExcelFile(selectedData, filename);
+  }, [selectedIds, data, generateExcelFile]);
+
   const isLoading = loading;
 
   return (
@@ -310,6 +490,7 @@ export default function EmployeeManagementPage() {
       <ManagementPageLayout
         title="员工管理"
         loading={isLoading}
+        showFieldSelector={false}
         exportComponent={null}
         customContent={
           <div className="space-y-6">
@@ -434,6 +615,81 @@ export default function EmployeeManagementPage() {
                     <UserPlusIcon className="w-4 h-4" />
                     添加员工
                   </button>
+                  
+                  {/* 导出按钮 */}
+                  <div className="dropdown dropdown-end dropdown-hover">
+                    <div tabIndex={0} role="button" className="btn btn-outline btn-sm">
+                      <ArrowDownTrayIcon className="w-4 h-4" />
+                      导出
+                    </div>
+                    <ul className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-300">
+                      <li>
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 w-full text-left"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleExportCSV();
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          导出为 CSV
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 w-full text-left"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleExportExcel();
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17H7A2 2 0 015 15V5a2 2 0 012-2h6l5 5v7a2 2 0 01-2 2h-2M9 17v2a2 2 0 01-2 2H5" />
+                          </svg>
+                          导出为 Excel
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 w-full text-left"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleExportJSON();
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                          </svg>
+                          导出为 JSON
+                        </button>
+                      </li>
+                      {selectedIds.length > 0 && (
+                        <>
+                          <div className="divider my-1"></div>
+                          <li>
+                            <button
+                              type="button"
+                              className="flex items-center gap-2 w-full text-left"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleExportSelected();
+                              }}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              仅导出选中项 ({selectedIds.length})
+                            </button>
+                          </li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -507,6 +763,9 @@ export default function EmployeeManagementPage() {
               columns={columns}
               loading={loading}
               enableRowSelection={false} // 选择列已在 columns 中定义
+              showGlobalFilter={false}
+              showColumnToggle={false}
+              enableExport={false}
             />
           </div>
         }

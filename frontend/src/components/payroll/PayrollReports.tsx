@@ -137,7 +137,7 @@ export function PayrollReports({ selectedMonth, onMonthChange }: PayrollReportsP
 
   // 数据处理流程 - 前端过滤和搜索
   const processedData = useMemo(() => {
-    let rawData = data?.data || [];
+    const rawData = data?.data || [];
     
     // 先转换数据格式
     let processedItems = rawData.map(item => ({

@@ -87,7 +87,7 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
   // 切换字段可见性
   const toggleFieldVisibility = useCallback((fieldName: string) => {
     const existingColumnIndex = (userConfig.columns || []).findIndex(col => col.field === fieldName);
-    let newColumns = [...(userConfig.columns || [])];
+    const newColumns = [...(userConfig.columns || [])];
 
     if (existingColumnIndex >= 0) {
       // 更新现有字段

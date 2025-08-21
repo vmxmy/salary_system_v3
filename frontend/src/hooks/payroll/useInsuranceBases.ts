@@ -48,7 +48,7 @@ export function useCurrentBases(employeeIds: string[], yearMonth?: string) {
       if (employeeIds.length === 0) return [];
 
       // 使用视图获取员工最新的缴费基数信息
-      let query = supabase
+      const query = supabase
         .from('view_employee_contribution_bases_by_period')
         .select('*')
         .in('employee_id', employeeIds);

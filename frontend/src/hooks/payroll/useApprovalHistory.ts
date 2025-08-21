@@ -96,7 +96,7 @@ async function fetchApprovalHistory(filters: ApprovalHistoryFilters = {}): Promi
   // 获取关联的薪资信息和员工信息
   const payrollIds = [...new Set(logsData.map(log => log.payroll_id))];
   
-  let payrollsData: any[] = [];
+  const payrollsData: any[] = [];
   let payrollsError: any = null;
   
   // 分批查询避免URL过长
