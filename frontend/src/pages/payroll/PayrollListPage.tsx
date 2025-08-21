@@ -17,7 +17,6 @@ import { usePayrollCalculation } from '@/hooks/payroll/usePayrollCalculation';
 import { 
   PayrollBatchActions, 
   PayrollDetailModal, 
-  CalculationProgressModal,
   BatchApprovalProgressModal,
   createBatchApprovalItems,
   updateBatchApprovalItem,
@@ -25,10 +24,7 @@ import {
   type BatchApprovalItem,
   PayrollTableContainer,
   PayrollSearchAndFilter,
-  PayrollPeriodSelector,
-  INSURANCE_CALCULATION_STEPS, 
-  PAYROLL_CALCULATION_STEPS, 
-  COMBINED_CALCULATION_STEPS 
+  PayrollPeriodSelector
 } from '@/components/payroll';
 import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
 import { PayrollCompletenessModal } from '@/components/payroll/PayrollCompletenessModal';
@@ -92,10 +88,6 @@ export default function PayrollListPage() {
     loading: boolean;
   }>({ open: false, type: 'submit', loading: false });
 
-  // 计算进度模态框状态
-  const [calculationSteps, setCalculationSteps] = useState<any[]>([]);
-  const [currentCalculationStep, setCurrentCalculationStep] = useState<string>('');
-  const [calculationProgress, setCalculationProgress] = useState(0);
 
   // 提交审批进度模态框状态
   const [submitProgressModal, setSubmitProgressModal] = useState<{
@@ -113,6 +105,23 @@ export default function PayrollListPage() {
   });
   
   const submitAbortControllerRef = useRef<AbortController | null>(null);
+
+  // 计算进度模态框状态
+  const [calculationProgressModal, setCalculationProgressModal] = useState<{
+    open: boolean;
+    type: 'insurance' | 'payroll';
+    items: BatchApprovalItem[];
+    currentItemId?: string;
+    totalProgress: number;
+    allowCancel: boolean;
+  }>({
+    open: false,
+    type: 'insurance',
+    items: [],
+    currentItemId: '',
+    totalProgress: 0,
+    allowCancel: true
+  });
 
   // 从选中的周期获取年月信息
   const [periodYear, setPeriodYear] = useState<number | undefined>();
@@ -524,74 +533,138 @@ export default function PayrollListPage() {
     }
 
     try {
-      // 从选中的薪资记录中提取员工ID
-      const employeeIds = processedData
+      // 从选中的薪资记录中提取员工ID和名称
+      const selectedRecords = processedData
         .filter(p => selectedIds.includes(p.id || p.payroll_id || ''))
-        .map(p => p.employee_id)
-        .filter(Boolean) as string[];
+        .filter(p => p.employee_id && p.employee_name);
 
-      if (employeeIds.length === 0) {
+      if (selectedRecords.length === 0) {
         showError('未找到对应的员工信息');
         return;
       }
 
-      // 初始化进度模态框
-      modalManager.calculationProgress.open(`批量重算五险一金 (${employeeIds.length}名员工)`, INSURANCE_CALCULATION_STEPS.map(step => ({
-        ...step,
-        status: step.id === 'prepare' ? 'running' : 'pending'
-      })));
+      const employeeIds = selectedRecords.map(p => p.employee_id).filter(Boolean) as string[];
 
-      setCurrentCalculationStep('prepare');
-      setCalculationProgress(0);
+      // 创建批量项目
+      const batchItems = createBatchApprovalItems(
+        selectedRecords.map(record => ({
+          payroll_id: record.id || record.payroll_id || '',
+          employee_name: record.employee_name || '',
+          net_pay: 0 // 五险一金计算不涉及实发工资显示
+        }))
+      );
 
-      // 更新步骤状态的辅助函数
-      const updateStep = (stepId: string, status: string, progress?: number, message?: string, error?: string) => {
-        setCalculationSteps(prev => prev.map(step => 
-          step.id === stepId ? { ...step, status, progress, message, error } : step
-        ));
-        setCurrentCalculationStep(stepId);
-      };
-
-      // 步骤1: 准备数据
-      updateStep('prepare', 'running', 0, '正在准备五险一金计算数据...');
-      setCalculationProgress(10);
-      
-      // 步骤2: 计算五险一金 - 使用批量API，一次完成所有员工的计算
-      updateStep('calculate', 'running', 0, `正在批量计算 ${employeeIds.length} 名员工的五险一金...`);
-      setCalculationProgress(30);
-
-      const results = await calculateBatchInsurance({
-        periodId: selectedPeriodId,
-        employeeIds,
-        includeOccupationalPension: true,
-        saveToDatabase: true
+      // 打开进度模态框
+      setCalculationProgressModal({
+        open: true,
+        type: 'insurance',
+        items: batchItems,
+        totalProgress: 0,
+        allowCancel: true
       });
 
-      const successCount = results.filter(r => r.success).length;
-      const failureCount = results.length - successCount;
+      // 批量计算五险一金
+      const batchSize = 5;
+      const totalItems = employeeIds.length;
+      let processedCount = 0;
 
-      // 步骤3: 批量操作完成，统一更新状态
-      updateStep('prepare', 'completed', 100, '数据准备完成');
-      setCalculationProgress(70);
+      for (let i = 0; i < totalItems; i += batchSize) {
+        const batch = employeeIds.slice(i, i + batchSize);
+        const batchRecords = selectedRecords.slice(i, i + batchSize);
 
-      if (successCount > 0) {
-        updateStep('calculate', 'completed', 100, `五险一金批量计算完成: ${successCount}成功${failureCount > 0 ? `, ${failureCount}失败` : ''}`);
-        setCalculationProgress(100);
+        // 更新当前批次状态
+        batchRecords.forEach(record => {
+          const recordId = record.id || record.payroll_id || '';
+          setCalculationProgressModal(prev => ({
+            ...prev,
+            items: updateBatchApprovalItem(prev.items, recordId, {
+              status: 'processing',
+              message: '正在计算五险一金...'
+            }),
+            currentItemId: recordId
+          }));
+        });
 
-        showSuccess(`批量计算五险一金完成: ${successCount}/${employeeIds.length}`);
-        refetch(); // 刷新数据
-      } else {
-        updateStep('calculate', 'error', 0, undefined, '五险一金计算失败');
-        throw new Error('五险一金计算失败');
+        try {
+          // 执行批量计算
+          const results = await calculateBatchInsurance({
+            periodId: selectedPeriodId,
+            employeeIds: batch,
+            includeOccupationalPension: true,
+            saveToDatabase: true
+          });
+
+          // 处理结果
+          results.forEach((result, index) => {
+            const record = batchRecords[index];
+            const recordId = record?.id || record?.payroll_id || '';
+            if (recordId) {
+              setCalculationProgressModal(prev => ({
+                ...prev,
+                items: updateBatchApprovalItem(prev.items, recordId, {
+                  status: result.success ? 'completed' : 'error',
+                  message: result.success ? '五险一金计算成功' : result.message,
+                  error: result.success ? undefined : result.message
+                })
+              }));
+            }
+          });
+
+        } catch (error) {
+          // 处理批次错误
+          batchRecords.forEach(record => {
+            const recordId = record.id || record.payroll_id || '';
+            setCalculationProgressModal(prev => ({
+              ...prev,
+              items: updateBatchApprovalItem(prev.items, recordId, {
+                status: 'error',
+                error: error instanceof Error ? error.message : '计算失败'
+              })
+            }));
+          });
+        }
+
+        // 更新总体进度
+        processedCount += batch.length;
+        const progress = Math.min((processedCount / totalItems) * 100, 100);
+        setCalculationProgressModal(prev => ({
+          ...prev,
+          totalProgress: progress,
+          currentItemId: undefined
+        }));
+
+        console.log(`批次 ${Math.floor(i / batchSize) + 1} 完成，总进度: ${progress.toFixed(1)}%`);
+
+        // 批次间延迟
+        if (i + batchSize < totalItems) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
       }
+
+      const successCount = batchItems.filter(item => 
+        item.status === 'completed'
+      ).length;
+
+      showSuccess(`批量计算五险一金完成: 成功 ${successCount}/${totalItems} 条记录`);
+      refetch(); // 刷新数据
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
-      setCalculationSteps(prev => prev.map(step => 
-        step.status === 'running' ? { ...step, status: 'error', error: errorMessage } : step
-      ));
       showError(`批量计算五险一金失败: ${errorMessage}`);
+      setCalculationProgressModal(prev => ({
+        ...prev,
+        allowCancel: false,
+        items: prev.items.map(item => 
+          item.status === 'pending' || item.status === 'processing' ? {
+            ...item,
+            status: 'error' as const,
+            error: errorMessage
+          } : item
+        ),
+        totalProgress: 100
+      }));
     }
-  }, [selectedPeriodId, selectedIds, processedData, calculateBatchInsurance, modalManager, showSuccess, showError, refetch]);
+  }, [selectedPeriodId, selectedIds, processedData, calculateBatchInsurance, showSuccess, showError, refetch]);
 
   // 批量计算薪资汇总
   const handleBatchCalculatePayroll = useCallback(async () => {
@@ -601,165 +674,155 @@ export default function PayrollListPage() {
     }
 
     try {
-      // 初始化进度模态框
-      modalManager.calculationProgress.open(`批量重算薪资汇总 (${selectedIds.length}条记录)`, PAYROLL_CALCULATION_STEPS.map(step => ({
-        ...step,
-        status: step.id === 'prepare' ? 'running' : 'pending'
-      })));
-
-      setCurrentCalculationStep('prepare');
-      setCalculationProgress(0);
-
-      // 更新步骤状态
-      const updateStep = (stepId: string, status: string, progress?: number, message?: string, error?: string) => {
-        setCalculationSteps(prev => prev.map(step => 
-          step.id === stepId ? { ...step, status, progress, message, error } : step
-        ));
-        setCurrentCalculationStep(stepId);
-      };
-
-      // 步骤1: 准备薪资汇总数据
-      updateStep('prepare', 'running', 0, '正在准备薪资汇总计算数据...');
-      setCalculationProgress(10);
-
-      // 步骤2: 计算薪资汇总 - 使用批量API，一次完成所有记录的计算
-      updateStep('calculate', 'running', 0, `正在批量计算 ${selectedIds.length} 条薪资汇总...`);
-      setCalculationProgress(30);
-
-      const result = await payrollCalculation.calculateBatch(selectedIds, true);
-
-      const successCount = result.summary.successCount;
-      const failureCount = result.summary.failureCount;
-
-      // 步骤3: 批量操作完成，统一更新状态
-      updateStep('prepare', 'completed', 100, '薪资汇总数据准备完成');
-      setCalculationProgress(70);
-
-      if (successCount > 0) {
-        updateStep('calculate', 'completed', 100, `薪资汇总批量计算完成: ${successCount}成功${failureCount > 0 ? `, ${failureCount}失败` : ''}`);
-        setCalculationProgress(100);
-
-        showSuccess(`批量计算薪资汇总完成: ${successCount}/${selectedIds.length}`);
-        refetch(); // 刷新数据
-      } else {
-        updateStep('calculate', 'error', 0, undefined, '薪资汇总计算失败');
-        throw new Error('薪资汇总计算失败');
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      setCalculationSteps(prev => prev.map(step => 
-        step.status === 'running' ? { ...step, status: 'error', error: errorMessage } : step
-      ));
-      showError(`批量计算薪资汇总失败: ${errorMessage}`);
-    }
-  }, [selectedIds, payrollCalculation, modalManager, showSuccess, showError, refetch]);
-
-  // 批量重算全部（五险一金+薪资汇总）
-  const handleBatchCalculateAll = useCallback(async () => {
-    if (!selectedPeriodId) {
-      showError('请先选择薪资周期');
-      return;
-    }
-
-    if (selectedIds.length === 0) {
-      showError('请选择要计算的记录');
-      return;
-    }
-
-    try {
-      // 从选中的薪资记录中提取员工ID
-      const employeeIds = processedData
+      // 准备选中记录的数据
+      const selectedRecords = processedData
         .filter(p => selectedIds.includes(p.id || p.payroll_id || ''))
-        .map(p => p.employee_id)
-        .filter(Boolean) as string[];
+        .filter(p => p.employee_name);
 
-      if (employeeIds.length === 0) {
-        showError('未找到对应的员工信息');
+      if (selectedRecords.length === 0) {
+        showError('未找到对应的记录信息');
         return;
       }
 
-      // 初始化进度模态框
-      modalManager.calculationProgress.open(`批量重算全部 (${employeeIds.length}名员工)`, COMBINED_CALCULATION_STEPS.map(step => ({
-        ...step,
-        status: step.id === 'insurance_prepare' ? 'running' : 'pending'
-      })));
+      // 创建批量项目
+      const batchItems = createBatchApprovalItems(
+        selectedRecords.map(record => ({
+          payroll_id: record.id || record.payroll_id || '',
+          employee_name: record.employee_name || '',
+          net_pay: record.net_pay || 0
+        }))
+      );
 
-      setCurrentCalculationStep('insurance_prepare');
-      setCalculationProgress(0);
-
-      // 更新步骤状态
-      const updateStep = (stepId: string, status: string, progress?: number, message?: string, error?: string) => {
-        setCalculationSteps(prev => prev.map(step => 
-          step.id === stepId ? { ...step, status, progress, message, error } : step
-        ));
-        setCurrentCalculationStep(stepId);
-      };
-
-      // 第一阶段：五险一金计算
-      // 步骤1: 准备五险一金数据
-      updateStep('insurance_prepare', 'running', 0, '正在准备五险一金计算数据...');
-      setCalculationProgress(10);
-
-      // 步骤2: 批量计算五险一金 - 使用批量API
-      updateStep('insurance_calculate', 'running', 0, `正在批量计算 ${employeeIds.length} 名员工的五险一金...`);
-      setCalculationProgress(20);
-
-      const insuranceResults = await calculateBatchInsurance({
-        periodId: selectedPeriodId,
-        employeeIds,
-        includeOccupationalPension: true,
-        saveToDatabase: true
+      // 打开进度模态框
+      setCalculationProgressModal({
+        open: true,
+        type: 'payroll',
+        items: batchItems,
+        totalProgress: 0,
+        allowCancel: true
       });
 
-      const insuranceSuccessCount = insuranceResults.filter(r => r.success).length;
-      const insuranceFailureCount = insuranceResults.length - insuranceSuccessCount;
+      // 批量计算薪资汇总 - 策略B: 分批处理
+      const batchSize = 5;
+      const totalItems = selectedIds.length;
+      let processedCount = 0;
+      let successCount = 0;
+      let failureCount = 0;
 
-      if (insuranceSuccessCount > 0) {
-        // 五险一金阶段完成，统一更新状态
-        updateStep('insurance_prepare', 'completed', 100, '五险一金数据准备完成');
-        updateStep('insurance_calculate', 'completed', 100, `五险一金批量计算完成: ${insuranceSuccessCount}成功${insuranceFailureCount > 0 ? `, ${insuranceFailureCount}失败` : ''}`);
-        updateStep('insurance_save', 'completed', 100, '五险一金结果已保存');
-        setCalculationProgress(50);
-      } else {
-        updateStep('insurance_calculate', 'error', 0, undefined, '五险一金计算失败');
-        throw new Error('五险一金计算失败');
+      for (let i = 0; i < totalItems; i += batchSize) {
+        const batch = selectedIds.slice(i, i + batchSize);
+        const batchRecords = selectedRecords.slice(i, i + batchSize);
+        const currentBatch = Math.floor(i / batchSize) + 1;
+        const totalBatches = Math.ceil(totalItems / batchSize);
+
+        console.log(`处理薪资汇总第${currentBatch}/${totalBatches}批, 包含${batch.length}条记录`);
+
+        // 更新当前批次状态为处理中
+        batchRecords.forEach(record => {
+          const recordId = record.id || record.payroll_id || '';
+          setCalculationProgressModal(prev => ({
+            ...prev,
+            items: updateBatchApprovalItem(prev.items, recordId, {
+              status: 'processing',
+              message: '正在计算薪资汇总...'
+            }),
+            currentItemId: recordId
+          }));
+        });
+
+        try {
+          // 执行当前批次的薪资汇总计算
+          console.log(`执行薪资汇总批次${currentBatch}计算，记录IDs:`, batch);
+          const result = await payrollCalculation.calculateBatch(batch, true);
+
+          // 处理批次结果
+          const batchSuccessCount = result.summary.successCount;
+          const batchFailureCount = result.summary.failureCount;
+          
+          successCount += batchSuccessCount;
+          failureCount += batchFailureCount;
+
+          // 更新批次中每条记录的状态 
+          batchRecords.forEach((record, index) => {
+            const recordId = record.id || record.payroll_id || '';
+            const isSuccess = index < batchSuccessCount; // 简化处理，假设前N个成功
+            setCalculationProgressModal(prev => ({
+              ...prev,
+              items: updateBatchApprovalItem(prev.items, recordId, {
+                status: isSuccess ? 'completed' : 'error',
+                message: isSuccess ? '薪资汇总计算完成' : result.summary.failureCount > 0 ? '薪资汇总计算失败' : '薪资汇总计算完成',
+                error: isSuccess ? undefined : '计算失败'
+              })
+            }));
+          });
+
+          console.log(`薪资汇总批次${currentBatch}完成: 成功${batchSuccessCount}, 失败${batchFailureCount}`);
+
+        } catch (error) {
+          // 处理批次错误
+          console.error(`薪资汇总批次${currentBatch}失败:`, error);
+          failureCount += batch.length;
+          
+          batchRecords.forEach(record => {
+            const recordId = record.id || record.payroll_id || '';
+            setCalculationProgressModal(prev => ({
+              ...prev,
+              items: updateBatchApprovalItem(prev.items, recordId, {
+                status: 'error',
+                error: error instanceof Error ? error.message : '计算失败'
+              })
+            }));
+          });
+        }
+
+        // 更新总体进度
+        processedCount += batch.length;
+        const progress = Math.min((processedCount / totalItems) * 100, 100);
+        setCalculationProgressModal(prev => ({
+          ...prev,
+          totalProgress: progress,
+          currentItemId: undefined
+        }));
+
+        console.log(`薪资汇总批次 ${currentBatch} 完成，总进度: ${progress.toFixed(1)}%`);
+
+        // 批次间延迟
+        if (i + batchSize < totalItems) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
 
-      // 第二阶段：薪资汇总计算
-      // 步骤4: 准备薪资汇总数据
-      updateStep('payroll_prepare', 'running', 0, '正在准备薪资汇总计算数据...');
-      setCalculationProgress(60);
-
-      // 步骤5: 批量计算薪资汇总 - 使用批量API
-      updateStep('payroll_calculate', 'running', 0, `正在批量计算 ${selectedIds.length} 条薪资汇总...`);
-      setCalculationProgress(70);
-
-      const payrollResult = await payrollCalculation.calculateBatch(selectedIds, true);
-
-      const payrollSuccessCount = payrollResult.summary.successCount;
-      const payrollFailureCount = payrollResult.summary.failureCount;
-
-      if (payrollSuccessCount > 0) {
-        // 薪资汇总阶段完成，统一更新状态
-        updateStep('payroll_prepare', 'completed', 100, '薪资汇总数据准备完成');
-        updateStep('payroll_calculate', 'completed', 100, `薪资汇总批量计算完成: ${payrollSuccessCount}成功${payrollFailureCount > 0 ? `, ${payrollFailureCount}失败` : ''}`);
-        updateStep('payroll_save', 'completed', 100, '薪资汇总结果已保存');
-        setCalculationProgress(100);
-
-        showSuccess(`批量重算全部完成: 五险一金 ${insuranceSuccessCount}/${employeeIds.length}，薪资汇总 ${payrollSuccessCount}/${selectedIds.length}`);
+      if (successCount > 0) {
+        showSuccess(`批量计算薪资汇总完成: 成功 ${successCount}/${totalItems} 条记录`);
         refetch(); // 刷新数据
       } else {
-        updateStep('payroll_calculate', 'error', 0, undefined, '薪资汇总计算失败');
         throw new Error('薪资汇总计算失败');
       }
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
-      setCalculationSteps(prev => prev.map(step => 
-        step.status === 'running' ? { ...step, status: 'error', error: errorMessage } : step
-      ));
-      showError(`批量重算全部失败: ${errorMessage}`);
+      showError(`批量计算薪资汇总失败: ${errorMessage}`);
+      setCalculationProgressModal(prev => ({
+        ...prev,
+        allowCancel: false,
+        items: prev.items.map(item => 
+          item.status === 'pending' || item.status === 'processing' ? {
+            ...item,
+            status: 'error' as const,
+            error: errorMessage
+          } : item
+        ),
+        totalProgress: 100
+      }));
     }
-  }, [selectedPeriodId, selectedIds, processedData, calculateBatchInsurance, payrollCalculation, modalManager, showSuccess, showError, refetch]);
+  }, [selectedIds, processedData, payrollCalculation, showSuccess, showError, refetch]);
+
+  // 批量重算全部（五险一金+薪资汇总）
+  const handleBatchCalculateAll = useCallback(async () => {
+    // TODO: 重新实现使用BatchApprovalProgressModal的批量重算全部功能
+    showError('批量重算全部功能正在重构中，请分别使用"重算五险一金"和"重算薪资汇总"');
+    return;
+  }, [showError]);
 
   return (
     <ManagementPageLayout
@@ -1034,13 +1097,17 @@ export default function PayrollListPage() {
             onConfirm={handleClearCurrentMonth}
             onCancel={() => setIsClearModalOpen(false)}
           />
-          <CalculationProgressModal
-            isOpen={modalManager.calculationProgress.isOpen()}
-            onClose={modalManager.calculationProgress.close}
-            title={modalManager.calculationProgress.state().title || ''}
-            steps={calculationSteps}
-            currentStep={currentCalculationStep}
-            totalProgress={calculationProgress}
+          {/* 计算进度模态框 */}
+          <BatchApprovalProgressModal
+            isOpen={calculationProgressModal.open}
+            onClose={() => setCalculationProgressModal(prev => ({ ...prev, open: false }))}
+            title={calculationProgressModal.type === 'insurance' ? '批量计算五险一金' : '批量计算薪资汇总'}
+            operationType={calculationProgressModal.type === 'insurance' ? 'approve' : 'markPaid'}
+            items={calculationProgressModal.items}
+            currentItemId={calculationProgressModal.currentItemId}
+            totalProgress={calculationProgressModal.totalProgress}
+            allowCancel={calculationProgressModal.allowCancel}
+            onCancel={() => setCalculationProgressModal(prev => ({ ...prev, open: false, allowCancel: false }))}
           />
           <PayrollCompletenessModal
             isOpen={isCompletenessModalOpen}

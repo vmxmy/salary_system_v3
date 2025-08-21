@@ -46,7 +46,7 @@ export default function PayrollApprovalPage() {
   
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<PayrollStatus | 'all'>('all'); // 默认显示全部状态
+  const [statusFilter, setStatusFilter] = useState<PayrollStatus | 'all'>('pending'); // 默认显示待审批状态
   
   // 确认模态框状态
   const [confirmModal, setConfirmModal] = useState<{
@@ -58,7 +58,7 @@ export default function PayrollApprovalPage() {
   // 批量进度模态框状态
   const [progressModal, setProgressModal] = useState<{
     open: boolean;
-    type: 'approve' | 'reject' | 'markPaid' | 'rollback';
+    type: 'approve' | 'markPaid' | 'rollback';
     items: BatchApprovalItem[];
     currentItemId?: string;
     totalProgress: number;
@@ -147,15 +147,44 @@ export default function PayrollApprovalPage() {
     })
   ], [columnHelper]);
   
-  // 计算实际的待审批列表（当状态筛选为'all'时仍显示待审批状态）
+  // 计算实际的待审批列表（当状态筛选为'all'时显示所有状态，否则按筛选状态显示）
   const pendingList = statusFilter === 'all' 
-    ? rawApprovalList?.filter(item => ['draft', 'calculating', 'calculated', 'pending'].includes(item.status))
+    ? rawApprovalList  // 显示所有状态
     : rawApprovalList;
   
   const pendingLoading = approvalLoading;
 
-  // 计算待审批总金额
-  const pendingAmount = pendingList?.reduce((sum, item) => sum + (item.net_pay || 0), 0) || 0;
+  // 计算当前筛选状态的统计数据
+  const currentFilterStats = useMemo(() => {
+    const filteredData = dataProcessor.processedData || [];
+    const count = filteredData.length;
+    const amount = filteredData.reduce((sum, item) => sum + (item.net_pay || 0), 0);
+    
+    return { count, amount };
+  }, [dataProcessor.processedData]);
+  
+  // 计算全部状态统计（用于状态筛选为'all'时显示）
+  const allStatsData = useMemo(() => {
+    if (statusFilter === 'all') {
+      return {
+        pending: (stats?.draft || 0) + (stats?.calculated || 0) + (stats?.pending || 0),
+        approved: stats?.approved || 0,
+        paid: stats?.paid || 0,
+        cancelled: stats?.cancelled || 0,
+        pendingAmount: rawApprovalList?.filter(item => ['draft', 'calculating', 'calculated', 'pending'].includes(item.status))
+          .reduce((sum, item) => sum + (item.net_pay || 0), 0) || 0
+      };
+    } else {
+      // 当前筛选状态下，只显示当前状态的数据
+      return {
+        pending: statusFilter === 'pending' ? currentFilterStats.count : 0,
+        approved: statusFilter === 'approved' ? currentFilterStats.count : 0, 
+        paid: statusFilter === 'paid' ? currentFilterStats.count : 0,
+        cancelled: statusFilter === 'cancelled' ? currentFilterStats.count : 0,
+        pendingAmount: currentFilterStats.amount
+      };
+    }
+  }, [statusFilter, stats, currentFilterStats, rawApprovalList]);
 
 
   // 处理批量审批 - 按照文档指导修正的实现
@@ -588,9 +617,21 @@ export default function PayrollApprovalPage() {
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div className="stat-title">待审批</div>
-              <div className="stat-value text-warning">{(stats?.draft || 0) + (stats?.calculated || 0) + (stats?.pending || 0)}</div>
-              <div className="stat-desc">总金额: {formatCurrency(pendingAmount)}</div>
+              <div className="stat-title">
+                {statusFilter === 'all' ? '待审批' : 
+                 statusFilter === 'pending' ? '待审批' :
+                 statusFilter === 'approved' ? '已审批' :
+                 statusFilter === 'paid' ? '已发放' :
+                 statusFilter === 'cancelled' ? '已取消' :
+                 statusFilter === 'calculated' ? '已计算' : '当前筛选'}
+              </div>
+              <div className="stat-value text-warning">
+                {statusFilter === 'all' ? allStatsData.pending : currentFilterStats.count}
+              </div>
+              <div className="stat-desc">
+                {statusFilter === 'all' ? '总金额: ' : '当前筛选: '}
+                {formatCurrency(statusFilter === 'all' ? allStatsData.pendingAmount : currentFilterStats.amount)}
+              </div>
             </div>
 
             <div className="stat">

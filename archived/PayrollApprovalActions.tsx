@@ -107,7 +107,7 @@ export function PayrollApprovalActions({
     executeBatchOperation(operation, items, comments);
   };
 
-  // 执行批量操作 - 按照文档指导修正的实现
+  // 执行批量操作 - 适配优化后的回滚逻辑
   const executeBatchOperation = async (
     operation: 'approve' | 'reject' | 'markPaid' | 'rollback', 
     items: BatchApprovalItem[],
@@ -115,12 +115,76 @@ export function PayrollApprovalActions({
   ) => {
     try {
       const totalItems = items.length;
-      let processedCount = 0;
       
-      // 所有操作统一使用策略B：分批处理
-      const batchSize = 5; // 每批处理5条记录
+      // 回滚和驳回操作使用单次批量处理，其他操作使用分批处理
+      if (operation === 'rollback' || operation === 'reject') {
+        // 回滚/驳回操作：单次批量处理所有记录（利用优化后的逻辑）
         
-      for (let i = 0; i < totalItems; i += batchSize) {
+        // 更新所有项目状态为processing
+        const operationMessage = operation === 'reject' ? '正在批量驳回...' : '正在批量回滚...';
+        selectedIds.forEach(payrollId => {
+          setProgressItems(prev => updateBatchApprovalItem(prev, payrollId, {
+            status: 'processing',
+            message: operationMessage
+          }));
+        });
+        setTotalProgress(25);
+        
+        try {
+          const results = await new Promise<any[]>((resolve) => {
+            mutations.rollbackPayrolls.mutate(
+              { payrollIds: selectedIds, reason: comments || '批量操作' },
+              {
+                onSuccess: (data) => {
+                  const operationType = operation === 'reject' ? '驳回' : '回滚';
+                  console.log(`批量${operationType}成功，记录数量: ${selectedIds.length}, 返回结果:`, data);
+                  resolve(data);
+                },
+                onError: (error) => {
+                  const operationType = operation === 'reject' ? '驳回' : '回滚';
+                  console.error(`批量${operationType}失败:`, error);
+                  const errorResults = selectedIds.map(payrollId => ({
+                    payroll_id: payrollId,
+                    success: false,
+                    message: error.message
+                  }));
+                  resolve(errorResults);
+                }
+              }
+            );
+          });
+
+          setTotalProgress(75);
+          
+          // 根据真实结果更新每个项目的状态
+          results.forEach((result: any) => {
+            setProgressItems(prev => updateBatchApprovalItem(prev, result.payroll_id, {
+              status: result.success ? 'completed' : 'error',
+              message: result.message,
+              error: result.success ? undefined : result.message
+            }));
+          });
+          
+          setTotalProgress(100);
+          
+        } catch (error) {
+          // 处理批量操作错误
+          const operationType = operation === 'reject' ? '驳回' : '回滚';
+          selectedIds.forEach(payrollId => {
+            setProgressItems(prev => updateBatchApprovalItem(prev, payrollId, {
+              status: 'error',
+              error: error instanceof Error ? error.message : `批量${operationType}失败`
+            }));
+          });
+          setTotalProgress(100);
+        }
+        
+      } else {
+        // 其他操作：使用原有的分批处理策略
+        let processedCount = 0;
+        const batchSize = 5; // 每批处理5条记录
+        
+        for (let i = 0; i < totalItems; i += batchSize) {
           // 检查是否被取消
           if (abortControllerRef.current?.signal.aborted) {
             console.log('批量操作被取消');
@@ -162,24 +226,6 @@ export function PayrollApprovalActions({
                 });
                 break;
                 
-              case 'reject':
-                results = await new Promise((resolve) => {
-                  mutations.rejectPayrolls.mutate(
-                    { payrollIds: batch, reason: comments || '批量驳回' },
-                    {
-                      onSuccess: (data) => resolve(data),
-                      onError: (error) => {
-                        const errorResults = batch.map(payrollId => ({
-                          payroll_id: payrollId,
-                          success: false,
-                          message: error.message
-                        }));
-                        resolve(errorResults);
-                      }
-                    }
-                  );
-                });
-                break;
                 
               case 'markPaid':
                 results = await new Promise((resolve) => {
@@ -188,29 +234,6 @@ export function PayrollApprovalActions({
                     {
                       onSuccess: (data) => resolve(data),
                       onError: (error) => {
-                        const errorResults = batch.map(payrollId => ({
-                          payroll_id: payrollId,
-                          success: false,
-                          message: error.message
-                        }));
-                        resolve(errorResults);
-                      }
-                    }
-                  );
-                });
-                break;
-                
-              case 'rollback':
-                results = await new Promise((resolve) => {
-                  mutations.rollbackPayrolls.mutate(
-                    { payrollIds: batch, reason: comments || '批量回滚' },
-                    {
-                      onSuccess: (data) => {
-                        console.log(`回滚批次成功，批次大小: ${batch.length}, 返回结果:`, data);
-                        resolve(data);
-                      },
-                      onError: (error) => {
-                        console.error('回滚批次失败:', error);
                         const errorResults = batch.map(payrollId => ({
                           payroll_id: payrollId,
                           success: false,
@@ -254,6 +277,7 @@ export function PayrollApprovalActions({
             await new Promise(resolve => setTimeout(resolve, 500));
           }
         }
+      }
       
       // 操作完成，触发成功回调
       setTimeout(() => {
@@ -344,7 +368,7 @@ export function PayrollApprovalActions({
           </button>
         )}
 
-        {/* 取消按钮 */}
+        {/* 回滚按钮 */}
         {canCancel && (
           <button
             className="btn btn-warning btn-sm"
@@ -352,7 +376,7 @@ export function PayrollApprovalActions({
             disabled={loading.cancel}
           >
             {loading.cancel && <span className="loading loading-spinner loading-xs"></span>}
-            取消
+            回滚
           </button>
         )}
 

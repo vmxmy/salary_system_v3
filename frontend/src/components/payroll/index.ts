@@ -9,7 +9,7 @@ export * from './PayrollList';
 export * from './PayrollBatchActions';
 export * from './CalculationProgressModal';
 export * from './BatchApprovalProgressModal';
-export * from './PayrollApprovalActions';
+// export * from './PayrollApprovalActions'; // 已废弃，使用 PayrollBatchActions 替代
 export * from './ApprovalTimeline';
 export * from './ApprovalHistoryModal';
 
