@@ -18,7 +18,7 @@ export interface PayrollColumnConfig {
   useBadge?: boolean; // 是否使用徽章样式
 }
 
-export type PayrollStatusType = 'draft' | 'calculating' | 'calculated' | 'approved' | 'paid' | 'cancelled';
+export type PayrollStatusType = 'draft' | 'calculating' | 'calculated' | 'pending' | 'approved' | 'paid' | 'cancelled';
 
 /**
  * 动态生成薪资表格列配置
@@ -249,6 +249,7 @@ export const usePayrollTableColumns = () => {
           draft: '草稿',
           calculating: '计算中',
           calculated: '已计算',
+          pending: '待审批',
           approved: '已审批',
           paid: '已发放',
           cancelled: '已取消'

@@ -16,9 +16,11 @@ import { usePayrollBatchValidation } from '@/hooks/payroll/usePayrollBatchValida
 import { usePayrollModalManager } from '@/hooks/payroll/usePayrollModalManager';
 import { formatCurrency } from '@/lib/format';
 import { formatMonth } from '@/lib/dateUtils';
-import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
+import { ManagementPageLayout } from '@/components/layout/ManagementPageLayout';
 import { useToast } from '@/contexts/ToastContext';
 import { ConfirmModal, BatchConfirmModal, RollbackConfirmModal } from '@/components/common/ConfirmModal';
+import { BatchApprovalProgressModal, createBatchApprovalItems, updateBatchApprovalItem, calculateBatchSummary } from '@/components/payroll/BatchApprovalProgressModal';
+import type { BatchApprovalItem } from '@/components/payroll/BatchApprovalProgressModal';
 import type { PayrollApprovalSummary } from '@/hooks/payroll/usePayrollApproval';
 import type { Database } from '@/types/supabase';
 import type { BasePayrollData } from '@/components/payroll/PayrollTableContainer';
@@ -46,7 +48,7 @@ export default function PayrollApprovalPage() {
   const [showFullPanel, setShowFullPanel] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<PayrollStatus | 'all'>('calculated'); // 默认显示待审批
+  const [statusFilter, setStatusFilter] = useState<PayrollStatus | 'all'>('all'); // 默认显示全部状态
   
   // 确认模态框状态
   const [confirmModal, setConfirmModal] = useState<{
@@ -54,8 +56,25 @@ export default function PayrollApprovalPage() {
     type: 'approve' | 'paid' | 'rollback';
     loading: boolean;
   }>({ open: false, type: 'approve', loading: false });
+
+  // 批量进度模态框状态
+  const [progressModal, setProgressModal] = useState<{
+    open: boolean;
+    type: 'approve' | 'reject' | 'markPaid' | 'rollback';
+    items: BatchApprovalItem[];
+    currentItemId?: string;
+    totalProgress: number;
+    allowCancel: boolean;
+  }>({
+    open: false,
+    type: 'approve',
+    items: [],
+    currentItemId: '',
+    totalProgress: 0,
+    allowCancel: true
+  });
   
-  const { queries, actions, utils } = usePayrollApproval();
+  const { queries, actions, utils, loading } = usePayrollApproval();
   
   // 使用智能周期选择hook
   const {
@@ -83,10 +102,13 @@ export default function PayrollApprovalPage() {
   const dataProcessor = usePayrollDataProcessor<PayrollApprovalData>(rawApprovalList || [], {
     searchQuery,
     statusFilter,
+    statusField: 'status', // 明确指定使用 'status' 字段
+    ensureCompatibility: true,
   });
   
   // 使用批量验证Hook
   const batchValidation = usePayrollBatchValidation(selectedIds, dataProcessor.processedData);
+  
 
   // 创建表格列定义 - 与薪资管理页面保持一致
   const columnHelper = createDataTableColumnHelper<PayrollApprovalData>();
@@ -119,7 +141,7 @@ export default function PayrollApprovalPage() {
       header: '实发合计',
       cell: (info) => formatCurrency(info.getValue() || 0)
     }),
-    columnHelper.accessor('payroll_status', {
+    columnHelper.accessor('status', {
       header: '状态',
       cell: (info) => (
         <PayrollStatusBadge status={info.getValue() as any} />
@@ -129,7 +151,7 @@ export default function PayrollApprovalPage() {
   
   // 计算实际的待审批列表（当状态筛选为'all'时仍显示待审批状态）
   const pendingList = statusFilter === 'all' 
-    ? rawApprovalList?.filter(item => ['draft', 'calculating', 'calculated'].includes(item.status))
+    ? rawApprovalList?.filter(item => ['draft', 'calculating', 'calculated', 'pending'].includes(item.status))
     : rawApprovalList;
   
   const pendingLoading = approvalLoading;
@@ -137,41 +159,6 @@ export default function PayrollApprovalPage() {
   // 计算待审批总金额
   const pendingAmount = pendingList?.reduce((sum, item) => sum + (item.net_pay || 0), 0) || 0;
 
-  // 准备统计卡片数据
-  const statCards: StatCardProps[] = useMemo(() => {
-    if (!stats) return [];
-    
-    return [
-      {
-        title: '待审批',
-        value: `${(stats.draft || 0) + (stats.calculated || 0)}`,
-        description: `总金额: ${formatCurrency(pendingAmount)}`,
-        icon: '⏳',
-        colorClass: 'bg-warning/20'
-      },
-      {
-        title: '已审批',
-        value: `${stats.approved || 0}`,
-        description: '待发放',
-        icon: '✅',
-        colorClass: 'bg-success/20'
-      },
-      {
-        title: '已发放',
-        value: `${stats.paid || 0}`,
-        description: '本月完成',
-        icon: '💰',
-        colorClass: 'bg-info/20'
-      },
-      {
-        title: '已取消',
-        value: `${stats.cancelled || 0}`,
-        description: '无效记录',
-        icon: '❌',
-        colorClass: 'bg-error/20'
-      }
-    ];
-  }, [stats, pendingAmount]);
 
   // 处理批量审批
   const handleBatchApprove = useCallback(async () => {
@@ -180,18 +167,67 @@ export default function PayrollApprovalPage() {
       return;
     }
 
+    // 准备批量审批数据
+    const selectedRecords = dataProcessor.processedData.filter(record => 
+      record.payroll_id && selectedIds.includes(record.payroll_id)
+    );
+    
+    const batchItems = createBatchApprovalItems(
+      selectedRecords
+        .filter(record => record.payroll_id && record.employee_name) // Filter out records with missing data
+        .map(record => ({
+          payroll_id: record.payroll_id!,
+          employee_name: record.employee_name!,
+          net_pay: record.net_pay || 0
+      }))
+    );
+
+    // 关闭确认模态框，显示进度模态框
+    setConfirmModal(prev => ({ ...prev, open: false }));
+    setProgressModal({
+      open: true,
+      type: 'approve',
+      items: batchItems,
+      totalProgress: 0,
+      allowCancel: true
+    });
+
     try {
-      setConfirmModal(prev => ({ ...prev, loading: true }));
-      
+      // 显示开始处理状态
+      setProgressModal(prev => ({
+        ...prev,
+        totalProgress: 10,
+        items: prev.items.map(item => ({
+          ...item,
+          status: 'processing',
+          message: '准备审批...'
+        }))
+      }));
+
+      // 执行批量审批操作 - 使用原生批量API
       await actions.approve(selectedIds);
-      showSuccess(`批量审批完成: ${selectedIds.length}/${selectedIds.length}`);
+
+      // 批量操作完成，更新所有项目状态为成功
+      setProgressModal(prev => ({
+        ...prev,
+        totalProgress: 100,
+        allowCancel: false,
+        currentItemId: undefined,
+        items: prev.items.map(item => ({
+          ...item,
+          status: 'completed',
+          message: '审批成功'
+        }))
+      }));
+
+      showSuccess(`批量审批完成: 成功审批 ${selectedIds.length} 条记录`);
       setSelectedIds([]);
+      
     } catch (error) {
-      showError('批量审批失败');
-    } finally {
-      setConfirmModal(prev => ({ ...prev, loading: false, open: false }));
+      showError('批量审批过程中发生错误');
+      setProgressModal(prev => ({ ...prev, allowCancel: false }));
     }
-  }, [selectedIds, utils, showSuccess, showError]);
+  }, [selectedIds, dataProcessor.processedData, actions, showSuccess, showError]);
 
   // 处理批量标记已发放
   const handleBatchMarkPaid = useCallback(async () => {
@@ -200,18 +236,67 @@ export default function PayrollApprovalPage() {
       return;
     }
 
+    // 准备批量发放数据
+    const selectedRecords = dataProcessor.processedData.filter(record => 
+      record.payroll_id && selectedIds.includes(record.payroll_id)
+    );
+    
+    const batchItems = createBatchApprovalItems(
+      selectedRecords
+        .filter(record => record.payroll_id && record.employee_name) // Filter out records with missing data
+        .map(record => ({
+          payroll_id: record.payroll_id!,
+          employee_name: record.employee_name!,
+          net_pay: record.net_pay || 0
+        }))
+    );
+
+    // 关闭确认模态框，显示进度模态框
+    setConfirmModal(prev => ({ ...prev, open: false }));
+    setProgressModal({
+      open: true,
+      type: 'markPaid',
+      items: batchItems,
+      totalProgress: 0,
+      allowCancel: true
+    });
+
     try {
-      setConfirmModal(prev => ({ ...prev, loading: true }));
-      
+      // 显示开始处理状态
+      setProgressModal(prev => ({
+        ...prev,
+        totalProgress: 10,
+        items: prev.items.map(item => ({
+          ...item,
+          status: 'processing',
+          message: '准备发放...'
+        }))
+      }));
+
+      // 执行批量发放操作 - 使用原生批量API
       await actions.markPaid(selectedIds);
-      showSuccess(`批量发放完成: ${selectedIds.length}/${selectedIds.length}`);
+
+      // 批量操作完成，更新所有项目状态为成功
+      setProgressModal(prev => ({
+        ...prev,
+        totalProgress: 100,
+        allowCancel: false,
+        currentItemId: undefined,
+        items: prev.items.map(item => ({
+          ...item,
+          status: 'completed',
+          message: '发放成功'
+        }))
+      }));
+
+      showSuccess(`批量发放完成: 成功发放 ${selectedIds.length} 条记录`);
       setSelectedIds([]);
+      
     } catch (error) {
-      showError('批量发放失败');
-    } finally {
-      setConfirmModal(prev => ({ ...prev, loading: false, open: false }));
+      showError('批量发放过程中发生错误');
+      setProgressModal(prev => ({ ...prev, allowCancel: false }));
     }
-  }, [selectedIds, utils, showSuccess, showError]);
+  }, [selectedIds, dataProcessor.processedData, actions, showSuccess, showError]);
 
   // 处理批量回滚
   const handleBatchRollback = useCallback(async (reason: string) => {
@@ -220,18 +305,67 @@ export default function PayrollApprovalPage() {
       return;
     }
 
+    // 准备批量回滚数据
+    const selectedRecords = dataProcessor.processedData.filter(record => 
+      record.payroll_id && selectedIds.includes(record.payroll_id)
+    );
+    
+    const batchItems = createBatchApprovalItems(
+      selectedRecords
+        .filter(record => record.payroll_id && record.employee_name) // Filter out records with missing data
+        .map(record => ({
+          payroll_id: record.payroll_id!,
+          employee_name: record.employee_name!,
+          net_pay: record.net_pay || 0
+        }))
+    );
+
+    // 关闭确认模态框，显示进度模态框
+    setConfirmModal(prev => ({ ...prev, open: false }));
+    setProgressModal({
+      open: true,
+      type: 'rollback',
+      items: batchItems,
+      totalProgress: 0,
+      allowCancel: true
+    });
+
     try {
-      setConfirmModal(prev => ({ ...prev, loading: true }));
-      
+      // 显示开始处理状态
+      setProgressModal(prev => ({
+        ...prev,
+        totalProgress: 10,
+        items: prev.items.map(item => ({
+          ...item,
+          status: 'processing',
+          message: '准备回滚...'
+        }))
+      }));
+
+      // 执行批量回滚操作 - 使用原生批量API
       await actions.rollback(selectedIds, reason);
-      showSuccess(`批量回滚完成: ${selectedIds.length}/${selectedIds.length}`);
+
+      // 批量操作完成，更新所有项目状态为成功
+      setProgressModal(prev => ({
+        ...prev,
+        totalProgress: 100,
+        allowCancel: false,
+        currentItemId: undefined,
+        items: prev.items.map(item => ({
+          ...item,
+          status: 'completed',
+          message: '回滚成功'
+        }))
+      }));
+
+      showSuccess(`批量回滚完成: 成功回滚 ${selectedIds.length} 条记录`);
       setSelectedIds([]);
+      
     } catch (error) {
-      showError('批量回滚失败');
-    } finally {
-      setConfirmModal(prev => ({ ...prev, loading: false, open: false }));
+      showError('批量回滚过程中发生错误');
+      setProgressModal(prev => ({ ...prev, allowCancel: false }));
     }
-  }, [selectedIds, utils, showSuccess, showError]);
+  }, [selectedIds, dataProcessor.processedData, actions, showSuccess, showError]);
 
   const isLoading = approvalLoading || statsLoading || isPeriodLoading;
 
@@ -242,39 +376,54 @@ export default function PayrollApprovalPage() {
       exportComponent={null}
       customContent={
         <div className="space-y-6">
-          {/* 统计数据卡片 */}
-          <div className="card bg-base-100 shadow-sm border border-base-200 p-6">
-            <h3 className="text-lg font-semibold text-base-content mb-4 flex items-center gap-2">
-              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              审批统计概览
-            </h3>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {statCards.map((card, index) => (
-                <div key={index} className="stat bg-base-200 rounded-lg p-4">
-                  <div className="stat-figure">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      card.colorClass || 'bg-info/20'
-                    }`}>
-                      {typeof card.icon === 'string' ? (
-                        <span className="text-lg">{card.icon}</span>
-                      ) : (
-                        card.icon
-                      )}
-                    </div>
-                  </div>
-                  <div className="stat-title text-xs text-base-content/60">{card.title}</div>
-                  <div className="stat-value text-lg text-base-content">{card.value}</div>
-                  {card.description && (
-                    <div className="stat-desc text-xs text-base-content/60">
-                      {card.description}
-                    </div>
-                  )}
-                </div>
-              ))}
+          {/* 薪资审批统计概览 - 使用 DaisyUI 标准 stats 组件 */}
+          <div className="stats shadow w-full">
+            <div className="stat">
+              <div className="stat-figure text-warning">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="stat-title">待审批</div>
+              <div className="stat-value text-warning">{(stats?.draft || 0) + (stats?.calculated || 0) + (stats?.pending || 0)}</div>
+              <div className="stat-desc">总金额: {formatCurrency(pendingAmount)}</div>
+            </div>
+
+            <div className="stat">
+              <div className="stat-figure text-success">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="stat-title">已审批</div>
+              <div className="stat-value text-success">{stats?.approved || 0}</div>
+              <div className="stat-desc">待发放</div>
+            </div>
+
+            <div className="stat">
+              <div className="stat-figure text-info">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div className="stat-title">已发放</div>
+              <div className="stat-value text-info">{stats?.paid || 0}</div>
+              <div className="stat-desc">本月完成</div>
+            </div>
+
+            <div className="stat">
+              <div className="stat-figure text-error">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="stat-title">已取消</div>
+              <div className="stat-value text-error">{stats?.cancelled || 0}</div>
+              <div className="stat-desc">无效记录</div>
             </div>
           </div>
 
@@ -308,7 +457,8 @@ export default function PayrollApprovalPage() {
                     onChange={(e) => setStatusFilter(e.target.value as PayrollStatus | 'all')}
                   >
                     <option value="all">全部状态</option>
-                    <option value="calculated">待审批</option>
+                    <option value="calculated">已计算</option>
+                    <option value="pending">待审批</option>
                     <option value="approved">已审批</option>
                     <option value="rejected">已拒绝</option>
                     <option value="paid">已发放</option>
@@ -393,7 +543,8 @@ export default function PayrollApprovalPage() {
             <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
               <PayrollBatchActions
                 selectedCount={selectedIds.length}
-                loading={confirmModal.loading}
+                loading={loading.approve || loading.markPaid || loading.rollback || progressModal.open}
+                statusStats={batchValidation.statusStats}
                 onClearSelection={() => setSelectedIds([])}
                 actions={[
                   {
@@ -473,6 +624,8 @@ export default function PayrollApprovalPage() {
             open={modalManager.history.isOpen()}
             onClose={modalManager.history.close}
             initialPeriodId={selectedPeriodId}
+            autoRefresh={true}
+            refreshInterval={15000}
           />
 
           {/* 确认模态框 */}
@@ -484,7 +637,7 @@ export default function PayrollApprovalPage() {
               variant="primary"
               loading={confirmModal.loading}
               onConfirm={handleBatchApprove}
-              onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+              onClose={() => setConfirmModal({ open: false, type: 'approve', loading: false })}
             />
           )}
 
@@ -496,7 +649,7 @@ export default function PayrollApprovalPage() {
               variant="success"
               loading={confirmModal.loading}
               onConfirm={handleBatchMarkPaid}
-              onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+              onClose={() => setConfirmModal({ open: false, type: 'approve', loading: false })}
             />
           )}
 
@@ -505,10 +658,32 @@ export default function PayrollApprovalPage() {
               open={confirmModal.open}
               selectedCount={selectedIds.length}
               onConfirm={handleBatchRollback}
-              onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+              onClose={() => setConfirmModal({ open: false, type: 'approve', loading: false })}
               loading={confirmModal.loading}
             />
           )}
+
+          {/* 批量审批进度模态框 */}
+          <BatchApprovalProgressModal
+            isOpen={progressModal.open}
+            onClose={() => setProgressModal(prev => ({ ...prev, open: false }))}
+            title={
+              progressModal.type === 'approve' ? '批量审批进度' :
+              progressModal.type === 'markPaid' ? '批量发放进度' :
+              progressModal.type === 'rollback' ? '批量回滚进度' :
+              '批量操作进度'
+            }
+            operationType={progressModal.type}
+            items={progressModal.items}
+            currentItemId={progressModal.currentItemId}
+            totalProgress={progressModal.totalProgress}
+            allowCancel={progressModal.allowCancel}
+            onCancel={() => {
+              // 实现取消逻辑
+              setProgressModal(prev => ({ ...prev, allowCancel: false }));
+            }}
+            summary={progressModal.items.length > 0 ? calculateBatchSummary(progressModal.items) : undefined}
+          />
         </>
       }
     />

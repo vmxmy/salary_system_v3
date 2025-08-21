@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/hooks/useAuth';
+import { usePayrollLogger } from './usePayrollLogger';
 import type { Database } from '@/types/supabase';
 
 // 类型定义
@@ -13,7 +14,9 @@ export interface PayrollApprovalSummary {
   payroll_id: string;
   employee_id: string;
   employee_name: string;
-  pay_date: string;
+  department_name?: string;
+  position_name?: string;
+  category_name?: string;
   pay_month?: string; // 月份字段
   gross_pay: number;
   total_deductions: number;
@@ -45,7 +48,7 @@ export interface PayrollApprovalSummary {
 export interface ApprovalLog {
   id: string;
   payroll_id: string;
-  action: 'submit' | 'approve' | 'reject' | 'pay' | 'cancel' | 'rollback';
+  action: 'submit' | 'approve' | 'reject' | 'pay' | 'cancel' | 'calculate' | 'calculate_insurance';
   from_status: string;
   to_status: string;
   operator_id?: string;
@@ -96,6 +99,7 @@ export function usePayrollApproval() {
   const queryClient = useQueryClient();
   const { showSuccess, showError, showWarning } = useToast();
   const { user } = useAuth();
+  const { logBatch } = usePayrollLogger();
   
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -111,13 +115,13 @@ export function usePayrollApproval() {
       queryKey: queryKeys.summary(filters),
       queryFn: async () => {
         let query = supabase
-          .from('view_payroll_approval_summary')
-          .select('*')
+          .from('view_payroll_summary')
+          .select('payroll_id, employee_id, employee_name, department_name, position_name, category_name, gross_pay, total_deductions, net_pay, payroll_status, created_at, updated_at, period_id')
           .order('created_at', { ascending: false });
 
         // 应用过滤条件 - 主要使用 period_id
         if (filters?.status) {
-          query = query.eq('status', filters.status);
+          query = query.eq('payroll_status', filters.status);
         }
         if (filters?.periodId) {
           query = query.eq('period_id', filters.periodId);
@@ -133,7 +137,11 @@ export function usePayrollApproval() {
           throw error;
         }
 
-        return (data || []) as PayrollApprovalSummary[];
+        // 映射字段名称以匹配接口
+        return (data || []).map(item => ({
+          ...item,
+          status: item.payroll_status // 映射状态字段
+        })) as PayrollApprovalSummary[];
       },
       staleTime: 30 * 1000, // 30秒缓存
     });
@@ -148,9 +156,9 @@ export function usePayrollApproval() {
       queryKey: [...queryKeys.summary({ periodId }), 'pending'],
       queryFn: async () => {
         let query = supabase
-          .from('view_payroll_approval_summary')
-          .select('*')
-          .in('status', ['draft', 'calculated']) // 包括草稿和已计算状态
+          .from('view_payroll_summary')
+          .select('payroll_id, employee_id, employee_name, department_name, position_name, category_name, gross_pay, total_deductions, net_pay, payroll_status, created_at, updated_at, period_id')
+          .in('payroll_status', ['draft', 'calculated', 'pending']) // 包括草稿、已计算和待审批状态
           .order('created_at', { ascending: false });
 
         if (periodId) {
@@ -164,7 +172,11 @@ export function usePayrollApproval() {
           throw error;
         }
 
-        return (data || []) as PayrollApprovalSummary[];
+        // 映射字段名称以匹配接口
+        return (data || []).map(item => ({
+          ...item,
+          status: item.payroll_status // 映射状态字段
+        })) as PayrollApprovalSummary[];
       },
       staleTime: 30 * 1000, // 30秒缓存
     });
@@ -203,8 +215,8 @@ export function usePayrollApproval() {
       queryKey: [...queryKeys.stats(), periodId],
       queryFn: async () => {
         let query = supabase
-          .from('view_payroll_approval_summary')
-          .select('status');
+          .from('view_payroll_summary')
+          .select('payroll_status');
         
         if (periodId) {
           query = query.eq('period_id', periodId);
@@ -220,18 +232,19 @@ export function usePayrollApproval() {
         // 按状态分组统计
         const stats: Record<string, number> = {
           draft: 0,
+          calculating: 0,
+          calculated: 0,
+          pending: 0,
           approved: 0,
           paid: 0,
           cancelled: 0,
-          calculating: 0,
-          calculated: 0,
           total: 0,
         };
 
         data?.forEach(item => {
           stats.total++;
-          if (item.status && item.status in stats) {
-            stats[item.status]++;
+          if (item.payroll_status && item.payroll_status in stats) {
+            stats[item.payroll_status]++;
           }
         });
 
@@ -248,43 +261,69 @@ export function usePayrollApproval() {
     mutationFn: async ({ payrollIds, comments }: ApprovalParams) => {
       setIsProcessing(true);
       
-      // 使用前端批量更新替代RPC函数
-      const results: BatchResult[] = [];
+      // 使用分批 UPDATE 纯更新操作 - 不查询不插入
+      const currentTime = new Date().toISOString();
+      const BATCH_SIZE = 20;
+      const allUpdatedIds: string[] = [];
       
-      for (const payrollId of payrollIds) {
-        try {
-          const { error } = await supabase
-            .from('payrolls')
-            .update({
-              status: 'approved',
-              approved_at: new Date().toISOString(),
-              approval_comments: comments,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', payrollId);
-
-          if (error) {
-            results.push({ payroll_id: payrollId, success: false, message: error.message });
-          } else {
-            results.push({ payroll_id: payrollId, success: true, message: '审批成功' });
-          }
-        } catch (err) {
-          results.push({ 
-            payroll_id: payrollId, 
-            success: false, 
-            message: err instanceof Error ? err.message : '审批失败' 
-          });
+      // 分批处理避免 URL 过长
+      for (let i = 0; i < payrollIds.length; i += BATCH_SIZE) {
+        const batch = payrollIds.slice(i, i + BATCH_SIZE);
+        
+        const { data: batchData, error: batchError } = await supabase
+          .from('payrolls')
+          .update({
+            status: 'approved',
+            approved_at: currentTime,
+            notes: comments,
+            updated_at: currentTime
+          })
+          .in('id', batch)
+          .select('id');
+          
+        if (batchError) {
+          throw batchError;
         }
+        
+        allUpdatedIds.push(...(batchData?.map(item => item.id) || []));
       }
+      
+      const data = allUpdatedIds.map(id => ({ id }));
+
+      // 构建批量操作结果
+      const results: BatchResult[] = payrollIds.map(payrollId => {
+        const wasUpdated = data?.some(item => item.id === payrollId);
+        return {
+          payroll_id: payrollId,
+          success: wasUpdated ?? false,
+          message: wasUpdated ? '审批成功' : '未找到记录或状态不符合条件'
+        };
+      });
 
       return results;
     },
-    onSuccess: (results) => {
+    onSuccess: async (results, variables) => {
       const successCount = results.filter(r => r.success).length;
       const failedCount = results.filter(r => !r.success).length;
 
       if (successCount > 0) {
         showSuccess(`成功审批 ${successCount} 条薪资记录`);
+        
+        // 记录审批日志
+        try {
+          await logBatch({
+            payrollIds: results.filter(r => r.success).map(r => r.payroll_id),
+            action: 'approve',
+            fromStatus: 'pending',
+            toStatus: 'approved',
+            comments: variables.comments,
+            successCount,
+            errorCount: failedCount,
+            totalCount: results.length
+          });
+        } catch (logError) {
+          console.error('记录审批日志失败:', logError);
+        }
       }
       if (failedCount > 0) {
         showWarning(`${failedCount} 条记录审批失败`);
@@ -313,34 +352,42 @@ export function usePayrollApproval() {
 
       setIsProcessing(true);
       
-      // 使用前端批量更新替代RPC函数
-      const results: BatchResult[] = [];
+      // 使用分批 UPDATE 纯更新操作
+      const currentTime = new Date().toISOString();
+      const BATCH_SIZE = 20;
+      const allUpdatedIds: string[] = [];
       
-      for (const payrollId of payrollIds) {
-        try {
-          const { error } = await supabase
-            .from('payrolls')
-            .update({
-              status: 'cancelled',
-              rejected_at: new Date().toISOString(),
-              rejection_reason: reason,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', payrollId);
-
-          if (error) {
-            results.push({ payroll_id: payrollId, success: false, message: error.message });
-          } else {
-            results.push({ payroll_id: payrollId, success: true, message: '驳回成功' });
-          }
-        } catch (err) {
-          results.push({ 
-            payroll_id: payrollId, 
-            success: false, 
-            message: err instanceof Error ? err.message : '驳回失败' 
-          });
+      // 分批处理避免 URL 过长
+      for (let i = 0; i < payrollIds.length; i += BATCH_SIZE) {
+        const batch = payrollIds.slice(i, i + BATCH_SIZE);
+        
+        const { data: batchData, error: batchError } = await supabase
+          .from('payrolls')
+          .update({
+            status: 'cancelled',
+            rejection_reason: reason,
+            updated_at: currentTime
+          })
+          .in('id', batch)
+          .select('id');
+          
+        if (batchError) {
+          throw batchError;
         }
+        
+        allUpdatedIds.push(...(batchData?.map(item => item.id) || []));
       }
+      
+      const data = allUpdatedIds.map(id => ({ id }));
+
+      const results: BatchResult[] = payrollIds.map(payrollId => {
+        const wasUpdated = data?.some(item => item.id === payrollId);
+        return {
+          payroll_id: payrollId,
+          success: wasUpdated ?? false,
+          message: wasUpdated ? '驳回成功' : '未找到记录或状态不符合条件'
+        };
+      });
 
       return results;
     },
@@ -385,12 +432,28 @@ export function usePayrollApproval() {
 
       return (data || []) as BatchResult[];
     },
-    onSuccess: (results) => {
+    onSuccess: async (results, variables) => {
       const successCount = results.filter(r => r.success).length;
       const failedCount = results.filter(r => !r.success).length;
 
       if (successCount > 0) {
         showSuccess(`成功标记 ${successCount} 条薪资为已发放`);
+        
+        // 记录发放日志
+        try {
+          await logBatch({
+            payrollIds: results.filter(r => r.success).map(r => r.payroll_id),
+            action: 'pay',
+            fromStatus: 'approved',
+            toStatus: 'paid',
+            comments: variables.comments || '标记已发放',
+            successCount,
+            errorCount: failedCount,
+            totalCount: results.length
+          });
+        } catch (logError) {
+          console.error('记录发放日志失败:', logError);
+        }
       }
       if (failedCount > 0) {
         showWarning(`${failedCount} 条记录标记失败`);
@@ -409,49 +472,74 @@ export function usePayrollApproval() {
   });
 
   /**
-   * 提交审批（将草稿状态改为待审批）
+   * 提交审批（将calculated状态改为pending待审批状态）
    */
   const submitForApproval = useMutation({
     mutationFn: async ({ payrollIds, comments }: ApprovalParams) => {
       setIsProcessing(true);
       
-      // 使用前端批量更新替代RPC函数（因为系统设计为单级审批）
-      const results: BatchResult[] = [];
+      // 使用分批 UPDATE 而非 upsert，避免意外插入新记录
+      const currentTime = new Date().toISOString();
+      const BATCH_SIZE = 20;
+      const allUpdatedIds: string[] = [];
       
-      for (const payrollId of payrollIds) {
-        try {
-          const { error } = await supabase
-            .from('payrolls')
-            .update({
-              status: 'approved',
-              approved_at: new Date().toISOString(),
-              approval_comments: comments || '提交审批',
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', payrollId);
-
-          if (error) {
-            results.push({ payroll_id: payrollId, success: false, message: error.message });
-          } else {
-            results.push({ payroll_id: payrollId, success: true, message: '提交成功' });
-          }
-        } catch (err) {
-          results.push({ 
-            payroll_id: payrollId, 
-            success: false, 
-            message: err instanceof Error ? err.message : '提交失败' 
-          });
+      // 分批处理避免 URL 过长
+      for (let i = 0; i < payrollIds.length; i += BATCH_SIZE) {
+        const batch = payrollIds.slice(i, i + BATCH_SIZE);
+        
+        const { data: batchData, error: batchError } = await supabase
+          .from('payrolls')
+          .update({
+            status: 'pending',
+            submitted_at: currentTime,
+            notes: comments || '提交审批',
+            updated_at: currentTime
+          })
+          .in('id', batch)
+          .select('id');
+          
+        if (batchError) {
+          throw batchError;
         }
+        
+        allUpdatedIds.push(...(batchData?.map(item => item.id) || []));
       }
+      
+      const data = allUpdatedIds.map(id => ({ id }));
+
+      const results: BatchResult[] = payrollIds.map(payrollId => {
+        const wasUpdated = data?.some(item => item.id === payrollId);
+        return {
+          payroll_id: payrollId,
+          success: wasUpdated ?? false,
+          message: wasUpdated ? '提交成功' : '未找到记录或状态不符合条件'
+        };
+      });
 
       return results;
     },
-    onSuccess: (results) => {
+    onSuccess: async (results, variables) => {
       const successCount = results.filter(r => r.success).length;
       const failedCount = results.filter(r => !r.success).length;
 
       if (successCount > 0) {
         showSuccess(`成功提交 ${successCount} 条薪资记录`);
+        
+        // 记录提交审批日志
+        try {
+          await logBatch({
+            payrollIds: results.filter(r => r.success).map(r => r.payroll_id),
+            action: 'submit',
+            fromStatus: 'calculated',
+            toStatus: 'pending',
+            comments: variables.comments || '提交审批',
+            successCount,
+            errorCount: failedCount,
+            totalCount: results.length
+          });
+        } catch (logError) {
+          console.error('记录提交审批日志失败:', logError);
+        }
       }
       if (failedCount > 0) {
         showWarning(`${failedCount} 条记录提交失败`);
@@ -606,7 +694,7 @@ export function usePayrollApproval() {
               // 准备回滚日志
               rollbackLogs.push({
                 payroll_id: payroll.id,
-                action: 'rollback',
+                action: 'cancel',
                 from_status: payroll.status,
                 to_status: targetStatus,
                 operator_id: user?.id,
@@ -727,7 +815,7 @@ export function usePayrollApproval() {
         status !== 'calculating',
       
       // 检查是否可以审批
-      canApprove: (status: PayrollStatus) => status === 'calculated',
+      canApprove: (status: PayrollStatus) => status === 'pending',
       
       // 检查是否可以发放
       canMarkPaid: (status: PayrollStatus) => status === 'approved',
@@ -767,11 +855,11 @@ export function usePayrollApproval() {
       
       batchCanApprove: (statuses: PayrollStatus[]) => {
         if (statuses.length === 0) return { canOperate: false, reason: '未选择任何记录' };
-        const validStatuses = statuses.filter(status => status === 'calculated');
+        const validStatuses = statuses.filter(status => status === 'pending');
         if (validStatuses.length === 0) {
           return { 
             canOperate: false, 
-            reason: '选中记录中没有可审批的状态（仅已计算状态可审批）' 
+            reason: '选中记录中没有可审批的状态（仅待审批状态可审批）' 
           };
         }
         if (validStatuses.length < statuses.length) {
@@ -895,6 +983,7 @@ export function usePayrollApproval() {
           draft: '草稿',
           calculating: '计算中',
           calculated: '已计算',
+          pending: '待审批',
           approved: '已审批',
           paid: '已发放',
           cancelled: '已取消',
@@ -908,6 +997,7 @@ export function usePayrollApproval() {
           draft: 'warning',        // 草稿 - 黄色警告
           calculating: 'info',     // 计算中 - 蓝色信息
           calculated: 'primary',   // 已计算 - 主色调
+          pending: 'secondary',    // 待审批 - 次要色
           approved: 'success',     // 已审批 - 绿色成功
           paid: 'accent',          // 已发放 - 强调色
           cancelled: 'error',      // 已取消 - 红色错误
@@ -918,9 +1008,10 @@ export function usePayrollApproval() {
       // 获取下一步操作
       getNextAction: (status: PayrollStatus) => {
         const actions: Record<string, string> = {
-          draft: '提交审批',
+          draft: '计算薪资',
           calculating: '等待计算',
           calculated: '提交审批',
+          pending: '等待审批',
           approved: '标记发放',
           paid: '已完成',
           cancelled: '已取消',

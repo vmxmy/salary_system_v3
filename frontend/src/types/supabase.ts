@@ -3587,6 +3587,7 @@ export type Database = {
       view_payroll_summary: {
         Row: {
           actual_pay_date: string | null
+          category_name: string | null
           created_at: string | null
           department_name: string | null
           employee_id: string | null
@@ -4847,6 +4848,15 @@ export type Database = {
         Args: { p_period_hours?: number }
         Returns: undefined
       }
+      update_period_employee_counts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          new_count: number
+          old_count: number
+          period_id: string
+          period_name: string
+        }[]
+      }
       validate_infrastructure: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -4905,6 +4915,7 @@ export type Database = {
         | "calculating"
         | "calculated"
         | "cancelled"
+        | "pending"
       personnel_category_chinese:
         | "公务员"
         | "参照公务员管理"
@@ -5202,6 +5213,7 @@ export const Constants = {
         "calculating",
         "calculated",
         "cancelled",
+        "pending",
       ],
       personnel_category_chinese: [
         "公务员",

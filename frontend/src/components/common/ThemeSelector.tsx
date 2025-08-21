@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { SwatchIcon } from '@heroicons/react/24/outline';
+import { PaintBrushIcon } from '@heroicons/react/24/outline';
 
 // DaisyUI 官方所有主题列表及配色预览
 const DAISYUI_THEMES = [

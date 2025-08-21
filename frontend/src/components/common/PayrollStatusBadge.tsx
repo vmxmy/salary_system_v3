@@ -24,6 +24,7 @@ export const PayrollStatusBadge: React.FC<PayrollStatusBadgeProps> = ({
       draft: '草稿',
       calculating: '计算中',
       calculated: '已计算',
+      pending: '待审批',
       approved: '已审批',
       paid: '已发放',
       cancelled: '已取消',
@@ -37,6 +38,7 @@ export const PayrollStatusBadge: React.FC<PayrollStatusBadgeProps> = ({
       draft: 'warning',        // 草稿 - 黄色警告
       calculating: 'info',     // 计算中 - 蓝色信息
       calculated: 'primary',   // 已计算 - 主色调
+      pending: 'secondary',    // 待审批 - 次要色
       approved: 'success',     // 已审批 - 绿色成功
       paid: 'accent',          // 已发放 - 强调色
       cancelled: 'error',      // 已取消 - 红色错误

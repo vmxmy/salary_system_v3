@@ -13,7 +13,7 @@ const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'));
 const AuthCallbackPage = lazy(() => import('@/pages/auth/AuthCallbackPage'));
 
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
-const EmployeeListPage = lazy(() => import('@/pages/employee/EmployeeListPage'));
+const EmployeeListPage = lazy(() => import('@/pages/employee/EmployeeManagementPage'));
 const EmployeeDetailPage = lazy(() => import('@/pages/employee/EmployeeDetailPage'));
 const DepartmentPage = lazy(() => import('@/pages/department/DepartmentManagementPage'));
 const DepartmentPayrollStatsPage = lazy(() => import('@/pages/department/DepartmentPayrollStatsPage'));
@@ -111,30 +111,6 @@ export const router = createBrowserRouter([
   //     </Suspense>
   //   ),
   // }, // 已删除
-  {
-    path: '/test/insurance-calculation',
-    element: (
-      <Suspense fallback={<LoadingScreen />}>
-        <InsuranceCalculationTest />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/test/insurance-config',
-    element: (
-      <Suspense fallback={<LoadingScreen />}>
-        <InsuranceConfigTest />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/test/payroll-calculation',
-    element: (
-      <Suspense fallback={<LoadingScreen />}>
-        <PayrollCalculationTest />
-      </Suspense>
-    ),
-  },
   {
     path: '/',
     element: (
@@ -309,6 +285,35 @@ export const router = createBrowserRouter([
             <FontTestPage />
           </Suspense>
         ),
+      },
+      {
+        path: 'test',
+        children: [
+          {
+            path: 'insurance-calculation',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <InsuranceCalculationTest />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'insurance-config',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <InsuranceConfigTest />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'payroll-calculation',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PayrollCalculationTest />
+              </Suspense>
+            ),
+          },
+        ],
       },
       // Test routes moved to archive
       // {

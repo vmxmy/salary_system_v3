@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useInsuranceCore } from './core/useInsuranceCore';
 import { INSURANCE_TYPE_CONFIGS } from './core/insuranceDataService';
 import type { CalculationResult } from './core/insuranceCalculator';
+import { usePayrollLogger } from '../payroll/usePayrollLogger';
 
 export interface InsuranceCalculationDetail extends CalculationResult {}
 
@@ -98,6 +99,7 @@ export const useAllInsuranceCalculation = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { getInsuranceData, calculateSingleInsurance, InsuranceCalculator } = useInsuranceCore();
+  const logger = usePayrollLogger();
 
   const calculateAllInsurance = useCallback(async ({
     employeeId,
@@ -338,6 +340,37 @@ export const useAllInsuranceCalculation = () => {
               result.success = false;
             } else {
               result.errors.push(`成功写入 ${payrollItems.length} 条保险记录到数据库`);
+              
+              // 记录五险一金计算日志
+              const calculatedTypes = Object.keys(result.details)
+                .filter(key => 
+                  result.details[key as keyof typeof result.details].employee?.success ||
+                  result.details[key as keyof typeof result.details].employer?.success
+                )
+                .map(key => {
+                  const typeMap: Record<string, string> = {
+                    pension: '养老保险',
+                    medical: '医疗保险', 
+                    unemployment: '失业保险',
+                    workInjury: '工伤保险',
+                    maternity: '生育保险',
+                    housingFund: '住房公积金',
+                    seriousIllness: '大病医疗'
+                  };
+                  return typeMap[key] || key;
+                });
+              
+              const logSuccess = await logger.logInsuranceCalculation({
+                payrollIds: [payrollId],
+                successCount: 1,
+                errorCount: 0,
+                insuranceTypes: calculatedTypes,
+                details: `写入 ${payrollItems.length} 条保险记录 - ${calculatedTypes.join(', ')}`
+              });
+              
+              if (!logSuccess) {
+                console.warn('五险一金计算日志记录失败，但计算操作已完成');
+              }
             }
           } else {
             result.errors.push('没有有效的保险数据需要写入数据库');

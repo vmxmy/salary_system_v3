@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useDashboard, dashboardFormatters } from '@/hooks/dashboard';
-import { HookTestPanel } from '@/components/test/HookTestPanel';
+// HookTestPanel已移除，测试功能可通过专门的测试页面访问
 
 export default function DashboardPage() {
   const { t } = useTranslation(['dashboard', 'common']);
@@ -159,7 +159,7 @@ export default function DashboardPage() {
       {/* Hook测试面板 - 仅在开发环境显示 */}
       {import.meta.env.DEV && (
         <div className="mt-6">
-          <HookTestPanel />
+          {/* HookTestPanel已移除，测试功能移至专门的测试页面 */}
         </div>
       )}
     </div>

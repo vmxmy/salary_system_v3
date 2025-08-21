@@ -65,9 +65,11 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
       selectedIds.includes(record.id || record.payroll_id || '')
     );
 
-    const selectedStatuses = selectedRecords.map(record => 
-      (record.payroll_status || record.status) as PayrollStatusType
-    ).filter(Boolean);
+    const selectedStatuses = selectedRecords.map(record => {
+      // 获取状态字段，优先使用 status，再使用 payroll_status
+      const status = record.status || record.payroll_status;
+      return status as PayrollStatusType;
+    }).filter(Boolean);
 
     return {
       records: selectedRecords,
@@ -109,7 +111,12 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
       rollback: approvalUtils.batchCanRollback(statuses),
       
       // 其他操作（基于基础逻辑）
-      submit: approvalUtils.batchCanApprove(statuses), // 提交和审批使用相同逻辑
+      submit: { 
+        canOperate: statuses.every(status => status === 'calculated'),
+        reason: statuses.some(status => status !== 'calculated') 
+          ? '选中记录中包含非已计算状态的记录，无法提交审批（仅已计算状态可提交）' 
+          : ''
+      },
       cancel: { 
         canOperate: statuses.every(status => status !== 'paid' && status !== 'cancelled'),
         reason: statuses.some(status => status === 'paid' || status === 'cancelled') 
@@ -136,7 +143,7 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
         canMarkPaid: approvalUtils.canMarkPaid(status),
         canRollback: approvalUtils.canRollback(status),
         canCancel: approvalUtils.canCancel(status),
-        canSubmit: approvalUtils.canApprove(status), // 提交和审批逻辑相同
+        canSubmit: status === 'calculated', // 只有已计算状态可以提交审批
         nextAction: approvalUtils.getNextAction(status),
       };
     };
@@ -221,7 +228,10 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
         if (operation === 'calculatePayroll') {
           return selectedRecordsInfo.statuses.filter(s => s !== 'calculating').length;
         }
-        if (operation === 'approve' || operation === 'submit') {
+        if (operation === 'approve') {
+          return selectedRecordsInfo.statuses.filter(s => s === 'pending').length;
+        }
+        if (operation === 'submit') {
           return selectedRecordsInfo.statuses.filter(s => s === 'calculated').length;
         }
         if (operation === 'markPaid') {

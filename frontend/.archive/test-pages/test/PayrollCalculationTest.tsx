@@ -207,7 +207,7 @@ const PayrollCalculationTest: React.FC = () => {
   };
 
   return (
-    <div className="page-compact">
+    <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">薪资计算测试（前端Hook版）</h1>
 
       {/* 数据加载状态 */}

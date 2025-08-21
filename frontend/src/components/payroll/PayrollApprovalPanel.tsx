@@ -232,7 +232,7 @@ export function PayrollApprovalPanel({ periodId, onClose }: PayrollApprovalPanel
                     />
                   </td>
                   <td>{item.employee_name}</td>
-                  <td>{formatDate(item.pay_date)}</td>
+                  <td>{item.pay_month || '-'}</td>
                   <td>{formatCurrency(item.gross_pay)}</td>
                   <td>{formatCurrency(item.net_pay)}</td>
                   <td>

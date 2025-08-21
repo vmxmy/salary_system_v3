@@ -8,6 +8,7 @@ export * from './PayrollDetailModal';
 export * from './PayrollList';
 export * from './PayrollBatchActions';
 export * from './CalculationProgressModal';
+export * from './BatchApprovalProgressModal';
 export * from './PayrollApprovalPanel';
 export * from './PayrollApprovalActions';
 export * from './ApprovalTimeline';

@@ -71,13 +71,10 @@ export function usePayrollDataProcessor<T extends BasePayrollData = BasePayrollD
         normalized[payrollIdField] = normalized[idField];
       }
       
-      // 确保有统一的状态字段
-      if (!normalized[statusField] && normalized.status) {
-        normalized[statusField] = normalized.status;
-      }
-      if (!normalized.status && normalized[statusField]) {
-        normalized.status = normalized[statusField];
-      }
+      // 确保有统一的状态字段 - 优先使用明确映射的 status 字段
+      const primaryStatus = normalized.status || normalized.payroll_status || normalized[statusField];
+      normalized.status = primaryStatus;
+      normalized[statusField] = primaryStatus;
       
       // 兼容性处理：确保employee字段存在
       if (ensureCompatibility && !normalized.employee && normalized.employee_id) {

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { usePayrollLogger } from './usePayrollLogger';
 
 /**
  * 薪资项目明细
@@ -82,6 +83,7 @@ export interface BatchPayrollCalculationResult {
 export const usePayrollCalculation = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const logger = usePayrollLogger();
 
   /**
    * 获取薪资项目明细
@@ -274,17 +276,17 @@ export const usePayrollCalculation = () => {
     
     if (result.success) {
       try {
-        // 更新薪资记录
+        // 使用批量更新方式保存单个记录，获得更好性能
         const { error: updateError } = await supabase
           .from('payrolls')
           .update({
             gross_pay: result.grossPay,
             total_deductions: result.totalDeductions,
             net_pay: result.netPay,
-            status: 'calculated',
+            status: 'calculated' as const,
             updated_at: new Date().toISOString()
           })
-          .eq('id', payrollId);
+          .eq('id', result.payrollId);
 
         if (updateError) {
           result.success = false;
@@ -317,14 +319,10 @@ export const usePayrollCalculation = () => {
     const errors: string[] = [];
     
     try {
-      // 并发计算所有薪资记录
+      // 并发计算所有薪资记录（只计算，不保存）
       const promises = payrollIds.map(async (payrollId) => {
         try {
-          if (saveToDatabase) {
-            return await calculateAndSave(payrollId);
-          } else {
-            return await calculateSingle(payrollId);
-          }
+          return await calculateSingle(payrollId);
         } catch (err) {
           const errorMessage = `薪资记录 ${payrollId} 计算失败: ${err instanceof Error ? err.message : '未知错误'}`;
           errors.push(errorMessage);
@@ -360,6 +358,47 @@ export const usePayrollCalculation = () => {
       const calculationResults = await Promise.all(promises);
       results.push(...calculationResults);
 
+      // 如果选择保存到数据库，使用批量更新
+      if (saveToDatabase) {
+        const successfulResults = results.filter(result => result.success);
+        
+        if (successfulResults.length > 0) {
+          // 构建批量更新数据 - 包含所有必需字段确保upsert正常工作
+          // 批量更新 - 使用多个单独的UPDATE操作以避免复杂的upsert类型问题
+          const updatePromises = successfulResults.map(result => 
+            supabase
+              .from('payrolls')
+              .update({
+                gross_pay: result.grossPay,
+                total_deductions: result.totalDeductions,
+                net_pay: result.netPay,
+                status: 'calculated' as const,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', result.payrollId)
+          );
+
+          // 等待所有更新完成
+          const updateResults = await Promise.all(updatePromises);
+          const batchUpdateError = updateResults.find(r => r.error)?.error;
+
+          if (batchUpdateError) {
+            console.error('批量更新薪资记录失败:', batchUpdateError);
+            // 将成功的结果标记为保存失败
+            successfulResults.forEach(result => {
+              result.success = false;
+              result.message = `计算成功但保存失败: ${batchUpdateError.message}`;
+              result.errors.push(batchUpdateError.message);
+            });
+          } else {
+            // 更新成功的结果消息
+            successfulResults.forEach(result => {
+              result.message = '计算并保存成功';
+            });
+          }
+        }
+      }
+
       // 计算汇总统计
       const summary = {
         successCount: 0,
@@ -381,6 +420,21 @@ export const usePayrollCalculation = () => {
           summary.failureCount++;
         }
       });
+
+      // 记录薪资计算日志
+      if (saveToDatabase && payrollIds.length > 0) {
+        const logSuccess = await logger.logCalculation({
+          payrollIds,
+          successCount: summary.successCount,
+          errorCount: summary.failureCount,
+          calculationType: payrollIds.length === 1 ? 'single' : 'batch',
+          details: `计算完成 - 成功: ${summary.successCount}, 失败: ${summary.failureCount}`
+        });
+        
+        if (!logSuccess) {
+          console.warn('薪资计算日志记录失败，但计算操作已完成');
+        }
+      }
 
       return {
         results,
@@ -408,7 +462,7 @@ export const usePayrollCalculation = () => {
     } finally {
       setLoading(false);
     }
-  }, [calculateSingle, calculateAndSave]);
+  }, [calculateSingle, logger]);
 
   /**
    * 按期间批量计算

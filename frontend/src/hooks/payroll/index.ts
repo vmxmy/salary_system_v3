@@ -130,6 +130,14 @@ export * from './usePayrollStatistics';
 // 薪资清除
 export * from './useClearPayrollPeriod';
 
+// 薪资日志记录
+export {
+  usePayrollLogger,
+  type LogAction,
+  type LogParams,
+  type BatchLogParams
+} from './usePayrollLogger';
+
 /**
  * 便捷的组合 Hook
  * 提供统一的薪资管理接口

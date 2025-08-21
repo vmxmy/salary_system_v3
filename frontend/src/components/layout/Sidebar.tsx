@@ -157,7 +157,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       'payrollManagement': '薪资列表',
       'payrollApproval': '薪资审批',
       'insuranceConfig': '五险一金配置',
-      'testFeatures': '测试功能',
+      'testFeatures': '计算验证',
       'insuranceCalculation': '保险计算测试',
       'payrollCalculation': '薪资计算测试',
       'fontTest': '字体测试',

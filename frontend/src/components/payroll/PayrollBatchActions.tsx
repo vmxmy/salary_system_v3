@@ -17,6 +17,8 @@ interface PayrollBatchActionsProps {
   onClearSelection?: () => void;
   loading?: boolean;
   className?: string;
+  // 状态统计信息
+  statusStats?: Record<string, number>;
   // 保持向后兼容的属性
   onCancel?: () => void;
   onDelete?: () => void;
@@ -32,6 +34,7 @@ export function PayrollBatchActions({
   onClearSelection,
   loading = false,
   className,
+  statusStats,
   // Legacy props for backward compatibility
   onCancel,
   onDelete,
@@ -43,6 +46,34 @@ export function PayrollBatchActions({
   const { t } = useTranslation('payroll');
 
   if (selectedCount === 0) return null;
+
+  // 状态标签映射
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      draft: '草稿',
+      calculating: '计算中',
+      calculated: '已计算',
+      pending: '待审批',
+      approved: '已审批',
+      paid: '已发放',
+      cancelled: '已取消',
+    };
+    return labels[status] || status;
+  };
+
+  // 状态颜色映射
+  const getStatusBadgeClass = (status: string) => {
+    const classes: Record<string, string> = {
+      draft: 'badge badge-warning badge-sm',
+      calculating: 'badge badge-info badge-sm',
+      calculated: 'badge badge-primary badge-sm',
+      pending: 'badge badge-secondary badge-sm',
+      approved: 'badge badge-success badge-sm',
+      paid: 'badge badge-accent badge-sm',
+      cancelled: 'badge badge-error badge-sm',
+    };
+    return classes[status] || 'badge badge-neutral badge-sm';
+  };
 
   // Helper function to get button variant class
   const getButtonClass = (variant?: BatchAction['variant']) => {
@@ -164,14 +195,30 @@ export function PayrollBatchActions({
       'animate-in slide-in-from-top-2 duration-300',
       className
     )}>
-      <div className="flex items-center gap-2">
-        <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span className="text-sm font-medium text-primary">
-          已选择 <span className="font-bold text-lg">{selectedCount}</span> 条记录
-        </span>
+      <div className="flex items-center gap-4 flex-wrap">
+        {/* 选中记录数量 */}
+        <div className="flex items-center gap-2">
+          <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-sm font-medium text-primary">
+            已选择 <span className="font-bold text-lg">{selectedCount}</span> 条记录
+          </span>
+        </div>
+
+        {/* 状态构成 */}
+        {statusStats && Object.keys(statusStats).length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {Object.entries(statusStats)
+              .filter(([_, count]) => count > 0)
+              .map(([status, count]) => (
+                <span key={status} className={getStatusBadgeClass(status)}>
+                  {getStatusLabel(status)} {count}条
+                </span>
+              ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">

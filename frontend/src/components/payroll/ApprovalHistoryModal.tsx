@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ApprovalTimeline } from './ApprovalTimeline';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { useAvailablePayrollMonths } from '@/hooks/payroll';
@@ -12,6 +12,11 @@ interface ApprovalHistoryModalProps {
   initialPeriodId?: string;
   open: boolean;
   onClose: () => void;
+  // 新增：支持实时更新
+  autoRefresh?: boolean;
+  refreshInterval?: number; // 毫秒
+  // 新增：支持指定特定员工的历史
+  employeeId?: string;
 }
 
 // 筛选器组件
@@ -158,9 +163,13 @@ export function ApprovalHistoryModal({
   initialPeriodId,
   open,
   onClose,
+  autoRefresh = false,
+  refreshInterval = 30000, // 默认30秒
+  employeeId,
 }: ApprovalHistoryModalProps) {
   const [filters, setFilters] = useState<HistoryFilters>({
     periodId: initialPeriodId,
+    employeeId,
     limit: 50,
   });
   
@@ -173,6 +182,13 @@ export function ApprovalHistoryModal({
     }
   }, [initialPeriodId]);
 
+  // 当指定员工ID变化时更新筛选器
+  useEffect(() => {
+    if (employeeId) {
+      setFilters(prev => ({ ...prev, employeeId }));
+    }
+  }, [employeeId]);
+
   // 获取审批历史数据
   const { 
     data: historyItems = [], 
@@ -181,9 +197,21 @@ export function ApprovalHistoryModal({
     refetch 
   } = useApprovalHistory({
     periodId: filters.periodId,
+    employeeId: filters.employeeId,
     action: filters.action,
     limit: filters.limit,
   });
+
+  // 自动刷新功能
+  useEffect(() => {
+    if (!autoRefresh || !open) return;
+
+    const interval = setInterval(() => {
+      refetch();
+    }, refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, open, refreshInterval, refetch]);
 
   // 关闭模态框时重置筛选器
   const handleClose = () => {
@@ -263,8 +291,23 @@ export function ApprovalHistoryModal({
 
             {/* 内容区域 */}
             <div className="flex-1 overflow-hidden flex flex-col p-6">
+              {/* 自动刷新提示 */}
+              {autoRefresh && (
+                <div className="alert alert-info mb-4">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>自动刷新已开启，每 {Math.round(refreshInterval / 1000)} 秒更新一次</span>
+                </div>
+              )}
+
               {error && (
                 <div className="alert alert-error mb-4">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                   <span>加载审批历史失败: {error.message}</span>
                 </div>
               )}
@@ -278,6 +321,14 @@ export function ApprovalHistoryModal({
               <div className="flex-1 overflow-y-auto pr-2">
                 {isLoading ? (
                   <ApprovalTimeline.Loading />
+                ) : historyItems.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">📋</div>
+                    <h3 className="text-xl font-semibold text-base-content/70">暂无审批记录</h3>
+                    <p className="text-base-content/50 mt-2">
+                      {filters.periodId ? '当前周期暂无审批操作记录' : '请选择薪资周期查看审批历史'}
+                    </p>
+                  </div>
                 ) : (
                   <ApprovalTimeline items={historyItems} />
                 )}

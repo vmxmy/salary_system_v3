@@ -79,6 +79,13 @@ export default function PayrollListPage() {
   // 其他模态框状态
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isCompletenessModalOpen, setIsCompletenessModalOpen] = useState(false);
+  
+  // 确认模态框状态
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    type: 'submit';
+    loading: boolean;
+  }>({ open: false, type: 'submit', loading: false });
 
   // 计算进度模态框状态
   const [calculationSteps, setCalculationSteps] = useState<any[]>([]);
@@ -228,6 +235,27 @@ export default function PayrollListPage() {
 
   const approval = usePayrollApproval();
   const clearPeriod = useClearPayrollPeriod();
+  
+  // 处理批量提交审批
+  const handleBatchSubmit = useCallback(async () => {
+    if (selectedIds.length === 0) {
+      showError('请选择要提交的记录');
+      return;
+    }
+
+    setConfirmModal(prev => ({ ...prev, loading: true }));
+    
+    try {
+      // 调用审批hook的提交方法
+      await approval.actions.submit(selectedIds, '批量提交审批');
+      showSuccess(`成功提交 ${selectedIds.length} 条薪资记录`);
+      setSelectedIds([]);
+      setConfirmModal(prev => ({ ...prev, open: false, loading: false }));
+    } catch (error) {
+      showError(`提交失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      setConfirmModal(prev => ({ ...prev, loading: false }));
+    }
+  }, [selectedIds, approval.actions, showSuccess, showError]);
 
 
   // 统计卡片数据
@@ -342,12 +370,11 @@ export default function PayrollListPage() {
 
       // 步骤1: 准备数据
       updateStep('prepare', 'running', 0, '正在准备五险一金计算数据...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      updateStep('prepare', 'completed', 100, '数据准备完成');
-
-      // 步骤2: 计算五险一金
-      updateStep('calculate', 'running', 0, `正在计算 ${employeeIds.length} 名员工的五险一金...`);
-      setCalculationProgress(50);
+      setCalculationProgress(10);
+      
+      // 步骤2: 计算五险一金 - 使用批量API，一次完成所有员工的计算
+      updateStep('calculate', 'running', 0, `正在批量计算 ${employeeIds.length} 名员工的五险一金...`);
+      setCalculationProgress(30);
 
       const results = await calculateBatchInsurance({
         periodId: selectedPeriodId,
@@ -359,8 +386,12 @@ export default function PayrollListPage() {
       const successCount = results.filter(r => r.success).length;
       const failureCount = results.length - successCount;
 
+      // 步骤3: 批量操作完成，统一更新状态
+      updateStep('prepare', 'completed', 100, '数据准备完成');
+      setCalculationProgress(70);
+
       if (successCount > 0) {
-        updateStep('calculate', 'completed', 100, `计算完成: ${successCount}成功${failureCount > 0 ? `, ${failureCount}失败` : ''}`);
+        updateStep('calculate', 'completed', 100, `五险一金批量计算完成: ${successCount}成功${failureCount > 0 ? `, ${failureCount}失败` : ''}`);
         setCalculationProgress(100);
 
         showSuccess(`批量计算五险一金完成: ${successCount}/${employeeIds.length}`);
@@ -405,20 +436,23 @@ export default function PayrollListPage() {
 
       // 步骤1: 准备薪资汇总数据
       updateStep('prepare', 'running', 0, '正在准备薪资汇总计算数据...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      updateStep('prepare', 'completed', 100, '薪资汇总数据准备完成');
+      setCalculationProgress(10);
 
-      // 步骤2: 计算薪资汇总
-      updateStep('calculate', 'running', 0, `正在计算 ${selectedIds.length} 条薪资汇总...`);
-      setCalculationProgress(50);
+      // 步骤2: 计算薪资汇总 - 使用批量API，一次完成所有记录的计算
+      updateStep('calculate', 'running', 0, `正在批量计算 ${selectedIds.length} 条薪资汇总...`);
+      setCalculationProgress(30);
 
       const result = await payrollCalculation.calculateBatch(selectedIds, true);
 
       const successCount = result.summary.successCount;
       const failureCount = result.summary.failureCount;
 
+      // 步骤3: 批量操作完成，统一更新状态
+      updateStep('prepare', 'completed', 100, '薪资汇总数据准备完成');
+      setCalculationProgress(70);
+
       if (successCount > 0) {
-        updateStep('calculate', 'completed', 100, `薪资汇总计算完成: ${successCount}成功${failureCount > 0 ? `, ${failureCount}失败` : ''}`);
+        updateStep('calculate', 'completed', 100, `薪资汇总批量计算完成: ${successCount}成功${failureCount > 0 ? `, ${failureCount}失败` : ''}`);
         setCalculationProgress(100);
 
         showSuccess(`批量计算薪资汇总完成: ${successCount}/${selectedIds.length}`);
@@ -480,12 +514,11 @@ export default function PayrollListPage() {
       // 第一阶段：五险一金计算
       // 步骤1: 准备五险一金数据
       updateStep('insurance_prepare', 'running', 0, '正在准备五险一金计算数据...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      updateStep('insurance_prepare', 'completed', 100, '五险一金数据准备完成');
+      setCalculationProgress(10);
 
-      // 步骤2: 计算五险一金
-      updateStep('insurance_calculate', 'running', 0, `正在计算 ${employeeIds.length} 名员工的五险一金...`);
-      setCalculationProgress(16);
+      // 步骤2: 批量计算五险一金 - 使用批量API
+      updateStep('insurance_calculate', 'running', 0, `正在批量计算 ${employeeIds.length} 名员工的五险一金...`);
+      setCalculationProgress(20);
 
       const insuranceResults = await calculateBatchInsurance({
         periodId: selectedPeriodId,
@@ -498,12 +531,9 @@ export default function PayrollListPage() {
       const insuranceFailureCount = insuranceResults.length - insuranceSuccessCount;
 
       if (insuranceSuccessCount > 0) {
-        updateStep('insurance_calculate', 'completed', 100, `五险一金计算完成: ${insuranceSuccessCount}成功${insuranceFailureCount > 0 ? `, ${insuranceFailureCount}失败` : ''}`);
-        setCalculationProgress(33);
-
-        // 步骤3: 保存五险一金结果
-        updateStep('insurance_save', 'running', 0, '正在保存五险一金计算结果...');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // 五险一金阶段完成，统一更新状态
+        updateStep('insurance_prepare', 'completed', 100, '五险一金数据准备完成');
+        updateStep('insurance_calculate', 'completed', 100, `五险一金批量计算完成: ${insuranceSuccessCount}成功${insuranceFailureCount > 0 ? `, ${insuranceFailureCount}失败` : ''}`);
         updateStep('insurance_save', 'completed', 100, '五险一金结果已保存');
         setCalculationProgress(50);
       } else {
@@ -514,12 +544,11 @@ export default function PayrollListPage() {
       // 第二阶段：薪资汇总计算
       // 步骤4: 准备薪资汇总数据
       updateStep('payroll_prepare', 'running', 0, '正在准备薪资汇总计算数据...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      updateStep('payroll_prepare', 'completed', 100, '薪资汇总数据准备完成');
+      setCalculationProgress(60);
 
-      // 步骤5: 计算薪资汇总
-      updateStep('payroll_calculate', 'running', 0, `正在计算 ${selectedIds.length} 条薪资汇总...`);
-      setCalculationProgress(66);
+      // 步骤5: 批量计算薪资汇总 - 使用批量API
+      updateStep('payroll_calculate', 'running', 0, `正在批量计算 ${selectedIds.length} 条薪资汇总...`);
+      setCalculationProgress(70);
 
       const payrollResult = await payrollCalculation.calculateBatch(selectedIds, true);
 
@@ -527,12 +556,9 @@ export default function PayrollListPage() {
       const payrollFailureCount = payrollResult.summary.failureCount;
 
       if (payrollSuccessCount > 0) {
-        updateStep('payroll_calculate', 'completed', 100, `薪资汇总计算完成: ${payrollSuccessCount}成功${payrollFailureCount > 0 ? `, ${payrollFailureCount}失败` : ''}`);
-        setCalculationProgress(83);
-
-        // 步骤6: 保存薪资汇总结果
-        updateStep('payroll_save', 'running', 0, '正在保存薪资汇总计算结果...');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // 薪资汇总阶段完成，统一更新状态
+        updateStep('payroll_prepare', 'completed', 100, '薪资汇总数据准备完成');
+        updateStep('payroll_calculate', 'completed', 100, `薪资汇总批量计算完成: ${payrollSuccessCount}成功${payrollFailureCount > 0 ? `, ${payrollFailureCount}失败` : ''}`);
         updateStep('payroll_save', 'completed', 100, '薪资汇总结果已保存');
         setCalculationProgress(100);
 
@@ -765,6 +791,22 @@ export default function PayrollListPage() {
                     )
                   },
                   {
+                    key: 'submit',
+                    label: '提交审批',
+                    onClick: () => setConfirmModal({ open: true, type: 'submit', loading: false }),
+                    variant: 'info',
+                    disabled: !batchValidation.canBatchOperate.submit(),
+                    title: batchValidation.canBatchOperate.submit() 
+                      ? '批量提交审批' 
+                      : batchValidation.getOperationReason.submit(),
+                    icon: (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    )
+                  },
+                  {
                     key: 'export',
                     label: '导出选中',
                     onClick: () => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id || '')), 'payroll-selected'),
@@ -836,6 +878,17 @@ export default function PayrollListPage() {
               // 可以在这里实现查看详情的逻辑
               console.log('View details for element:', element);
             }}
+          />
+          
+          {/* 提交审批确认模态框 */}
+          <BatchConfirmModal
+            open={confirmModal.open && confirmModal.type === 'submit'}
+            action="提交审批"
+            selectedCount={selectedIds.length}
+            variant="primary"
+            loading={confirmModal.loading}
+            onConfirm={handleBatchSubmit}
+            onClose={() => setConfirmModal(prev => ({ ...prev, open: false, loading: false }))}
           />
         </>
       }
