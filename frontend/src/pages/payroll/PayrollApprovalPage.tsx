@@ -88,7 +88,7 @@ export default function PayrollApprovalPage() {
   // 使用批量验证Hook
   const batchValidation = usePayrollBatchValidation(selectedIds, dataProcessor.processedData);
 
-  // 创建表格列定义
+  // 创建表格列定义 - 与薪资管理页面保持一致
   const columnHelper = createDataTableColumnHelper<PayrollApprovalData>();
   const columns = useMemo(() => [
     columnHelper.accessor('employee_name', {
@@ -99,12 +99,24 @@ export default function PayrollApprovalPage() {
       header: '部门',
       cell: (info) => info.getValue() || '-'
     }),
+    columnHelper.accessor('position_name', {
+      header: '职位',
+      cell: (info) => info.getValue() || '-'
+    }),
+    columnHelper.accessor('category_name', {
+      header: '人员类别',
+      cell: (info) => info.getValue() || '-'
+    }),
     columnHelper.accessor('gross_pay', {
-      header: '应发金额',
+      header: '应发合计',
+      cell: (info) => formatCurrency(info.getValue() || 0)
+    }),
+    columnHelper.accessor('total_deductions', {
+      header: '扣发合计',
       cell: (info) => formatCurrency(info.getValue() || 0)
     }),
     columnHelper.accessor('net_pay', {
-      header: '实发金额',
+      header: '实发合计',
       cell: (info) => formatCurrency(info.getValue() || 0)
     }),
     columnHelper.accessor('payroll_status', {
@@ -135,28 +147,28 @@ export default function PayrollApprovalPage() {
         value: `${(stats.draft || 0) + (stats.calculated || 0)}`,
         description: `总金额: ${formatCurrency(pendingAmount)}`,
         icon: '⏳',
-        variant: 'warning'
+        colorClass: 'bg-warning/20'
       },
       {
         title: '已审批',
         value: `${stats.approved || 0}`,
         description: '待发放',
         icon: '✅',
-        variant: 'success'
+        colorClass: 'bg-success/20'
       },
       {
         title: '已发放',
         value: `${stats.paid || 0}`,
         description: '本月完成',
         icon: '💰',
-        variant: 'info'
+        colorClass: 'bg-info/20'
       },
       {
         title: '已取消',
         value: `${stats.cancelled || 0}`,
         description: '无效记录',
         icon: '❌',
-        variant: 'error'
+        colorClass: 'bg-error/20'
       }
     ];
   }, [stats, pendingAmount]);
@@ -225,57 +237,126 @@ export default function PayrollApprovalPage() {
 
   return (
     <ManagementPageLayout
-      title={t('payroll:approvalPageTitle')}
-      statCards={statCards}
+      title="薪资审批"
       loading={isLoading}
-      primaryActions={[
-        <button
-          key="view-history"
-          className="btn btn-outline btn-sm"
-          onClick={() => modalManager.history.open()}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          审批历史
-        </button>
-      ]}
+      exportComponent={null}
       customContent={
         <div className="space-y-6">
-          {/* 周期选择器 */}
-          <PayrollPeriodSelector
-            selectedMonth={selectedMonth}
-            availableMonths={(availableMonths || []).map(m => ({
-              month: m.month,
-              periodId: m.periodId || '',
-              hasData: m.hasData,
-              payrollCount: m.payrollCount || 0  // 传递实际的记录数量
-            }))}
-            onMonthChange={updateSelectedMonth}
-            isLoading={isLoadingMonths}
-            showCompletenessIndicators={false}
-            size="md"
-          />
+          {/* 统计数据卡片 */}
+          <div className="card bg-base-100 shadow-sm border border-base-200 p-6">
+            <h3 className="text-lg font-semibold text-base-content mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              审批统计概览
+            </h3>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {statCards.map((card, index) => (
+                <div key={index} className="stat bg-base-200 rounded-lg p-4">
+                  <div className="stat-figure">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      card.colorClass || 'bg-info/20'
+                    }`}>
+                      {typeof card.icon === 'string' ? (
+                        <span className="text-lg">{card.icon}</span>
+                      ) : (
+                        card.icon
+                      )}
+                    </div>
+                  </div>
+                  <div className="stat-title text-xs text-base-content/60">{card.title}</div>
+                  <div className="stat-value text-lg text-base-content">{card.value}</div>
+                  {card.description && (
+                    <div className="stat-desc text-xs text-base-content/60">
+                      {card.description}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
 
-          {/* 搜索和筛选 */}
-          <PayrollSearchAndFilter
-            searchQuery={searchQuery}
-            statusFilter={statusFilter}
-            onSearchQueryChange={setSearchQuery}
-            onStatusFilterChange={(status) => setStatusFilter(status as PayrollStatus | 'all')}
-            onSearch={() => {}}
-            onReset={() => {
-              setSearchQuery('');
-              setStatusFilter('calculated');
-            }}
-            searchPlaceholder="搜索员工姓名、部门名称..."
-            loading={isLoading}
-            showExport={true}
-            exportData={dataProcessor.processedData}
-            exportFilename="payroll-approval"
-            additionalFilters={
-              <div className="flex items-center gap-4">
+          {/* 工具栏 */}
+          <div className="border border-base-200 rounded-lg bg-base-100 p-4">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+              
+              {/* 左侧：选择器组 */}
+              <div className="flex items-center gap-3">
+                {/* 薪资周期选择器 */}
+                <PayrollPeriodSelector
+                  selectedMonth={selectedMonth}
+                  availableMonths={(availableMonths || []).map(m => ({
+                    month: m.month,
+                    periodId: m.periodId || '',
+                    hasData: m.hasData,
+                    payrollCount: m.payrollCount || 0
+                  }))}
+                  onMonthChange={updateSelectedMonth}
+                  isLoading={isLoadingMonths}
+                  showCompletenessIndicators={false}
+                  size="sm"
+                />
+                
+                {/* 状态选择器 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-base-content/70 whitespace-nowrap">状态：</span>
+                  <select 
+                    className="select select-bordered select-sm bg-base-100 w-28"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as PayrollStatus | 'all')}
+                  >
+                    <option value="all">全部状态</option>
+                    <option value="calculated">待审批</option>
+                    <option value="approved">已审批</option>
+                    <option value="rejected">已拒绝</option>
+                    <option value="paid">已发放</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 中间：搜索框 */}
+              <div className="flex-1">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="搜索员工姓名、部门名称..."
+                    className="input input-bordered input-sm w-full pr-20"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  <div className="absolute right-1 top-1 flex gap-1">
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => setSearchQuery('')}
+                        title="清除搜索"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-xs"
+                      title="搜索"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 右侧：操作按钮组 */}
+              <div className="flex items-center gap-2">
+                {/* 详细面板切换 */}
                 <button
                   className={`btn btn-sm ${showFullPanel ? 'btn-primary' : 'btn-outline'}`}
                   onClick={() => setShowFullPanel(!showFullPanel)}
@@ -283,9 +364,21 @@ export default function PayrollApprovalPage() {
                 >
                   {showFullPanel ? '简化视图' : '详细面板'}
                 </button>
+
+                {/* 审批历史 */}
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => modalManager.history.open()}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  审批历史
+                </button>
               </div>
-            }
-          />
+            </div>
+          </div>
 
           {/* 审批面板 */}
           {showFullPanel && (
