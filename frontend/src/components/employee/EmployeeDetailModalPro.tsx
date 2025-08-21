@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useEmployeeDetail } from '@/hooks/employee/useEmployeeDetail';
 import { useEmployeeFormOptions } from '@/hooks/employee/useEmployeeFullCreate';
 import { useEmployeeList } from '@/hooks/employee/useEmployeeList';
@@ -83,6 +83,25 @@ export function EmployeeDetailModalPro({
   // 维护教育和银行账户的本地状态
   const [localBankAccounts, setLocalBankAccounts] = useState<Partial<EmployeeBankAccount>[]>([]);
   const [localEducation, setLocalEducation] = useState<Partial<EmployeeEducation>[]>([]);
+
+  // 创建ref映射来访问非受控组件的值
+  const formRefs = useRef<Record<string, HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>>({});
+  
+  // 设置ref的helper函数
+  const setFormRef = useCallback((field: string, ref: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null) => {
+    formRefs.current[field] = ref;
+  }, []);
+  
+  // 从非受控组件获取当前值
+  const getFormValues = useCallback(() => {
+    const values: any = {};
+    Object.entries(formRefs.current).forEach(([field, ref]) => {
+      if (ref) {
+        values[field] = ref.value;
+      }
+    });
+    return { ...formData, ...values };
+  }, [formData]);
 
   // 使用hook系统
   const employeeList = useEmployeeList();
@@ -170,7 +189,10 @@ export function EmployeeDetailModalPro({
 
   // 处理保存操作
   const handleSave = async () => {
-    if (!formData.employee_name?.trim()) {
+    // 获取当前表单值（包括从非受控组件获取的最新值）
+    const currentFormData = getFormValues();
+    
+    if (!currentFormData.employee_name?.trim()) {
       addToast({ message: '请填写员工姓名', type: 'error' });
       return;
     }
@@ -180,16 +202,16 @@ export function EmployeeDetailModalPro({
       if (mode === 'create') {
         // 创建新员工
         const createData: any = {
-          employee_name: formData.employee_name,
-          id_number: formData.id_number,
-          hire_date: formData.hire_date || new Date().toISOString().split('T')[0],
-          employment_status: formData.employment_status,
-          gender: formData.gender,
-          date_of_birth: formData.date_of_birth,
-          mobile_phone: formData.mobile_phone,
-          email: formData.email,
-          work_email: formData.work_email,
-          personal_email: formData.personal_email,
+          employee_name: currentFormData.employee_name,
+          id_number: currentFormData.id_number,
+          hire_date: currentFormData.hire_date || new Date().toISOString().split('T')[0],
+          employment_status: currentFormData.employment_status,
+          gender: currentFormData.gender,
+          date_of_birth: currentFormData.date_of_birth,
+          mobile_phone: currentFormData.mobile_phone,
+          email: currentFormData.email,
+          work_email: currentFormData.work_email,
+          personal_email: currentFormData.personal_email,
         };
 
         const { data, error } = await supabase
@@ -205,7 +227,7 @@ export function EmployeeDetailModalPro({
           const bankData = localBankAccounts
             .filter(account => account.account_number && account.bank_name)
             .map(account => ({
-              account_holder_name: account.account_holder_name || formData.employee_name,
+              account_holder_name: account.account_holder_name || currentFormData.employee_name,
               account_number: account.account_number!,
               bank_name: account.bank_name!,
               branch_name: account.branch_name,
@@ -240,12 +262,12 @@ export function EmployeeDetailModalPro({
       } else if (mode === 'edit') {
         // 更新员工信息
         const updateData: any = {
-          employee_name: formData.employee_name,
-          id_number: formData.id_number,
-          hire_date: formData.hire_date,
-          employment_status: formData.employment_status,
-          gender: formData.gender,
-          date_of_birth: formData.date_of_birth,
+          employee_name: currentFormData.employee_name,
+          id_number: currentFormData.id_number,
+          hire_date: currentFormData.hire_date,
+          employment_status: currentFormData.employment_status,
+          gender: currentFormData.gender,
+          date_of_birth: currentFormData.date_of_birth,
         };
 
         const { error } = await supabase
@@ -257,9 +279,9 @@ export function EmployeeDetailModalPro({
 
         // 更新联系信息 - 需要分别处理不同类型的联系方式
         const contactTypes = [
-          { type: 'mobile_phone', value: formData.mobile_phone },
-          { type: 'work_email', value: formData.work_email },
-          { type: 'personal_email', value: formData.personal_email }
+          { type: 'mobile_phone', value: currentFormData.mobile_phone },
+          { type: 'work_email', value: currentFormData.work_email },
+          { type: 'personal_email', value: currentFormData.personal_email }
         ];
 
         for (const contact of contactTypes) {
@@ -311,7 +333,7 @@ export function EmployeeDetailModalPro({
     return <span className={`badge ${config.color}`}>{config.text}</span>;
   };
 
-  // 信息组件
+  // 信息组件 - 改为非受控组件避免焦点丢失
   const InfoField = ({ 
     label, 
     value, 
@@ -322,9 +344,39 @@ export function EmployeeDetailModalPro({
     onChange,
     required = false,
     placeholder = '',
-    colSpan = 1
+    colSpan = 1,
+    fieldName // 新增：用于连接到ref系统
   }: any) => {
     const isViewMode = mode === 'view' || (!editable && mode !== 'create');
+    const inputRef = useRef<HTMLInputElement>(null);
+    const selectRef = useRef<HTMLSelectElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    
+    // 连接ref到全局ref系统（只在编辑模式下）
+    useEffect(() => {
+      if (fieldName && !isViewMode) {
+        if (type === 'select') {
+          setFormRef(fieldName, selectRef.current);
+        } else if (type === 'textarea') {
+          setFormRef(fieldName, textareaRef.current);
+        } else {
+          setFormRef(fieldName, inputRef.current);
+        }
+      }
+    }, [fieldName, type, isViewMode]);
+    
+    // 获取显示值 - 在查看模式下将原始值映射为用户友好的标签
+    const getDisplayValue = () => {
+      if (!value) return '-';
+      
+      // 如果有options，从中找到对应的标签
+      if (options && options.length > 0) {
+        const option = options.find((opt: any) => opt.value === value);
+        return option ? option.label : value;
+      }
+      
+      return value;
+    };
     
     return (
       <div className={`col-span-${colSpan}`}>
@@ -336,14 +388,15 @@ export function EmployeeDetailModalPro({
         {isViewMode ? (
           <div className="px-3 py-2 bg-base-200/50 rounded-lg min-h-[2.5rem] flex items-center">
             <span className={cn("text-base-content", !value && "text-base-content/50")}>
-              {value || '-'}
+              {getDisplayValue()}
             </span>
           </div>
         ) : type === 'select' ? (
           <select 
+            ref={selectRef}
             className="select select-bordered w-full" 
-            value={value || ''} 
-            onChange={onChange}
+            defaultValue={value || ''} 
+            onChange={(e) => onChange && onChange(e)}
             required={required}
           >
             <option value="">{placeholder || '请选择'}</option>
@@ -353,27 +406,30 @@ export function EmployeeDetailModalPro({
           </select>
         ) : type === 'date' ? (
           <input
+            ref={inputRef}
             type="date"
             className="input input-bordered w-full"
-            value={value || ''}
-            onChange={onChange}
+            defaultValue={value || ''}
+            onChange={(e) => onChange && onChange(e)}
             required={required}
           />
         ) : type === 'textarea' ? (
           <textarea
+            ref={textareaRef}
             className="textarea textarea-bordered w-full"
-            value={value || ''}
-            onChange={onChange}
+            defaultValue={value || ''}
+            onChange={(e) => onChange && onChange(e)}
             required={required}
             placeholder={placeholder}
             rows={3}
           />
         ) : (
           <input
+            ref={inputRef}
             type={type}
             className="input input-bordered w-full"
-            value={value || ''}
-            onChange={onChange}
+            defaultValue={value || ''}
+            onChange={(e) => onChange && onChange(e)}
             required={required}
             placeholder={placeholder}
           />
@@ -382,8 +438,8 @@ export function EmployeeDetailModalPro({
     );
   };
 
-  // 基础信息Tab - 员工基本信息
-  const BasicInfoTab = () => (
+  // 基础信息Tab渲染函数 - 直接返回JSX而不是组件
+  const renderBasicInfoTab = () => (
     <div className="space-y-6">
       {/* 基础信息区块 */}
       <div className="space-y-4">
@@ -399,7 +455,7 @@ export function EmployeeDetailModalPro({
             editable={mode !== 'view'}
             required
             placeholder="请输入员工姓名"
-            onChange={(e: any) => setFormData({...formData, employee_name: e.target.value})}
+            fieldName="employee_name"
           />
           <InfoField
             label="身份证号"
@@ -407,7 +463,7 @@ export function EmployeeDetailModalPro({
             icon={IdentificationIcon}
             editable={mode !== 'view'}
             placeholder="请输入身份证号"
-            onChange={(e: any) => setFormData({...formData, id_number: e.target.value})}
+            fieldName="id_number"
           />
           <InfoField
             label="性别"
@@ -419,7 +475,7 @@ export function EmployeeDetailModalPro({
               { value: 'other', label: '其他' }
             ]}
             editable={mode !== 'view'}
-            onChange={(e: any) => setFormData({...formData, gender: e.target.value})}
+            fieldName="gender"
           />
           <InfoField
             label="出生日期"
@@ -427,7 +483,7 @@ export function EmployeeDetailModalPro({
             icon={CalendarDaysIcon}
             type="date"
             editable={mode !== 'view'}
-            onChange={(e: any) => setFormData({...formData, date_of_birth: e.target.value})}
+            fieldName="date_of_birth"
           />
         </div>
       </div>
@@ -448,7 +504,7 @@ export function EmployeeDetailModalPro({
             type="date"
             editable={mode !== 'view'}
             required
-            onChange={(e: any) => setFormData({...formData, hire_date: e.target.value})}
+            fieldName="hire_date"
           />
           <InfoField
             label="雇佣状态"
@@ -461,15 +517,15 @@ export function EmployeeDetailModalPro({
             ]}
             editable={mode !== 'view'}
             required
-            onChange={(e: any) => setFormData({...formData, employment_status: e.target.value})}
+            fieldName="employment_status"
           />
         </div>
       </div>
     </div>
   );
 
-  // 联系方式Tab
-  const ContactInfoTab = () => (
+  // 联系方式Tab渲染函数 - 直接返回JSX而不是组件
+  const renderContactInfoTab = () => (
     <div className="space-y-6">
       {/* 联系方式区块 */}
       <div className="space-y-4">
@@ -484,7 +540,7 @@ export function EmployeeDetailModalPro({
             icon={PhoneIcon}
             editable={mode !== 'view'}
             placeholder="请输入手机号码"
-            onChange={(e: any) => setFormData({...formData, mobile_phone: e.target.value})}
+            fieldName="mobile_phone"
           />
           <InfoField
             label="工作邮箱"
@@ -493,7 +549,7 @@ export function EmployeeDetailModalPro({
             type="email"
             editable={mode !== 'view'}
             placeholder="请输入工作邮箱"
-            onChange={(e: any) => setFormData({...formData, work_email: e.target.value})}
+            fieldName="work_email"
           />
           <InfoField
             label="个人邮箱"
@@ -502,7 +558,7 @@ export function EmployeeDetailModalPro({
             type="email"
             editable={mode !== 'view'}
             placeholder="请输入个人邮箱"
-            onChange={(e: any) => setFormData({...formData, personal_email: e.target.value})}
+            fieldName="personal_email"
           />
           <InfoField
             label="家庭地址"
@@ -511,7 +567,7 @@ export function EmployeeDetailModalPro({
             editable={mode !== 'view'}
             placeholder="请输入家庭地址"
             colSpan={2}
-            onChange={(e: any) => setFormData({...formData, home_address: e.target.value})}
+            fieldName="home_address"
           />
         </div>
       </div>
@@ -530,7 +586,7 @@ export function EmployeeDetailModalPro({
             value={formData.emergency_contact}
             editable={mode !== 'view'}
             placeholder="请输入紧急联系人姓名"
-            onChange={(e: any) => setFormData({...formData, emergency_contact: e.target.value})}
+            fieldName="emergency_contact"
           />
           <InfoField
             label="联系人电话"
@@ -538,15 +594,15 @@ export function EmployeeDetailModalPro({
             icon={PhoneIcon}
             editable={mode !== 'view'}
             placeholder="请输入紧急联系人电话"
-            onChange={(e: any) => setFormData({...formData, emergency_phone: e.target.value})}
+            fieldName="emergency_phone"
           />
         </div>
       </div>
     </div>
   );
 
-  // 组织信息Tab
-  const OrganizationInfoTab = () => {
+  // 组织信息Tab渲染函数 - 直接返回JSX而不是组件
+  const renderOrganizationInfoTab = () => {
     // 直接从员工数据中获取已经包含的名称字段
     const emp = employee as any;
     
@@ -1256,9 +1312,9 @@ export function EmployeeDetailModalPro({
   return (
     <>
       <dialog className={cn("modal", { "modal-open": open })}>
-        <div className="modal-box max-w-6xl max-h-[92vh] p-0 overflow-hidden">
+        <div className="modal-box max-w-6xl max-h-[95vh] p-0 flex flex-col">
         {/* Enhanced Modal Header */}
-        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6 border-b border-base-300">
+        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6 border-b border-base-300 flex-shrink-0">
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-2xl font-bold flex items-center gap-3">
@@ -1294,18 +1350,19 @@ export function EmployeeDetailModalPro({
               )}
             </div>
             <button
-              className="btn btn-sm btn-circle btn-ghost"
+              className="btn btn-sm btn-circle btn-ghost hover:bg-error/10 hover:text-error"
               onClick={onClose}
+              title="关闭对话框"
             >
               ✕
             </button>
           </div>
         </div>
 
-        {/* Content Area with Sidebar Navigation */}
-        <div className="flex h-[calc(92vh-8rem)]">
+        {/* Content Area with Sidebar Navigation - 使用 flex-1 和 min-h-0 确保可滚动 */}
+        <div className="flex flex-1 min-h-0">
           {/* Sidebar Navigation */}
-          <div className="w-56 bg-base-200/30 border-r border-base-300 p-4">
+          <div className="w-56 bg-base-200/30 border-r border-base-300 p-4 flex-shrink-0">
             <ul className="space-y-1">
               {tabs
                 .filter(tab => !tab.hideOnCreate || mode !== 'create')
@@ -1338,9 +1395,9 @@ export function EmployeeDetailModalPro({
               </div>
             ) : (
               <>
-                {activeTab === 'basic' && <BasicInfoTab />}
-                {activeTab === 'contact' && <ContactInfoTab />}
-                {activeTab === 'organization' && mode !== 'create' && <OrganizationInfoTab />}
+                {activeTab === 'basic' && renderBasicInfoTab()}
+                {activeTab === 'contact' && renderContactInfoTab()}
+                {activeTab === 'organization' && mode !== 'create' && renderOrganizationInfoTab()}
                 {activeTab === 'banking' && <BankingTab />}
                 {activeTab === 'education' && <EducationTab />}
               </>
@@ -1348,29 +1405,29 @@ export function EmployeeDetailModalPro({
           </div>
         </div>
 
-        {/* Enhanced Modal Footer */}
-        <div className="border-t border-base-300 p-4 bg-base-200/30">
+        {/* Enhanced Modal Footer - 固定在底部 */}
+        <div className="border-t border-base-300 p-4 bg-base-200/30 flex-shrink-0">
           <div className="flex justify-between items-center">
             <div className="text-sm text-base-content/60">
               {mode === 'create' && '请填写必要信息以创建新员工'}
               {mode === 'edit' && '修改后请点击保存按钮'}
-              {mode === 'view' && '查看模式'}
+              {mode === 'view' && '查看模式下可以浏览所有信息'}
             </div>
             <div className="flex gap-2">
               {(mode === 'edit' || mode === 'create') && (
                 <button
                   type="button"
-                  className="btn btn-primary"
+                  className="btn btn-primary gap-2"
                   onClick={handleSave}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting && <span className="loading loading-spinner loading-xs mr-2"></span>}
+                  {isSubmitting && <span className="loading loading-spinner loading-xs"></span>}
                   {mode === 'create' ? '创建员工' : '保存更改'}
                 </button>
               )}
               <button
                 type="button"
-                className="btn btn-ghost"
+                className="btn btn-ghost gap-2"
                 onClick={onClose}
                 disabled={isSubmitting}
               >
