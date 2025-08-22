@@ -282,27 +282,112 @@
 
   /* 统计模块内容宽度优化 - 精确调整统计内容显示宽度 */
   .statistics-wide-content {
-    max-width: 95%;
+    max-width: 100%;
     margin: 0 auto;
     width: 100%;
   }
 
   @media (min-width: 1024px) {
     .statistics-wide-content {
-      max-width: 90%;
+      max-width: 95%;
     }
   }
 
   @media (min-width: 1280px) {
     .statistics-wide-content {
-      max-width: 85%;
+      max-width: 90%;
     }
   }
 
   @media (min-width: 1536px) {
     .statistics-wide-content {
-      max-width: 80%;
+      max-width: 85%;
     }
+  }
+
+  /* 统计页面专用增强样式 */
+  .statistics-enhanced {
+    @apply space-y-8;
+  }
+
+  /* 统计卡片网格布局优化 */
+  .statistics-grid {
+    @apply grid gap-6;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  @media (min-width: 768px) {
+    .statistics-grid {
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .statistics-grid {
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    }
+  }
+
+  /* KPI指标卡片增强样式 */
+  .statistics-kpi-card {
+    @apply bg-gradient-to-br from-base-100 to-base-200/50;
+    @apply border border-base-300/50 shadow-lg hover:shadow-xl;
+    @apply transition-all duration-300 ease-out;
+    @apply relative overflow-hidden;
+  }
+
+  .statistics-kpi-card::before {
+    content: '';
+    @apply absolute top-0 left-0 w-full h-1;
+    background: linear-gradient(90deg, 
+      hsl(var(--p)) 0%, 
+      hsl(var(--s)) 50%, 
+      hsl(var(--a)) 100%);
+  }
+
+  .statistics-kpi-card:hover {
+    @apply scale-[1.02] shadow-2xl;
+    @apply border-primary/30;
+  }
+
+  /* 统计数值渐变效果 */
+  .stat-value-gradient {
+    background: linear-gradient(135deg, 
+      hsl(var(--p)) 0%, 
+      hsl(var(--s)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    @apply font-black text-transparent;
+  }
+
+  /* 趋势指标动画 */
+  .trend-indicator {
+    @apply inline-flex items-center gap-1 transition-all duration-300;
+  }
+
+  .trend-up {
+    @apply text-success;
+    animation: trend-pulse-green 2s infinite;
+  }
+
+  .trend-down {
+    @apply text-error;
+    animation: trend-pulse-red 2s infinite;
+  }
+
+  .trend-stable {
+    @apply text-info;
+  }
+
+  @keyframes trend-pulse-green {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; transform: scale(1.05); }
+  }
+
+  @keyframes trend-pulse-red {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; transform: scale(1.05); }
   }
   
   /* 紧凑化数据表格特殊样式 */
@@ -396,59 +481,152 @@
   /* DaisyUI 5 Tab组件增强样式 */
   .tabs {
     /* 确保tab容器占满宽度 */
-    @apply flex-wrap gap-0;
+    @apply flex-wrap gap-0 relative;
   }
   
   .tab {
     /* 统一tab的基本样式 */
-    @apply transition-all duration-200 ease-in-out;
-    @apply flex-1 text-center justify-center;
+    @apply transition-all duration-300 ease-out;
+    @apply flex-1 text-center justify-center relative;
+    @apply hover:bg-base-200/30 hover:text-base-content/80;
     min-width: fit-content;
+    position: relative;
+    overflow: hidden;
   }
   
+  /* Tab悬停微动效果 */
   .tab:hover:not(.tab-disabled) {
-    @apply bg-base-200/50;
+    @apply transform scale-[1.02] bg-base-200/40;
+  }
+
+  /* Tab图标动画 */
+  .tab svg {
+    @apply transition-transform duration-300 ease-out;
+  }
+
+  .tab:hover svg {
+    @apply transform scale-110;
   }
   
   .tab-active {
     /* 活跃状态的增强样式 */
-    @apply text-primary font-semibold;
+    @apply text-primary font-bold bg-base-100;
+    @apply relative z-10;
+  }
+
+  .tab-active svg {
+    @apply text-primary drop-shadow-sm;
   }
   
   .tab-disabled {
     /* 禁用状态的样式 */
-    @apply cursor-not-allowed text-base-content/30;
+    @apply cursor-not-allowed text-base-content/20 bg-base-100/50;
+  }
+
+  .tab-disabled:hover {
+    @apply transform-none scale-100;
   }
   
   /* Tab lift 变体的特定样式优化 */
+  .tabs-lift {
+    @apply bg-base-200/30 rounded-xl p-1;
+    backdrop-filter: blur(10px);
+  }
+
   .tabs-lift .tab {
-    @apply border-b-2 border-transparent;
+    @apply border-b-0 rounded-lg mx-1;
+    @apply relative overflow-hidden;
   }
   
   .tabs-lift .tab-active {
-    @apply border-b-primary bg-base-100;
-    box-shadow: 0 -2px 4px rgba(0,0,0,0.05);
+    @apply border-b-0 bg-base-100 shadow-lg;
+    box-shadow: 
+      0 4px 12px rgba(0,0,0,0.1),
+      0 2px 4px rgba(0,0,0,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+
+  /* 活跃Tab的光晕效果 */
+  .tabs-lift .tab-active::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent;
+    @apply opacity-0 transition-opacity duration-500;
+  }
+
+  .tabs-lift .tab-active:hover::before {
+    @apply opacity-100;
   }
   
   /* Tab大尺寸的间距调整 */
   .tabs-lg .tab {
-    @apply px-4 py-3 text-base;
+    @apply px-6 py-4 text-base font-medium;
+  }
+
+  /* Tab过渡指示器 */
+  .tabs-indicator {
+    @apply absolute bottom-0 left-0 h-1 bg-primary rounded-full;
+    @apply transition-all duration-500 ease-out;
+    transform: translateX(var(--indicator-x, 0)) scaleX(var(--indicator-scale, 0.2));
   }
   
   /* 响应式tab布局优化 */
   @media (max-width: 768px) {
+    .tabs-lift {
+      @apply flex-col p-2 gap-1;
+    }
+
     .tabs-lift .tab {
-      @apply px-3 py-2 text-sm;
+      @apply px-4 py-3 text-sm mx-0 mb-1;
+      min-width: 100%;
     }
     
     .tabs-lg .tab {
-      @apply px-3 py-2 text-sm;
+      @apply px-4 py-3 text-sm;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .tabs-lift .tab {
+      @apply px-3 py-2 text-xs;
     }
   }
   
-  /* Tab内容区域的焦点指示器 */
+  /* Tab内容区域的焦点指示器和过渡效果 */
+  [role="tabpanel"] {
+    @apply transition-all duration-500 ease-out;
+    animation: tabpanel-fade-in 0.4s ease-out;
+  }
+
   [role="tabpanel"]:focus {
-    @apply outline-2 outline-primary outline-offset-2;
+    @apply outline-2 outline-primary outline-offset-4 rounded-lg;
+  }
+
+  @keyframes tabpanel-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* 统计Tab专用增强效果 */
+  .statistics-tabs {
+    @apply mb-8;
+  }
+
+  .statistics-tabs .tab {
+    @apply border border-transparent hover:border-base-300;
+    @apply backdrop-blur-sm;
+  }
+
+  .statistics-tabs .tab-active {
+    @apply border-primary/20 bg-primary/5;
+    box-shadow: 
+      0 2px 8px rgba(0,0,0,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.1);
   }
 }
 
