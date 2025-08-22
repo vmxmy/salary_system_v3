@@ -5,11 +5,9 @@
  * 遵循hooks-only数据访问原则
  */
 
-// 综合统计
-export { 
-  useStatisticsSummary, 
-  useStatisticsSummaryByDepartment 
-} from './useStatisticsSummary';
+// 注意：useStatisticsSummary 已移除，请直接使用以下替代hooks：
+// - useEmployeeStatistics (员工统计)
+// - usePayrollAnalytics (薪资分析)
 
 // TODO: 后续将添加更多统计hooks
 // export { useStatisticsFilters } from './useStatisticsFilters';

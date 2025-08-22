@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useStatisticsSummary } from '@/hooks/statistics/useStatisticsSummary';
 import { useEmployeeStatistics } from '@/hooks/employee/useEmployeeStatistics';
 import { usePayrollAnalytics } from '@/hooks/payroll/usePayrollAnalytics';
 import { useDepartments } from '@/hooks/department/useDepartments';
@@ -66,7 +65,8 @@ export function ExportModule({ className = "" }: ExportModuleProps) {
   const [toastMessages, setToastMessages] = useState<ToastMessage[]>([]);
 
   // 获取数据用于导出
-  const statisticsSummary = useStatisticsSummary();
+  // 注意：useStatisticsSummary 已被移除，这里使用替代方案
+  // const statisticsSummary = useStatisticsSummary();
   const employeeStats = useEmployeeStatistics({
     departmentId: exportConfig.departments.length > 0 ? exportConfig.departments[0] : undefined
   });
