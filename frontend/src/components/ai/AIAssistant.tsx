@@ -8,10 +8,11 @@ import {
   useThread
 } from '@assistant-ui/react';
 import { MarkdownTextPrimitive } from '@assistant-ui/react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useAuth } from '../../hooks/useAuth';
-import { XMarkIcon, PaperAirplaneIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PaperAirplaneIcon, ArrowDownIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { SparklesIcon } from '@heroicons/react/24/solid';
-import { SimplePersistentAIRuntimeProvider } from '../../lib/simplePersistentAIRuntime.tsx';
+import { SimplePersistentAIRuntimeProvider, useSessionContext } from '../../lib/simplePersistentAIRuntime.tsx';
 
 interface AIAssistantProps {
   className?: string;
@@ -22,6 +23,7 @@ const MarkdownText: React.FC = memo(() => {
   return (
     <MarkdownTextPrimitive 
       className="prose prose-sm max-w-none text-base-content leading-relaxed"
+      remarkPlugins={[remarkGfm]} // 添加 GFM 插件支持表格渲染
       components={{
         h1: ({ children }) => <h1 className="text-2xl font-bold text-base-content mb-4 mt-6 border-b border-base-300 pb-2">{children}</h1>,
         h2: ({ children }) => <h2 className="text-xl font-semibold text-base-content mb-3 mt-5">{children}</h2>,
@@ -46,14 +48,16 @@ const MarkdownText: React.FC = memo(() => {
         ),
         table: ({ children }) => (
           <div className="overflow-x-auto my-4">
-            <table className="table table-xs bg-base-100 border border-base-300 rounded-lg">
+            <table className="table table-xs bg-base-100 border border-base-300 rounded-lg w-full">
               {children}
             </table>
           </div>
         ),
         thead: ({ children }) => <thead className="bg-base-200">{children}</thead>,
-        th: ({ children }) => <th className="border border-base-300 text-base-content font-semibold">{children}</th>,
-        td: ({ children }) => <td className="border border-base-300 text-base-content">{children}</td>,
+        tbody: ({ children }) => <tbody className="bg-base-100">{children}</tbody>,
+        tr: ({ children }) => <tr className="hover:bg-base-50">{children}</tr>,
+        th: ({ children }) => <th className="border border-base-300 text-base-content font-semibold px-3 py-2 text-left">{children}</th>,
+        td: ({ children }) => <td className="border border-base-300 text-base-content px-3 py-2">{children}</td>,
         a: ({ href, children }) => (
           <a 
             href={href} 
@@ -147,8 +151,9 @@ const SmartSuggestions: React.FC = memo(() => {
   const suggestions = useMemo(() => [
     { prompt: "请帮我查询员工信息", label: "查询员工信息" },
     { prompt: "我想查看薪资统计分析", label: "薪资统计分析" },
-    { prompt: "如何使用这个系统？", label: "系统使用帮助" },
-    { prompt: "请生成最新的薪资报表", label: "生成薪资报表" }
+    { prompt: "各部门薪资对比情况", label: "部门薪资对比" },
+    { prompt: "最近的薪资趋势如何？", label: "薪资趋势分析" },
+    { prompt: "如何使用这个系统？", label: "系统使用帮助" }
   ], []);
 
   return (
@@ -180,10 +185,11 @@ const EnhancedWelcome: React.FC = memo(() => {
         <h3 className="text-lg font-semibold mb-2">👋 您好！我是薪资管理系统的AI助手</h3>
         <p className="text-sm mb-4">我可以帮助您：</p>
         <ul className="text-sm space-y-1 mb-6">
-          <li>• 查询员工信息和薪资数据</li>
-          <li>• 生成统计报表和分析</li>
+          <li>• 查询员工信息和详细档案</li>
+          <li>• 💰 查询个人或部门薪资数据</li>
+          <li>• 📊 生成薪资统计和趋势分析</li>
+          <li>• 📈 提供薪资对比和管理洞察</li>
           <li>• 解答系统使用问题</li>
-          <li>• 提供数据洞察和建议</li>
         </ul>
         <SmartSuggestions />
       </div>
@@ -205,12 +211,12 @@ const EnhancedComposer: React.FC = memo(() => {
   }, [isRunning, threadRuntime]);
 
   return (
-    <div className="flex-shrink-0 border-t border-base-200 p-4 bg-base-100">
-      <ComposerPrimitive.Root className="flex gap-3 items-end">
+    <div className="flex-shrink-0 border-t border-base-200 p-3 bg-base-50">
+      <ComposerPrimitive.Root className="flex gap-2 items-end">
         <div className="flex-1">
           <ComposerPrimitive.Input 
-            className="textarea textarea-bordered w-full resize-none bg-base-100 text-base-content placeholder:text-base-content/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent h-10 min-h-10 max-h-32 leading-tight py-2"
-            placeholder="输入您的问题..."
+            className="textarea textarea-bordered w-full resize-none bg-base-100 text-base-content placeholder:text-base-content/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent h-10 min-h-10 max-h-32 leading-tight py-2 text-sm"
+            placeholder="输入您的问题... (Shift+Enter 换行)"
             autoFocus
             rows={1}
             onKeyDown={(e) => {
@@ -226,14 +232,14 @@ const EnhancedComposer: React.FC = memo(() => {
         {isRunning ? (
           <button
             onClick={handleCancel}
-            className="btn btn-error btn-square h-10 w-10 min-h-10"
+            className="btn btn-error btn-square h-10 w-10 min-h-10 btn-sm"
             title="取消生成"
           >
-            <XMarkIcon className="w-5 h-5" />
+            <XMarkIcon className="w-4 h-4" />
           </button>
         ) : (
-          <ComposerPrimitive.Send className="btn btn-primary btn-square h-10 w-10 min-h-10">
-            <PaperAirplaneIcon className="w-5 h-5" />
+          <ComposerPrimitive.Send className="btn btn-primary btn-square h-10 w-10 min-h-10 btn-sm">
+            <PaperAirplaneIcon className="w-4 h-4" />
           </ComposerPrimitive.Send>
         )}
       </ComposerPrimitive.Root>
@@ -243,8 +249,66 @@ const EnhancedComposer: React.FC = memo(() => {
 
 EnhancedComposer.displayName = 'EnhancedComposer';
 
-// 高级聊天模态框组件
-export const AIChatModal: React.FC<{
+// AI助手Header组件，包含清空功能
+const AIChatHeader: React.FC<{ onClose: () => void }> = memo(({ onClose }) => {
+  const { clearMessages } = useSessionContext();
+  const [isClearing, setIsClearing] = useState(false);
+
+  const handleClearMessages = useCallback(async () => {
+    if (isClearing) return;
+    
+    try {
+      setIsClearing(true);
+      await clearMessages();
+      // Chat messages cleared successfully
+    } catch (error) {
+      // Failed to clear messages - error handled silently for better UX
+    } finally {
+      setIsClearing(false);
+    }
+  }, [clearMessages, isClearing]);
+
+  return (
+    <div className="flex items-center justify-between p-4 border-b border-base-200 bg-base-50/50 backdrop-blur-sm">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-sm">
+          <SparklesIcon className="w-5 h-5 text-primary-content" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-base-content text-lg">AI助手</h3>
+          <p className="text-xs text-base-content/60">薪资管理系统智能助手</p>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        {/* 清空聊天记录按钮 */}
+        <button
+          onClick={handleClearMessages}
+          disabled={isClearing}
+          className="btn btn-ghost btn-sm btn-circle hover:btn-warning/20 tooltip tooltip-left"
+          data-tip="清空聊天记录"
+          aria-label="清空聊天记录"
+        >
+          <TrashIcon className={`w-4 h-4 ${isClearing ? 'opacity-50' : ''}`} />
+        </button>
+        
+        {/* 关闭按钮 */}
+        <button
+          onClick={onClose}
+          className="btn btn-ghost btn-sm btn-circle hover:btn-error/20"
+          aria-label="关闭"
+        >
+          <XMarkIcon className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+});
+
+AIChatHeader.displayName = 'AIChatHeader';
+
+// 右侧抽屉聊天组件
+export const AIChatDrawer: React.FC<{
   isOpen: boolean;
   onClose: () => void;
 }> = memo(({ isOpen, onClose }) => {
@@ -253,34 +317,24 @@ export const AIChatModal: React.FC<{
   // 🔧 关键修复：使用样式控制显示，避免mount/unmount
   return (
     <div 
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200 ${
-        isOpen && user ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
+      className={`fixed inset-0 z-50 transition-all duration-300 ${
+        isOpen && user ? 'visible' : 'invisible pointer-events-none'
       }`}
     >
+      {/* 背景遮罩 */}
       <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
+          isOpen ? 'opacity-100' : 'opacity-0'
+        }`}
         onClick={onClose}
       />
-      <div className="relative bg-base-100 rounded-2xl shadow-2xl w-full max-w-2xl h-[600px] flex flex-col overflow-hidden transform transition-transform duration-200 scale-95 hover:scale-100">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-base-200">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <SparklesIcon className="w-4 h-4 text-primary-content" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-base-content">AI助手</h3>
-              <p className="text-sm text-base-content/70">薪资管理系统智能助手</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="btn btn-ghost btn-sm btn-square"
-            aria-label="关闭"
-          >
-            <XMarkIcon className="w-5 h-5" />
-          </button>
-        </div>
+      
+      {/* 右侧抽屉 */}
+      <div className={`fixed top-0 right-0 h-full w-full sm:w-96 lg:w-[28rem] xl:w-[32rem] bg-base-100 shadow-2xl border-l border-base-200 transform transition-transform duration-300 ease-in-out flex flex-col ${
+        isOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}>
+        {/* Header with Clear Button */}
+        <AIChatHeader onClose={onClose} />
 
         {/* 🔧 关键修复：ThreadPrimitive直接渲染，Provider已移到外部 */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -325,7 +379,7 @@ export const AIChatModal: React.FC<{
   );
 });
 
-AIChatModal.displayName = 'AIChatModal';
+AIChatDrawer.displayName = 'AIChatDrawer';
 
 // 浮动按钮组件（保持不变）
 export const AIFloatingButton: React.FC<{ onClick: () => void }> = memo(({ onClick }) => {
@@ -344,16 +398,16 @@ AIFloatingButton.displayName = 'AIFloatingButton';
 
 // 主要 AI 助手组件
 export const AIAssistant: React.FC<AIAssistantProps> = memo(({ className = '' }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string>();
   const { user } = useAuth();
 
-  const handleOpenModal = useCallback(() => {
-    setIsModalOpen(true);
+  const handleOpenDrawer = useCallback(() => {
+    setIsDrawerOpen(true);
   }, []);
 
-  const handleCloseModal = useCallback(() => {
-    setIsModalOpen(false);
+  const handleCloseDrawer = useCallback(() => {
+    setIsDrawerOpen(false);
     // 注意：不清除 currentSessionId，这样重新打开时会保留会话
   }, []);
 
@@ -369,17 +423,17 @@ export const AIAssistant: React.FC<AIAssistantProps> = memo(({ className = '' })
 
   return (
     <div className={className}>
-      <AIFloatingButton onClick={handleOpenModal} />
+      <AIFloatingButton onClick={handleOpenDrawer} />
       
       {/* 🔧 关键修复：Provider移到外部，只挂载一次，通过isActive控制其行为 */}
       <SimplePersistentAIRuntimeProvider 
         sessionId={currentSessionId}
         onSessionChange={handleSessionChange}
-        isActive={isModalOpen} // 新增属性控制是否激活
+        isActive={isDrawerOpen} // 新增属性控制是否激活
       >
-        <AIChatModal 
-          isOpen={isModalOpen} 
-          onClose={handleCloseModal}
+        <AIChatDrawer 
+          isOpen={isDrawerOpen} 
+          onClose={handleCloseDrawer}
         />
       </SimplePersistentAIRuntimeProvider>
     </div>

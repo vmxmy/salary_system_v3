@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext, type ReactNode } from 'react';
 import { 
   useExternalStoreRuntime, 
   AssistantRuntimeProvider,
@@ -31,6 +31,24 @@ interface AIResponse {
   toolsUsed?: string[];
   metadata?: Record<string, any>;
 }
+
+// 会话管理上下文
+interface SessionContextType {
+  clearMessages: () => Promise<void>;
+  currentSession: ChatSession | null;
+  sessionManager: SimpleSessionManager;
+}
+
+const SessionContext = createContext<SessionContextType | null>(null);
+
+// 自定义Hook获取会话管理功能
+export const useSessionContext = () => {
+  const context = useContext(SessionContext);
+  if (!context) {
+    throw new Error('useSessionContext must be used within SimplePersistentAIRuntimeProvider');
+  }
+  return context;
+};
 
 // 简化的会话管理器
 class SimpleSessionManager {
@@ -96,10 +114,72 @@ class SimpleSessionManager {
       updatedAt: now
     };
   }
+
+  // 清空会话消息（保留会话但清空消息历史）
+  async clearSessionMessages(sessionId: string): Promise<void> {
+    try {
+      const session = await this.loadSession(sessionId);
+      if (session) {
+        const clearedSession: ChatSession = {
+          ...session,
+          messages: [],
+          title: '新的对话',
+          updatedAt: new Date().toISOString()
+        };
+        await this.saveSession(clearedSession);
+        console.log('🧹 Session messages cleared:', sessionId);
+      }
+    } catch (error) {
+      console.error('❌ Failed to clear session messages:', error);
+    }
+  }
+
+  // 删除会话（完全移除会话数据）
+  async deleteSession(sessionId: string): Promise<void> {
+    try {
+      const key = `chat_session_${sessionId}`;
+      localStorage.removeItem(key);
+      console.log('🗑️ Session deleted:', sessionId);
+    } catch (error) {
+      console.error('❌ Failed to delete session:', error);
+    }
+  }
+
+  // 获取所有会话列表
+  async getAllSessions(userId?: string): Promise<ChatSession[]> {
+    try {
+      const sessions: ChatSession[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('chat_session_')) {
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            const session = JSON.parse(stored) as ChatSession;
+            if (!userId || session.userId === userId) {
+              sessions.push(session);
+            }
+          }
+        }
+      }
+      
+      // 按更新时间倒序排列
+      return sessions.sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+    } catch (error) {
+      console.error('❌ Failed to get all sessions:', error);
+      return [];
+    }
+  }
 }
 
-// AI API 调用函数
-const callAIAgent = async (input: string, sessionId: string, messageHistory: PersistentMessage[] = []): Promise<PersistentMessage> => {
+// AI API 调用函数 - 支持SSE流式响应
+const callAIAgent = async (
+  input: string, 
+  sessionId: string, 
+  messageHistory: PersistentMessage[] = [],
+  onChunk?: (chunk: string) => void
+): Promise<PersistentMessage> => {
   try {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
@@ -119,7 +199,7 @@ const callAIAgent = async (input: string, sessionId: string, messageHistory: Per
       body: JSON.stringify({
         query: input,
         sessionId: sessionId,
-        messageHistory: messageHistory, // 传递完整消息历史
+        messageHistory: messageHistory,
         context: {
           timestamp: new Date().toISOString()
         }
@@ -135,7 +215,6 @@ const callAIAgent = async (input: string, sessionId: string, messageHistory: Per
         const errorJson = JSON.parse(errorText);
         console.error('AI Service Error Details:', errorJson);
         
-        // 构建详细的错误信息
         errorMessage = errorJson.message || errorJson.error || errorMessage;
         
         if (errorJson.code) {
@@ -150,7 +229,6 @@ const callAIAgent = async (input: string, sessionId: string, messageHistory: Per
           detailedErrorInfo += `\n发生时间: ${new Date(errorJson.timestamp).toLocaleString('zh-CN')}`;
         }
         
-        // 针对不同错误类型提供具体指导
         if (errorJson.code === 'GEMINI_API_KEY_MISSING') {
           errorMessage = '🔑 AI服务配置不完整 - Google Gemini API密钥未设置';
           detailedErrorInfo += `\n\n管理员需要：\n• 访问 Supabase Dashboard\n• 在项目设置中配置 GOOGLE_GEMINI_API_KEY 环境变量\n• 获取API密钥：https://aistudio.google.com/app/apikey`;
@@ -176,30 +254,35 @@ const callAIAgent = async (input: string, sessionId: string, messageHistory: Per
       throw new Error(errorMessage);
     }
 
-    const aiResponse: AIResponse = await response.json();
-    
-    return {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substring(2)}`,
-      role: 'assistant',
-      content: aiResponse.response || '抱歉，我现在无法回答您的问题。',
-      timestamp: Date.now(),
-      sessionId
-    };
+    // 检查是否为SSE流式响应
+    const contentType = response.headers.get('content-type');
+    if (contentType?.includes('text/event-stream')) {
+      // 处理SSE流式响应
+      return await handleSSEResponse(response, sessionId, onChunk);
+    } else {
+      // 处理传统JSON响应
+      const aiResponse: AIResponse = await response.json();
+      
+      return {
+        id: `msg_${Date.now()}_${Math.random().toString(36).substring(2)}`,
+        role: 'assistant',
+        content: aiResponse.response || '抱歉，我现在无法回答您的问题。',
+        timestamp: Date.now(),
+        sessionId
+      };
+    }
 
   } catch (error) {
     console.error('❌ AI Agent Error:', error);
     
-    // 获取更详细的错误信息
     const errorMessage = error instanceof Error ? error.message : '未知错误';
     const isDevMode = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEBUG_INFO === 'true';
     
     let userFriendlyContent = `🤖 抱歉，AI助手遇到了问题。`;
     
-    // 在开发模式或调试模式下显示具体错误
     if (isDevMode) {
       userFriendlyContent += `\n\n**错误详情：**\n\`${errorMessage}\``;
       
-      // 如果是网络错误，提供更多信息
       if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed to fetch')) {
         userFriendlyContent += `\n\n**可能原因：**\n• 网络连接问题\n• Supabase服务不可用\n• Edge Function未正确部署`;
       } else if (errorMessage.includes('Authentication') || errorMessage.includes('登录')) {
@@ -208,7 +291,6 @@ const callAIAgent = async (input: string, sessionId: string, messageHistory: Per
         userFriendlyContent += `\n\n**可能原因：**\n• AI服务API配置问题\n• API密钥无效或过期`;
       }
     } else {
-      // 生产模式下根据错误类型提供友好提示
       if (errorMessage.includes('登录') || errorMessage.includes('Authentication')) {
         userFriendlyContent += `\n\n**问题：** 身份验证失败，请重新登录。`;
       } else if (errorMessage.includes('权限') || errorMessage.includes('权限不足')) {
@@ -244,6 +326,93 @@ const callAIAgent = async (input: string, sessionId: string, messageHistory: Per
     };
   }
 };
+
+// 处理SSE流式响应的辅助函数
+async function handleSSEResponse(
+  response: Response, 
+  sessionId: string, 
+  onChunk?: (chunk: string) => void
+): Promise<PersistentMessage> {
+  const reader = response.body?.pipeThrough(new TextDecoderStream()).getReader();
+  if (!reader) {
+    throw new Error('无法读取响应流');
+  }
+
+  let fullResponse = '';
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += value;
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const jsonStr = line.substring(6).trim();
+          if (jsonStr) {
+            try {
+              const parsed = JSON.parse(jsonStr);
+              
+              console.log('📨 SSE Event received:', parsed.type, parsed.data);
+              
+              switch (parsed.type) {
+                case 'llm_chunk':
+                  if (parsed.data?.text) {
+                    console.log('📝 LLM Chunk:', parsed.data.text);
+                    fullResponse += parsed.data.text;
+                    onChunk?.(parsed.data.text);
+                  }
+                  break;
+                case 'final_response':
+                  if (parsed.data?.response) {
+                    console.log('🎯 Final Response:', parsed.data.response);
+                    fullResponse = parsed.data.response;
+                  }
+                  break;
+                case 'error':
+                  console.error('❌ SSE Error:', parsed.data?.message);
+                  throw new Error(parsed.data?.message || '流式响应错误');
+                case 'status':
+                  // 状态更新，可以用于显示进度
+                  console.log('📊 Status:', parsed.data?.message);
+                  break;
+                case 'tool_call':
+                  // 工具调用信息
+                  console.log('🔧 Tool call:', parsed.data?.name, parsed.data?.args);
+                  break;
+                case 'tool_result':
+                  // 工具执行结果
+                  console.log('✅ Tool result:', parsed.data?.name, parsed.data?.result);
+                  break;
+                default:
+                  console.log('❓ Unknown SSE event type:', parsed.type, parsed);
+              }
+            } catch (parseError) {
+              console.warn('Could not parse SSE chunk:', jsonStr, parseError);
+            }
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  console.log('🔚 SSE Stream ended. Full response length:', fullResponse.length);
+  console.log('🔚 Final content:', fullResponse);
+
+  return {
+    id: `msg_${Date.now()}_${Math.random().toString(36).substring(2)}`,
+    role: 'assistant',
+    content: fullResponse || '抱歉，我现在无法回答您的问题。',
+    timestamp: Date.now(),
+    sessionId
+  };
+}
 
 // 转换消息格式
 const convertMessage = (message: PersistentMessage): ThreadMessageLike => ({
@@ -408,7 +577,7 @@ export function SimplePersistentAIRuntimeProvider({
     }
   }, [messages.length, currentSession?.id, debouncedSave]);
 
-  // 处理新消息
+  // 处理新消息 - 支持流式响应
   const onNew = async (message: AppendMessage) => {
     if (!currentSession) return;
     
@@ -427,34 +596,91 @@ export function SimplePersistentAIRuntimeProvider({
       sessionId: currentSession.id
     };
     
-    // 添加用户消息
-    setMessages(prev => [...prev, userMessage]);
+    // 创建AI响应占位符
+    const assistantMessageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+    const assistantPlaceholder: PersistentMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      sessionId: currentSession.id
+    };
+    
+    // 添加用户消息和AI占位符
+    setMessages(prev => [...prev, userMessage, assistantPlaceholder]);
     setIsRunning(true);
     
     try {
       // 获取AI回复，传递当前消息历史（包括刚添加的用户消息）
       const currentHistory = [...messages, userMessage];
-      const assistantMessage = await callAIAgent(input, currentSession.id, currentHistory);
       
-      // 添加AI消息
-      setMessages(prev => [...prev, assistantMessage]);
+      // 流式响应处理：实时更新AI消息内容
+      const assistantMessage = await callAIAgent(
+        input, 
+        currentSession.id, 
+        currentHistory,
+        // onChunk回调：实时更新消息内容
+        (chunk: string) => {
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === assistantMessageId
+                ? { ...msg, content: msg.content + chunk }
+                : msg
+            )
+          );
+        }
+      );
+      
+      // 最终更新完整的AI消息
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === assistantMessageId
+            ? assistantMessage
+            : msg
+        )
+      );
     } catch (error) {
       console.error('❌ Failed to get AI response:', error);
       
-      // 添加错误消息
-      const errorMessage: PersistentMessage = {
-        id: `msg_${Date.now()}_${Math.random().toString(36).substring(2)}`,
-        role: 'assistant',
-        content: `抱歉，AI服务遇到问题：${error instanceof Error ? error.message : '未知错误'}`,
-        timestamp: Date.now(),
-        sessionId: currentSession.id
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
+      // 更新为错误消息
+      const errorContent = `抱歉，AI服务遇到问题：${error instanceof Error ? error.message : '未知错误'}`;
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === assistantMessageId
+            ? { ...msg, content: errorContent }
+            : msg
+        )
+      );
     } finally {
       setIsRunning(false);
     }
   };
+
+  // 清空当前会话的所有消息
+  const clearMessages = useCallback(async () => {
+    if (!currentSession) return;
+    
+    try {
+      // 清空本地状态
+      setMessages([]);
+      
+      // 清空存储的会话数据
+      await sessionManager.clearSessionMessages(currentSession.id);
+      
+      // 更新当前会话状态
+      const clearedSession: ChatSession = {
+        ...currentSession,
+        messages: [],
+        title: '新的对话',
+        updatedAt: new Date().toISOString()
+      };
+      setCurrentSession(clearedSession);
+      
+      console.log('🧹 Messages cleared successfully');
+    } catch (error) {
+      console.error('❌ Failed to clear messages:', error);
+    }
+  }, [currentSession, sessionManager]);
 
   // 清理定时器
   useEffect(() => {
@@ -473,10 +699,19 @@ export function SimplePersistentAIRuntimeProvider({
     isDisabled: !user || isLoading,
   });
 
+  // 创建会话上下文值
+  const sessionContextValue = useMemo(() => ({
+    clearMessages,
+    currentSession,
+    sessionManager
+  }), [clearMessages, currentSession]);
+
   return (
-    <AssistantRuntimeProvider runtime={runtime}>
-      {children}
-    </AssistantRuntimeProvider>
+    <SessionContext.Provider value={sessionContextValue}>
+      <AssistantRuntimeProvider runtime={runtime}>
+        {children}
+      </AssistantRuntimeProvider>
+    </SessionContext.Provider>
   );
 }
 
