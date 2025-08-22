@@ -28,6 +28,7 @@ import {
   PayrollSearchAndFilter,
   PayrollPeriodSelector
 } from '@/components/payroll';
+import { OnboardingButton } from '@/components/onboarding';
 import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
 import { PayrollCompletenessModal } from '@/components/payroll/PayrollCompletenessModal';
 import { PayrollCompletenessStats } from '@/components/payroll/PayrollCompletenessStats';
@@ -855,8 +856,10 @@ export default function PayrollListPage() {
 
 
   return (
-    <ManagementPageLayout
+    <>
+      <ManagementPageLayout
       title="薪资管理"
+      headerActions={<OnboardingButton />}
       loading={totalLoading}
       exportComponent={null}
       customContent={
@@ -887,7 +890,7 @@ export default function PayrollListPage() {
           </div>
 
           {/* 四要素完整度卡片 */}
-          <div className="card bg-base-100 shadow-sm border border-base-200 p-6">
+          <div className="card bg-base-100 shadow-sm border border-base-200 p-6" data-tour="payroll-completeness">
             <h3 className="text-lg font-semibold text-base-content mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -912,19 +915,21 @@ export default function PayrollListPage() {
               {/* 左侧：选择器组 */}
               <div className="flex items-center gap-3">
                 {/* 薪资周期选择器 */}
-                <PayrollPeriodSelector
-                  selectedMonth={selectedMonth}
-                  availableMonths={(availableMonths || []).map(m => ({
-                    month: m.month,
-                    periodId: m.periodId || '',
-                    hasData: m.hasData,
-                    payrollCount: m.payrollCount || 0  // 传递实际的记录数量
-                  }))}
-                  onMonthChange={handleMonthChange}
-                  isLoading={latestPeriodLoading}
-                  showCompletenessIndicators={true}
-                  size="sm"
-                />
+                <div data-tour="payroll-period-selector">
+                  <PayrollPeriodSelector
+                    selectedMonth={selectedMonth}
+                    availableMonths={(availableMonths || []).map(m => ({
+                      month: m.month,
+                      periodId: m.periodId || '',
+                      hasData: m.hasData,
+                      payrollCount: m.payrollCount || 0  // 传递实际的记录数量
+                    }))}
+                    onMonthChange={handleMonthChange}
+                    isLoading={latestPeriodLoading}
+                    showCompletenessIndicators={true}
+                    size="sm"
+                  />
+                </div>
                 
                 {/* 状态选择器 */}
                 <div className="flex items-center gap-2">
@@ -940,7 +945,7 @@ export default function PayrollListPage() {
               </div>
 
               {/* 中间：搜索框 */}
-              <div className="flex-1">
+              <div className="flex-1" data-tour="payroll-search">
                 <div className="relative">
                   <input
                     type="text"
@@ -978,7 +983,7 @@ export default function PayrollListPage() {
               </div>
 
               {/* 右侧：操作按钮组 */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" data-tour="payroll-export-options">
                 {/* 导出按钮 */}
                 <button
                   className="btn btn-outline btn-sm"
@@ -1036,7 +1041,7 @@ export default function PayrollListPage() {
 
           {/* 批量操作区域 */}
           {selectedIds.length > 0 && (
-            <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
+            <div className="card bg-base-100 shadow-sm border border-base-200 p-4" data-tour="batch-payroll-operations">
               <PayrollBatchActions
                 selectedCount={selectedIds.length}
                 loading={batchInsuranceLoading || payrollCalculation.loading}
@@ -1113,15 +1118,17 @@ export default function PayrollListPage() {
           )}
 
           {/* 表格容器 */}
-          <PayrollTableContainer
-            data={processedData}
-            columns={columns}
-            loading={isLoading}
-            selectedIds={selectedIds}
-            onSelectedIdsChange={setSelectedIds}
-            onViewDetail={modalManager.handlers.handleViewDetail}
-            enableRowSelection={true}
-          />
+          <div data-tour="payroll-table">
+            <PayrollTableContainer
+              data={processedData}
+              columns={columns}
+              loading={isLoading}
+              selectedIds={selectedIds}
+              onSelectedIdsChange={setSelectedIds}
+              onViewDetail={modalManager.handlers.handleViewDetail}
+              enableRowSelection={true}
+            />
+          </div>
         </div>
       }
       modal={
@@ -1289,6 +1296,7 @@ export default function PayrollListPage() {
           )}
         </>
       }
-    />
+      />
+    </>
   );
 }

@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { AIAssistant } from '@/components/ai';
+import { OnboardingRenderer } from '@/components/onboarding';
 
 export function MainLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -22,9 +23,10 @@ export function MainLayout() {
         {/* Header */}
         <Header />
         
-        {/* Page Content - 紧凑化间距 */}
+        {/* Page Content - 紧凑化间距，优化MacBook显示宽度 */}
         <main className="flex-1 p-2 lg:p-3 min-h-0 flex flex-col">
-          <div className="mx-auto max-w-7xl space-y-3 flex-1 min-h-0 flex flex-col">
+          <div className="mx-auto w-full space-y-3 flex-1 min-h-0 flex flex-col" 
+               style={{ maxWidth: 'calc(100vw - 2rem)' }}>
             <div className="flex-1 min-h-0">
               <Outlet />
             </div>
@@ -43,6 +45,9 @@ export function MainLayout() {
       
       {/* AI Assistant - Floating Button */}
       <AIAssistant />
+      
+      {/* 新用户指导渲染器 - 全局可用 */}
+      <OnboardingRenderer />
     </div>
   );
 }

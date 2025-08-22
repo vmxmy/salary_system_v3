@@ -1,10 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useDashboard, dashboardFormatters } from '@/hooks/dashboard';
-import MonthlyPayrollTrendChart from '@/components/dashboard/MonthlyPayrollTrendChart';
-import DepartmentPayrollChart from '@/components/dashboard/DepartmentPayrollChart';
-import PayrollStructureChart from '@/components/dashboard/PayrollStructureChart';
-import FinancialWarningDashboard from '@/components/dashboard/FinancialWarningDashboard';
+// 财务分析报表模块已移除
+import { OnboardingButton } from '@/components/onboarding';
 // HookTestPanel已移除，测试功能可通过专门的测试页面访问
 
 export default function DashboardPage() {
@@ -49,10 +47,16 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-base-content">{t('dashboard:title')}</h1>
+    <>
+      <div className="p-6 space-y-6" data-tour="dashboard-overview">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-base-content">{t('dashboard:title')}</h1>
+        
+        {/* 页面指导启动器 */}
+        <OnboardingButton variant="outline" size="sm" />
+      </div>
       
-      <div className="stats stats-vertical lg:stats-horizontal shadow w-full">
+      <div className="stats stats-vertical lg:stats-horizontal shadow w-full" data-tour="dashboard-stats">
         <div className="stat">
           <div className="stat-title">{t('dashboard:stats.totalEmployees')}</div>
           <div className="stat-value text-primary">{stats?.totalEmployees || 0}</div>
@@ -113,19 +117,21 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="card bg-base-100 shadow">
+        <div className="card bg-base-100 shadow" data-tour="quick-actions">
           <div className="card-body">
             <h2 className="card-title">{t('dashboard:quickActions.title')}</h2>
             <div className="grid grid-cols-2 gap-2">
               <button 
                 className="btn btn-sm"
                 onClick={() => navigate('/employees/new')}
+                data-tour="add-employee-btn"
               >
                 {t('dashboard:quickActions.addEmployee')}
               </button>
               <button 
                 className="btn btn-sm"
                 onClick={() => navigate('/payroll/run')}
+                data-tour="run-payroll-btn"
               >
                 {t('dashboard:quickActions.runPayroll')}
               </button>
@@ -138,6 +144,7 @@ export default function DashboardPage() {
               <button 
                 className="btn btn-sm"
                 onClick={() => navigate('/settings')}
+                data-tour="settings-btn"
               >
                 {t('dashboard:quickActions.settings')}
               </button>
@@ -166,29 +173,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 财务分析图表区域 */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-base-content">财务分析报表</h2>
-          <div className="badge badge-outline">实时数据</div>
-        </div>
-        
-        {/* 第一行：趋势图和预警仪表盘 */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2">
-            <MonthlyPayrollTrendChart height={300} />
-          </div>
-          <div className="xl:col-span-1">
-            <FinancialWarningDashboard />
-          </div>
-        </div>
-        
-        {/* 第二行：部门对比和结构分析 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DepartmentPayrollChart height={350} />
-          <PayrollStructureChart height={350} />
-        </div>
-      </div>
+      {/* 财务分析报表模块已移除 */}
 
       {/* Hook测试面板 - 仅在开发环境显示 */}
       {import.meta.env.DEV && (
@@ -196,6 +181,8 @@ export default function DashboardPage() {
           {/* HookTestPanel已移除，测试功能移至专门的测试页面 */}
         </div>
       )}
-    </div>
+
+      </div>
+    </>
   );
 }

@@ -18,6 +18,7 @@ export interface ManagementPageLayoutProps {
   // 页面基本信息
   title: string;
   subtitle?: string;
+  headerActions?: ReactNode;
   
   // 布局样式
   layoutClass?: 'page-compact' | 'page-statistics';
@@ -88,6 +89,7 @@ export interface ManagementPageLayoutProps {
 export function ManagementPageLayout({
   title,
   subtitle,
+  headerActions,
   layoutClass = 'page-compact',
   statCards = [],
   statCardsExtra,
@@ -220,11 +222,12 @@ export function ManagementPageLayout({
   };
 
   return (
-    <div className={layoutClass}>
+    <div className={layoutClass} style={{ width: '100%', maxWidth: '100%' }}>
       {/* 页面工具栏 */}
       <PageToolbar
         title={title}
         subtitle={subtitle}
+        headerActions={headerActions}
         customContent={renderStatCards()}
         searchComponent={renderSearchComponent()}
         fieldSelector={renderFieldSelector()}
@@ -232,8 +235,10 @@ export function ManagementPageLayout({
         extraActions={primaryActions}
       />
 
-      {/* 自定义内容区域 */}
-      {customContent}
+      {/* 自定义内容区域 - 确保充分利用可用宽度 */}
+      <div style={{ width: '100%', maxWidth: '100%' }}>
+        {customContent}
+      </div>
 
       {/* 数据表格 */}
       {columns.length > 0 && (

@@ -1,0 +1,184 @@
+{
+  "common": {
+    "start": "Start",
+    "startFlow": "Start Guide",
+    "next": "Next",
+    "back": "Back", 
+    "skip": "Skip",
+    "finish": "Finish",
+    "close": "Close",
+    "restart": "Restart",
+    "review": "Review",
+    "reset": "Reset",
+    "resetFlow": "Reset Guide",
+    "pause": "Pause",
+    "resume": "Resume", 
+    "active": "Active",
+    "progress": "Progress",
+    "step": "Step {{current}} of {{total}}",
+    "stepCount": "{{count}} steps in total",
+    "keyboardHint": "Press ESC to close, → Next, ← Previous"
+  },
+
+  "status": {
+    "notStarted": "Not Started",
+    "inProgress": "In Progress",
+    "completed": "Completed", 
+    "skipped": "Skipped",
+    "failed": "Failed",
+    "paused": "Paused"
+  },
+
+  "navigation": {
+    "goToStep": "Go to step: {{step}}",
+    "stepStatus": "Step {{step}} status: {{status}}"
+  },
+
+  "recommendations": "Recommended for You",
+  "allFlows": "All Guides",
+
+  "progressStats": "Completed {{completed}}/{{total}} steps{{#if skipped}} ({{skipped}} skipped){{/if}}",
+
+  "flows": {
+    "gettingStarted": {
+      "name": "Getting Started Guide",
+      "description": "Help new users quickly understand the core features of the salary management system",
+      "steps": {
+        "welcome": {
+          "title": "Welcome to Salary Management System",
+          "description": "We'll help you get started quickly through a few simple steps to understand the main features and operations of the system.",
+          "content": "💡 Tip: You can exit the guide at any time by pressing ESC or clicking the close button in the top right corner."
+        },
+        "dashboardOverview": {
+          "title": "Dashboard Overview", 
+          "description": "This shows key system metrics and recent activities, serving as your daily work starting page.",
+          "content": "On the dashboard, you can see total employees, monthly salary overview, pending tasks, and other important information."
+        },
+        "navigationMenu": {
+          "title": "Navigation Menu",
+          "description": "Access all functional modules through the left menu, including employee management, payroll management, organizational structure, etc.",
+          "content": "Click menu items to expand submenus, double-click to quickly jump to frequently used pages."
+        },
+        "employeeManagement": {
+          "title": "Employee Management",
+          "description": "Here you can add, edit, and manage employee information - one of the core functions of the system.",
+          "content": "Supports batch import of employee information or individual additions. Employee info includes basic details, position info, salary configuration, etc."
+        },
+        "payrollManagement": {
+          "title": "Payroll Management",
+          "description": "The payroll management module handles employee salary calculation, distribution, and inquiries.",
+          "content": "Supports various salary structures, allowing different salary components like base salary, performance bonuses, allowances and deductions."
+        },
+        "settingsAndProfile": {
+          "title": "Settings and Profile",
+          "description": "Configure system parameters in settings, and modify your account information in profile.",
+          "content": "We recommend completing your profile information first and checking system settings match your usage preferences."
+        }
+      }
+    },
+
+    "employeeWorkflow": {
+      "name": "Employee Management Workflow",
+      "description": "Learn the complete process of adding new employees and managing employee information",
+      "steps": {
+        "addEmployee": {
+          "title": "Add New Employee",
+          "description": "Click the 'Add Employee' button to start adding employee information.",
+          "content": "Fill in the employee's basic information including name, ID number, contact details, etc."
+        },
+        "employeeDetails": {
+          "title": "Complete Employee Details",
+          "description": "Add detailed employee information including department, position, hire date, etc.",
+          "content": "This information will be used for salary calculation and organizational management."
+        },
+        "salaryConfig": {
+          "title": "Configure Salary Information",
+          "description": "Set up salary structure and standards for the employee.",
+          "content": "You can select existing salary templates or customize salary structure for individual employees."
+        }
+      }
+    },
+
+    "payrollWorkflow": {
+      "name": "Payroll Processing Workflow",
+      "description": "Learn the complete process of salary calculation, review, and distribution",
+      "steps": {
+        "payrollCalculation": {
+          "title": "Payroll Calculation",
+          "description": "Select the pay period and the system will automatically calculate employee salaries.",
+          "content": "The calculation considers multiple factors including attendance, performance, allowances and deductions."
+        },
+        "payrollReview": {
+          "title": "Payroll Review",
+          "description": "Review calculation results and confirm data accuracy.",
+          "content": "You can adjust individual employee salaries and add explanatory notes."
+        },
+        "payrollApproval": {
+          "title": "Payroll Approval",
+          "description": "Submit payroll data for the approval process.",
+          "content": "According to company regulations, payroll may require multi-level approval before distribution."
+        }
+      }
+    },
+
+    "reporting": {
+      "name": "Reports and Statistics",
+      "description": "Learn how to use the system's reporting features for data analysis",
+      "steps": {
+        "reportGeneration": {
+          "title": "Generate Reports",
+          "description": "Select report type and time range to generate required data reports.",
+          "content": "The system provides various preset report templates and supports custom report formats."
+        },
+        "dataAnalysis": {
+          "title": "Data Analysis",
+          "description": "Use charts and statistics to analyze salary data trends.",
+          "content": "You can perform comparative analysis by department, position, time and other dimensions."
+        },
+        "exportData": {
+          "title": "Export Data",
+          "description": "Export report data to formats like Excel, PDF, etc.",
+          "content": "Exported data can be used for management reporting or external auditing."
+        }
+      }
+    }
+  },
+
+  "categories": {
+    "gettingStarted": "Getting Started",
+    "featureIntro": "Feature Introduction",
+    "workflow": "Workflow",
+    "troubleshooting": "Troubleshooting", 
+    "advanced": "Advanced Features",
+    "maintenance": "System Maintenance"
+  },
+
+  "errors": {
+    "flowNotFound": "Guide not found: {{flowId}}",
+    "prerequisitesNotMet": "Prerequisites not met for this guide",
+    "permissionDenied": "You don't have permission to access this guide",
+    "targetElementNotFound": "Target element not found: {{selector}}",
+    "validationFailed": "Step validation failed: {{message}}",
+    "timeoutReached": "Step timeout reached, please check page status",
+    "unknown": "Unknown error, please try again later"
+  },
+
+  "tips": {
+    "keyboardNavigation": "You can use keyboard navigation: ESC to exit, → Next, ← Previous",
+    "clickToHighlight": "Click highlighted area to interact with target element", 
+    "progressSaved": "Your learning progress is automatically saved and can be resumed anytime",
+    "skipAvailable": "If you're already familiar with a step, you can choose to skip it",
+    "helpAvailable": "If you encounter any issues, feel free to contact the administrator for help"
+  },
+
+  "accessibility": {
+    "onboardingDialog": "User guide dialog",
+    "progressIndicator": "Learning progress indicator",
+    "stepNavigation": "Step navigation", 
+    "skipButton": "Skip current step",
+    "nextButton": "Go to next step",
+    "backButton": "Go to previous step", 
+    "closeButton": "Close guide system",
+    "highlightedElement": "Currently highlighted element"
+  }
+}

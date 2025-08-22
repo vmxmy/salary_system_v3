@@ -13,6 +13,7 @@ import { UserPlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
 import type { EmployeeListItem } from '@/types/employee';
 import * as XLSX from 'xlsx';
+import { OnboardingButton } from '@/components/onboarding';
 
 /**
  * 员工管理页面
@@ -489,13 +490,14 @@ export default function EmployeeManagementPage() {
     <>
       <ManagementPageLayout
         title="员工管理"
+        headerActions={<OnboardingButton />}
         loading={isLoading}
         showFieldSelector={false}
         exportComponent={null}
         customContent={
           <div className="space-y-6">
             {/* 员工统计概览 - 使用 DaisyUI 标准 stats 组件 */}
-            <div className="stats shadow w-full">
+            <div className="stats shadow w-full" data-tour="employee-stats">
               <div className="stat">
                 <div className="stat-figure text-primary">
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -611,6 +613,7 @@ export default function EmployeeManagementPage() {
                   <button
                     className="btn btn-primary btn-sm"
                     onClick={handleCreateEmployee}
+                    data-tour="add-employee"
                   >
                     <UserPlusIcon className="w-4 h-4" />
                     添加员工
@@ -758,15 +761,17 @@ export default function EmployeeManagementPage() {
             )}
 
             {/* 表格容器 */}
-            <EmployeeTableContainer
-              data={data}
-              columns={columns}
-              loading={loading}
-              enableRowSelection={false} // 选择列已在 columns 中定义
-              showGlobalFilter={false}
-              showColumnToggle={false}
-              enableExport={false}
-            />
+            <div data-tour="employee-table">
+              <EmployeeTableContainer
+                data={data}
+                columns={columns}
+                loading={loading}
+                enableRowSelection={false} // 选择列已在 columns 中定义
+                showGlobalFilter={false}
+                showColumnToggle={false}
+                enableExport={false}
+              />
+            </div>
           </div>
         }
         modal={

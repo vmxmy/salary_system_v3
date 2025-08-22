@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 export interface PageToolbarProps {
   title?: string;
   subtitle?: string;
+  headerActions?: React.ReactNode;
   customContent?: React.ReactNode;
   searchComponent?: React.ReactNode;
   fieldSelector?: React.ReactNode;
@@ -15,6 +16,7 @@ export interface PageToolbarProps {
 export function PageToolbar({
   title,
   subtitle,
+  headerActions,
   customContent,
   searchComponent,
   fieldSelector,
@@ -25,13 +27,20 @@ export function PageToolbar({
   return (
     <div className={cn("space-y-6", className)}>
       {/* Page Header */}
-      {(title || subtitle) && (
-        <header>
-          {title && (
-            <h1 className="text-3xl font-bold text-base-content">{title}</h1>
-          )}
-          {subtitle && (
-            <p className="text-base-content/70 mt-2">{subtitle}</p>
+      {(title || subtitle || headerActions) && (
+        <header className="flex items-start justify-between">
+          <div>
+            {title && (
+              <h1 className="text-3xl font-bold text-base-content">{title}</h1>
+            )}
+            {subtitle && (
+              <p className="text-base-content/70 mt-2">{subtitle}</p>
+            )}
+          </div>
+          {headerActions && (
+            <div className="flex items-center gap-4">
+              {headerActions}
+            </div>
           )}
         </header>
       )}

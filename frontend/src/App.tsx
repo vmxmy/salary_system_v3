@@ -4,6 +4,7 @@ import i18n from './locales';
 import { router } from './router';
 import { UnifiedAuthProvider } from './contexts/UnifiedAuthContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { OnboardingProvider } from './contexts/OnboardingContext';
 
 function App() {
 
@@ -11,7 +12,9 @@ function App() {
     <I18nextProvider i18n={i18n}>
       <ToastProvider>
         <UnifiedAuthProvider>
-          <RouterProvider router={router} />
+          <OnboardingProvider>
+            <RouterProvider router={router} />
+          </OnboardingProvider>
         </UnifiedAuthProvider>
       </ToastProvider>
     </I18nextProvider>

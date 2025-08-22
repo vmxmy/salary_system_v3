@@ -1,0 +1,330 @@
+{
+  "common": {
+    "start": "开始",
+    "startFlow": "开始指导",
+    "next": "下一步",
+    "back": "上一步",
+    "skip": "跳过",
+    "finish": "完成",
+    "close": "关闭",
+    "restart": "重新开始",
+    "review": "重新学习",
+    "reset": "重置",
+    "resetFlow": "重置指导流程",
+    "pause": "暂停",
+    "resume": "继续",
+    "active": "进行中",
+    "progress": "进度",
+    "step": "第 {{current}} 步，共 {{total}} 步",
+    "stepCount": "共 {{count}} 个步骤",
+    "keyboardHint": "按 ESC 关闭，→ 下一步，← 上一步"
+  },
+  
+  "status": {
+    "notStarted": "未开始",
+    "inProgress": "进行中", 
+    "completed": "已完成",
+    "skipped": "已跳过",
+    "failed": "失败",
+    "paused": "已暂停"
+  },
+
+  "navigation": {
+    "goToStep": "跳转到步骤：{{step}}",
+    "stepStatus": "步骤 {{step}} 状态：{{status}}"
+  },
+
+  "recommendations": "为您推荐",
+  "allFlows": "所有指导流程",
+
+  "progressStats": "已完成 {{completed}}/{{total}} 步骤{{#if skipped}}（跳过 {{skipped}} 步）{{/if}}",
+
+  "flows": {
+    "gettingStarted": {
+      "name": "系统入门指导",
+      "description": "帮助新用户快速了解薪资管理系统的核心功能",
+      "steps": {
+        "welcome": {
+          "title": "欢迎使用薪资管理系统",
+          "description": "我们将通过几个简单的步骤帮助您快速上手，了解系统的主要功能和操作方式。",
+          "content": "💡 小贴士：您可以随时按 ESC 键退出指导，或点击右上角的关闭按钮。"
+        },
+        "dashboardOverview": {
+          "title": "工作台总览",
+          "description": "这里显示系统的关键指标和最近活动，是您日常工作的起始页面。",
+          "content": "在工作台上，您可以看到员工总数、本月薪资概况、待处理任务等重要信息。"
+        },
+        "navigationMenu": {
+          "title": "导航菜单",
+          "description": "通过左侧菜单可以访问所有功能模块，包括员工管理、薪资管理、组织架构等。",
+          "content": "点击菜单项可以展开子菜单，双击可以快速跳转到常用页面。"
+        },
+        "employeeManagement": {
+          "title": "员工管理",
+          "description": "在这里可以添加、编辑和管理员工信息，是系统的核心功能之一。",
+          "content": "支持批量导入员工信息，也可以单个添加。员工信息包括基本资料、岗位信息、薪资配置等。"
+        },
+        "payrollManagement": {
+          "title": "薪资管理",
+          "description": "薪资管理模块用于处理员工的薪资计算、发放和查询。",
+          "content": "支持多种薪资结构，可以设置不同的薪资组件，如基本工资、绩效奖金、津贴扣除等。"
+        },
+        "settingsAndProfile": {
+          "title": "设置和个人资料",
+          "description": "在设置中可以配置系统参数，在个人资料中可以修改您的账户信息。",
+          "content": "建议首次使用时先完善个人资料信息，并查看系统设置是否符合您的使用习惯。"
+        }
+      }
+    },
+    
+    "employeeWorkflow": {
+      "name": "员工管理工作流程",
+      "description": "学习如何添加新员工和管理员工信息的完整流程",
+      "steps": {
+        "addEmployee": {
+          "title": "添加新员工",
+          "description": "点击"新增员工"按钮开始添加员工信息。",
+          "content": "填写员工的基本信息，包括姓名、身份证号、联系方式等。"
+        },
+        "employeeDetails": {
+          "title": "完善员工详情",
+          "description": "添加员工的详细信息，包括部门、岗位、入职日期等。",
+          "content": "这些信息将用于薪资计算和组织架构管理。"
+        },
+        "salaryConfig": {
+          "title": "配置薪资信息",
+          "description": "为员工设置薪资结构和薪资标准。",
+          "content": "可以选择现有的薪资模板，也可以为员工单独定制薪资结构。"
+        }
+      }
+    },
+
+    "payrollWorkflow": {
+      "name": "薪资管理工作流程", 
+      "description": "深入学习薪资数据录入、计算和管理功能",
+      "steps": {
+        "navigateToPayroll": {
+          "title": "进入薪资管理页面",
+          "description": "现在我们将自动跳转到薪资管理页面，开始学习薪资管理的完整流程。",
+          "content": "薪资管理涵盖了薪资数据录入、计算、调整等关键环节，是HR工作的重要组成部分。"
+        },
+        "payrollPeriodManagement": {
+          "title": "薪资周期管理",
+          "description": "薪资周期选择器是薪资管理的起点，选择正确的周期至关重要。",
+          "content": "🗓️ 周期管理要点：\n• 月度薪资：常规月度发薪\n• 季度奖金：绩效奖励发放\n• 年终奖金：年度激励计算\n• 补发薪资：历史数据调整\n• 特殊发放：临时薪资处理"
+        },
+        "payrollCompletenessIndicator": {
+          "title": "四要素完整性检查",
+          "description": "数据完整性是准确计算薪资的基础，四要素缺一不可。",
+          "content": "📊 四要素构成：\n• 基本薪资：岗位工资、级别工资\n• 绩效奖金：月度/季度绩效\n• 津贴补贴：各类津贴、交通补贴\n• 扣除项目：社保、公积金、个税\n\n✅ 完整度≥95%才建议进行薪资计算"
+        },
+        "payrollCalculationProcess": {
+          "title": "薪资计算流程",
+          "description": "了解薪资的自动计算逻辑和手动调整机制。",
+          "content": "🧮 计算流程：\n1️⃣ 基础数据收集：考勤、绩效、调薪\n2️⃣ 自动计算：系统按规则计算\n3️⃣ 异常处理：缺勤扣款、补贴调整\n4️⃣ 税费计算：个税、社保自动计算\n5️⃣ 复核确认：HR人工复核"
+        },
+        "payrollDataTable": {
+          "title": "薪资数据表格管理",
+          "description": "薪资表格是薪资管理的核心界面，展示所有员工的薪资详情。",
+          "content": "📋 表格功能说明：\n• 员工信息：姓名、部门、职位\n• 薪资明细：基本工资、奖金、津贴\n• 扣除明细：社保、公积金、个税\n• 实发薪资：最终到手金额\n• 操作功能：查看、编辑、计算"
+        },
+        "payrollSearchAndFilter": {
+          "title": "薪资数据筛选",
+          "description": "使用搜索和筛选功能快速定位特定员工或部门的薪资数据。",
+          "content": "🔍 筛选技巧：\n• 员工搜索：按姓名快速查找\n• 部门筛选：批量查看部门薪资\n• 状态筛选：待计算、已计算、待审核\n• 异常筛选：薪资异常、计算错误\n• 排序功能：按薪资额度排序"
+        },
+        "payrollDetailView": {
+          "title": "薪资明细查看",
+          "description": "点击薪资记录可以查看详细的薪资计算明细和组成结构。",
+          "content": "🔍 明细内容：\n• 基础薪资构成：岗位工资明细\n• 绩效奖金详情：考核得分及奖金\n• 津贴补贴明细：各项补贴详情\n• 扣除项目明细：税费扣缴详情\n• 计算公式：透明的计算过程"
+        },
+        "batchPayrollOperations": {
+          "title": "批量薪资操作",
+          "description": "批量操作功能让您能够高效处理大量员工的薪资事务。",
+          "content": "⚡ 批量功能：\n• 批量计算：一次计算多个员工\n• 批量调整：统一调整薪资项目\n• 批量导入：Excel批量导入薪资\n• 批量导出：导出薪资数据\n• 批量删除：清除错误数据"
+        },
+        "payrollExportReporting": {
+          "title": "薪资数据导出",
+          "description": "强大的导出功能支持多种格式的薪资数据导出。",
+          "content": "📊 导出选项：\n• 薪资明细表：详细薪资数据\n• 成本分析表：人力成本分析\n• 税务数据表：个税申报准备\n• Excel模板：标准格式导出\n• 自定义格式：按需定制导出"
+        },
+        "payrollQualityControl": {
+          "title": "薪资质量控制",
+          "description": "建立完善的薪资质量控制体系，确保薪资数据的准确性。",
+          "content": "🛡️ 质量控制要点：\n\n📊 数据验证：\n• 薪资总额合理性检查\n• 个税计算准确性验证\n• 社保基数合规性审查\n\n🔍 异常监控：\n• 薪资异常波动预警\n• 重复计算检测\n• 漏算员工提醒"
+        },
+        "payrollManagementBestPractices": {
+          "title": "薪资管理最佳实践",
+          "description": "掌握专业的薪资管理最佳实践，提升薪资数据管理的效率和准确性。",
+          "content": "🏆 管理最佳实践：\n\n🎯 数据管理：\n• 建立标准薪资模板\n• 定期备份薪资数据\n• 版本控制和追溯\n\n📅 流程优化：\n• 薪资计算自动化\n• 异常处理标准化\n• 数据校验规则化\n\n🔐 安全控制：\n• 薪资数据加密存储\n• 操作权限精细控制\n• 审计日志完整记录\n\n成为薪资管理专家的必备技能！"
+        }
+      }
+    },
+
+    "payrollApproval": {
+      "name": "薪资审批工作流程",
+      "description": "深入学习薪资审核、审批和发放的完整流程",
+      "steps": {
+        "navigateToApproval": {
+          "title": "进入薪资审批页面",
+          "description": "现在我们将自动跳转到薪资审批页面，开始学习薪资审批的完整流程。",
+          "content": "薪资审批是薪资管理的关键环节，确保薪资数据的准确性和合规性。"
+        },
+        "approvalWorkflowOverview": {
+          "title": "审批流程概览",
+          "description": "了解薪资审批的完整工作流程和各个环节的职责。",
+          "content": "📋 审批流程：\n1️⃣ 数据提交：HR提交薪资数据\n2️⃣ 部门审核：部门负责人审核\n3️⃣ HR复核：人力资源部复核\n4️⃣ 财务审批：财务部门审批\n5️⃣ 总监确认：高级管理层确认\n6️⃣ 批量发放：银行批量转账"
+        },
+        "pendingApprovalList": {
+          "title": "待审批薪资列表",
+          "description": "查看所有待审批的薪资数据，了解审批状态和优先级。",
+          "content": "📊 审批状态说明：\n• 待审核：等待部门确认\n• 审核中：正在审批流程中\n• 已通过：审批通过待发放\n• 已退回：需要修正重新提交\n• 已发放：完成整个流程"
+        },
+        "approvalDetailReview": {
+          "title": "薪资数据审核",
+          "description": "详细审核薪资数据，检查计算准确性和合规性。",
+          "content": "🔍 审核要点：\n• 基础数据核对：考勤、绩效、调薪\n• 计算公式验证：税费、社保、奖金\n• 异常数据检查：超常薪资、负数项目\n• 合规性确认：政策符合性、标准一致性\n• 比较分析：同比环比数据对比"
+        },
+        "batchApprovalOperations": {
+          "title": "批量审批操作",
+          "description": "使用批量操作功能提高审批效率，快速处理大量薪资数据。",
+          "content": "⚡ 批量审批：\n• 批量通过：一次通过多个审批\n• 批量退回：统一退回有问题的数据\n• 条件筛选：按部门、金额范围筛选\n• 快速审批：预设规则自动审批\n• 审批记录：完整的审批历史追踪"
+        },
+        "approvalComments": {
+          "title": "审批意见管理",
+          "description": "学习如何添加审批意见，确保审批过程的透明度和可追溯性。",
+          "content": "📝 意见管理：\n• 审批意见：详细说明审批理由\n• 退回原因：明确指出需要修正的问题\n• 建议改进：提供数据优化建议\n• 历史记录：保留完整审批轨迹\n• 协作沟通：支持审批者间的协作"
+        },
+        "approvalNotifications": {
+          "title": "审批通知系统",
+          "description": "了解审批通知机制，确保审批流程的及时性。",
+          "content": "🔔 通知机制：\n• 待审提醒：新的审批任务通知\n• 超时预警：审批超时自动提醒\n• 状态更新：审批结果实时通知\n• 异常提醒：审批异常情况告警\n• 完成确认：审批完成结果通知"
+        },
+        "approvalReporting": {
+          "title": "审批报表分析",
+          "description": "生成审批相关的统计报表，分析审批效率和质量。",
+          "content": "📊 报表功能：\n• 审批效率：平均审批时间统计\n• 审批质量：通过率、退回率分析\n• 审批负载：各审批者工作量分析\n• 流程瓶颈：识别审批流程瓶颈点\n• 趋势分析：审批数据趋势变化"
+        },
+        "payrollDistribution": {
+          "title": "薪资发放管理",
+          "description": "学习薪资发放的执行过程和发放后的跟踪管理。",
+          "content": "💰 发放流程：\n• 发放准备：银行文件生成\n• 批量转账：银行批量代发\n• 发放确认：转账结果确认\n• 异常处理：失败转账处理\n• 发放报告：完整发放记录"
+        },
+        "approvalAuditTrail": {
+          "title": "审批审计追踪",
+          "description": "了解审批审计系统，确保审批过程的合规性和可审计性。",
+          "content": "🔍 审计追踪：\n• 操作日志：完整审批操作记录\n• 时间戳：精确的操作时间记录\n• 用户追踪：审批人员身份确认\n• 数据变更：薪资数据变更历史\n• 合规报告：符合审计要求的报告"
+        },
+        "approvalBestPractices": {
+          "title": "薪资审批最佳实践",
+          "description": "掌握专业的薪资审批最佳实践，确保审批流程的高效和规范。",
+          "content": "🏆 审批最佳实践：\n\n✅ 审批标准：\n• 建立明确的审批标准\n• 制定异常处理预案\n• 设置审批时限要求\n\n🔄 流程优化：\n• 简化审批环节\n• 自动化常规审批\n• 建立快速通道\n\n📋 质量保证：\n• 双重审核机制\n• 抽样检查制度\n• 定期流程评估\n\n🔐 风险控制：\n• 权限分离原则\n• 审批额度控制\n• 异常监控预警\n\n成为薪资审批专家！"
+        }
+      }
+    },
+
+    "reporting": {
+      "name": "报表和统计功能",
+      "description": "深入学习数据分析、报表生成和决策支持功能",
+      "steps": {
+        "reportGeneration": {
+          "title": "生成报表",
+          "description": "选择报表类型和时间范围，生成所需的数据报表。",
+          "content": "系统提供多种预设报表模板，也支持自定义报表格式。"
+        },
+        "dataAnalysis": {
+          "title": "数据分析",
+          "description": "使用图表和统计功能分析薪资数据趋势。",
+          "content": "可以按部门、岗位、时间等维度进行数据对比分析。"
+        },
+        "exportData": {
+          "title": "导出数据",
+          "description": "将报表数据导出为Excel、PDF等格式。",
+          "content": "导出的数据可以用于向上级汇报或外部审计使用。"
+        }
+      }
+    },
+
+    "organizationManagement": {
+      "name": "组织管理高级功能",
+      "description": "学习部门架构、职位体系和权限管理",
+      "steps": {
+        "departmentManagement": {
+          "title": "部门管理",
+          "description": "学习如何创建和管理企业的部门层级结构。",
+          "content": "部门管理是组织架构的基础，包括层级设计、职能划分、汇报关系等。"
+        },
+        "positionManagement": {
+          "title": "职位管理",
+          "description": "建立完善的职位等级和职业发展通道。",
+          "content": "职位体系包括等级设计、职业通道、任职资格、薪酬等级等要素。"
+        },
+        "permissionManagement": {
+          "title": "权限管理",
+          "description": "设计精细化的角色和权限控制体系。",
+          "content": "权限管理涉及角色定义、功能权限、数据权限、操作权限等多个层面。"
+        }
+      }
+    },
+
+    "systemConfiguration": {
+      "name": "系统设置和配置",
+      "description": "学习系统参数配置和个性化设置",
+      "steps": {
+        "payrollConfiguration": {
+          "title": "薪资计算配置",
+          "description": "配置薪资计算规则、税率参数和社保基数。",
+          "content": "薪资配置是系统核心，包括计算公式、税率设置、社保基数等重要参数。"
+        },
+        "systemParameters": {
+          "title": "系统参数设置",
+          "description": "配置系统运行的基础参数和业务规则。",
+          "content": "系统参数影响整个系统的运行逻辑，包括工作日历、审批流程、通知设置等。"
+        },
+        "userPreferences": {
+          "title": "个人偏好设置",
+          "description": "自定义个人使用习惯和界面偏好。",
+          "content": "个人设置让系统更符合您的使用习惯，提高工作效率。"
+        }
+      }
+    }
+  },
+
+  "categories": {
+    "gettingStarted": "新用户入门",
+    "featureIntro": "功能介绍", 
+    "workflow": "工作流程",
+    "troubleshooting": "问题排查",
+    "advanced": "高级功能",
+    "maintenance": "系统维护"
+  },
+
+  "errors": {
+    "flowNotFound": "未找到指导流程：{{flowId}}",
+    "prerequisitesNotMet": "不满足此指导流程的前置条件",
+    "permissionDenied": "您没有权限访问此指导流程", 
+    "targetElementNotFound": "未找到目标元素：{{selector}}",
+    "validationFailed": "步骤验证失败：{{message}}",
+    "timeoutReached": "步骤超时，请检查页面状态",
+    "unknown": "未知错误，请稍后重试"
+  },
+
+  "tips": {
+    "keyboardNavigation": "您可以使用键盘导航：ESC 退出，→ 下一步，← 上一步",
+    "clickToHighlight": "点击高亮区域可以与目标元素交互",
+    "progressSaved": "您的学习进度会自动保存，可以随时继续",
+    "skipAvailable": "如果您已经熟悉某个步骤，可以选择跳过",
+    "helpAvailable": "如果在使用过程中遇到问题，可以随时联系管理员获取帮助"
+  },
+
+  "accessibility": {
+    "onboardingDialog": "用户指导对话框",
+    "progressIndicator": "学习进度指示器", 
+    "stepNavigation": "步骤导航",
+    "skipButton": "跳过当前步骤",
+    "nextButton": "进入下一步骤",
+    "backButton": "返回上一步骤",
+    "closeButton": "关闭指导系统",
+    "highlightedElement": "当前高亮显示的元素"
+  }
+}

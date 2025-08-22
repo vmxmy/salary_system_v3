@@ -238,7 +238,7 @@ export function PayrollTableContainer<T extends BasePayrollData = BasePayrollDat
   }, [onSelectedIdsChange]);
 
   return (
-    <div className={`payroll-table-container ${className}`}>
+    <div className={`payroll-table-container ${className}`} data-tour="payroll-table">
       <DataTable
         data={data}
         columns={columns}

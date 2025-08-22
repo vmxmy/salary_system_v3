@@ -50,6 +50,7 @@ export function PayrollCompletenessStats({
         className
       )}
       onClick={onClick}
+      data-tour="payroll-completeness"
     >
       {/* 薪资项目 */}
       <div 

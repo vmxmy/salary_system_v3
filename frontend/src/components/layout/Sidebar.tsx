@@ -9,6 +9,7 @@ interface MenuItem {
   icon: React.ReactNode;
   permissions: string[];
   children?: MenuItem[];
+  tourId?: string;
 }
 
 const menuItems: MenuItem[] = [
@@ -41,6 +42,7 @@ const menuItems: MenuItem[] = [
       </svg>
     ),
     permissions: ['employees:read'],
+    tourId: 'employee-management',
   },
   {
     key: 'departments',
@@ -60,6 +62,7 @@ const menuItems: MenuItem[] = [
       </svg>
     ),
     permissions: ['payroll:read'],
+    tourId: 'payroll-management',
     children: [
       {
         key: 'payrollImport',
@@ -226,6 +229,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                 e.preventDefault();
                 toggleMenu(item.key);
               }}
+              {...(item.tourId && { 'data-tour': item.tourId })}
             >
               <span className="w-4 h-4 flex-shrink-0">
                 {item.icon}
@@ -252,6 +256,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               : "hover:bg-base-300"
           )}
           onClick={onClose}
+          {...(item.tourId && { 'data-tour': item.tourId })}
         >
           <span className="w-4 h-4 flex-shrink-0">
             {item.icon}
@@ -269,7 +274,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     )}>
       <label className="drawer-overlay" onClick={onClose}></label>
       
-      <div className="min-h-full sidebar-compact bg-base-200">
+      <div className="min-h-full sidebar-compact bg-base-200" data-tour="navigation-menu">
         <div className="p-2">
           <h2 className="text-sm font-semibold text-base-content mb-2">
             菜单

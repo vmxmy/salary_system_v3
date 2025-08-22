@@ -27,6 +27,7 @@ import type { Database } from '@/types/supabase';
 import type { BasePayrollData } from '@/components/payroll/PayrollTableContainer';
 import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
 import { PayrollStatusBadge } from '@/components/common/PayrollStatusBadge';
+import { OnboardingButton } from '@/components/onboarding';
 
 type PayrollStatus = Database['public']['Enums']['payroll_status'];
 
@@ -617,14 +618,16 @@ export default function PayrollApprovalPage() {
   const isLoading = approvalLoading || statsLoading || isPeriodLoading;
 
   return (
-    <ManagementPageLayout
+    <>
+      <ManagementPageLayout
       title="薪资审批"
+      headerActions={<OnboardingButton />}
       loading={isLoading}
       exportComponent={null}
       customContent={
         <div className="space-y-6">
           {/* 薪资审批统计概览 - 使用 DaisyUI 标准 stats 组件 */}
-          <div className="stats shadow w-full">
+          <div className="stats shadow w-full" data-tour="approval-workflow">
             <div className="stat">
               <div className="stat-figure text-warning">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -759,11 +762,12 @@ export default function PayrollApprovalPage() {
               </div>
 
               {/* 右侧：操作按钮组 */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" data-tour="approval-reports">
                 {/* 审批历史 */}
                 <button
                   className="btn btn-outline btn-sm"
                   onClick={() => modalManager.history.open()}
+                  data-tour="approval-notifications"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
@@ -778,7 +782,7 @@ export default function PayrollApprovalPage() {
 
           {/* 批量操作区域 */}
           {selectedIds.length > 0 && (
-            <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
+            <div className="card bg-base-100 shadow-sm border border-base-200 p-4" data-tour="batch-approval">
               <PayrollBatchActions
                 selectedCount={selectedIds.length}
                 loading={loading.approve || loading.markPaid || loading.rollback || progressModal.open}
@@ -839,15 +843,17 @@ export default function PayrollApprovalPage() {
           )}
 
           {/* 表格容器 */}
-          <PayrollTableContainer
-            data={dataProcessor.processedData}
-            columns={columns}
-            loading={approvalLoading}
-            selectedIds={selectedIds}
-            onSelectedIdsChange={setSelectedIds}
-            onViewDetail={modalManager.handlers.handleViewDetail}
-            enableRowSelection={true}
-          />
+          <div data-tour="approval-list">
+            <PayrollTableContainer
+              data={dataProcessor.processedData}
+              columns={columns}
+              loading={approvalLoading}
+              selectedIds={selectedIds}
+              onSelectedIdsChange={setSelectedIds}
+              onViewDetail={modalManager.handlers.handleViewDetail}
+              enableRowSelection={true}
+            />
+          </div>
         </div>
       }
       modal={
@@ -924,6 +930,7 @@ export default function PayrollApprovalPage() {
           />
         </>
       }
-    />
+      />
+    </>
   );
 }

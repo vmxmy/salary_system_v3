@@ -17,30 +17,40 @@ export function DashboardModule({ className = "" }: DashboardModuleProps) {
   const { t } = useTranslation();
   const { data: summary, isLoading, error, refresh } = useStatisticsSummary();
 
-  // 加载状态 - 现代化设计
+  // 加载状态 - 增强设计
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh] bg-base-100">
-        <div className="flex flex-col items-center gap-4">
-          <span className="loading loading-spinner loading-lg text-primary"></span>
-          <p className="text-base-content/70 font-medium">加载统计数据中...</p>
+      <div className="statistics-loading">
+        <div className="flex flex-col items-center gap-6">
+          <div className="statistics-loading-spinner">
+            <span className="loading loading-spinner loading-lg text-primary"></span>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-semibold text-base-content/80 mb-2">加载统计数据中</p>
+            <p className="text-sm text-base-content/60">正在获取最新的数据分析...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // 错误状态 - 现代化设计
+  // 错误状态 - 增强设计
   if (error) {
     return (
-      <div className="alert alert-error shadow bg-error/10">
+      <div className="alert alert-error alert-enhanced shadow-lg bg-error/5">
         <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <div>
-          <h3 className="font-bold">数据加载失败</h3>
-          <div className="text-xs">{error instanceof Error ? error.message : '加载统计数据失败'}</div>
+          <h3 className="font-bold text-lg">数据加载失败</h3>
+          <div className="text-sm opacity-80">{error instanceof Error ? error.message : '加载统计数据失败，请检查网络连接'}</div>
         </div>
-        <button className="btn btn-sm btn-outline transition-transform" onClick={refresh}>重试</button>
+        <button className="btn btn-sm btn-outline hover:scale-105 transition-all duration-200" onClick={refresh}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          重试
+        </button>
       </div>
     );
   }
@@ -80,11 +90,12 @@ export function DashboardModule({ className = "" }: DashboardModuleProps) {
       title="综合统计概览"
       description="实时数据分析与关键指标监控"
       actions={refreshAction}
-      className={className}
+      className={`statistics-fade-in statistics-enhanced ${className}`}
     >
 
-      {/* KPI指标卡片 - 标准DaisyUI stats组件 */}
-      <div className="stats stats-vertical lg:stats-horizontal shadow bg-base-100 w-full">
+      {/* KPI指标卡片 - 增强的统计样式，解决滚动问题 */}
+      <div className="statistics-stats-container">
+        <div className="stats stats-vertical lg:stats-horizontal statistics-kpi-card w-full">
         <div className="stat">
           <div className="stat-figure text-primary">
             <svg xmlns="http://www.w3.org/2000/svg" className="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -92,12 +103,19 @@ export function DashboardModule({ className = "" }: DashboardModuleProps) {
             </svg>
           </div>
           <div className="stat-title">在职员工总数</div>
-          <div className="stat-value text-primary">{overview.totalEmployees}</div>
+          <div className="stat-value stat-value-gradient">{overview.totalEmployees}</div>
           <div className="stat-desc">
-            <span className={`badge badge-sm ${trends.employeeGrowth >= 0 ? 'badge-success' : 'badge-error'}`}>
-              {trends.employeeGrowth > 0 ? '+' : ''}{trends.employeeGrowth}%
+            <span className={`trend-indicator ${trends.employeeGrowth > 0 ? 'trend-up' : trends.employeeGrowth < 0 ? 'trend-down' : 'trend-stable'}`}>
+              <span className={`badge badge-sm ${trends.employeeGrowth >= 0 ? 'badge-success' : 'badge-error'}`}>
+                {trends.employeeGrowth > 0 ? '+' : ''}{trends.employeeGrowth}%
+              </span>
+              {trends.employeeGrowth > 0 && (
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
             </span>
-            <span className="ml-1">本月变化</span>
+            <span className="ml-2">本月变化</span>
           </div>
         </div>
 
@@ -142,10 +160,12 @@ export function DashboardModule({ className = "" }: DashboardModuleProps) {
           <div className="stat-value text-info">{overview.activeDepartments}</div>
           <div className="stat-desc">个组织单位</div>
         </div>
+        </div>
       </div>
 
-      {/* 趋势指标 - 标准DaisyUI stats组件 */}
-      <div className="stats stats-vertical md:stats-horizontal shadow bg-base-100 w-full">
+      {/* 趋势指标 - 增强的统计样式，解决滚动问题 */}
+      <div className="statistics-stats-container">
+        <div className="stats stats-vertical md:stats-horizontal statistics-kpi-card w-full">
         <div className="stat place-items-center">
           <div className="stat-figure text-warning">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -207,6 +227,7 @@ export function DashboardModule({ className = "" }: DashboardModuleProps) {
             })}
           </div>
           <div className="stat-desc">最后更新时间</div>
+        </div>
         </div>
       </div>
 

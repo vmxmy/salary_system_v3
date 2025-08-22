@@ -160,7 +160,7 @@ export function PayrollPeriodSelector({
   // 如果有卡片类名，使用卡片包装
   if (cardClassName || className.includes('card')) {
     return (
-      <div className={`card bg-base-100 shadow-sm border border-base-200 p-4 ${cardClassName} ${className}`}>
+      <div className={`card bg-base-100 shadow-sm border border-base-200 p-4 ${cardClassName} ${className}`} data-tour="payroll-period-selector">
         {content}
       </div>
     );
@@ -168,7 +168,7 @@ export function PayrollPeriodSelector({
 
   // 否则直接返回内容
   return (
-    <div className={`payroll-period-selector ${className}`}>
+    <div className={`payroll-period-selector ${className}`} data-tour="payroll-period-selector">
       {content}
     </div>
   );

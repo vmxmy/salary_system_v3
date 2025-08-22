@@ -7,6 +7,7 @@ import { PermissionGuard } from '@/components/auth/PermissionGuard';
 import { ManagementPageLayout } from '@/components/layout/ManagementPageLayout';
 import { DashboardModule, HRStatsModule, PayrollStatsModule, TrendsModule, ExportModule } from '@/components/statistics';
 import type { StatisticsPageState } from '@/types/statistics-extended';
+import { OnboardingButton } from '@/components/onboarding';
 
 /**
  * 统计报表系统主页面
@@ -377,8 +378,13 @@ const StatisticsPage: React.FC = () => {
       <div className="container mx-auto p-6 max-w-none">
         {/* 页面标题 */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-primary mb-2">{pageTitle}</h1>
-          <p className="text-base-content/60">政府部门人事和薪资统计分析</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-primary mb-2">{pageTitle}</h1>
+              <p className="text-base-content/60">政府部门人事和薪资统计分析</p>
+            </div>
+            <OnboardingButton />
+          </div>
         </div>
         
         <div className="divider"></div>
@@ -394,6 +400,7 @@ const StatisticsPage: React.FC = () => {
           {renderDebugInfo()}
         </div>
       </div>
+      
     </PermissionGuard>
   );
 };

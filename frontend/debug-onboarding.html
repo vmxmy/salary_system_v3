@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding Debug Test</title>
+    <style>
+        body { font-family: system-ui; padding: 20px; line-height: 1.6; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+        button { padding: 8px 16px; margin: 5px; border: 1px solid #007bff; background: #007bff; color: white; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>新用户指导系统调试页面</h1>
+    <p>此页面用于调试新用户指导系统的功能</p>
+
+    <div class="debug-section">
+        <h2>1. 系统检查</h2>
+        <button onclick="checkSystem()">检查系统状态</button>
+        <div id="system-status"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>2. 上下文测试</h2>
+        <button onclick="testContext()">测试OnboardingContext</button>
+        <div id="context-status"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>3. 流程测试</h2>
+        <button onclick="testFlows()">测试可用流程</button>
+        <button onclick="startTestFlow()">启动测试流程</button>
+        <div id="flow-status"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>4. 事件日志</h2>
+        <button onclick="clearLog()">清除日志</button>
+        <div id="event-log" class="log"></div>
+    </div>
+
+    <script>
+        // 日志功能
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('event-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            logDiv.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('event-log').innerHTML = '';
+        }
+
+        // 系统检查
+        function checkSystem() {
+            const statusDiv = document.getElementById('system-status');
+            let html = '<h3>系统状态检查:</h3><ul>';
+
+            // 检查必要的全局变量和模块
+            const checks = [
+                { name: 'React', check: () => !!window.React },
+                { name: 'DaisyUI CSS变量', check: () => !!getComputedStyle(document.documentElement).getPropertyValue('--p') },
+                { name: 'localStorage', check: () => typeof Storage !== 'undefined' },
+                { name: 'Window对象', check: () => typeof window !== 'undefined' }
+            ];
+
+            checks.forEach(({ name, check }) => {
+                const result = check();
+                const className = result ? 'success' : 'error';
+                const status = result ? '✓' : '✗';
+                html += `<li class="${className}">${status} ${name}</li>`;
+                log(`系统检查 - ${name}: ${result ? '通过' : '失败'}`, result ? 'success' : 'error');
+            });
+
+            html += '</ul>';
+            statusDiv.innerHTML = html;
+        }
+
+        // 上下文测试
+        function testContext() {
+            const statusDiv = document.getElementById('context-status');
+            log('开始测试OnboardingContext...', 'info');
+            
+            statusDiv.innerHTML = `
+                <h3>上下文测试:</h3>
+                <p class="warning">此测试需要在React应用中运行才能正常工作。</p>
+                <p>请在浏览器开发者工具中检查以下内容：</p>
+                <ul>
+                    <li>Console中是否有错误信息</li>
+                    <li>Network选项卡中是否有加载失败的资源</li>
+                    <li>Elements选项卡中OnboardingProvider是否正确包装了应用</li>
+                </ul>
+            `;
+        }
+
+        // 流程测试
+        function testFlows() {
+            log('测试指导流程配置...', 'info');
+            const statusDiv = document.getElementById('flow-status');
+            
+            // 模拟流程数据
+            const mockFlows = [
+                { id: 'gettingStarted', name: '系统入门指导', steps: 8 },
+                { id: 'employeeWorkflow', name: '员工管理工作流程', steps: 3 },
+                { id: 'payrollWorkflow', name: '薪资处理工作流程', steps: 3 }
+            ];
+
+            let html = '<h3>可用流程:</h3><ul>';
+            mockFlows.forEach(flow => {
+                html += `<li>✓ ${flow.name} (${flow.steps}个步骤)</li>`;
+                log(`流程检查 - ${flow.name}: 可用`, 'success');
+            });
+            html += '</ul>';
+            
+            statusDiv.innerHTML = html;
+        }
+
+        function startTestFlow() {
+            log('尝试启动测试流程...', 'info');
+            alert('测试流程启动！\n\n在实际应用中，这会触发新用户指导系统。\n请在React应用中测试实际功能。');
+        }
+
+        // 页面加载时执行基础检查
+        window.addEventListener('load', () => {
+            log('调试页面加载完成', 'success');
+            checkSystem();
+        });
+
+        // 监听错误事件
+        window.addEventListener('error', (e) => {
+            log(`JavaScript错误: ${e.message}`, 'error');
+        });
+
+        // 监听未处理的Promise错误
+        window.addEventListener('unhandledrejection', (e) => {
+            log(`Promise错误: ${e.reason}`, 'error');
+        });
+    </script>
+
+    <div class="debug-section">
+        <h2>5. 手动测试说明</h2>
+        <p>如果自动测试无法发现问题，请按以下步骤手动测试：</p>
+        <ol>
+            <li><strong>检查浏览器控制台</strong>：按F12打开开发者工具，查看Console选项卡中的错误信息</li>
+            <li><strong>检查网络请求</strong>：在Network选项卡中查看是否有资源加载失败</li>
+            <li><strong>检查DOM结构</strong>：在Elements选项卡中查找OnboardingProvider是否存在</li>
+            <li><strong>检查点击事件</strong>：在Console中运行 <code>console.log(document.querySelector('[data-tour]'))</code></li>
+            <li><strong>检查上下文</strong>：验证useOnboarding hook是否正常工作</li>
+        </ol>
+        
+        <h3>常见问题及解决方案：</h3>
+        <ul>
+            <li><strong>按钮无反应</strong>：检查事件处理函数是否正确绑定</li>
+            <li><strong>Context错误</strong>：确认OnboardingProvider正确包装了应用</li>
+            <li><strong>翻译错误</strong>：检查i18n配置和翻译文件</li>
+            <li><strong>样式问题</strong>：确认DaisyUI和TailwindCSS正确配置</li>
+        </ul>
+    </div>
+</body>
+</html>
