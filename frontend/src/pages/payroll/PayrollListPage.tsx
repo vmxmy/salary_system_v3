@@ -68,9 +68,9 @@ export default function PayrollListPage() {
   // 使用通用模态框管理Hook
   const modalManager = usePayrollModalManager<PayrollData>();
   
-  // 设置 Realtime 订阅以自动刷新数据
+  // 设置 Realtime 订阅以自动刷新数据（已停用）
   usePayrollRealtime({
-    enabled: true,
+    enabled: false, // 停用 Realtime 订阅
     showNotifications: false, // 不显示通知，避免干扰用户
     onSuccess: (event, payload) => {
       console.log(`[PayrollList] Realtime event: ${event}`, payload);

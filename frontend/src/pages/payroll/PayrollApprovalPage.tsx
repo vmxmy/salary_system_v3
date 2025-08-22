@@ -46,10 +46,10 @@ export default function PayrollApprovalPage() {
   // 使用通用模态框管理Hook
   const modalManager = usePayrollModalManager<PayrollApprovalData>();
   
-  // 设置 Realtime 订阅以自动刷新审批数据
+  // 设置 Realtime 订阅以自动刷新审批数据（已停用）
   usePayrollRealtime({
-    enabled: true,
-    showNotifications: true, // 审批页面显示通知，重要状态变更需要提醒
+    enabled: false, // 停用 Realtime 订阅
+    showNotifications: false, // 停用通知
     onSuccess: (event, payload) => {
       console.log(`[PayrollApproval] Realtime event: ${event}`, payload);
       // 当有薪资状态变更时，自动刷新审批列表
