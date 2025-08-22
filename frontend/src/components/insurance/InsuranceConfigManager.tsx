@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useInsuranceRuleConfig } from '@/hooks/insurance/useInsuranceConfig';
 import type { EmployeeCategory, InsuranceTypeInfo, InsuranceRuleConfig } from '@/types/insurance';
+import { ManagementPageLayout } from '@/components/layout/ManagementPageLayout';
+import { OnboardingButton } from '@/components/onboarding';
 import EmployeeCategoryTree from './EmployeeCategoryTree';
 import InsuranceRuleCard from './InsuranceRuleCard';
 
@@ -403,134 +405,139 @@ const InsuranceConfigManager: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* 页面标题 - 固定区域 */}
-      <div className="flex-shrink-0 space-y-6 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">五险一金配置管理</h1>
-          <p className="text-base-content/60">管理保险类型对各员工类别的适用规则</p>
-        </div>
-
-        {/* 统计卡片 - 响应式布局 */}
-        <div className="stats stats-vertical lg:stats-horizontal shadow w-full">
-          {statCards.map((card, index) => (
-            <div key={index} className="stat">
-              <div className={`stat-figure ${card.colorClass}`}>
-                {card.icon}
-              </div>
-              <div className="stat-title">{card.title}</div>
-              <div className={`stat-value ${card.colorClass}`}>
-                {card.value}
-              </div>
-              <div className="stat-desc">{card.description}</div>
+    <>
+      <ManagementPageLayout
+        title="五险一金配置管理"
+        subtitle="管理保险类型对各员工类别的适用规则"
+        headerActions={<OnboardingButton />}
+        loading={loading && insuranceTypes.length === 0}
+        showFieldSelector={false}
+        exportComponent={null}
+        customContent={
+          <div className="space-y-6">
+            {/* 统计卡片 - 响应式布局 */}
+            <div className="stats stats-vertical lg:stats-horizontal shadow w-full" data-tour="insurance-stats">
+              {statCards.map((card, index) => (
+                <div key={index} className="stat">
+                  <div className={`stat-figure ${card.colorClass}`}>
+                    {card.icon}
+                  </div>
+                  <div className="stat-title">{card.title}</div>
+                  <div className={`stat-value ${card.colorClass}`}>
+                    {card.value}
+                  </div>
+                  <div className="stat-desc">{card.description}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* 错误提示 */}
-        {error && (
-          <div className="alert alert-error">
-            <svg className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{error}</span>
-            <button className="btn btn-sm btn-ghost" onClick={clearError}>
-              关闭
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 主内容区域 - 弹性填充剩余空间 */}
-      <div className="flex-1 min-h-0 grid grid-cols-12 gap-6">
-          {/* 左侧：员工类别树 */}
-          <div className="col-span-4">
-            <EmployeeCategoryTree
-              categories={employeeCategories}
-              selectedCategory={selectedCategory?.id}
-              onSelectCategory={handleSelectCategory}
-              rulesCount={categoryRulesCount}
-              loading={loading}
-            />
-          </div>
-
-          {/* 右侧：保险规则配置 */}
-          <div className="col-span-8">
-            {selectedCategory ? (
-              <div className="bg-base-100 rounded-lg border border-base-300 h-full flex flex-col">
-                {/* 头部 */}
-                <div className="p-4 border-b border-base-300">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold">{selectedCategory.name}</h3>
-                      <p className="text-sm text-base-content/60">
-                        {selectedCategory.parent_name && `归属: ${selectedCategory.parent_name} | `}
-                        配置此类别的保险规则
-                      </p>
-                    </div>
-
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => setShowBatchModal(true)}
-                      disabled={loading}
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      批量配置
-                    </button>
-                  </div>
-                </div>
-
-                {/* 保险规则卡片列表 */}
-                <div className="flex-1 overflow-y-auto p-4">
-                  <div className="grid gap-4">
-                    {insuranceTypes.map(insuranceType => {
-                      const rule = getRule(insuranceType.id, selectedCategory.id);
-                      const parentRules = getParentRules(selectedCategory);
-                      const parentRule = parentRules.get(insuranceType.id);
-
-                      return (
-                        <InsuranceRuleCard
-                          key={insuranceType.id}
-                          insuranceType={insuranceType}
-                          category={selectedCategory}
-                          rule={rule}
-                          parentRule={parentRule}
-                          onSave={handleSaveRule}
-                          onDelete={rule ? () => handleDeleteRule(insuranceType.id, selectedCategory.id) : undefined}
-                          loading={loading}
-                          canInherit={!!parentRule}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-base-100 rounded-lg border border-base-300 h-full flex items-center justify-center">
-                <div className="text-center text-base-content/60">
-                  <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                  <h3 className="text-lg font-medium mb-2">选择员工类别</h3>
-                  <p>请在左侧选择一个员工类别以配置其保险规则</p>
-                </div>
+            {/* 错误提示 */}
+            {error && (
+              <div className="alert alert-error">
+                <svg className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{error}</span>
+                <button className="btn btn-sm btn-ghost" onClick={clearError}>
+                  关闭
+                </button>
               </div>
             )}
-          </div>
-        </div>
 
-        {/* 批量配置模态框 */}
-      <BatchConfigModal
-        isOpen={showBatchModal}
-        onClose={() => setShowBatchModal(false)}
-        onConfirm={handleBatchConfig}
-        selectedCategory={selectedCategory}
-        insuranceTypes={insuranceTypes}
-        loading={batchLoading}
+            {/* 主内容区域 */}
+            <div className="grid grid-cols-12 gap-6 min-h-[60vh]">
+              {/* 左侧：员工类别树 */}
+              <div className="col-span-4" data-tour="employee-category-tree">
+                <EmployeeCategoryTree
+                  categories={employeeCategories}
+                  selectedCategory={selectedCategory?.id}
+                  onSelectCategory={handleSelectCategory}
+                  rulesCount={categoryRulesCount}
+                  loading={loading}
+                />
+              </div>
+
+              {/* 右侧：保险规则配置 */}
+              <div className="col-span-8" data-tour="insurance-rules">
+                {selectedCategory ? (
+                  <div className="bg-base-100 rounded-lg border border-base-300 h-full flex flex-col">
+                    {/* 头部 */}
+                    <div className="p-4 border-b border-base-300">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold">{selectedCategory.name}</h3>
+                          <p className="text-sm text-base-content/60">
+                            {selectedCategory.parent_name && `归属: ${selectedCategory.parent_name} | `}
+                            配置此类别的保险规则
+                          </p>
+                        </div>
+
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => setShowBatchModal(true)}
+                          disabled={loading}
+                          data-tour="batch-config-button"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          批量配置
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 保险规则卡片列表 */}
+                    <div className="flex-1 overflow-y-auto p-4">
+                      <div className="grid gap-4">
+                        {insuranceTypes.map(insuranceType => {
+                          const rule = getRule(insuranceType.id, selectedCategory.id);
+                          const parentRules = getParentRules(selectedCategory);
+                          const parentRule = parentRules.get(insuranceType.id);
+
+                          return (
+                            <InsuranceRuleCard
+                              key={insuranceType.id}
+                              insuranceType={insuranceType}
+                              category={selectedCategory}
+                              rule={rule}
+                              parentRule={parentRule}
+                              onSave={handleSaveRule}
+                              onDelete={rule ? () => handleDeleteRule(insuranceType.id, selectedCategory.id) : undefined}
+                              loading={loading}
+                              canInherit={!!parentRule}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-base-100 rounded-lg border border-base-300 h-full flex items-center justify-center">
+                    <div className="text-center text-base-content/60">
+                      <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                      <h3 className="text-lg font-medium mb-2">选择员工类别</h3>
+                      <p>请在左侧选择一个员工类别以配置其保险规则</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        }
+        modal={
+          <BatchConfigModal
+            isOpen={showBatchModal}
+            onClose={() => setShowBatchModal(false)}
+            onConfirm={handleBatchConfig}
+            selectedCategory={selectedCategory}
+            insuranceTypes={insuranceTypes}
+            loading={batchLoading}
+          />
+        }
       />
-    </div>
+    </>
   );
 };
 

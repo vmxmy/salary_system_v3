@@ -271,13 +271,13 @@ export const SalaryStatusBadge: React.FC<{
   size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
 }> = ({ status, amount, size = 'sm', className }) => {
-  const { t } = useTranslation(['finance']);
+  const { t } = useTranslation(['common']);
   const labels = {
-    profit: t('finance:status.profit'),
-    loss: t('finance:status.loss'),
-    pending: t('finance:status.pending'),
-    approved: t('finance:status.approved'),
-    rejected: t('finance:status.rejected'),
+    profit: t('common:status.profit'),
+    loss: t('common:status.loss'),
+    pending: t('common:status.pending'),
+    approved: t('common:status.approved'),
+    rejected: t('common:status.rejected'),
   };
 
   return (

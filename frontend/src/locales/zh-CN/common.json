@@ -112,7 +112,12 @@
     "online": "在线",
     "offline": "离线",
     "busy": "忙碌",
-    "away": "离开"
+    "away": "离开",
+    "pending": "待处理",
+    "approved": "已批准",
+    "rejected": "已拒绝",
+    "profit": "盈利",
+    "loss": "亏损"
   },
   "priority": {
     "critical": "紧急",

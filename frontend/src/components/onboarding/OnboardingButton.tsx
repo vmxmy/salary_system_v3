@@ -6,7 +6,7 @@
 import { useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useOnboarding } from '@/contexts/OnboardingContext';
-import { getFlowsForPage, isOnboardingSupportedPage } from '@/utils/onboardingPageUtils';
+import { getFlowsForPage, isOnboardingSupportedPage, PAGE_FLOW_MAPPING } from '@/utils/onboardingPageUtils';
 
 export interface OnboardingButtonProps {
   /** 按钮样式变体 */
@@ -32,7 +32,7 @@ export function OnboardingButton({
   onClick
 }: OnboardingButtonProps) {
   const location = useLocation();
-  const { startFlow } = useOnboarding();
+  const { startFlow, getAvailableFlows } = useOnboarding();
 
   // 获取当前页面的指导流程
   const getPageFlows = useCallback(() => {
@@ -43,9 +43,27 @@ export function OnboardingButton({
       return [];
     }
     
-    // 获取页面相关的流程
+    // 如果没有传递用户权限，使用OnboardingContext中的getAvailableFlows方法
+    // 该方法会自动获取用户权限并进行过滤
+    if (userPermissions.length === 0) {
+      const availableFlows = getAvailableFlows();
+      
+      // 简化的路径匹配逻辑，找到最佳匹配的路径
+      const paths = Object.keys(PAGE_FLOW_MAPPING);
+      const sortedPaths = paths.sort((a, b) => b.length - a.length);
+      const matchedPath = sortedPaths.find(path => 
+        pathname === path || pathname.startsWith(path + '/')
+      );
+      
+      if (!matchedPath) return [];
+      
+      const pageFlowIds = PAGE_FLOW_MAPPING[matchedPath] || [];
+      return availableFlows.filter(flow => pageFlowIds.includes(flow.id));
+    }
+    
+    // 获取页面相关的流程（传统方式，当明确提供权限时使用）
     return getFlowsForPage(pathname, userPermissions);
-  }, [location.pathname, userPermissions]);
+  }, [location.pathname, userPermissions, getAvailableFlows]);
 
   // 启动指导流程的处理函数
   const handleStartFlow = useCallback(async () => {

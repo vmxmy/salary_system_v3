@@ -512,6 +512,60 @@ export const systemConfigurationFlow: OnboardingFlow = {
 };
 
 /**
+ * 五险一金配置指导
+ * 学习如何配置不同员工类别的五险一金规则
+ */
+export const insuranceConfigFlow: OnboardingFlow = {
+  id: 'insuranceConfig',
+  name: '五险一金配置指导',
+  description: '学习如何配置不同员工类别的五险一金规则',
+  category: 'advanced',
+  prerequisites: [],
+  permissions: ['payroll.view', 'hr.manage'],
+  steps: [
+    {
+      id: 'insuranceOverview',
+      title: '五险一金配置概览',
+      description: '了解五险一金配置系统的整体结构和核心概念。',
+      content: '💼 五险一金配置系统帮助您：\n• 管理不同保险类型的规则\n• 为各员工类别设置适用的保险配置\n• 控制费率、基数等关键参数\n• 支持继承和批量配置功能',
+      type: 'intro'
+    },
+    {
+      id: 'insuranceStats',
+      title: '系统统计信息',
+      description: '查看系统中保险类型、员工类别和配置规则的统计概览。',
+      content: '📊 统计卡片显示：\n• 保险类型总数\n• 员工类别数量\n• 已配置规则总数\n• 部门组织结构',
+      targetElement: '[data-tour="insurance-stats"]',
+      position: 'bottom'
+    },
+    {
+      id: 'employeeCategoryTree',
+      title: '员工类别树形结构',
+      description: '通过树形界面选择要配置的员工类别，支持层级继承关系。',
+      content: '🌳 员工类别树功能：\n• 树形结构清晰展示类别层级\n• 数字标记显示各类别配置数量\n• 点击选择类别开始配置\n• 支持父子类别继承规则',
+      targetElement: '[data-tour="employee-category-tree"]',
+      position: 'right'
+    },
+    {
+      id: 'insuranceRules',
+      title: '保险规则配置区域',
+      description: '为选中的员工类别配置具体的五险一金规则。',
+      content: '⚙️ 规则配置功能：\n• 为每种保险类型设置费率\n• 配置缴费基数上下限\n• 设置适用性和有效期\n• 支持从父类别继承配置',
+      targetElement: '[data-tour="insurance-rules"]',
+      position: 'left'
+    },
+    {
+      id: 'batchConfigButton',
+      title: '批量配置功能',
+      description: '使用批量配置功能快速为多个保险类型设置相同的规则。',
+      content: '🚀 批量配置优势：\n• 同时为多个保险类型配置规则\n• 统一设置费率和基数参数\n• 选择继承还是自定义配置\n• 大幅提高配置效率',
+      targetElement: '[data-tour="batch-config-button"]',
+      position: 'left'
+    }
+  ]
+};
+
+/**
  * 所有可用的指导流程
  */
 export const availableOnboardingFlows: OnboardingFlow[] = [
@@ -521,7 +575,8 @@ export const availableOnboardingFlows: OnboardingFlow[] = [
   payrollApprovalFlow,
   reportingFlow,
   organizationManagementFlow,
-  systemConfigurationFlow
+  systemConfigurationFlow,
+  insuranceConfigFlow
 ];
 
 /**

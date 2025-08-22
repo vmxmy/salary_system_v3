@@ -23,6 +23,7 @@ export const PAGE_FLOW_MAPPING: Record<string, string[]> = {
   // 薪资管理页面
   '/payroll/list': ['payrollWorkflow'],
   '/payroll/approval': ['payrollApproval'],
+  '/payroll/insurance-config': ['insuranceConfig'],
   
   // 统计报表页面
   '/statistics': ['reporting'],
