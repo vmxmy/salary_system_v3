@@ -13,6 +13,8 @@
     "i18n:scan": "npm run i18n:check-ui"
   },
   "dependencies": {
+    "@assistant-ui/react": "^0.10.43",
+    "@assistant-ui/react-markdown": "^0.10.9",
     "@fontsource/crimson-text": "^5.2.6",
     "@fontsource/inter": "^5.2.6",
     "@fontsource/jetbrains-mono": "^5.2.6",
@@ -38,8 +40,13 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-i18next": "^15.6.1",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.6.3",
     "react-window": "^1.8.11",
+    "recharts": "^3.1.2",
+    "rehype-highlight": "^7.0.2",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.3.1",
     "xlsx": "^0.18.5",
     "zod": "^4.0.2",

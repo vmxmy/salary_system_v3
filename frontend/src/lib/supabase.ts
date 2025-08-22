@@ -17,7 +17,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storage: window.localStorage,
-      debug: process.env.NODE_ENV === 'development',
+      debug: false, // Disable verbose auth logging
       // 改进的认证配置以处理连接问题
       flowType: 'pkce', // 使用 PKCE 流程提高安全性
       storageKey: 'sb-rjlymghylrshudywrzec-auth-token',

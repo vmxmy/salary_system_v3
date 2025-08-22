@@ -25,6 +25,7 @@ const PayrollDetailPage = lazy(() => import('@/pages/payroll/PayrollDetailPage')
 const PayrollApprovalPage = lazy(() => import('@/pages/payroll/PayrollApprovalPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
+const StatisticsPage = lazy(() => import('@/pages/statistics/StatisticsPage'));
 const ThemeShowcasePage = lazy(() => import('@/pages/ThemeShowcasePage'));
 const DesignTokensPage = lazy(() => import('@/pages/DesignTokensPage'));
 const DesignSystemShowcase = lazy(() => import('@/pages/DesignSystemShowcase'));
@@ -243,6 +244,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingScreen />}>
             <SettingsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'statistics',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <StatisticsPage />
           </Suspense>
         ),
       },

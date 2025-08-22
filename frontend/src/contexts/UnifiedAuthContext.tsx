@@ -8,7 +8,7 @@
  * 4. 错误处理简化 - 让Supabase处理大部分逻辑
  */
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -40,12 +40,18 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
   // 使用useUserRole hook获取角色信息
   const userRoleData = useUserRole(baseUser?.email);
 
-  // 合并基础用户信息和角色信息
-  const user = baseUser && !userRoleData.loading ? {
-    ...baseUser,
-    role: userRoleData.role,
-    permissions: userRoleData.permissions
-  } : baseUser;
+  // 🔧 修复: 稳定化user对象引用，避免无限重渲染
+  const user = useMemo(() => {
+    if (!baseUser || userRoleData.loading) {
+      return baseUser;
+    }
+    
+    return {
+      ...baseUser,
+      role: userRoleData.role,
+      permissions: userRoleData.permissions
+    };
+  }, [baseUser, userRoleData.loading, userRoleData.role, userRoleData.permissions]);
 
   const isAuthenticated = !!user;
 

@@ -19,6 +19,9 @@ export interface ManagementPageLayoutProps {
   title: string;
   subtitle?: string;
   
+  // 布局样式
+  layoutClass?: 'page-compact' | 'page-statistics';
+  
   // 统计卡片
   statCards?: StatCardProps[];
   
@@ -85,6 +88,7 @@ export interface ManagementPageLayoutProps {
 export function ManagementPageLayout({
   title,
   subtitle,
+  layoutClass = 'page-compact',
   statCards = [],
   statCardsExtra,
   searchValue = '',
@@ -216,7 +220,7 @@ export function ManagementPageLayout({
   };
 
   return (
-    <div className="page-compact">
+    <div className={layoutClass}>
       {/* 页面工具栏 */}
       <PageToolbar
         title={title}

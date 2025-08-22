@@ -1,6 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useDashboard, dashboardFormatters } from '@/hooks/dashboard';
+import MonthlyPayrollTrendChart from '@/components/dashboard/MonthlyPayrollTrendChart';
+import DepartmentPayrollChart from '@/components/dashboard/DepartmentPayrollChart';
+import PayrollStructureChart from '@/components/dashboard/PayrollStructureChart';
+import FinancialWarningDashboard from '@/components/dashboard/FinancialWarningDashboard';
 // HookTestPanel已移除，测试功能可通过专门的测试页面访问
 
 export default function DashboardPage() {
@@ -159,6 +163,30 @@ export default function DashboardPage() {
               <p className="text-lg font-semibold">{date(stats?.nextPayrollDate || null)}</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* 财务分析图表区域 */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-base-content">财务分析报表</h2>
+          <div className="badge badge-outline">实时数据</div>
+        </div>
+        
+        {/* 第一行：趋势图和预警仪表盘 */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2">
+            <MonthlyPayrollTrendChart height={300} />
+          </div>
+          <div className="xl:col-span-1">
+            <FinancialWarningDashboard />
+          </div>
+        </div>
+        
+        {/* 第二行：部门对比和结构分析 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DepartmentPayrollChart height={350} />
+          <PayrollStructureChart height={350} />
         </div>
       </div>
 

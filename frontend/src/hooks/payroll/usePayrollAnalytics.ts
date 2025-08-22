@@ -118,29 +118,19 @@ export function usePayrollAnalytics() {
     return useQuery({
       queryKey: analyticsQueryKeys.statistics(targetPeriod),
       queryFn: async (): Promise<PayrollStatistics> => {
-        const { data, error } = await (supabase as any).rpc('get_payroll_statistics', {
-          p_period: targetPeriod
-        });
+        // 直接使用视图查询
+        const { data: viewData, error: viewError } = await supabase
+          .from('view_payroll_summary')
+          .select('*')
+          .eq('period_code', targetPeriod);
 
-        if (error) {
-          handleError(error, { customMessage: '获取薪资统计失败' });
-          throw error;
+        if (viewError) {
+          handleError(viewError, { customMessage: '获取薪资统计失败' });
+          throw viewError;
         }
 
-        // 如果RPC不存在，使用视图查询
-        if (!data) {
-          const { data: viewData, error: viewError } = await supabase
-            .from('view_payroll_summary')
-            .select('*')
-            .eq('pay_month', targetPeriod);
-
-          if (viewError) {
-            handleError(viewError, { customMessage: '获取薪资统计失败' });
-            throw viewError;
-          }
-
-          // 聚合计算
-          const stats = (viewData || []).reduce((acc, item) => {
+        // 聚合计算
+        const stats = (viewData || []).reduce((acc, item) => {
             acc.totalEmployees++;
             acc.totalGrossPay += item.gross_pay || 0;
             acc.totalDeductions += item.total_deductions || 0;
@@ -175,10 +165,7 @@ export function usePayrollAnalytics() {
             stats.averageNetPay = stats.totalNetPay / stats.totalEmployees;
           }
 
-          return stats as PayrollStatistics;
-        }
-
-        return data;
+        return stats as PayrollStatistics;
       },
       staleTime: 5 * 60 * 1000 // 5分钟缓存
     });
@@ -194,7 +181,7 @@ export function usePayrollAnalytics() {
         const { data, error } = await supabase
           .from('view_department_payroll_statistics')
           .select('*')
-          .eq('pay_month_string', targetPeriod)
+          .eq('period_code', targetPeriod)
           .order('total_gross_pay', { ascending: false });
 
         if (error) {
@@ -233,10 +220,10 @@ export function usePayrollAnalytics() {
         const { data, error } = await supabase
           .from('view_payroll_trend_unified')
           .select('*')
-          .gte('pay_month', params.startPeriod)
-          .lte('pay_month', params.endPeriod)
-          .order('pay_year', { ascending: true })
-          .order('pay_month_number', { ascending: true });
+          .gte('period_code', params.startPeriod)
+          .lte('period_code', params.endPeriod)
+          .order('period_year', { ascending: true })
+          .order('period_month', { ascending: true });
 
         if (error) {
           handleError(error, { customMessage: '获取趋势数据失败' });
@@ -253,7 +240,7 @@ export function usePayrollAnalytics() {
           const yearAgoData = yearAgoIndex >= 0 ? data![yearAgoIndex] : null;
           
           const trend: PayrollTrend = {
-            period: current.pay_month || '',
+            period: current.period_code || '',
             year: current.period_year || new Date().getFullYear(),
             month: current.period_month || 1,
             totalGrossPay: current.total_gross_pay || 0,
@@ -292,63 +279,55 @@ export function usePayrollAnalytics() {
     return useQuery({
       queryKey: analyticsQueryKeys.components(targetPeriod),
       queryFn: async (): Promise<ComponentAnalysis[]> => {
-        const { data, error } = await (supabase as any).rpc('analyze_payroll_components', {
-          p_period: targetPeriod
-        });
+        // 直接使用视图查询
+        const { data: viewData, error: viewError } = await supabase
+          .from('view_payroll_unified')
+          .select('*')
+          .eq('period_code', targetPeriod)
+          .not('component_id', 'is', null);
 
-        if (error) {
-          // 如果RPC不存在，使用视图查询
-          const { data: viewData, error: viewError } = await supabase
-            .from('view_payroll_unified')
-            .select('*')
-            .eq('pay_month', targetPeriod)
-            .not('component_id', 'is', null);
-
-          if (viewError) {
-            handleError(viewError, { customMessage: '获取成分分析失败' });
-            throw viewError;
-          }
-
-          // 按组件聚合
-          const componentMap = new Map<string, ComponentAnalysis>();
-          
-          (viewData || []).forEach(item => {
-            const key = item.component_id!;
-            
-            if (!componentMap.has(key)) {
-              componentMap.set(key, {
-                componentId: item.component_id!,
-                componentName: item.component_name || '',
-                componentType: item.component_type as 'earning' | 'deduction',
-                totalAmount: 0,
-                averageAmount: 0,
-                employeeCount: 0,
-                percentOfTotal: 0
-              });
-            }
-            
-            const component = componentMap.get(key)!;
-            component.totalAmount += item.amount || 0;
-            component.employeeCount++;
-          });
-
-          // 计算平均值和百分比
-          const components = Array.from(componentMap.values());
-          const total = components.reduce((sum, c) => sum + c.totalAmount, 0);
-          
-          components.forEach(component => {
-            component.averageAmount = component.employeeCount > 0 
-              ? component.totalAmount / component.employeeCount 
-              : 0;
-            component.percentOfTotal = total > 0 
-              ? (component.totalAmount / total) * 100 
-              : 0;
-          });
-
-          return components.sort((a, b) => b.totalAmount - a.totalAmount) as ComponentAnalysis[];
+        if (viewError) {
+          handleError(viewError, { customMessage: '获取成分分析失败' });
+          throw viewError;
         }
 
-        return (data || []) as ComponentAnalysis[];
+        // 按组件聚合
+        const componentMap = new Map<string, ComponentAnalysis>();
+          
+        (viewData || []).forEach(item => {
+          const key = item.component_id!;
+          
+          if (!componentMap.has(key)) {
+            componentMap.set(key, {
+              componentId: item.component_id!,
+              componentName: item.component_name || '',
+              componentType: item.component_type as 'earning' | 'deduction',
+              totalAmount: 0,
+              averageAmount: 0,
+              employeeCount: 0,
+              percentOfTotal: 0
+            });
+          }
+          
+          const component = componentMap.get(key)!;
+          component.totalAmount += item.amount || 0;
+          component.employeeCount++;
+        });
+
+        // 计算平均值和百分比
+        const components = Array.from(componentMap.values());
+        const total = components.reduce((sum, c) => sum + c.totalAmount, 0);
+        
+        components.forEach(component => {
+          component.averageAmount = component.employeeCount > 0 
+            ? component.totalAmount / component.employeeCount 
+            : 0;
+          component.percentOfTotal = total > 0 
+            ? (component.totalAmount / total) * 100 
+            : 0;
+        });
+
+        return components.sort((a, b) => b.totalAmount - a.totalAmount) as ComponentAnalysis[];
       },
       staleTime: 15 * 60 * 1000 // 15分钟缓存
     });
@@ -364,11 +343,11 @@ export function usePayrollAnalytics() {
           supabase
             .from('view_payroll_summary')
             .select('*')
-            .eq('pay_month', params.basePeriod),
+            .eq('period_code', params.basePeriod),
           supabase
             .from('view_payroll_summary')
             .select('*')
-            .eq('pay_month', params.comparePeriod)
+            .eq('period_code', params.comparePeriod)
         ]);
 
         if (baseData.error) {
