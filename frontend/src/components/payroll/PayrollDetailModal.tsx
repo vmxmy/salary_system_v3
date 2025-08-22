@@ -12,9 +12,6 @@ import { useEmployeePositionByPeriod, useEmployeePositionHistory, useAssignEmplo
 import { useDepartmentList } from '@/hooks/department/useDepartments';
 import { useEmployeePositions } from '@/hooks/payroll/useEmployeePosition';
 import { useEmployeeContributionBasesByPeriod } from '@/hooks/payroll/useContributionBase';
-import { useBatchInsuranceCalculation } from '@/hooks/insurance/useBatchInsuranceCalculation';
-import { usePayrollCalculation } from '@/hooks/payroll/usePayrollCalculation';
-import { CalculationProgressModal, INSURANCE_CALCULATION_STEPS, PAYROLL_CALCULATION_STEPS } from './CalculationProgressModal';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -212,15 +209,6 @@ export function PayrollDetailModal({
   const [error, setError] = useState<Error | null>(null);
   const { showSuccess, showError, showInfo } = useToast();
 
-  // 计算功能相关状态
-  const [showCalculationProgress, setShowCalculationProgress] = useState(false);
-  const [calculationSteps, setCalculationSteps] = useState<any[]>([]);
-  const [calculationProgress, setCalculationProgress] = useState(0);
-  const [currentCalculationStep, setCurrentCalculationStep] = useState<string>('');
-
-  // 计算hooks
-  const { calculateBatchInsurance } = useBatchInsuranceCalculation();
-  const { calculateBatch: calculatePayrollBatch } = usePayrollCalculation();
   
   // 使用hook获取五险一金数据
   const { data: insuranceDetails = [], isLoading: insuranceLoading } = useEmployeeInsuranceDetails(payrollId || '');
@@ -357,216 +345,7 @@ export function PayrollDetailModal({
   }, [open]);
 
   // 单个薪资记录五险一金计算
-  const handleCalculateInsurance = useCallback(async () => {
-    if (!payrollData?.employee_id || !payrollData?.period_id) {
-      showError('缺少必要信息，无法进行五险一金计算');
-      return;
-    }
 
-    try {
-      setShowCalculationProgress(true);
-      setCalculationSteps(INSURANCE_CALCULATION_STEPS.map(step => ({ ...step, status: 'pending' })));
-      setCalculationProgress(0);
-
-      // Step 1: 准备计算数据
-      setCurrentCalculationStep('insurance_prepare');
-      setCalculationSteps(prev => prev.map(step => 
-        step.id === 'insurance_prepare' 
-          ? { ...step, status: 'running', message: '正在准备员工五险一金计算数据...' }
-          : step
-      ));
-      setCalculationProgress(20);
-
-      await new Promise(resolve => setTimeout(resolve, 500)); // 模拟准备时间
-
-      // Step 2: 执行计算
-      setCurrentCalculationStep('insurance_calculate');
-      setCalculationSteps(prev => prev.map(step => {
-        if (step.id === 'insurance_prepare') return { ...step, status: 'completed' };
-        if (step.id === 'insurance_calculate') return { ...step, status: 'running', message: '正在计算五险一金...' };
-        return step;
-      }));
-      setCalculationProgress(60);
-
-      // 调用单个员工计算
-      await calculateBatchInsurance({
-        periodId: payrollData.period_id!,
-        employeeIds: [payrollData.employee_id!],
-        saveToDatabase: true
-      });
-
-      // Step 3: 保存结果
-      setCurrentCalculationStep('insurance_save');
-      setCalculationSteps(prev => prev.map(step => {
-        if (step.id === 'insurance_calculate') return { ...step, status: 'completed' };
-        if (step.id === 'insurance_save') return { ...step, status: 'running', message: '正在保存计算结果...' };
-        return step;
-      }));
-      setCalculationProgress(90);
-
-      await new Promise(resolve => setTimeout(resolve, 500)); // 模拟保存时间
-
-      // 完成
-      setCalculationSteps(prev => prev.map(step => ({ ...step, status: 'completed' })));
-      setCalculationProgress(100);
-
-      showSuccess('五险一金重算完成');
-      
-      // 刷新数据
-      await fetchPayrollData();
-
-    } catch (error) {
-      console.error('五险一金计算失败:', error);
-      setCalculationSteps(prev => prev.map(step => 
-        step.status === 'running' ? { ...step, status: 'error', error: '计算失败' } : step
-      ));
-      showError('五险一金计算失败');
-    }
-  }, [payrollData, calculateBatchInsurance, showSuccess, showError, fetchPayrollData]);
-
-  // 单个薪资记录薪资汇总计算
-  const handleCalculatePayroll = useCallback(async () => {
-    if (!payrollData?.employee_id || !payrollData?.period_id) {
-      showError('缺少必要信息，无法进行薪资汇总计算');
-      return;
-    }
-
-    try {
-      setShowCalculationProgress(true);
-      setCalculationSteps(PAYROLL_CALCULATION_STEPS.map(step => ({ ...step, status: 'pending' })));
-      setCalculationProgress(0);
-
-      // Step 1: 准备计算数据
-      setCurrentCalculationStep('payroll_prepare');
-      setCalculationSteps(prev => prev.map(step => 
-        step.id === 'payroll_prepare' 
-          ? { ...step, status: 'running', message: '正在准备员工薪资汇总计算数据...' }
-          : step
-      ));
-      setCalculationProgress(20);
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Step 2: 执行计算
-      setCurrentCalculationStep('payroll_calculate');
-      setCalculationSteps(prev => prev.map(step => {
-        if (step.id === 'payroll_prepare') return { ...step, status: 'completed' };
-        if (step.id === 'payroll_calculate') return { ...step, status: 'running', message: '正在计算薪资汇总...' };
-        return step;
-      }));
-      setCalculationProgress(60);
-
-      // 调用单个员工薪资计算
-      await calculatePayrollBatch([payrollData.id], true);
-
-      // Step 3: 保存结果
-      setCurrentCalculationStep('payroll_save');
-      setCalculationSteps(prev => prev.map(step => {
-        if (step.id === 'payroll_calculate') return { ...step, status: 'completed' };
-        if (step.id === 'payroll_save') return { ...step, status: 'running', message: '正在保存计算结果...' };
-        return step;
-      }));
-      setCalculationProgress(90);
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 完成
-      setCalculationSteps(prev => prev.map(step => ({ ...step, status: 'completed' })));
-      setCalculationProgress(100);
-
-      showSuccess('薪资汇总重算完成');
-      
-      // 刷新数据
-      await fetchPayrollData();
-
-    } catch (error) {
-      console.error('薪资汇总计算失败:', error);
-      setCalculationSteps(prev => prev.map(step => 
-        step.status === 'running' ? { ...step, status: 'error', error: '计算失败' } : step
-      ));
-      showError('薪资汇总计算失败');
-    }
-  }, [payrollData, calculatePayrollBatch, showSuccess, showError, fetchPayrollData]);
-
-  // 单个薪资记录全部重算
-  const handleCalculateAll = useCallback(async () => {
-    if (!payrollData?.employee_id || !payrollData?.period_id) {
-      showError('缺少必要信息，无法进行全部重算');
-      return;
-    }
-
-    try {
-      setShowCalculationProgress(true);
-      const allSteps = [...INSURANCE_CALCULATION_STEPS, ...PAYROLL_CALCULATION_STEPS];
-      setCalculationSteps(allSteps.map(step => ({ ...step, status: 'pending' })));
-      setCalculationProgress(0);
-
-      const employee = { employee_id: payrollData.employee_id, period_id: payrollData.period_id };
-
-      // 五险一金计算流程
-      for (let i = 0; i < INSURANCE_CALCULATION_STEPS.length; i++) {
-        const step = INSURANCE_CALCULATION_STEPS[i];
-        setCurrentCalculationStep(step.id);
-        
-        setCalculationSteps(prev => prev.map(s => 
-          s.id === step.id 
-            ? { ...s, status: 'running', message: `正在${step.name}...` }
-            : s
-        ));
-
-        if (step.id === 'insurance_calculate') {
-          await calculateBatchInsurance({
-            periodId: payrollData.period_id!,
-            employeeIds: [payrollData.employee_id!],
-            saveToDatabase: true
-          });
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-
-        setCalculationSteps(prev => prev.map(s => 
-          s.id === step.id ? { ...s, status: 'completed' } : s
-        ));
-        setCalculationProgress(((i + 1) / (allSteps.length)) * 50); // 前50%
-      }
-
-      // 薪资汇总计算流程
-      for (let i = 0; i < PAYROLL_CALCULATION_STEPS.length; i++) {
-        const step = PAYROLL_CALCULATION_STEPS[i];
-        setCurrentCalculationStep(step.id);
-        
-        setCalculationSteps(prev => prev.map(s => 
-          s.id === step.id 
-            ? { ...s, status: 'running', message: `正在${step.name}...` }
-            : s
-        ));
-
-        if (step.id === 'payroll_calculate') {
-          await calculatePayrollBatch([payrollData.id], true);
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-
-        setCalculationSteps(prev => prev.map(s => 
-          s.id === step.id ? { ...s, status: 'completed' } : s
-        ));
-        setCalculationProgress(50 + ((i + 1) / PAYROLL_CALCULATION_STEPS.length) * 50); // 后50%
-      }
-
-      setCalculationProgress(100);
-      showSuccess('全部重算完成');
-      
-      // 刷新数据
-      await fetchPayrollData();
-
-    } catch (error) {
-      console.error('全部重算失败:', error);
-      setCalculationSteps(prev => prev.map(step => 
-        step.status === 'running' ? { ...step, status: 'error', error: '计算失败' } : step
-      ));
-      showError('全部重算失败');
-    }
-  }, [payrollData, calculateBatchInsurance, calculatePayrollBatch, showSuccess, showError, fetchPayrollData]);
 
   // Tab配置
   const tabs = [
@@ -701,7 +480,7 @@ export function PayrollDetailModal({
   return (
     <>
       <dialog className={cn("modal", { "modal-open": open })}>
-        <div className="modal-box max-w-6xl max-h-[92vh] p-0 overflow-hidden">
+        <div className="modal-box max-w-6xl max-h-[95vh] p-0 overflow-hidden flex flex-col">
           {/* Enhanced Modal Header */}
           <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6 border-b border-base-300">
             <div className="flex justify-between items-start mb-4">
@@ -726,58 +505,10 @@ export function PayrollDetailModal({
               </button>
             </div>
 
-            {/* 计算按钮组 */}
-            {payrollData && (
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-base-content/70">
-                  单个薪资记录计算操作
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleCalculateInsurance}
-                    disabled={isLoading}
-                    className="btn btn-info btn-sm gap-2"
-                    title="重算该员工的五险一金"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                    重算五险一金
-                  </button>
-
-                  <button
-                    onClick={handleCalculatePayroll}
-                    disabled={isLoading}
-                    className="btn btn-warning btn-sm gap-2"
-                    title="重算该员工的薪资汇总"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                        d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
-                    </svg>
-                    重算薪资汇总
-                  </button>
-
-                  <button
-                    onClick={handleCalculateAll}
-                    disabled={isLoading}
-                    className="btn btn-accent btn-sm gap-2"
-                    title="重算该员工的全部数据（五险一金+薪资汇总）"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    重算全部
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Content Area with Sidebar Navigation */}
-          <div className="flex h-[calc(92vh-8rem)]">
+          <div className="flex flex-1 min-h-0">
             {/* Sidebar Navigation */}
             <div className="w-56 bg-base-200/30 border-r border-base-300 p-4">
               <ul className="space-y-1">
@@ -848,7 +579,7 @@ export function PayrollDetailModal({
           </div>
 
           {/* Enhanced Modal Footer */}
-          <div className="border-t border-base-300 p-4 bg-base-200/30">
+          <div className="flex-shrink-0 border-t border-base-300 p-4 bg-base-200/30">
             <div className="flex justify-between items-center">
               <div className="text-sm text-base-content/60">
                 查看薪资详情信息
@@ -872,20 +603,6 @@ export function PayrollDetailModal({
         </form>
       </dialog>
 
-      {/* 计算进度模态框 */}
-      <CalculationProgressModal
-        isOpen={showCalculationProgress}
-        onClose={() => setShowCalculationProgress(false)}
-        title={
-          currentCalculationStep?.includes('insurance') ? '五险一金计算进度' :
-          currentCalculationStep?.includes('payroll') ? '薪资汇总计算进度' :
-          '计算进度'
-        }
-        steps={calculationSteps}
-        currentStep={currentCalculationStep}
-        totalProgress={calculationProgress}
-        allowCancel={false}
-      />
     </>
   );
 }

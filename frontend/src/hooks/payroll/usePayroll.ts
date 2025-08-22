@@ -14,6 +14,7 @@ export const PayrollStatus = {
   DRAFT: 'draft',
   CALCULATING: 'calculating',
   CALCULATED: 'calculated',
+  PENDING: 'pending',
   APPROVED: 'approved',
   PAID: 'paid',
   CANCELLED: 'cancelled'
@@ -808,74 +809,8 @@ export function usePayroll(options: UsePayrollOptions = {}) {
   const updateBatchStatusMutation = useUpdateBatchPayrollStatus();
   const deletePayrollMutation = useDeletePayroll();
 
-  // 设置实时订阅
-  useEffect(() => {
-    if (!enableRealtime) return;
-
-    console.log('[Payroll] Setting up realtime subscriptions');
-
-    // 订阅薪资表变更
-    const payrollChannel = supabase
-      .channel('payroll-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'payrolls' },
-        (payload) => {
-          console.log('[Payroll] Payroll change detected:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: payrollQueryKeys.all });
-        }
-      );
-
-    // 订阅薪资项目变更
-    const payrollItemChannel = supabase
-      .channel('payroll-item-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'payroll_items' },
-        (payload) => {
-          console.log('[Payroll] Payroll item change detected:', payload.eventType);
-          // 刷新相关的薪资详情
-          if (payload.new && 'payroll_id' in payload.new) {
-            queryClient.invalidateQueries({ 
-              queryKey: payrollQueryKeys.detail(payload.new.payroll_id as string) 
-            });
-          }
-        }
-      );
-
-    // 订阅薪资项目变更（包括保险项目）
-    const insuranceChannel = supabase
-      .channel('insurance-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'payroll_items' },
-        (payload) => {
-          console.log('[Payroll] Payroll item (insurance) change detected:', payload.eventType);
-          if (payload.new && 'payroll_id' in payload.new) {
-            queryClient.invalidateQueries({ 
-              queryKey: payrollQueryKeys.insurance(payload.new.payroll_id as string) 
-            });
-          }
-        }
-      );
-
-    // 启动订阅
-    Promise.all([
-      payrollChannel.subscribe(),
-      payrollItemChannel.subscribe(),
-      insuranceChannel.subscribe(),
-    ]).then(() => {
-      console.log('[Payroll] Realtime subscriptions active');
-    });
-
-    // 清理函数
-    return () => {
-      console.log('[Payroll] Cleaning up realtime subscriptions');
-      payrollChannel.unsubscribe();
-      payrollItemChannel.unsubscribe();
-      insuranceChannel.unsubscribe();
-    };
-  }, [enableRealtime, queryClient]);
+  // 注意：实时订阅已迁移到 useSupabaseRealtime Hook
+  // 此处保留 enableRealtime 参数以保持兼容性，但实际订阅由页面级别管理
 
   // 刷新所有数据
   const refreshAll = async () => {
@@ -942,6 +877,7 @@ export const payrollFormatters = {
       [PayrollStatus.DRAFT]: '草稿',
       [PayrollStatus.CALCULATING]: '计算中',
       [PayrollStatus.CALCULATED]: '已计算',
+      [PayrollStatus.PENDING]: '待审批',
       [PayrollStatus.APPROVED]: '已审批',
       [PayrollStatus.PAID]: '已发放',
       [PayrollStatus.CANCELLED]: '已取消',

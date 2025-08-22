@@ -128,10 +128,6 @@ export function PayrollCompletenessStatExample() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         completeness={completeness || null}
-        onImportData={(element) => {
-          console.log('Import data for:', element);
-          // 处理导入逻辑
-        }}
       />
     </div>
   );

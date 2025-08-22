@@ -8,6 +8,8 @@ import {
   PayrollSearchAndFilter,
   PayrollPeriodSelector
 } from '@/components/payroll';
+import { CompactPayrollStatusSelector } from '@/components/payroll/PayrollStatusSelector';
+import { usePayrollRealtime } from '@/hooks/core/useSupabaseRealtime';
 import { usePayrollApproval } from '@/hooks/payroll';
 import { usePayrollPeriodSelection } from '@/hooks/payroll/usePayrollPeriodSelection';
 import { usePayrollDataProcessor } from '@/hooks/payroll/usePayrollDataProcessor';
@@ -43,6 +45,19 @@ export default function PayrollApprovalPage() {
   
   // 使用通用模态框管理Hook
   const modalManager = usePayrollModalManager<PayrollApprovalData>();
+  
+  // 设置 Realtime 订阅以自动刷新审批数据
+  usePayrollRealtime({
+    enabled: true,
+    showNotifications: true, // 审批页面显示通知，重要状态变更需要提醒
+    onSuccess: (event, payload) => {
+      console.log(`[PayrollApproval] Realtime event: ${event}`, payload);
+      // 当有薪资状态变更时，自动刷新审批列表
+    },
+    onError: (error) => {
+      console.error('[PayrollApproval] Realtime error:', error);
+    }
+  });
   
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -695,18 +710,13 @@ export default function PayrollApprovalPage() {
                 {/* 状态选择器 */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-base-content/70 whitespace-nowrap">状态：</span>
-                  <select 
-                    className="select select-bordered select-sm bg-base-100 w-28"
+                  <CompactPayrollStatusSelector
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as PayrollStatus | 'all')}
-                  >
-                    <option value="all">全部状态</option>
-                    <option value="calculated">已计算</option>
-                    <option value="pending">待审批</option>
-                    <option value="approved">已审批</option>
-                    <option value="rejected">已拒绝</option>
-                    <option value="paid">已发放</option>
-                  </select>
+                    onChange={setStatusFilter}
+                    showIcon={false}
+                    className="w-28"
+                    placeholder="全部状态"
+                  />
                 </div>
               </div>
 

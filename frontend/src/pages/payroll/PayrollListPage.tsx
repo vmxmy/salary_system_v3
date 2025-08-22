@@ -8,6 +8,8 @@ import {
   PayrollStatus,
   type PayrollStatusType 
 } from '@/hooks/payroll';
+import { CompactPayrollStatusSelector } from '@/components/payroll/PayrollStatusSelector';
+import { usePayrollRealtime } from '@/hooks/core/useSupabaseRealtime';
 import { usePayrollApproval } from '@/hooks/payroll/usePayrollApproval';
 import { useClearPayrollPeriod } from '@/hooks/payroll/useClearPayrollPeriod';
 import { type PayrollPeriod } from '@/hooks/payroll/usePayrollPeriod';
@@ -29,6 +31,7 @@ import {
 import { ClearPayrollModal } from '@/components/payroll/ClearPayrollModal';
 import { PayrollCompletenessModal } from '@/components/payroll/PayrollCompletenessModal';
 import { PayrollCompletenessStats } from '@/components/payroll/PayrollCompletenessStats';
+import { PayrollElement, PAYROLL_ELEMENTS_CONFIG } from '@/types/payroll-completeness';
 import { usePayrollPeriodCompleteness } from '@/hooks/payroll/usePayrollPeriodCompleteness';
 import { ConfirmModal, BatchConfirmModal } from '@/components/common/ConfirmModal';
 import { ManagementPageLayout, type StatCardProps } from '@/components/layout/ManagementPageLayout';
@@ -64,6 +67,19 @@ export default function PayrollListPage() {
 
   // 使用通用模态框管理Hook
   const modalManager = usePayrollModalManager<PayrollData>();
+  
+  // 设置 Realtime 订阅以自动刷新数据
+  usePayrollRealtime({
+    enabled: true,
+    showNotifications: false, // 不显示通知，避免干扰用户
+    onSuccess: (event, payload) => {
+      console.log(`[PayrollList] Realtime event: ${event}`, payload);
+      // 数据已通过 queryClient.invalidateQueries 自动刷新
+    },
+    onError: (error) => {
+      console.error('[PayrollList] Realtime error:', error);
+    }
+  });
 
   // 状态管理
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -80,6 +96,10 @@ export default function PayrollListPage() {
   // 其他模态框状态
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isCompletenessModalOpen, setIsCompletenessModalOpen] = useState(false);
+  const [focusedElement, setFocusedElement] = useState<PayrollElement | undefined>();
+  const [isMissingEmployeesModalOpen, setIsMissingEmployeesModalOpen] = useState(false);
+  const [missingEmployeesElement, setMissingEmployeesElement] = useState<PayrollElement | undefined>();
+  const [missingEmployeesData, setMissingEmployeesData] = useState<string[]>([]);
   
   // 确认模态框状态
   const [confirmModal, setConfirmModal] = useState<{
@@ -453,22 +473,38 @@ export default function PayrollListPage() {
     {
       title: '总记录数',
       value: processedData?.length?.toString() ?? '0',
-      icon: '👥'
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      )
     },
     {
       title: '总应发金额',
       value: formatCurrency(processedData?.reduce((sum, item) => sum + (item.gross_pay || 0), 0) ?? 0),
-      icon: '💰'
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
     },
     {
       title: '总扣发金额',
       value: formatCurrency(processedData?.reduce((sum, item) => sum + (item.total_deductions || 0), 0) ?? 0),
-      icon: '📉'
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+        </svg>
+      )
     },
     {
       title: '总实发金额',
       value: formatCurrency(processedData?.reduce((sum, item) => sum + (item.net_pay || 0), 0) ?? 0),
-      icon: '💵'
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      )
     }
   ], [processedData, statsLoading, completenessLoading]);
 
@@ -817,12 +853,6 @@ export default function PayrollListPage() {
     }
   }, [selectedIds, processedData, payrollCalculation, showSuccess, showError, refetch]);
 
-  // 批量重算全部（五险一金+薪资汇总）
-  const handleBatchCalculateAll = useCallback(async () => {
-    // TODO: 重新实现使用BatchApprovalProgressModal的批量重算全部功能
-    showError('批量重算全部功能正在重构中，请分别使用"重算五险一金"和"重算薪资汇总"');
-    return;
-  }, [showError]);
 
   return (
     <ManagementPageLayout
@@ -868,6 +898,10 @@ export default function PayrollListPage() {
             <PayrollCompletenessStats
               completeness={completenessData || null}
               className="w-full"
+              onElementClick={(element) => {
+                setFocusedElement(element);
+                setIsCompletenessModalOpen(true);
+              }}
             />
           </div>
 
@@ -895,17 +929,13 @@ export default function PayrollListPage() {
                 {/* 状态选择器 */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-base-content/70 whitespace-nowrap">状态：</span>
-                  <select 
-                    className="select select-bordered select-sm bg-base-100 w-28"
+                  <CompactPayrollStatusSelector
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as PayrollStatusType | 'all')}
-                  >
-                    <option value="all">全部状态</option>
-                    <option value="draft">草稿</option>
-                    <option value="calculated">已计算</option>
-                    <option value="approved">已审批</option>
-                    <option value="paid">已发放</option>
-                  </select>
+                    onChange={setStatusFilter}
+                    showIcon={false}
+                    className="w-28"
+                    placeholder="全部状态"
+                  />
                 </div>
               </div>
 
@@ -981,6 +1011,29 @@ export default function PayrollListPage() {
             </div>
           </div>
 
+          {/* 重算功能提示 */}
+          {!isCompletenessReady && selectedIds.length > 0 && (
+            <div className="alert alert-warning">
+              <svg className="w-6 h-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div>
+                <div className="font-bold">重算功能暂不可用</div>
+                <div className="text-sm">四要素完整度需要达到100%才能执行重算操作</div>
+              </div>
+              <button 
+                className="btn btn-sm btn-outline" 
+                onClick={() => {
+                  setFocusedElement(undefined);
+                  setIsCompletenessModalOpen(true);
+                }}
+              >
+                查看四要素详情
+              </button>
+            </div>
+          )}
+
           {/* 批量操作区域 */}
           {selectedIds.length > 0 && (
             <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
@@ -994,10 +1047,12 @@ export default function PayrollListPage() {
                     label: '重算五险一金',
                     onClick: handleBatchCalculateInsurance,
                     variant: 'outline',
-                    disabled: !batchValidation.canBatchOperate.calculateInsurance(),
-                    title: batchValidation.canBatchOperate.calculateInsurance() 
-                      ? '批量重算五险一金' 
-                      : batchValidation.getOperationReason.calculateInsurance(),
+                    disabled: !batchValidation.canBatchOperate.calculateInsurance() || !isCompletenessReady,
+                    title: !isCompletenessReady 
+                      ? '四要素完整度未达到100%，无法执行重算操作'
+                      : batchValidation.canBatchOperate.calculateInsurance() 
+                        ? '批量重算五险一金' 
+                        : batchValidation.getOperationReason.calculateInsurance(),
                     icon: (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -1010,30 +1065,16 @@ export default function PayrollListPage() {
                     label: '重算薪资汇总',
                     onClick: handleBatchCalculatePayroll,
                     variant: 'outline',
-                    disabled: !batchValidation.canBatchOperate.calculatePayroll(),
-                    title: batchValidation.canBatchOperate.calculatePayroll() 
-                      ? '批量重算薪资汇总' 
-                      : batchValidation.getOperationReason.calculatePayroll(),
+                    disabled: !batchValidation.canBatchOperate.calculatePayroll() || !isCompletenessReady,
+                    title: !isCompletenessReady 
+                      ? '四要素完整度未达到100%，无法执行重算操作'
+                      : batchValidation.canBatchOperate.calculatePayroll() 
+                        ? '批量重算薪资汇总' 
+                        : batchValidation.getOperationReason.calculatePayroll(),
                     icon: (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                           d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
-                      </svg>
-                    )
-                  },
-                  {
-                    key: 'calculate-all',
-                    label: '重算全部',
-                    onClick: handleBatchCalculateAll,
-                    variant: 'outline',
-                    disabled: !batchValidation.canBatchOperate.calculateAll(),
-                    title: batchValidation.canBatchOperate.calculateAll() 
-                      ? '重算全部（五险一金+薪资汇总）' 
-                      : batchValidation.getOperationReason.calculateAll(),
-                    icon: (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                     )
                   },
@@ -1111,23 +1152,35 @@ export default function PayrollListPage() {
           />
           <PayrollCompletenessModal
             isOpen={isCompletenessModalOpen}
-            onClose={() => setIsCompletenessModalOpen(false)}
-            completeness={completenessData || null}
-            onImportData={(element) => {
-              // 关闭完整度模态框
+            onClose={() => {
               setIsCompletenessModalOpen(false);
-              // 导航到导入页面，并传递要导入的数据类型
-              navigate('/payroll/import', { 
-                state: { 
-                  selectedMonth,
-                  selectedPeriodId,
-                  targetElement: element 
-                }
-              });
+              setFocusedElement(undefined); // 清除聚焦状态
             }}
+            completeness={completenessData || null}
+            focusedElement={focusedElement}
+            onClearFocus={() => setFocusedElement(undefined)}
             onViewDetails={(element) => {
               // 可以在这里实现查看详情的逻辑
               console.log('View details for element:', element);
+              // 可以聚焦到该要素
+              setFocusedElement(element);
+            }}
+            onViewMissingEmployees={async (element) => {
+              try {
+                setMissingEmployeesElement(element);
+                
+                // TODO: 实现根据要素类型获取缺失员工姓名的逻辑
+                // 这里需要调用API获取具体的缺失员工数据
+                const mockMissingEmployees = [
+                  '张三', '李四', '王五', '赵六', '钱七'
+                ]; // 临时模拟数据
+                
+                setMissingEmployeesData(mockMissingEmployees);
+                setIsMissingEmployeesModalOpen(true);
+              } catch (error) {
+                console.error('Failed to fetch missing employees:', error);
+                showError('获取缺失员工数据失败');
+              }
             }}
           />
           
@@ -1155,6 +1208,85 @@ export default function PayrollListPage() {
             onCancel={cancelSubmitOperation}
             summary={submitProgressModal.items.length > 0 ? calculateBatchSummary(submitProgressModal.items) : undefined}
           />
+          
+          {/* 缺失员工详情模态框 */}
+          {isMissingEmployeesModalOpen && (
+            <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
+              <div className="bg-base-100 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                {/* 标题栏 */}
+                <div className="flex items-center justify-between p-6 border-b border-base-200">
+                  <div>
+                    <h2 className="text-xl font-bold flex items-center gap-2">
+                      <span className="text-2xl">
+                        {missingEmployeesElement && PAYROLL_ELEMENTS_CONFIG[missingEmployeesElement] && (
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                      </span>
+                      缺失员工名单
+                    </h2>
+                    <p className="text-sm text-base-content/60 mt-1">
+                      {missingEmployeesElement && PAYROLL_ELEMENTS_CONFIG[missingEmployeesElement]?.displayName} - 
+                      缺失 {missingEmployeesData.length} 名员工的数据
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsMissingEmployeesModalOpen(false);
+                      setMissingEmployeesElement(undefined);
+                      setMissingEmployeesData([]);
+                    }}
+                    className="btn btn-ghost btn-circle"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* 员工名单 */}
+                <div className="p-6 overflow-y-auto max-h-[60vh]">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {missingEmployeesData.map((employeeName, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 p-3 border border-error/30 bg-error/5 rounded-lg"
+                      >
+                        <svg className="w-5 h-5 text-error flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span className="text-sm font-medium text-error-content">{employeeName}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {missingEmployeesData.length === 0 && (
+                    <div className="text-center py-8 text-base-content/60">
+                      <svg className="w-16 h-16 mx-auto mb-4 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.485 0-4.735.847-6.56 2.264" />
+                      </svg>
+                      <p>暂无缺失员工数据</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* 底部操作栏 */}
+                <div className="flex justify-end gap-2 p-6 border-t border-base-200">
+                  <button
+                    onClick={() => {
+                      setIsMissingEmployeesModalOpen(false);
+                      setMissingEmployeesElement(undefined);
+                      setMissingEmployeesData([]);
+                    }}
+                    className="btn btn-ghost"
+                  >
+                    关闭
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       }
     />
