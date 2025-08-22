@@ -234,40 +234,50 @@
     max-width: 100%; /* 确保卡片不超出父容器 */
   }
   
-  /* 统计页面专用布局 - 更合理的内容宽度限制 */
+  /* 统计页面专用布局 - 优化MacBook等中大屏幕的数据展示宽度 */
   .page-statistics {
     @apply p-4 lg:p-6 xl:p-8 space-y-6 mx-auto;
-    /* 统计页面的内容宽度限制 - 平衡数据展示和视觉舒适度 */
+    /* 统计页面充分利用可用宽度 - 针对MacBook等大屏幕优化 */
     max-width: 100%;
     width: 100%;
+    /* 移除多余的外边距，让内容更宽 */
+    margin-left: auto;
+    margin-right: auto;
   }
   
-  /* 统计页面响应式边距 */
+  /* 统计页面响应式边距 - 极致优化MacBook屏幕显示效果 */
   @media (min-width: 768px) {
     .page-statistics {
-      @apply px-8 py-6;
-      max-width: calc(100% - 6rem); /* 两侧各3rem边距 */
+      @apply px-4 py-6;
+      max-width: calc(100% - 2rem); /* 最小边距：两侧各1rem */
     }
   }
   
   @media (min-width: 1024px) {
     .page-statistics {
-      @apply px-12 py-8;
-      max-width: calc(100% - 12rem); /* 两侧各6rem边距 */
+      @apply px-6 py-8;
+      max-width: calc(100% - 3rem); /* MacBook极致优化：两侧各1.5rem边距 */
     }
   }
   
   @media (min-width: 1280px) {
     .page-statistics {
-      @apply px-16 py-8;
-      max-width: calc(100% - 16rem); /* 两侧各8rem边距 */
+      @apply px-8 py-8;
+      max-width: calc(100% - 4rem); /* 大屏幕：两侧各2rem边距 */
+    }
+  }
+  
+  @media (min-width: 1440px) {
+    .page-statistics {
+      @apply px-10 py-8;
+      max-width: calc(100% - 5rem); /* 1440px+屏幕：两侧各2.5rem边距 */
     }
   }
   
   @media (min-width: 1536px) {
     .page-statistics {
-      @apply px-20 py-10;
-      max-width: calc(100% - 20rem); /* 两侧各10rem边距 */
+      @apply px-12 py-10;
+      max-width: calc(100% - 6rem); /* 超大屏幕：两侧各3rem边距 */
     }
   }
   
@@ -280,28 +290,39 @@
     @apply shadow-sm border border-base-200;
   }
 
-  /* 统计模块内容宽度优化 - 精确调整统计内容显示宽度 */
+  /* 统计模块内容宽度优化 - 配合page-statistics实现最佳显示效果 */
   .statistics-wide-content {
     max-width: 100%;
     margin: 0 auto;
     width: 100%;
   }
 
+  /* 在page-statistics布局下，内容区域使用100%宽度充分利用可用空间 */
   @media (min-width: 1024px) {
-    .statistics-wide-content {
-      max-width: 95%;
+    .page-statistics .statistics-wide-content {
+      max-width: 100%; /* MacBook优化：充分利用可用宽度 */
+      margin: 0; /* 移除任何默认边距 */
     }
   }
 
   @media (min-width: 1280px) {
-    .statistics-wide-content {
-      max-width: 90%;
+    .page-statistics .statistics-wide-content {
+      max-width: 100%; /* 大屏幕：充分利用page-statistics的可用宽度 */
+      margin: 0;
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .page-statistics .statistics-wide-content {
+      max-width: 100%; /* 1440px MacBook：充分利用可用宽度 */
+      margin: 0;
     }
   }
 
   @media (min-width: 1536px) {
-    .statistics-wide-content {
-      max-width: 85%;
+    .page-statistics .statistics-wide-content {
+      max-width: 98%; /* 超大屏幕：轻微限制防止过度拉伸 */
+      margin: 0 auto;
     }
   }
 
@@ -388,6 +409,155 @@
   @keyframes trend-pulse-red {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; transform: scale(1.05); }
+  }
+
+  /* 统计页面加载状态增强 */
+  .statistics-loading {
+    @apply min-h-[60vh] flex items-center justify-center;
+    @apply bg-gradient-to-br from-base-100 to-base-200/50;
+  }
+
+  .statistics-loading-spinner {
+    @apply relative;
+  }
+
+  .statistics-loading-spinner::before {
+    content: '';
+    @apply absolute inset-0 rounded-full border-4 border-primary/20;
+    animation: loading-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes loading-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.7;
+    }
+  }
+
+  /* 统计卡片入场动画 */
+  .statistics-fade-in {
+    animation: statistics-fade-in 0.6s ease-out forwards;
+  }
+
+  @keyframes statistics-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* 统计卡片悬停放大效果 */
+  .statistics-hover-lift {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .statistics-hover-lift:hover {
+    @apply -translate-y-1 shadow-xl;
+  }
+
+  /* Alert组件增强样式 */
+  .alert-enhanced {
+    @apply relative overflow-hidden;
+  }
+
+  .alert-enhanced::before {
+    content: '';
+    @apply absolute left-0 top-0 bottom-0 w-1;
+  }
+
+  .alert-error.alert-enhanced::before {
+    @apply bg-error;
+  }
+
+  .alert-warning.alert-enhanced::before {
+    @apply bg-warning;
+  }
+
+  .alert-info.alert-enhanced::before {
+    @apply bg-info;
+  }
+
+  .alert-success.alert-enhanced::before {
+    @apply bg-success;
+  }
+
+  /* 数字计数动画 */
+  @keyframes count-up {
+    from { 
+      opacity: 0.5;
+      transform: translateY(10px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .stat-value.animate-count {
+    animation: count-up 0.8s ease-out;
+  }
+
+  /* 统计图表容器优化 */
+  .statistics-chart-container {
+    @apply relative overflow-hidden rounded-xl;
+    @apply bg-gradient-to-br from-base-100 via-base-100 to-base-200/30;
+    @apply border border-base-300/50 shadow-lg;
+  }
+
+  .statistics-chart-container::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 h-px;
+    background: linear-gradient(90deg, transparent, hsl(var(--p))/20, transparent);
+  }
+
+  /* 解决stats容器滚动问题 - 确保充足的显示空间 */
+  .statistics-stats-container {
+    @apply w-full;
+    overflow-x: auto; /* 允许水平滚动作为后备 */
+    overflow-y: visible;
+  }
+
+  /* 统计页面的stats组件优化 */
+  .statistics-page .stats {
+    @apply w-full;
+    min-width: max-content; /* 确保内容完全显示 */
+  }
+
+  /* 防止stats在小屏幕上过度压缩 */
+  .statistics-kpi-card.stats {
+    @apply w-full;
+    min-width: 0; /* 重置最小宽度以配合Grid */
+  }
+
+  .statistics-kpi-card .stat {
+    @apply min-w-0; /* 允许stat项目压缩 */
+    flex: 1 1 0; /* 等宽分布 */
+  }
+
+  /* 响应式stats处理 */
+  @media (max-width: 1024px) {
+    .statistics-kpi-card.stats {
+      @apply stats-vertical; /* 移动端垂直排列 */
+    }
+  }
+
+  @media (max-width: 768px) {
+    .statistics-stats-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch; /* 平滑滚动 */
+    }
+    
+    .statistics-kpi-card .stat {
+      min-width: 200px; /* 移动端最小宽度 */
+    }
   }
   
   /* 紧凑化数据表格特殊样式 */
@@ -483,6 +653,68 @@
     /* 确保tab容器占满宽度 */
     @apply flex-wrap gap-0 relative;
   }
+
+  /* 完全等宽Tab解决方案 - 最现代化CSS Grid方案 */
+  .tabs-equal-width {
+    @apply grid w-full relative;
+    /* 强制等宽：每个tab占用完全相同的空间 */
+    grid-template-columns: repeat(var(--tabs-count, 5), 1fr);
+    grid-auto-flow: column;
+    gap: 0;
+  }
+
+  .tabs-equal-width .tab {
+    @apply justify-self-stretch justify-center items-center;
+    min-width: 0; /* 防止内容溢出 */
+    max-width: none; /* 移除最大宽度限制 */
+    width: 100%; /* 占满grid单元格 */
+    text-align: center; /* 文字居中 */
+    white-space: nowrap; /* 防止文字换行 */
+    overflow: hidden; /* 隐藏溢出内容 */
+    text-overflow: ellipsis; /* 长文本显示省略号 */
+  }
+
+  /* 高级等宽方案 - 使用minmax确保完美等宽 */
+  .tabs-perfect-equal {
+    @apply grid w-full relative;
+    /* minmax(0, 1fr) 确保即使内容差异很大也保持等宽 */
+    grid-template-columns: repeat(var(--tabs-count, 5), minmax(0, 1fr));
+    grid-auto-flow: column;
+    gap: 0;
+  }
+
+  .tabs-perfect-equal .tab {
+    @apply justify-self-stretch justify-center items-center;
+    min-width: 0;
+    width: 100%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 等宽Tab解决方案 - Flexbox方案（兼容性更好）*/
+  .tabs-flex-equal {
+    @apply flex w-full relative;
+  }
+
+  .tabs-flex-equal .tab {
+    @apply flex-1 justify-center items-center;
+    flex-basis: 0; /* 强制等宽，忽略内容差异 */
+    min-width: 0; /* 防止内容溢出 */
+    width: calc(100% / var(--tabs-count, 5));
+  }
+
+  /* 固定最小宽度方案 - 适用于内容差异较大的情况 */
+  .tabs-fixed-min {
+    @apply flex w-full relative justify-between;
+  }
+
+  .tabs-fixed-min .tab {
+    @apply flex-1 justify-center items-center;
+    min-width: 120px; /* 最小宽度保证 */
+    max-width: 200px; /* 最大宽度限制 */
+  }
   
   .tab {
     /* 统一tab的基本样式 */
@@ -569,8 +801,47 @@
     transform: translateX(var(--indicator-x, 0)) scaleX(var(--indicator-scale, 0.2));
   }
   
-  /* 响应式tab布局优化 */
+  /* 响应式等宽tab布局优化 */
   @media (max-width: 768px) {
+    /* 移动端：保持Grid等宽或改为垂直堆叠 */
+    .tabs-equal-width {
+      /* 选项1：保持水平等宽布局 */
+      grid-template-columns: repeat(var(--tabs-count, 5), 1fr);
+      /* 选项2：如果需要垂直堆叠，取消注释下面的代码 */
+      /* display: flex;
+      flex-direction: column;
+      grid-template-columns: none; */
+    }
+
+    .tabs-equal-width .tab {
+      /* 保持等宽 - 压缩内容显示 */
+      @apply text-sm px-2 py-2;
+      min-width: 0;
+      font-size: 0.875rem; /* 14px */
+    }
+
+    /* 高级等宽方案的移动端适配 */
+    .tabs-perfect-equal {
+      grid-template-columns: repeat(var(--tabs-count, 5), minmax(0, 1fr));
+    }
+
+    .tabs-perfect-equal .tab {
+      @apply text-sm px-2 py-2;
+      min-width: 0;
+    }
+
+    /* 移动端：Flexbox方案改为垂直堆叠 */
+    .tabs-flex-equal {
+      @apply flex-col;
+    }
+
+    .tabs-flex-equal .tab {
+      @apply w-full mb-2;
+      min-width: 100%;
+      flex-basis: auto;
+    }
+
+    /* 原有样式保持 */
     .tabs-lift {
       @apply flex-col p-2 gap-1;
     }
@@ -588,6 +859,69 @@
   @media (max-width: 640px) {
     .tabs-lift .tab {
       @apply px-3 py-2 text-xs;
+    }
+
+    /* 超小屏幕：进一步紧凑化 */
+    .tabs-equal-width .tab,
+    .tabs-flex-equal .tab {
+      @apply px-3 py-2 text-sm;
+    }
+  }
+
+  /* 响应式Grid参数配置 */
+  @media (min-width: 1536px) {
+    .statistics-tabs-equal {
+      --tab-min-width: 160px; /* 超大屏幕：更宽的tab */
+      --tab-max-width: 240px;
+    }
+    
+    .tabs-equal-width,
+    .tabs-flex-equal {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+  }
+
+  @media (min-width: 1280px) and (max-width: 1535px) {
+    .statistics-tabs-equal {
+      --tab-min-width: 150px; /* 大屏幕：标准宽度 */
+      --tab-max-width: 220px;
+    }
+  }
+
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .statistics-tabs-equal {
+      --tab-min-width: 130px; /* 中等屏幕：适中宽度 */
+      --tab-max-width: 180px;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .statistics-tabs-equal {
+      --tab-min-width: 120px; /* 平板：紧凑宽度 */
+      --tab-max-width: 160px;
+      --tab-gap: 2px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .statistics-tabs-equal {
+      --tab-min-width: 100px; /* 移动端：最小可用宽度 */
+      --tab-max-width: 140px;
+      --tab-gap: 2px;
+      
+      /* 移动端考虑垂直布局 */
+      grid-template-columns: repeat(var(--tabs-count, 5), 1fr);
+    }
+
+    .statistics-tabs-equal .tab {
+      @apply px-2 py-2 text-xs;
+      gap: 0.25rem;
+    }
+
+    .statistics-tabs-equal .tab svg {
+      width: 0.875rem;
+      height: 0.875rem;
     }
   }
   
@@ -612,20 +946,86 @@
     }
   }
 
-  /* 统计Tab专用增强效果 */
+  /* 统计Tab专用增强效果 - 完全等宽版本 */
   .statistics-tabs {
     @apply mb-8;
   }
 
-  .statistics-tabs .tab {
+  .statistics-tabs.tabs-equal-width .tab,
+  .statistics-tabs.tabs-perfect-equal .tab {
     @apply border border-transparent hover:border-base-300;
-    @apply backdrop-blur-sm;
+    @apply backdrop-blur-sm transition-all duration-300;
+    /* 确保等宽显示 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 
-  .statistics-tabs .tab-active {
+  .statistics-tabs.tabs-equal-width .tab-active,
+  .statistics-tabs.tabs-perfect-equal .tab-active {
     @apply border-primary/20 bg-primary/5;
     box-shadow: 
       0 2px 8px rgba(0,0,0,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+
+  /* 统计专用：等宽且合理宽度的tab样式类 */
+  .statistics-tabs-equal {
+    @apply grid w-full relative mb-8 bg-base-200/30 rounded-xl p-1;
+    /* 配置可调节的Grid参数 */
+    --tab-min-width: 140px; /* 最小宽度 */
+    --tab-max-width: 200px; /* 最大宽度 */
+    --tab-gap: 4px; /* tab间距 */
+    
+    grid-template-columns: repeat(var(--tabs-count, 5), minmax(var(--tab-min-width), 1fr));
+    gap: var(--tab-gap);
+    backdrop-filter: blur(10px);
+  }
+
+  .statistics-tabs-equal .tab {
+    @apply rounded-lg mx-0 px-4 py-3 text-sm font-medium;
+    @apply transition-all duration-300 ease-out;
+    @apply border border-transparent hover:border-base-300;
+    @apply backdrop-blur-sm;
+    
+    /* 等宽且合理宽度的关键样式 */
+    min-width: var(--tab-min-width);
+    max-width: var(--tab-max-width);
+    width: 100%;
+    
+    /* 内容居中和截断处理 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    gap: 0.375rem; /* 图标和文字间距 */
+    
+    /* 盒模型 */
+    box-sizing: border-box;
+  }
+
+  /* 确保tab内的SVG图标不影响布局 */
+  .statistics-tabs-equal .tab svg {
+    @apply shrink-0;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  /* 确保tab内的文字不换行 */
+  .statistics-tabs-equal .tab span {
+    @apply truncate max-w-none;
+  }
+
+  .statistics-tabs-equal .tab-active {
+    @apply bg-base-100 shadow-lg;
+    @apply border-primary/20 bg-primary/5;
+    box-shadow: 
+      0 4px 12px rgba(0,0,0,0.1),
+      0 2px 4px rgba(0,0,0,0.06),
       inset 0 1px 0 rgba(255,255,255,0.1);
   }
 }
@@ -654,4 +1054,368 @@
   .test-serif {
     font-family: "Songti SC", "SimSun", "Times New Roman", serif;
   }
+}
+
+/* ==========================================
+ * 新用户指导系统样式
+ * ========================================== */
+
+/* 高亮目标元素的样式 */
+.onboarding-highlight {
+  position: relative !important;
+  z-index: 45 !important;
+  box-shadow: 0 0 0 4px hsl(var(--p) / 0.3),
+              0 0 20px hsl(var(--p) / 0.2),
+              0 0 40px hsl(var(--p) / 0.1) !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.3s ease-out !important;
+}
+
+.onboarding-highlight::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid hsl(var(--p));
+  border-radius: 0.625rem;
+  pointer-events: none;
+  animation: onboarding-pulse 2s ease-in-out infinite;
+}
+
+@keyframes onboarding-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.02);
+  }
+}
+
+/* 工具提示动画 */
+.onboarding-tooltip {
+  animation: onboarding-tooltip-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.onboarding-tooltip-hidden {
+  opacity: 0;
+  transform: scale(0.95) translateY(10px);
+}
+
+.onboarding-tooltip-visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+@keyframes onboarding-tooltip-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 遮罩层动画 */
+.onboarding-overlay {
+  animation: onboarding-overlay-enter 0.3s ease-out forwards;
+}
+
+@keyframes onboarding-overlay-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 箭头样式 */
+.onboarding-arrow {
+  width: 12px;
+  height: 12px;
+  background: hsl(var(--b1));
+  border: 1px solid hsl(var(--b3) / 0.5);
+  transform: rotate(45deg);
+}
+
+.onboarding-arrow-top {
+  top: -6px;
+  left: 50%;
+  margin-left: -6px;
+  border-bottom: none;
+  border-right: none;
+}
+
+.onboarding-arrow-bottom {
+  bottom: -6px;
+  left: 50%;
+  margin-left: -6px;
+  border-top: none;
+  border-left: none;
+}
+
+.onboarding-arrow-left {
+  left: -6px;
+  top: 50%;
+  margin-top: -6px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.onboarding-arrow-right {
+  right: -6px;
+  top: 50%;
+  margin-top: -6px;
+  border-left: none;
+  border-top: none;
+}
+
+/* 指导进度条增强样式 */
+.onboarding-progress {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.onboarding-progress .progress-step {
+  transition: all 0.3s ease-out;
+}
+
+.onboarding-progress .progress-step-active {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px hsl(var(--p) / 0.2);
+}
+
+.onboarding-progress .progress-step-completed {
+  background: hsl(var(--su));
+  border-color: hsl(var(--su));
+}
+
+/* 指导启动器样式 */
+.onboarding-launcher .flow-card {
+  @apply transition-all duration-300 ease-out;
+  @apply hover:shadow-lg hover:-translate-y-1;
+}
+
+.onboarding-launcher .flow-card-active {
+  @apply ring-2 ring-primary/30 shadow-xl;
+  animation: flow-card-pulse 2s ease-in-out infinite;
+}
+
+@keyframes flow-card-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsl(var(--p) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px hsl(var(--p) / 0);
+  }
+}
+
+/* 禁用滚动以防止布局变化 */
+body.onboarding-active {
+  overflow: hidden;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .onboarding-tooltip {
+    max-width: calc(100vw - 2rem) !important;
+    margin: 0 1rem !important;
+  }
+  
+  .onboarding-highlight {
+    box-shadow: 0 0 0 2px hsl(var(--p) / 0.4),
+                0 0 10px hsl(var(--p) / 0.2) !important;
+  }
+
+  .onboarding-progress {
+    max-width: calc(100vw - 2rem) !important;
+    margin: 0 1rem !important;
+  }
+
+  /* 移动端工具提示调整 */
+  .onboarding-tooltip .btn-sm {
+    @apply text-xs px-3 py-1;
+  }
+
+  .onboarding-arrow {
+    width: 8px;
+    height: 8px;
+  }
+
+  .onboarding-arrow-top,
+  .onboarding-arrow-bottom {
+    margin-left: -4px;
+  }
+
+  .onboarding-arrow-top {
+    top: -4px;
+  }
+
+  .onboarding-arrow-bottom {
+    bottom: -4px;
+  }
+
+  .onboarding-arrow-left,
+  .onboarding-arrow-right {
+    margin-top: -4px;
+  }
+
+  .onboarding-arrow-left {
+    left: -4px;
+  }
+
+  .onboarding-arrow-right {
+    right: -4px;
+  }
+}
+
+@media (max-width: 640px) {
+  .onboarding-launcher .flow-card {
+    @apply p-3;
+  }
+
+  .onboarding-launcher .btn-sm {
+    @apply px-2 py-1 text-xs;
+  }
+
+  .onboarding-progress {
+    padding: 0.75rem;
+  }
+}
+
+/* 无障碍访问增强 */
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-highlight::before,
+  .onboarding-tooltip,
+  .onboarding-overlay,
+  .flow-card-pulse {
+    animation: none !important;
+  }
+  
+  .onboarding-highlight {
+    transition: none !important;
+  }
+
+  .onboarding-progress .progress-step {
+    transition: none !important;
+  }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  .onboarding-highlight {
+    border: 3px solid hsl(var(--p)) !important;
+    box-shadow: 0 0 0 1px hsl(var(--bc)) !important;
+  }
+
+  .onboarding-tooltip {
+    border: 2px solid hsl(var(--bc));
+  }
+
+  .onboarding-arrow {
+    border-width: 2px;
+    border-color: hsl(var(--bc));
+  }
+}
+
+/* 暗色主题优化 */
+[data-theme*="dark"] .onboarding-tooltip,
+[data-theme*="night"] .onboarding-tooltip,
+[data-theme*="coffee"] .onboarding-tooltip {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+}
+
+[data-theme*="dark"] .onboarding-highlight::before,
+[data-theme*="night"] .onboarding-highlight::before,
+[data-theme*="coffee"] .onboarding-highlight::before {
+  border-color: hsl(var(--p));
+  box-shadow: 0 0 10px hsl(var(--p) / 0.5);
+}
+
+/* 触摸设备优化 */
+@media (pointer: coarse) {
+  .onboarding-tooltip .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .onboarding-launcher .flow-card {
+    padding: 1.25rem;
+  }
+
+  .onboarding-progress .progress-step {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* 指导系统特定的动画缓解 */
+.onboarding-fade-in {
+  animation: onboarding-fade-in 0.6s ease-out forwards;
+}
+
+@keyframes onboarding-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.onboarding-slide-in-left {
+  animation: onboarding-slide-in-left 0.5s ease-out forwards;
+}
+
+@keyframes onboarding-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.onboarding-slide-in-right {
+  animation: onboarding-slide-in-right 0.5s ease-out forwards;
+}
+
+@keyframes onboarding-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 指导系统焦点管理 */
+.onboarding-tooltip:focus-within {
+  outline: 2px solid hsl(var(--p));
+  outline-offset: 4px;
+}
+
+.onboarding-launcher .flow-card:focus-within {
+  outline: 2px solid hsl(var(--p));
+  outline-offset: 2px;
+}
+
+/* 指导系统印刷增强 */
+.onboarding-tooltip h3 {
+  @apply font-semibold leading-tight;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+}
+
+.onboarding-tooltip p {
+  @apply leading-relaxed;
+  font-feature-settings: 'kern' 1;
 }

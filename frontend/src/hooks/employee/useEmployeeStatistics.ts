@@ -208,26 +208,35 @@ export const useEmployeeTrends = (months: number = 12) => {
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - months);
       
-      // 获取指定期间的员工数据
+      // 1. 获取当前所有活跃员工数量作为基准
+      const { data: currentEmployees, error: currentError } = await supabase
+        .from('view_employee_basic_info')
+        .select('employee_id')
+        .eq('employment_status', 'active');
+        
+      if (currentError) throw currentError;
+      const currentTotal = currentEmployees?.length || 0;
+      
+      // 2. 获取历史招聘和离职数据
       const { data: employees, error } = await supabase
         .from('employees')
         .select('hire_date, termination_date')
-        .or(`hire_date.gte.${startDate.toISOString()},termination_date.gte.${startDate.toISOString()}`);
+        .or(`hire_date.gte.${startDate.toISOString()},termination_date.gte.${startDate.toISOString()},termination_date.is.null`);
         
       if (error) throw error;
       
-      // 按月统计
-      const monthlyData = new Map<string, { hires: number; terminations: number; total: number }>();
+      // 按月统计招聘和离职
+      const monthlyData = new Map<string, { hires: number; terminations: number }>();
       
       // 初始化月份数据
       for (let i = 0; i < months; i++) {
         const date = new Date();
         date.setMonth(date.getMonth() - i);
         const key = date.toISOString().substring(0, 7); // YYYY-MM
-        monthlyData.set(key, { hires: 0, terminations: 0, total: 0 });
+        monthlyData.set(key, { hires: 0, terminations: 0 });
       }
       
-      // 统计数据
+      // 统计招聘和离职数据
       employees?.forEach(employee => {
         if (employee.hire_date) {
           const month = employee.hire_date.substring(0, 7);
@@ -250,37 +259,50 @@ export const useEmployeeTrends = (months: number = 12) => {
         turnoverRate: []
       };
       
-      let cumulativeTotal = 0;
-      Array.from(monthlyData.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .forEach(([month, data]) => {
-          cumulativeTotal = cumulativeTotal + data.hires - data.terminations;
-          
-          trends.headcount.push({
+      // 从当前员工数量开始，倒推历史数据
+      const sortedMonths = Array.from(monthlyData.entries())
+        .sort((a, b) => b[0].localeCompare(a[0])); // 降序排列，从最新开始
+      
+      let runningTotal = currentTotal;
+      
+      // 倒序处理，计算每个月的员工数量
+      sortedMonths.forEach(([month, data], index) => {
+        if (index === 0) {
+          // 当前月份，使用实际当前员工数
+          trends.headcount.unshift({
             date: month,
-            value: cumulativeTotal
+            value: runningTotal
           });
-          
-          trends.hires.push({
+        } else {
+          // 历史月份，通过当前数据倒推
+          runningTotal = runningTotal - data.hires + data.terminations;
+          trends.headcount.unshift({
             date: month,
-            value: data.hires
+            value: Math.max(0, runningTotal) // 确保不为负数
           });
-          
-          trends.terminations.push({
-            date: month,
-            value: data.terminations
-          });
-          
-          // 计算流动率
-          const turnoverRate = cumulativeTotal > 0 
-            ? (data.terminations / cumulativeTotal) * 100 
-            : 0;
-            
-          trends.turnoverRate.push({
-            date: month,
-            value: Number(turnoverRate.toFixed(2))
-          });
+        }
+        
+        trends.hires.unshift({
+          date: month,
+          value: data.hires
         });
+        
+        trends.terminations.unshift({
+          date: month,
+          value: data.terminations
+        });
+        
+        // 计算流动率 (离职人数 / 当月员工总数)
+        const monthlyTotal = trends.headcount[0].value; // 获取当月员工数
+        const turnoverRate = monthlyTotal > 0 
+          ? (data.terminations / monthlyTotal) * 100 
+          : 0;
+          
+        trends.turnoverRate.unshift({
+          date: month,
+          value: Number(turnoverRate.toFixed(2))
+        });
+      });
       
       return trends;
     },
