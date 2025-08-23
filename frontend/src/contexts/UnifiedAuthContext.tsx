@@ -24,6 +24,10 @@ interface AuthContextType extends AuthState {
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
   
+  // 重新验证相关
+  validateSession: () => Promise<boolean>;
+  requireReAuthentication: (reason?: string) => void;
+  
   // 权限检查
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
@@ -207,6 +211,41 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
     await auth.updatePassword(newPassword);
   };
 
+  // 重新验证相关
+  const validateSession = async (): Promise<boolean> => {
+    try {
+      return await auth.validateSession();
+    } catch (error) {
+      console.error('[UnifiedAuth] Session validation error:', error);
+      return false;
+    }
+  };
+
+  const requireReAuthentication = (reason?: string): void => {
+    console.log('[UnifiedAuth] Re-authentication required:', reason);
+    
+    // 触发全局重新验证事件
+    window.dispatchEvent(new CustomEvent('auth-reauth-required', {
+      detail: { reason }
+    }));
+    
+    // 清理当前状态，但不完全登出
+    setBaseUser(null);
+    
+    // 导航到登录页面并传递重新验证信息
+    const currentPath = window.location.pathname;
+    const searchParams = new URLSearchParams();
+    searchParams.set('reauth', 'true');
+    if (reason) {
+      searchParams.set('reason', reason);
+    }
+    if (currentPath !== '/auth/login') {
+      searchParams.set('return_to', currentPath);
+    }
+    
+    window.location.href = `/auth/login?${searchParams.toString()}`;
+  };
+
   // 权限检查
   const hasPermission = (permission: string): boolean => {
     return auth.hasPermission(user, permission);
@@ -234,6 +273,10 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
     signOut,
     resetPassword,
     updatePassword,
+    
+    // 重新验证
+    validateSession,
+    requireReAuthentication,
     
     // 权限
     hasPermission,
