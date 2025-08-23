@@ -207,13 +207,6 @@ export default function LoginPage() {
     return (
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <div className="text-center mb-6">
-            <img
-              src="/logos/gaoxiaocai.svg"
-              alt="高新财 Logo"
-              className="w-16 h-16 mx-auto mb-4"
-            />
-          </div>
           
           {/* 重新验证状态提示 */}
           {reAuthMode && (
@@ -266,13 +259,6 @@ export default function LoginPage() {
   return (
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">
-        <div className="text-center mb-6">
-          <img
-            src="/logos/gaoxiaocai.svg"
-            alt="高新财 Logo"
-            className="w-16 h-16 mx-auto mb-4"
-          />
-        </div>
         
         {/* 重新验证状态提示 */}
         {(reAuthMode || sessionExpired) && (

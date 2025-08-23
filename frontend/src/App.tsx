@@ -19,9 +19,7 @@ function App() {
       <ToastProvider>
         <UnifiedAuthProvider>
           <OnboardingProvider>
-            <SessionMonitor>
-              <RouterProvider router={router} />
-            </SessionMonitor>
+            <RouterProvider router={router} />
           </OnboardingProvider>
         </UnifiedAuthProvider>
       </ToastProvider>

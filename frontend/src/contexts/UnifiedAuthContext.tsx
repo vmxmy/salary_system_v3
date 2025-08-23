@@ -246,7 +246,7 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
     window.location.href = `/auth/login?${searchParams.toString()}`;
   };
 
-  // 权限检查
+  // 权限检查 - 集成增强权限系统
   const hasPermission = (permission: string): boolean => {
     return auth.hasPermission(user, permission);
   };
@@ -259,10 +259,21 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
     return auth.hasAllPermissions(user, permissions);
   };
 
+  // 扩展用户信息以包含部门和管理权限
+  const enhancedUser = useMemo(() => {
+    if (!user) return null;
+    
+    return {
+      ...user,
+      departmentId: user.departmentId || undefined,
+      managedDepartments: user.managedDepartments || []
+    };
+  }, [user]);
+
   const value: AuthContextType = {
     // 状态
     session,
-    user,
+    user: enhancedUser,
     loading,
     isAuthenticated,
     
