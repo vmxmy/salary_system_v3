@@ -2,6 +2,7 @@
 export { default as SimpleSearchBox } from './AdvancedSearchBox';
 export { ConfirmModal, BatchConfirmModal, RollbackConfirmModal } from './ConfirmModal';
 export { DataTable } from './DataTable';
+export { GaoXiaoCaiLogo } from './GaoXiaoCaiLogo';
 export { LanguageSwitcher } from './LanguageSwitcher';
 export { LoadingScreen } from './LoadingScreen';
 export { ModernButton } from './ModernButton';

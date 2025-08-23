@@ -96,59 +96,22 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card bg-base-100 shadow">
-          <div className="card-body">
-            <h2 className="card-title">{t('dashboard:recentActivities.title')}</h2>
-            <div className="space-y-3">
-              {activities.length > 0 ? (
-                activities.slice(0, 5).map((activity, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="badge badge-ghost badge-sm mt-1">
-                      {relativeTime(activity.activityDate)}
-                    </div>
-                    <p className="text-sm flex-1">{activityMessage(activity)}</p>
+      <div className="card bg-base-100 shadow">
+        <div className="card-body">
+          <h2 className="card-title">{t('dashboard:recentActivities.title')}</h2>
+          <div className="space-y-3">
+            {activities.length > 0 ? (
+              activities.slice(0, 5).map((activity, index) => (
+                <div key={index} className="flex items-start gap-3">
+                  <div className="badge badge-ghost badge-sm mt-1">
+                    {relativeTime(activity.activityDate)}
                   </div>
-                ))
-              ) : (
-                <p className="text-base-content/60">{t('dashboard:activities.noRecentActivities')}</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="card bg-base-100 shadow" data-tour="quick-actions">
-          <div className="card-body">
-            <h2 className="card-title">{t('dashboard:quickActions.title')}</h2>
-            <div className="grid grid-cols-2 gap-2">
-              <button 
-                className="btn btn-sm"
-                onClick={() => navigate('/employees/new')}
-                data-tour="add-employee-btn"
-              >
-                {t('dashboard:quickActions.addEmployee')}
-              </button>
-              <button 
-                className="btn btn-sm"
-                onClick={() => navigate('/payroll/run')}
-                data-tour="run-payroll-btn"
-              >
-                {t('dashboard:quickActions.runPayroll')}
-              </button>
-              <button 
-                className="btn btn-sm"
-                onClick={() => navigate('/reports')}
-              >
-                {t('dashboard:quickActions.viewReports')}
-              </button>
-              <button 
-                className="btn btn-sm"
-                onClick={() => navigate('/settings')}
-                data-tour="settings-btn"
-              >
-                {t('dashboard:quickActions.settings')}
-              </button>
-            </div>
+                  <p className="text-sm flex-1">{activityMessage(activity)}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-base-content/60">{t('dashboard:activities.noRecentActivities')}</p>
+            )}
           </div>
         </div>
       </div>

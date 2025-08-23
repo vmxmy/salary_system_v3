@@ -276,9 +276,16 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       
       <div className="min-h-full sidebar-compact bg-base-200" data-tour="navigation-menu">
         <div className="p-2">
-          <h2 className="text-sm font-semibold text-base-content mb-2">
-            菜单
-          </h2>
+          <div className="flex justify-center mb-3 px-1">
+            <img 
+              src="/logos/gaoxiaocai.svg" 
+              alt="高校财 Logo" 
+              className="h-20 w-auto object-contain rounded-2xl"
+              style={{
+                clipPath: 'inset(0 round 16px)'
+              }}
+            />
+          </div>
           
           <ul className="menu menu-compact">
             {menuItems.map(item => renderMenuItem(item))}
