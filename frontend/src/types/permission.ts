@@ -246,37 +246,56 @@ export interface UsePermissionRequestReturn {
 
 // 权限错误类型
 export class PermissionError extends Error {
+  public permission: Permission;
+  public resourceId?: string;
+  public context?: PermissionContext;
+
   constructor(
     message: string,
-    public permission: Permission,
-    public resourceId?: string,
-    public context?: PermissionContext
+    permission: Permission,
+    resourceId?: string,
+    context?: PermissionContext
   ) {
     super(message);
     this.name = 'PermissionError';
+    this.permission = permission;
+    this.resourceId = resourceId;
+    this.context = context;
   }
 }
 
 export class ResourceAccessError extends Error {
+  public resourceType: ResourceId['type'];
+  public resourceId: string;
+  public requiredPermission: Permission;
+
   constructor(
     message: string,
-    public resourceType: ResourceId['type'],
-    public resourceId: string,
-    public requiredPermission: Permission
+    resourceType: ResourceId['type'],
+    resourceId: string,
+    requiredPermission: Permission
   ) {
     super(message);
     this.name = 'ResourceAccessError';
+    this.resourceType = resourceType;
+    this.resourceId = resourceId;
+    this.requiredPermission = requiredPermission;
   }
 }
 
 export class RoleEscalationError extends Error {
+  public currentRole: Role;
+  public requestedRole: Role;
+
   constructor(
     message: string,
-    public currentRole: Role,
-    public requestedRole: Role
+    currentRole: Role,
+    requestedRole: Role
   ) {
     super(message);
     this.name = 'RoleEscalationError';
+    this.currentRole = currentRole;
+    this.requestedRole = requestedRole;
   }
 }
 

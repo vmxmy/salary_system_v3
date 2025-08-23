@@ -40,6 +40,11 @@ const InsuranceCalculationTest = lazy(() => import('@/pages/test/InsuranceCalcul
 const InsuranceConfigTest = lazy(() => import('@/pages/test/InsuranceConfigTest'));
 const PayrollCalculationTest = lazy(() => import('@/pages/test/PayrollCalculationTest'));
 const InsuranceConfigPage = lazy(() => import('@/pages/payroll/InsuranceConfigPage'));
+
+// Admin pages
+const UserManagementPage = lazy(() => import('@/pages/admin/UserManagementPage'));
+const RoleManagementPage = lazy(() => import('@/pages/admin/RoleManagementPage'));
+
 // Test pages moved to archive
 // const HookTestPage = lazy(() => import('@/pages/test/AuthenticatedHookTestPage'));
 // const EmployeeCreateTestPage = lazy(() => import('@/pages/EmployeeCreateTestPage'));
@@ -254,6 +259,27 @@ export const router = createBrowserRouter([
             <StatisticsPage />
           </Suspense>
         ),
+      },
+      {
+        path: 'admin',
+        children: [
+          {
+            path: 'users',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <UserManagementPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'roles',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <RoleManagementPage />
+              </Suspense>
+            ),
+          },
+        ],
       },
       {
         path: 'theme-showcase',

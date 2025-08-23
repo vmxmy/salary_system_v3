@@ -63,6 +63,18 @@
     "import": "导入",
     "print": "打印",
     "refresh": "刷新",
+  "refreshed": "已刷新",
+  "clearFilters": "清除筛选",
+  "filtersActive": "筛选器已激活",
+  "active": "已激活",
+  "processing": "处理中...",
+  "table": "表格",
+  "grid": "网格",
+  "accessDenied": "访问被拒绝",
+  "selectAll": "全选",
+  "selectRow": "选择行",
+  "retry": "重试",
+  "warning": "警告",
     "back": "返回",
     "next": "下一步",
     "previous": "上一步",
@@ -277,5 +289,15 @@
     "pdfDescription": "适合打印和归档",
     "columnsCount": "共 {{count}} 列",
     "selectedRowsCount": "已选 {{count}} / {{total}} 行"
+  },
+  "role": {
+    "super_admin": "超级管理员",
+    "admin": "管理员",
+    "hr_manager": "人事经理",
+    "manager": "经理",
+    "employee": "员工",
+    "finance": "财务",
+    "auditor": "审计员",
+    "viewer": "查看员"
   }
 }

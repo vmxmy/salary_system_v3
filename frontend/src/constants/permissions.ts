@@ -40,6 +40,15 @@ export const PERMISSIONS = {
   SYSTEM_LOGS: 'system.logs',
   USER_MANAGEMENT: 'user.management',
   
+  // 角色管理权限
+  ROLE_VIEW: 'view_roles',
+  ROLE_MANAGE: 'manage_roles',
+  ROLE_ASSIGN: 'assign_roles',
+  ROLE_PERMISSION_VIEW: 'view_role_permissions',
+  ROLE_PERMISSION_MANAGE: 'manage_role_permissions',
+  ROLE_HISTORY_VIEW: 'view_role_history',
+  ROLE_REQUEST_APPROVE: 'approve_role_requests',
+  
   // 薪资组件权限
   COMPONENT_VIEW: 'component.view',
   COMPONENT_CREATE: 'component.create',
@@ -91,7 +100,16 @@ export const ROLE_PERMISSIONS = {
     
     // 保险配置
     PERMISSIONS.INSURANCE_VIEW,
-    PERMISSIONS.INSURANCE_CONFIG
+    PERMISSIONS.INSURANCE_CONFIG,
+    
+    // 角色管理（部分权限）
+    PERMISSIONS.ROLE_VIEW,
+    PERMISSIONS.ROLE_ASSIGN,
+    PERMISSIONS.ROLE_PERMISSION_VIEW,
+    PERMISSIONS.ROLE_HISTORY_VIEW,
+    
+    // 系统管理
+    PERMISSIONS.USER_MANAGEMENT
   ],
   hr_manager: [
     // 员工查看和基本操作

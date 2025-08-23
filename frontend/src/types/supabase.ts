@@ -2015,6 +2015,214 @@ export type Database = {
           },
         ]
       }
+      permission_access_logs: {
+        Row: {
+          access_result: boolean | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          ip_address: unknown | null
+          permission_code: string | null
+          resource_accessed: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_result?: boolean | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          permission_code?: string | null
+          resource_accessed?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_result?: boolean | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          permission_code?: string | null
+          resource_accessed?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_access_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission_requests: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          permission_id: string
+          reason: string
+          request_type: string
+          requester_id: string
+          review_comment: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          permission_id: string
+          reason: string
+          request_type: string
+          requester_id: string
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          permission_id?: string
+          reason?: string
+          request_type?: string
+          requester_id?: string
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_requests_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permission_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permission_requests_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission_resources: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          parent_id: string | null
+          resource_code: string
+          resource_name: string
+          resource_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          parent_id?: string | null
+          resource_code: string
+          resource_name: string
+          resource_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          parent_id?: string | null
+          resource_code?: string
+          resource_name?: string
+          resource_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_resources_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "permission_resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permissions: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          permission_code: string
+          permission_name: string
+          resource_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          permission_code: string
+          permission_name: string
+          resource_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          permission_code?: string
+          permission_name?: string
+          resource_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permissions_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "permission_resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       personal_income_tax_calculation_logs: {
         Row: {
           calculation_details: Json | null
@@ -2238,6 +2446,225 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      role_change_history: {
+        Row: {
+          change_type: string
+          changed_at: string
+          changed_by: string | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          new_values: Json | null
+          old_values: Json | null
+          reason: string | null
+          role_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          reason?: string | null
+          role_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          reason?: string | null
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_change_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_change_history_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          expires_at: string | null
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          is_active: boolean | null
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          expires_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          expires_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_requests: {
+        Row: {
+          created_at: string | null
+          current_role_name: string | null
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          processed_at: string | null
+          processed_by: string | null
+          reason: string
+          requested_at: string
+          requested_role_name: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_role_name?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          processed_by?: string | null
+          reason: string
+          requested_at?: string
+          requested_role_name: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_role_name?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string
+          requested_at?: string
+          requested_role_name?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_requests_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_system_role: boolean | null
+          level: number | null
+          metadata: Json | null
+          parent_role_id: string | null
+          role_code: string
+          role_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system_role?: boolean | null
+          level?: number | null
+          metadata?: Json | null
+          parent_role_id?: string | null
+          role_code: string
+          role_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system_role?: boolean | null
+          level?: number | null
+          metadata?: Json | null
+          parent_role_id?: string | null
+          role_code?: string
+          role_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roles_parent_role_id_fkey"
+            columns: ["parent_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       salary_components: {
         Row: {
@@ -2760,6 +3187,64 @@ export type Database = {
           was_enabled?: boolean | null
         }
         Relationships: []
+      }
+      user_permission_overrides: {
+        Row: {
+          expires_at: string | null
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          is_active: boolean | null
+          override_type: string
+          permission_id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          override_type: string
+          permission_id: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          expires_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          override_type?: string
+          permission_id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permission_overrides_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_profiles: {
         Row: {
@@ -4079,9 +4564,17 @@ export type Database = {
         Args: { p_period_id: string }
         Returns: boolean
       }
+      check_permission_with_log: {
+        Args: { permission_code: string; resource_accessed?: string }
+        Returns: boolean
+      }
       check_rls_coverage: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      check_user_permission: {
+        Args: { permission_code_param: string; user_uuid: string }
+        Returns: boolean
       }
       cleanup_change_log: {
         Args: { p_days_to_keep?: number }
@@ -4696,6 +5189,15 @@ export type Database = {
         Args: { p_user_id?: string }
         Returns: string[]
       }
+      get_user_effective_permissions: {
+        Args: { user_uuid: string }
+        Returns: {
+          action_type: string
+          permission_code: string
+          resource_code: string
+          source: string
+        }[]
+      }
       get_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -4770,6 +5272,15 @@ export type Database = {
           p_parameters?: Json
           p_result?: Json
           p_start_time: string
+        }
+        Returns: undefined
+      }
+      log_permission_access: {
+        Args: {
+          p_access_result: boolean
+          p_error_message?: string
+          p_permission_code: string
+          p_resource_accessed: string
         }
         Returns: undefined
       }
@@ -4857,6 +5368,14 @@ export type Database = {
           period_name: string
         }[]
       }
+      user_can_access_data: {
+        Args: { data_scope?: string }
+        Returns: boolean
+      }
+      user_has_permission: {
+        Args: { permission_code: string }
+        Returns: boolean
+      }
       validate_infrastructure: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -4878,7 +5397,13 @@ export type Database = {
         | "mobile_phone"
         | "home_phone"
         | "address"
-      contact_type_enum: "personal" | "work" | "emergency"
+      contact_type_enum:
+        | "personal"
+        | "work"
+        | "emergency"
+        | "mobile_phone"
+        | "work_email"
+        | "personal_email"
       employee_gender_enum:
         | "male"
         | "female"
@@ -5172,7 +5697,14 @@ export const Constants = {
         "home_phone",
         "address",
       ],
-      contact_type_enum: ["personal", "work", "emergency"],
+      contact_type_enum: [
+        "personal",
+        "work",
+        "emergency",
+        "mobile_phone",
+        "work_email",
+        "personal_email",
+      ],
       employee_gender_enum: [
         "male",
         "female",
