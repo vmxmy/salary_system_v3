@@ -1,29 +1,59 @@
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/hooks/useTranslation';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ThemeSelector } from '@/components/common/ThemeSelector';
+import { LogoutConfirmModal } from '@/components/common/LogoutConfirmModal';
 import { Link } from 'react-router-dom';
 
 export function Header() {
   const { user, signOut } = useAuth();
   const { t } = useTranslation();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleSignOut = async () => {
+  const handleSignOutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleLogoutConfirm = async () => {
+    setIsLoggingOut(true);
+    
     try {
-      // Add confirmation dialog
-      const confirmed = window.confirm(String(t('auth:logout.confirm')));
-      if (!confirmed) return;
-      
       console.log('[Header] User confirmed logout, proceeding...');
-      console.log('[Header] Current user:', user);
       
+      // 优化的登出处理：不期待抛出错误，因为auth.signOut已经优化为不抛出错误
       await signOut();
       
-      console.log('[Header] Logout completed');
+      console.log('[Header] Logout process completed');
+      
+      // 关闭模态框
+      setShowLogoutModal(false);
+      
+      // signOut 已经优化，不会抛出错误，UI状态会通过AuthContext自动更新
+      
     } catch (error) {
-      console.error('[Header] Logout error:', error);
-      alert('退出登录失败，请重试');
+      // 这种情况现在应该很少发生，因为auth.signOut已经优化
+      console.error('[Header] Unexpected logout error:', error);
+      
+      // 关闭模态框
+      setShowLogoutModal(false);
+      
+      // 简化的错误处理：如果真的出现了意外错误，提供用户友好的提示
+      alert('退出登录时发生意外错误。如果问题持续存在，请刷新页面后重试。');
+      
+      // 提供重试选项
+      const retry = window.confirm('是否要刷新页面以完成退出？');
+      if (retry) {
+        window.location.reload();
+      }
+    } finally {
+      setIsLoggingOut(false);
     }
+  };
+
+  const handleLogoutCancel = () => {
+    setShowLogoutModal(false);
   };
 
   return (
@@ -64,7 +94,7 @@ export function Header() {
               </li>
               <li><hr className="my-0.5" /></li>
               <li>
-                <button onClick={handleSignOut} className="text-error text-sm px-2 py-1">
+                <button onClick={handleSignOutClick} className="text-error text-sm px-2 py-1">
                   {String(t('common:logout'))}
                 </button>
               </li>
@@ -72,6 +102,14 @@ export function Header() {
           </div>
         )}
       </div>
+      
+      {/* 退出确认模态框 */}
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onConfirm={handleLogoutConfirm}
+        onCancel={handleLogoutCancel}
+        isLoading={isLoggingOut}
+      />
     </header>
   );
 }

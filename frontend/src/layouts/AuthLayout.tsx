@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { useTranslation } from '@/hooks/useTranslation';
+import logoSvg from '@/assets/logos/gaoxiaocai.svg';
 
 export function AuthLayout() {
   const { isAuthenticated, loading } = useAuth();
@@ -29,6 +30,14 @@ export function AuthLayout() {
         {/* Right side - Branding */}
         <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary to-secondary items-center justify-center p-8">
           <div className="text-white text-center">
+            <div className="mb-8">
+              <img
+                src={logoSvg}
+                alt="高小财 Logo"
+                className="max-w-32 h-auto mx-auto mb-4"
+                style={{ filter: 'invert(1) brightness(1.2) contrast(1.1)' }}
+              />
+            </div>
             <h1 className="text-4xl font-serif mb-4">
               {t('app.name')}
             </h1>

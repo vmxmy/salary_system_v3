@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
+import logoSvg from '@/assets/logos/gaoxiaocai.svg';
 
 interface MenuItem {
   key: string;
@@ -278,8 +279,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         <div className="p-2">
           <div className="flex justify-center mb-3 px-1">
             <img 
-              src="/logos/gaoxiaocai.svg" 
-              alt="高校财 Logo" 
+              src={logoSvg} 
+              alt="高小财 Logo" 
               className="h-20 w-auto object-contain rounded-2xl"
               style={{
                 clipPath: 'inset(0 round 16px)'

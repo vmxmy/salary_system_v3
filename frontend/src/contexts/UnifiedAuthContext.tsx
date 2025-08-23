@@ -149,9 +149,21 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
+    // 监听手动登出事件（用于核心清理情况）
+    const handleManualSignOut = () => {
+      console.log('[UnifiedAuth] Manual sign-out event received');
+      if (mounted) {
+        setSession(null);
+        setBaseUser(null);
+      }
+    };
+
+    window.addEventListener('auth-sign-out', handleManualSignOut);
+
     return () => {
       mounted = false;
       subscription?.unsubscribe();
+      window.removeEventListener('auth-sign-out', handleManualSignOut);
     };
   }, []);
 

@@ -105,12 +105,15 @@ export default function LoginPage() {
     return (
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className={cn("card-title mb-2", "text-base")}>
-            {t('login.magicLinkSent') || 'Check your email'}
-          </h2>
-          <p className={cn("text-base", "text-base-content/60 mb-6")}>
-            {t('login.magicLinkSentDescription') || `We've sent a magic link to ${formData.email}. Click the link in the email to sign in.`}
-          </p>
+          {/* Header centered */}
+          <div className="text-center mb-6">
+            <h2 className={cn("card-title justify-center mb-2", "text-base")}>
+              {t('login.magicLinkSent') || 'Check your email'}
+            </h2>
+            <p className={cn("text-base", "text-base-content/60")}>
+              {t('login.magicLinkSentDescription') || `We've sent a magic link to ${formData.email}. Click the link in the email to sign in.`}
+            </p>
+          </div>
           <button
             onClick={() => {
               setMagicLinkSent(false);
@@ -128,12 +131,15 @@ export default function LoginPage() {
   return (
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">
-        <h2 className={cn("card-title mb-2", "text-base")}>
-          {t('login.title')}
-        </h2>
-        <p className={cn("text-base", "text-base-content/60 mb-6")}>
-          {t('login.subtitle')}
-        </p>
+        {/* Header centered */}
+        <div className="text-center mb-6">
+          <h2 className={cn("card-title justify-center mb-2", "text-base")}>
+            {t('login.title')}
+          </h2>
+          <p className={cn("text-base", "text-base-content/60")}>
+            {t('login.subtitle')}
+          </p>
+        </div>
 
         {/* Login Method Tabs */}
         <div className="tabs tabs-boxed mb-4">

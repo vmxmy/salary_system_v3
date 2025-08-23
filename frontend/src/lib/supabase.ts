@@ -119,8 +119,39 @@ export const signUp = async (email: string, password: string) => {
 };
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  try {
+    // 检查当前会话状态
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.log('[Supabase] No active session, clearing local state...');
+      await supabase.auth.signOut({ scope: 'local' });
+      return;
+    }
+    
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      // 处理会话已失效的情况
+      if (error.message?.includes('Auth session missing') || 
+          error.message?.includes('Invalid refresh token') ||
+          error.status === 403) {
+        console.log('[Supabase] Session invalid, clearing local state...');
+        await supabase.auth.signOut({ scope: 'local' });
+        return;
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('[Supabase] Sign-out error:', error);
+    // 兜底：总是尝试清理本地状态
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (localError) {
+      console.error('[Supabase] Failed to clear local state:', localError);
+    }
+    throw error;
+  }
 };
 
 export const getCurrentUser = async () => {
