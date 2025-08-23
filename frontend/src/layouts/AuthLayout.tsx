@@ -35,7 +35,6 @@ export function AuthLayout() {
                 src={logoSvg}
                 alt="高小财 Logo"
                 className="max-w-32 h-auto mx-auto mb-4"
-                style={{ filter: 'invert(1) brightness(1.2) contrast(1.1)' }}
               />
             </div>
             <h1 className="text-4xl font-serif mb-4">
