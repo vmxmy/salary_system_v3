@@ -63,13 +63,7 @@ export function SessionMonitor({ children }: SessionMonitorProps) {
 
         if (timeUntilExpiry < SESSION_WARNING_TIME && timeUntilExpiry > 0) {
           console.warn('[SessionMonitor] Session will expire soon');
-          
-          // 显示会话即将过期的警告
-          const shouldExtend = confirm('您的会话即将过期，是否要继续保持登录状态？');
-          if (!shouldExtend) {
-            requireReAuthentication('会话即将过期');
-            return;
-          }
+          // 静默处理：会话即将过期时不显示弹框，让其自然过期后重新认证
         }
       }
 
