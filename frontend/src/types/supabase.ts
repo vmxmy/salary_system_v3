@@ -44,144 +44,6 @@ export type Database = {
         }
         Relationships: []
       }
-      backup_category_assignments_dates: {
-        Row: {
-          backup_time: string | null
-          effective_end_date: string | null
-          effective_start_date: string | null
-          id: string | null
-          period_id: string | null
-        }
-        Insert: {
-          backup_time?: string | null
-          effective_end_date?: string | null
-          effective_start_date?: string | null
-          id?: string | null
-          period_id?: string | null
-        }
-        Update: {
-          backup_time?: string | null
-          effective_end_date?: string | null
-          effective_start_date?: string | null
-          id?: string | null
-          period_id?: string | null
-        }
-        Relationships: []
-      }
-      backup_contribution_bases_dates: {
-        Row: {
-          backup_time: string | null
-          effective_end_date: string | null
-          effective_start_date: string | null
-          id: string | null
-          period_id: string | null
-        }
-        Insert: {
-          backup_time?: string | null
-          effective_end_date?: string | null
-          effective_start_date?: string | null
-          id?: string | null
-          period_id?: string | null
-        }
-        Update: {
-          backup_time?: string | null
-          effective_end_date?: string | null
-          effective_start_date?: string | null
-          id?: string | null
-          period_id?: string | null
-        }
-        Relationships: []
-      }
-      backup_job_history_dates: {
-        Row: {
-          backup_time: string | null
-          effective_end_date: string | null
-          effective_start_date: string | null
-          id: string | null
-          period_id: string | null
-        }
-        Insert: {
-          backup_time?: string | null
-          effective_end_date?: string | null
-          effective_start_date?: string | null
-          id?: string | null
-          period_id?: string | null
-        }
-        Update: {
-          backup_time?: string | null
-          effective_end_date?: string | null
-          effective_start_date?: string | null
-          id?: string | null
-          period_id?: string | null
-        }
-        Relationships: []
-      }
-      backup_payrolls_dates: {
-        Row: {
-          backup_time: string | null
-          id: string | null
-          pay_date: string | null
-          pay_period_end: string | null
-          pay_period_start: string | null
-          period_id: string | null
-        }
-        Insert: {
-          backup_time?: string | null
-          id?: string | null
-          pay_date?: string | null
-          pay_period_end?: string | null
-          pay_period_start?: string | null
-          period_id?: string | null
-        }
-        Update: {
-          backup_time?: string | null
-          id?: string | null
-          pay_date?: string | null
-          pay_period_end?: string | null
-          pay_period_start?: string | null
-          period_id?: string | null
-        }
-        Relationships: []
-      }
-      backup_special_deductions_dates: {
-        Row: {
-          backup_time: string | null
-          effective_end_date: string | null
-          effective_start_date: string | null
-          id: string | null
-          period_id: string | null
-        }
-        Insert: {
-          backup_time?: string | null
-          effective_end_date?: string | null
-          effective_start_date?: string | null
-          id?: string | null
-          period_id?: string | null
-        }
-        Update: {
-          backup_time?: string | null
-          effective_end_date?: string | null
-          effective_start_date?: string | null
-          id?: string | null
-          period_id?: string | null
-        }
-        Relationships: []
-      }
-      department_id_mapping: {
-        Row: {
-          new_id: string
-          old_id: number
-        }
-        Insert: {
-          new_id: string
-          old_id: number
-        }
-        Update: {
-          new_id?: string
-          old_id?: number
-        }
-        Relationships: []
-      }
       departments: {
         Row: {
           created_at: string
@@ -220,45 +82,6 @@ export type Database = {
             referencedColumns: ["department_id"]
           },
         ]
-      }
-      deprecated_functions: {
-        Row: {
-          deprecated_date: string | null
-          function_name: string
-          id: number
-          is_removed: boolean | null
-          notes: string | null
-          reason: string | null
-          removal_target_date: string | null
-          removed_date: string | null
-          replacement_function: string | null
-          schema_name: string
-        }
-        Insert: {
-          deprecated_date?: string | null
-          function_name: string
-          id?: number
-          is_removed?: boolean | null
-          notes?: string | null
-          reason?: string | null
-          removal_target_date?: string | null
-          removed_date?: string | null
-          replacement_function?: string | null
-          schema_name?: string
-        }
-        Update: {
-          deprecated_date?: string | null
-          function_name?: string
-          id?: number
-          is_removed?: boolean | null
-          notes?: string | null
-          reason?: string | null
-          removal_target_date?: string | null
-          removed_date?: string | null
-          replacement_function?: string | null
-          schema_name?: string
-        }
-        Relationships: []
       }
       employee_bank_accounts: {
         Row: {
@@ -767,21 +590,6 @@ export type Database = {
           },
         ]
       }
-      employee_id_mapping: {
-        Row: {
-          new_id: string
-          old_id: number
-        }
-        Insert: {
-          new_id: string
-          old_id: number
-        }
-        Update: {
-          new_id?: string
-          old_id?: number
-        }
-        Relationships: []
-      }
       employee_job_history: {
         Row: {
           created_at: string
@@ -1123,225 +931,6 @@ export type Database = {
         }
         Relationships: []
       }
-      function_cache: {
-        Row: {
-          cached_data: Json
-          created_at: string | null
-          data_type: string
-          expires_at: string
-          hit_count: number | null
-          key: string
-          last_accessed_at: string | null
-        }
-        Insert: {
-          cached_data: Json
-          created_at?: string | null
-          data_type?: string
-          expires_at: string
-          hit_count?: number | null
-          key: string
-          last_accessed_at?: string | null
-        }
-        Update: {
-          cached_data?: Json
-          created_at?: string | null
-          data_type?: string
-          expires_at?: string
-          hit_count?: number | null
-          key?: string
-          last_accessed_at?: string | null
-        }
-        Relationships: []
-      }
-      function_cleanup_log: {
-        Row: {
-          cleanup_action: string
-          cleanup_at: string | null
-          cleanup_status: string
-          function_name: string
-          function_size: string | null
-          id: string
-          notes: string | null
-        }
-        Insert: {
-          cleanup_action: string
-          cleanup_at?: string | null
-          cleanup_status: string
-          function_name: string
-          function_size?: string | null
-          id?: string
-          notes?: string | null
-        }
-        Update: {
-          cleanup_action?: string
-          cleanup_at?: string | null
-          cleanup_status?: string
-          function_name?: string
-          function_size?: string | null
-          id?: string
-          notes?: string | null
-        }
-        Relationships: []
-      }
-      function_migration_control: {
-        Row: {
-          created_at: string | null
-          enabled_for_users: string[] | null
-          feature_name: string
-          is_active: boolean | null
-          metadata: Json | null
-          rollback_count: number | null
-          rollout_percentage: number | null
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          enabled_for_users?: string[] | null
-          feature_name: string
-          is_active?: boolean | null
-          metadata?: Json | null
-          rollback_count?: number | null
-          rollout_percentage?: number | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          enabled_for_users?: string[] | null
-          feature_name?: string
-          is_active?: boolean | null
-          metadata?: Json | null
-          rollback_count?: number | null
-          rollout_percentage?: number | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
-      function_performance_log: {
-        Row: {
-          affected_rows: number | null
-          cache_hit: boolean | null
-          cache_misses: number | null
-          cpu_time_ms: number | null
-          error_message: string | null
-          error_occurred: boolean | null
-          executed_at: string | null
-          execution_context: Json | null
-          execution_time_ms: number
-          function_name: string
-          id: string
-          input_size: number | null
-          memory_usage: number | null
-          output_size: number | null
-          parameters: Json | null
-          result: Json | null
-        }
-        Insert: {
-          affected_rows?: number | null
-          cache_hit?: boolean | null
-          cache_misses?: number | null
-          cpu_time_ms?: number | null
-          error_message?: string | null
-          error_occurred?: boolean | null
-          executed_at?: string | null
-          execution_context?: Json | null
-          execution_time_ms: number
-          function_name: string
-          id?: string
-          input_size?: number | null
-          memory_usage?: number | null
-          output_size?: number | null
-          parameters?: Json | null
-          result?: Json | null
-        }
-        Update: {
-          affected_rows?: number | null
-          cache_hit?: boolean | null
-          cache_misses?: number | null
-          cpu_time_ms?: number | null
-          error_message?: string | null
-          error_occurred?: boolean | null
-          executed_at?: string | null
-          execution_context?: Json | null
-          execution_time_ms?: number
-          function_name?: string
-          id?: string
-          input_size?: number | null
-          memory_usage?: number | null
-          output_size?: number | null
-          parameters?: Json | null
-          result?: Json | null
-        }
-        Relationships: []
-      }
-      function_performance_stats: {
-        Row: {
-          avg_execution_time_ms: number | null
-          avg_memory_usage: number | null
-          cache_hit_rate: number | null
-          created_at: string | null
-          failed_calls: number | null
-          function_name: string
-          id: string
-          max_execution_time_ms: number | null
-          min_execution_time_ms: number | null
-          p50_execution_time_ms: number | null
-          p95_execution_time_ms: number | null
-          p99_execution_time_ms: number | null
-          period_end: string
-          period_start: string
-          successful_calls: number | null
-          total_affected_rows: number | null
-          total_cache_hits: number | null
-          total_cache_misses: number | null
-          total_calls: number | null
-        }
-        Insert: {
-          avg_execution_time_ms?: number | null
-          avg_memory_usage?: number | null
-          cache_hit_rate?: number | null
-          created_at?: string | null
-          failed_calls?: number | null
-          function_name: string
-          id?: string
-          max_execution_time_ms?: number | null
-          min_execution_time_ms?: number | null
-          p50_execution_time_ms?: number | null
-          p95_execution_time_ms?: number | null
-          p99_execution_time_ms?: number | null
-          period_end: string
-          period_start: string
-          successful_calls?: number | null
-          total_affected_rows?: number | null
-          total_cache_hits?: number | null
-          total_cache_misses?: number | null
-          total_calls?: number | null
-        }
-        Update: {
-          avg_execution_time_ms?: number | null
-          avg_memory_usage?: number | null
-          cache_hit_rate?: number | null
-          created_at?: string | null
-          failed_calls?: number | null
-          function_name?: string
-          id?: string
-          max_execution_time_ms?: number | null
-          min_execution_time_ms?: number | null
-          p50_execution_time_ms?: number | null
-          p95_execution_time_ms?: number | null
-          p99_execution_time_ms?: number | null
-          period_end?: string
-          period_start?: string
-          successful_calls?: number | null
-          total_affected_rows?: number | null
-          total_cache_hits?: number | null
-          total_cache_misses?: number | null
-          total_calls?: number | null
-        }
-        Relationships: []
-      }
       import_logs: {
         Row: {
           completed_at: string | null
@@ -1593,21 +1182,6 @@ export type Database = {
         }
         Relationships: []
       }
-      job_rank_id_mapping: {
-        Row: {
-          new_id: string
-          old_id: number
-        }
-        Insert: {
-          new_id: string
-          old_id: number
-        }
-        Update: {
-          new_id?: string
-          old_id?: number
-        }
-        Relationships: []
-      }
       job_ranks: {
         Row: {
           created_at: string
@@ -1656,6 +1230,54 @@ export type Database = {
           period?: string
           status?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          approval_deadline: boolean
+          created_at: string
+          email_notifications: boolean
+          in_app_notifications: boolean
+          new_pending_requests: boolean
+          permission_expiring: boolean
+          request_approved: boolean
+          request_denied: boolean
+          request_expired: boolean
+          request_submitted: boolean
+          sms_notifications: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approval_deadline?: boolean
+          created_at?: string
+          email_notifications?: boolean
+          in_app_notifications?: boolean
+          new_pending_requests?: boolean
+          permission_expiring?: boolean
+          request_approved?: boolean
+          request_denied?: boolean
+          request_expired?: boolean
+          request_submitted?: boolean
+          sms_notifications?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approval_deadline?: boolean
+          created_at?: string
+          email_notifications?: boolean
+          in_app_notifications?: boolean
+          new_pending_requests?: boolean
+          permission_expiring?: boolean
+          request_approved?: boolean
+          request_denied?: boolean
+          request_expired?: boolean
+          request_submitted?: boolean
+          sms_notifications?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2015,213 +1637,143 @@ export type Database = {
           },
         ]
       }
-      permission_access_logs: {
-        Row: {
-          access_result: boolean | null
-          created_at: string | null
-          error_message: string | null
-          id: string
-          ip_address: unknown | null
-          permission_code: string | null
-          resource_accessed: string | null
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          access_result?: boolean | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          ip_address?: unknown | null
-          permission_code?: string | null
-          resource_accessed?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          access_result?: boolean | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          ip_address?: unknown | null
-          permission_code?: string | null
-          resource_accessed?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "permission_access_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      permission_requests: {
-        Row: {
-          created_at: string | null
-          expires_at: string | null
-          id: string
-          metadata: Json | null
-          permission_id: string
-          reason: string
-          request_type: string
-          requester_id: string
-          review_comment: string | null
-          reviewed_at: string | null
-          reviewer_id: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          metadata?: Json | null
-          permission_id: string
-          reason: string
-          request_type: string
-          requester_id: string
-          review_comment?: string | null
-          reviewed_at?: string | null
-          reviewer_id?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          metadata?: Json | null
-          permission_id?: string
-          reason?: string
-          request_type?: string
-          requester_id?: string
-          review_comment?: string | null
-          reviewed_at?: string | null
-          reviewer_id?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "permission_requests_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "permissions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "permission_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "permission_requests_reviewer_id_fkey"
-            columns: ["reviewer_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      permission_resources: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          is_active: boolean | null
-          metadata: Json | null
-          parent_id: string | null
-          resource_code: string
-          resource_name: string
-          resource_type: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          metadata?: Json | null
-          parent_id?: string | null
-          resource_code: string
-          resource_name: string
-          resource_type: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          metadata?: Json | null
-          parent_id?: string | null
-          resource_code?: string
-          resource_name?: string
-          resource_type?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "permission_resources_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "permission_resources"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      permissions: {
+      permission_approval_logs: {
         Row: {
           action_type: string
+          changes: Json | null
+          comments: string | null
           created_at: string | null
-          description: string | null
           id: string
-          is_active: boolean | null
-          metadata: Json | null
-          permission_code: string
-          permission_name: string
-          resource_id: string
-          updated_at: string | null
+          new_status: string
+          old_status: string | null
+          operator_email: string
+          operator_id: string
+          request_id: string
         }
         Insert: {
           action_type: string
+          changes?: Json | null
+          comments?: string | null
           created_at?: string | null
-          description?: string | null
           id?: string
-          is_active?: boolean | null
-          metadata?: Json | null
-          permission_code: string
-          permission_name: string
-          resource_id: string
-          updated_at?: string | null
+          new_status: string
+          old_status?: string | null
+          operator_email: string
+          operator_id: string
+          request_id: string
         }
         Update: {
           action_type?: string
+          changes?: Json | null
+          comments?: string | null
           created_at?: string | null
-          description?: string | null
           id?: string
-          is_active?: boolean | null
-          metadata?: Json | null
-          permission_code?: string
-          permission_name?: string
-          resource_id?: string
-          updated_at?: string | null
+          new_status?: string
+          old_status?: string | null
+          operator_email?: string
+          operator_id?: string
+          request_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "permissions_resource_id_fkey"
-            columns: ["resource_id"]
+            foreignKeyName: "permission_approval_logs_request_id_fkey"
+            columns: ["request_id"]
             isOneToOne: false
-            referencedRelation: "permission_resources"
+            referencedRelation: "permission_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permission_approval_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "view_user_permission_requests"
             referencedColumns: ["id"]
           },
         ]
+      }
+      permission_backup_20250823: {
+        Row: {
+          backup_data: Json | null
+          backup_timestamp: string | null
+          source_table: string | null
+        }
+        Insert: {
+          backup_data?: Json | null
+          backup_timestamp?: string | null
+          source_table?: string | null
+        }
+        Update: {
+          backup_data?: Json | null
+          backup_timestamp?: string | null
+          source_table?: string | null
+        }
+        Relationships: []
+      }
+      permission_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          conditions: Json | null
+          created_at: string | null
+          data_scope: string
+          duration_days: number
+          effective_from: string | null
+          expires_at: string | null
+          id: string
+          reason: string
+          rejection_reason: string | null
+          requested_permission: string
+          requester_email: string
+          requester_id: string
+          resource_id: string | null
+          resource_type: string | null
+          status: string
+          updated_at: string | null
+          urgency_level: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          conditions?: Json | null
+          created_at?: string | null
+          data_scope?: string
+          duration_days?: number
+          effective_from?: string | null
+          expires_at?: string | null
+          id?: string
+          reason: string
+          rejection_reason?: string | null
+          requested_permission: string
+          requester_email: string
+          requester_id: string
+          resource_id?: string | null
+          resource_type?: string | null
+          status?: string
+          updated_at?: string | null
+          urgency_level?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          conditions?: Json | null
+          created_at?: string | null
+          data_scope?: string
+          duration_days?: number
+          effective_from?: string | null
+          expires_at?: string | null
+          id?: string
+          reason?: string
+          rejection_reason?: string | null
+          requested_permission?: string
+          requester_email?: string
+          requester_id?: string
+          resource_id?: string | null
+          resource_type?: string | null
+          status?: string
+          updated_at?: string | null
+          urgency_level?: string
+        }
+        Relationships: []
       }
       personal_income_tax_calculation_logs: {
         Row: {
@@ -2411,21 +1963,6 @@ export type Database = {
           },
         ]
       }
-      position_id_mapping: {
-        Row: {
-          new_id: string
-          old_id: number
-        }
-        Insert: {
-          new_id: string
-          old_id: number
-        }
-        Update: {
-          new_id?: string
-          old_id?: number
-        }
-        Relationships: []
-      }
       positions: {
         Row: {
           created_at: string
@@ -2446,225 +1983,6 @@ export type Database = {
           name?: string
         }
         Relationships: []
-      }
-      role_change_history: {
-        Row: {
-          change_type: string
-          changed_at: string
-          changed_by: string | null
-          created_at: string | null
-          id: string
-          metadata: Json | null
-          new_values: Json | null
-          old_values: Json | null
-          reason: string | null
-          role_id: string
-        }
-        Insert: {
-          change_type: string
-          changed_at?: string
-          changed_by?: string | null
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          new_values?: Json | null
-          old_values?: Json | null
-          reason?: string | null
-          role_id: string
-        }
-        Update: {
-          change_type?: string
-          changed_at?: string
-          changed_by?: string | null
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          new_values?: Json | null
-          old_values?: Json | null
-          reason?: string | null
-          role_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "role_change_history_changed_by_fkey"
-            columns: ["changed_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "role_change_history_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      role_permissions: {
-        Row: {
-          expires_at: string | null
-          granted_at: string | null
-          granted_by: string | null
-          id: string
-          is_active: boolean | null
-          permission_id: string
-          role_id: string
-        }
-        Insert: {
-          expires_at?: string | null
-          granted_at?: string | null
-          granted_by?: string | null
-          id?: string
-          is_active?: boolean | null
-          permission_id: string
-          role_id: string
-        }
-        Update: {
-          expires_at?: string | null
-          granted_at?: string | null
-          granted_by?: string | null
-          id?: string
-          is_active?: boolean | null
-          permission_id?: string
-          role_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "role_permissions_granted_by_fkey"
-            columns: ["granted_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "role_permissions_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "permissions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "role_permissions_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      role_requests: {
-        Row: {
-          created_at: string | null
-          current_role_name: string | null
-          expires_at: string | null
-          id: string
-          metadata: Json | null
-          processed_at: string | null
-          processed_by: string | null
-          reason: string
-          requested_at: string
-          requested_role_name: string
-          status: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          current_role_name?: string | null
-          expires_at?: string | null
-          id?: string
-          metadata?: Json | null
-          processed_at?: string | null
-          processed_by?: string | null
-          reason: string
-          requested_at?: string
-          requested_role_name: string
-          status?: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          current_role_name?: string | null
-          expires_at?: string | null
-          id?: string
-          metadata?: Json | null
-          processed_at?: string | null
-          processed_by?: string | null
-          reason?: string
-          requested_at?: string
-          requested_role_name?: string
-          status?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "role_requests_processed_by_fkey"
-            columns: ["processed_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "role_requests_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      roles: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          is_active: boolean | null
-          is_system_role: boolean | null
-          level: number | null
-          metadata: Json | null
-          parent_role_id: string | null
-          role_code: string
-          role_name: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_system_role?: boolean | null
-          level?: number | null
-          metadata?: Json | null
-          parent_role_id?: string | null
-          role_code: string
-          role_name: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_system_role?: boolean | null
-          level?: number | null
-          metadata?: Json | null
-          parent_role_id?: string | null
-          role_code?: string
-          role_name?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "roles_parent_role_id_fkey"
-            columns: ["parent_role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       salary_components: {
         Row: {
@@ -2836,6 +2154,45 @@ export type Database = {
           },
         ]
       }
+      system_monitoring: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event_type: string
+          expires_at: string | null
+          function_name: string | null
+          id: string
+          metrics: Json
+          resource_key: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type: string
+          expires_at?: string | null
+          function_name?: string | null
+          id?: string
+          metrics?: Json
+          resource_key?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string
+          expires_at?: string | null
+          function_name?: string | null
+          id?: string
+          metrics?: Json
+          resource_key?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tax_brackets: {
         Row: {
           annual_income_ceiling: number | null
@@ -2933,318 +2290,88 @@ export type Database = {
           },
         ]
       }
-      temp_january_2025_salary_import: {
+      unified_permission_config: {
         Row: {
-          id: number
-          一次性补扣发: number | null
-          个人所得税: number | null
-          个人缴住房公积金: number | null
-          个人缴养老保险费: number | null
-          个人缴医疗保险费: number | null
-          个人缴失业保险费: number | null
-          个人缴职业年金: number | null
-          人员姓名: string | null
-          人员编号: string | null
-          人员职级: string | null
-          人员身份: string | null
-          信访工作人员岗位津贴: number | null
-          公务交通补贴: number | null
-          公务员规范性津贴补贴: number | null
-          基础绩效奖: number | null
-          奖励绩效补扣发: number | null
-          实发工资: number | null
-          岗位工资: number | null
-          岗位职务补贴: number | null
-          工改保留补贴: number | null
-          工资统发: string | null
-          序号: number | null
-          应发工资: number | null
-          扣发合计: number | null
-          月基础绩效: number | null
-          月奖励绩效: number | null
-          独生子女父母奖励金: number | null
-          级别岗位级别工资: number | null
-          绩效奖金补扣发: number | null
-          职务技术等级工资: number | null
-          薪级工资: number | null
-          补扣社保: number | null
-          见习试用期工资: number | null
-          财政供养: string | null
-          身份证: string | null
-          部门: string | null
-        }
-        Insert: {
-          id?: number
-          一次性补扣发?: number | null
-          个人所得税?: number | null
-          个人缴住房公积金?: number | null
-          个人缴养老保险费?: number | null
-          个人缴医疗保险费?: number | null
-          个人缴失业保险费?: number | null
-          个人缴职业年金?: number | null
-          人员姓名?: string | null
-          人员编号?: string | null
-          人员职级?: string | null
-          人员身份?: string | null
-          信访工作人员岗位津贴?: number | null
-          公务交通补贴?: number | null
-          公务员规范性津贴补贴?: number | null
-          基础绩效奖?: number | null
-          奖励绩效补扣发?: number | null
-          实发工资?: number | null
-          岗位工资?: number | null
-          岗位职务补贴?: number | null
-          工改保留补贴?: number | null
-          工资统发?: string | null
-          序号?: number | null
-          应发工资?: number | null
-          扣发合计?: number | null
-          月基础绩效?: number | null
-          月奖励绩效?: number | null
-          独生子女父母奖励金?: number | null
-          级别岗位级别工资?: number | null
-          绩效奖金补扣发?: number | null
-          职务技术等级工资?: number | null
-          薪级工资?: number | null
-          补扣社保?: number | null
-          见习试用期工资?: number | null
-          财政供养?: string | null
-          身份证?: string | null
-          部门?: string | null
-        }
-        Update: {
-          id?: number
-          一次性补扣发?: number | null
-          个人所得税?: number | null
-          个人缴住房公积金?: number | null
-          个人缴养老保险费?: number | null
-          个人缴医疗保险费?: number | null
-          个人缴失业保险费?: number | null
-          个人缴职业年金?: number | null
-          人员姓名?: string | null
-          人员编号?: string | null
-          人员职级?: string | null
-          人员身份?: string | null
-          信访工作人员岗位津贴?: number | null
-          公务交通补贴?: number | null
-          公务员规范性津贴补贴?: number | null
-          基础绩效奖?: number | null
-          奖励绩效补扣发?: number | null
-          实发工资?: number | null
-          岗位工资?: number | null
-          岗位职务补贴?: number | null
-          工改保留补贴?: number | null
-          工资统发?: string | null
-          序号?: number | null
-          应发工资?: number | null
-          扣发合计?: number | null
-          月基础绩效?: number | null
-          月奖励绩效?: number | null
-          独生子女父母奖励金?: number | null
-          级别岗位级别工资?: number | null
-          绩效奖金补扣发?: number | null
-          职务技术等级工资?: number | null
-          薪级工资?: number | null
-          补扣社保?: number | null
-          见习试用期工资?: number | null
-          财政供养?: string | null
-          身份证?: string | null
-          部门?: string | null
-        }
-        Relationships: []
-      }
-      temp_january_salary_import: {
-        Row: {
-          "93年工改保留补贴": number | null
-          id_number: string
-          一次性补扣发: number | null
-          信访工作人员岗位津贴: number | null
-          公务交通补贴: number | null
-          公务员规范性津贴补贴: number | null
-          基础绩效奖: number | null
-          奖励绩效补扣发: number | null
-          岗位工资: number | null
-          岗位职务补贴: number | null
-          月基础绩效: number | null
-          月奖励绩效: number | null
-          独生子女父母奖励金: number | null
-          "级别/岗位级别 工资": number | null
-          绩效奖金补扣发: number | null
-          "职务/技术等级 工资": number | null
-          薪级工资: number | null
-          补扣社保: number | null
-          见习试用期工资: number | null
-        }
-        Insert: {
-          "93年工改保留补贴"?: number | null
-          id_number: string
-          一次性补扣发?: number | null
-          信访工作人员岗位津贴?: number | null
-          公务交通补贴?: number | null
-          公务员规范性津贴补贴?: number | null
-          基础绩效奖?: number | null
-          奖励绩效补扣发?: number | null
-          岗位工资?: number | null
-          岗位职务补贴?: number | null
-          月基础绩效?: number | null
-          月奖励绩效?: number | null
-          独生子女父母奖励金?: number | null
-          "级别/岗位级别 工资"?: number | null
-          绩效奖金补扣发?: number | null
-          "职务/技术等级 工资"?: number | null
-          薪级工资?: number | null
-          补扣社保?: number | null
-          见习试用期工资?: number | null
-        }
-        Update: {
-          "93年工改保留补贴"?: number | null
-          id_number?: string
-          一次性补扣发?: number | null
-          信访工作人员岗位津贴?: number | null
-          公务交通补贴?: number | null
-          公务员规范性津贴补贴?: number | null
-          基础绩效奖?: number | null
-          奖励绩效补扣发?: number | null
-          岗位工资?: number | null
-          岗位职务补贴?: number | null
-          月基础绩效?: number | null
-          月奖励绩效?: number | null
-          独生子女父母奖励金?: number | null
-          "级别/岗位级别 工资"?: number | null
-          绩效奖金补扣发?: number | null
-          "职务/技术等级 工资"?: number | null
-          薪级工资?: number | null
-          补扣社保?: number | null
-          见习试用期工资?: number | null
-        }
-        Relationships: []
-      }
-      time_slice_migration_log: {
-        Row: {
-          closed_records_generated: number | null
-          completed_at: string | null
-          error_message: string | null
-          id: string
-          metadata: Json | null
-          migration_step: string
-          open_records_count: number | null
-          started_at: string | null
-          status: string | null
-          table_name: string
-        }
-        Insert: {
-          closed_records_generated?: number | null
-          completed_at?: string | null
-          error_message?: string | null
-          id?: string
-          metadata?: Json | null
-          migration_step: string
-          open_records_count?: number | null
-          started_at?: string | null
-          status?: string | null
-          table_name: string
-        }
-        Update: {
-          closed_records_generated?: number | null
-          completed_at?: string | null
-          error_message?: string | null
-          id?: string
-          metadata?: Json | null
-          migration_step?: string
-          open_records_count?: number | null
-          started_at?: string | null
-          status?: string | null
-          table_name?: string
-        }
-        Relationships: []
-      }
-      trigger_backup: {
-        Row: {
-          disabled_at: string | null
-          function_name: string | null
-          id: number
-          reason: string | null
-          table_name: string | null
-          trigger_name: string | null
-          was_enabled: boolean | null
-        }
-        Insert: {
-          disabled_at?: string | null
-          function_name?: string | null
-          id?: number
-          reason?: string | null
-          table_name?: string | null
-          trigger_name?: string | null
-          was_enabled?: boolean | null
-        }
-        Update: {
-          disabled_at?: string | null
-          function_name?: string | null
-          id?: number
-          reason?: string | null
-          table_name?: string | null
-          trigger_name?: string | null
-          was_enabled?: boolean | null
-        }
-        Relationships: []
-      }
-      user_permission_overrides: {
-        Row: {
-          expires_at: string | null
-          granted_at: string | null
-          granted_by: string | null
+          created_at: string | null
+          effective_from: string | null
+          effective_until: string | null
           id: string
           is_active: boolean | null
-          override_type: string
-          permission_id: string
-          reason: string | null
-          user_id: string
+          permission_rules: Json
+          role_code: string | null
+          updated_at: string | null
+          user_id: string | null
         }
         Insert: {
-          expires_at?: string | null
-          granted_at?: string | null
-          granted_by?: string | null
+          created_at?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
           id?: string
           is_active?: boolean | null
-          override_type: string
-          permission_id: string
-          reason?: string | null
-          user_id: string
+          permission_rules?: Json
+          role_code?: string | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
-          expires_at?: string | null
-          granted_at?: string | null
-          granted_by?: string | null
+          created_at?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
           id?: string
           is_active?: boolean | null
-          override_type?: string
-          permission_id?: string
-          reason?: string | null
-          user_id?: string
+          permission_rules?: Json
+          role_code?: string | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "user_permission_overrides_granted_by_fkey"
-            columns: ["granted_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_permission_overrides_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "permissions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_permission_overrides_user_id_fkey"
+            foreignKeyName: "unified_permission_config_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json | null
+          read_at: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          metadata?: Json | null
+          read_at?: string | null
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata?: Json | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_profiles: {
         Row: {
@@ -3335,6 +2462,18 @@ export type Database = {
       }
     }
     Views: {
+      permission_matrix_mv: {
+        Row: {
+          effective_data_scope: string | null
+          has_page_permissions: boolean | null
+          last_refreshed: string | null
+          permission_code: string | null
+          permission_sources: string[] | null
+          source_details: string[] | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       v_standard_insurance_components: {
         Row: {
           category: Database["public"]["Enums"]["salary_category"] | null
@@ -4292,6 +3431,17 @@ export type Database = {
           },
         ]
       }
+      view_permission_request_stats: {
+        Row: {
+          avg_processing_hours: number | null
+          month: string | null
+          request_count: number | null
+          requested_permission: string | null
+          status: string | null
+          urgency_level: string | null
+        }
+        Relationships: []
+      }
       view_positions_with_details: {
         Row: {
           created_at: string | null
@@ -4454,6 +3604,113 @@ export type Database = {
           },
         ]
       }
+      view_user_management_unified: {
+        Row: {
+          category_name: string | null
+          config_active: boolean | null
+          config_role: string | null
+          data_scope: string | null
+          department_name: string | null
+          effective_from: string | null
+          effective_until: string | null
+          email: string | null
+          employee_active: boolean | null
+          employee_id: string | null
+          employee_name: string | null
+          employment_status: string | null
+          page_permissions: Json | null
+          permission_rules: Json | null
+          permissions: Json | null
+          position_name: string | null
+          role_active: boolean | null
+          role_assigned_at: string | null
+          role_metadata: Json | null
+          user_id: string | null
+          user_role: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_profiles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "view_employee_basic_info"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "user_profiles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "view_employees_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_profiles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "view_employees_all"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "user_profiles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "view_employees_deleted"
+            referencedColumns: ["employee_id"]
+          },
+        ]
+      }
+      view_user_permission_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approver_email: string | null
+          created_at: string | null
+          data_scope: string | null
+          duration_days: number | null
+          effective_from: string | null
+          expires_at: string | null
+          id: string | null
+          reason: string | null
+          rejection_reason: string | null
+          remaining_hours: number | null
+          requested_permission: string | null
+          requester_email: string | null
+          requester_id: string | null
+          resource_id: string | null
+          resource_type: string | null
+          status: string | null
+          status_display: string | null
+          updated_at: string | null
+          urgency_level: string | null
+        }
+        Relationships: []
+      }
+      view_user_permissions: {
+        Row: {
+          config_active: boolean | null
+          config_role: string | null
+          data_scope: string | null
+          effective_from: string | null
+          effective_until: string | null
+          email: string | null
+          page_permissions: Json | null
+          permission_rules: Json | null
+          permissions: Json | null
+          role_active: boolean | null
+          role_assigned_at: string | null
+          role_metadata: Json | null
+          user_id: string | null
+          user_role: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       analyze_function_performance: {
@@ -4552,6 +3809,10 @@ export type Database = {
         Args: { p_employee_id: string; p_period_id: string }
         Returns: boolean
       }
+      check_multiple_permissions: {
+        Args: { p_permission_codes: string[]; p_user_id: string }
+        Returns: Json
+      }
       check_payroll_calculation_permissions: {
         Args: { p_payroll_id: string }
         Returns: boolean
@@ -4564,23 +3825,19 @@ export type Database = {
         Args: { p_period_id: string }
         Returns: boolean
       }
-      check_permission_with_log: {
-        Args: { permission_code: string; resource_accessed?: string }
+      check_permission_version: {
+        Args: { p_client_version?: number }
         Returns: boolean
       }
       check_rls_coverage: {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
-      check_user_permission: {
-        Args: { permission_code_param: string; user_uuid: string }
-        Returns: boolean
-      }
       cleanup_change_log: {
         Args: { p_days_to_keep?: number }
         Returns: Json
       }
-      cleanup_expired_cache: {
+      cleanup_expired_cache_v2: {
         Args: Record<PropertyKey, never>
         Returns: number
       }
@@ -4694,6 +3951,10 @@ export type Database = {
       evaluate_rule_condition: {
         Args: { p_condition_id: string; p_employee_id: string }
         Returns: boolean
+      }
+      expire_permissions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       gbt_bit_compress: {
         Args: { "": unknown }
@@ -4923,6 +4184,10 @@ export type Database = {
         Args: { department_code?: string }
         Returns: string
       }
+      generate_frontend_claims: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       generate_monthly_periods: {
         Args: { end_date?: string; start_date: string }
         Returns: {
@@ -4982,6 +4247,10 @@ export type Database = {
       get_change_tracking_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      get_current_permission_version: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       get_current_user_employee_id: {
         Args: Record<PropertyKey, never>
@@ -5113,10 +4382,6 @@ export type Database = {
         Args: { p_import_type?: string; p_limit?: number }
         Returns: Json
       }
-      get_mapping_coverage_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
       get_migration_summary: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5125,19 +4390,27 @@ export type Database = {
           total_count: number
         }[]
       }
-      get_optimization_suggestions: {
+      get_optimization_suggestions_v2: {
         Args: Record<PropertyKey, never>
         Returns: {
-          estimated_impact: string
           function_name: string
-          issue: string
+          metrics: Json
           priority: string
           suggestion: string
+          suggestion_type: string
         }[]
       }
-      get_permissions_overview: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
+      get_performance_metrics_v2: {
+        Args: { p_function_name?: string; p_hours_back?: number }
+        Returns: {
+          avg_execution_time: number
+          error_count: number
+          function_name: string
+          max_execution_time: number
+          min_execution_time: number
+          success_rate: number
+          total_executions: number
+        }[]
       }
       get_personnel_categories_config: {
         Args: Record<PropertyKey, never>
@@ -5154,10 +4427,6 @@ export type Database = {
       get_personnel_category_display: {
         Args: { category_key: string; lang?: string }
         Returns: string
-      }
-      get_realtime_performance_metrics: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
       }
       get_standard_insurance_component_id: {
         Args: {
@@ -5185,22 +4454,13 @@ export type Database = {
           employee_name: string
         }[]
       }
+      get_user_data_scope: {
+        Args: { p_permission_code: string; p_user_id: string }
+        Returns: string
+      }
       get_user_departments: {
         Args: { p_user_id?: string }
         Returns: string[]
-      }
-      get_user_effective_permissions: {
-        Args: { user_uuid: string }
-        Returns: {
-          action_type: string
-          permission_code: string
-          resource_code: string
-          source: string
-        }[]
-      }
-      get_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
       }
       get_user_roles: {
         Args: { p_user_id?: string }
@@ -5211,7 +4471,16 @@ export type Database = {
         Returns: boolean
       }
       has_permission: {
-        Args: { p_permission_code: string; p_user_id?: string }
+        Args: { p_permission_code: string }
+        Returns: boolean
+      }
+      has_resource_permission: {
+        Args: {
+          p_context?: Json
+          p_permission_code: string
+          p_resource_id: string
+          p_user_id: string
+        }
         Returns: boolean
       }
       hash_sensitive_data: {
@@ -5275,14 +4544,14 @@ export type Database = {
         }
         Returns: undefined
       }
-      log_permission_access: {
+      log_function_performance_v2: {
         Args: {
-          p_access_result: boolean
           p_error_message?: string
-          p_permission_code: string
-          p_resource_accessed: string
+          p_execution_time_ms: number
+          p_function_name: string
+          p_metrics?: Json
         }
-        Returns: undefined
+        Returns: string
       }
       manage_period_status: {
         Args: { p_lock?: boolean; p_new_status: string; p_period_id: string }
@@ -5355,6 +4624,15 @@ export type Database = {
         Args: { p_employee_id: string }
         Returns: Json
       }
+      unified_permission_check: {
+        Args: {
+          p_context?: Json
+          p_permission_code: string
+          p_resource_id?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       update_performance_stats: {
         Args: { p_period_hours?: number }
         Returns: undefined
@@ -5371,18 +4649,6 @@ export type Database = {
       user_can_access_data: {
         Args: { data_scope?: string }
         Returns: boolean
-      }
-      user_has_permission: {
-        Args: { permission_code: string }
-        Returns: boolean
-      }
-      validate_infrastructure: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      validate_migration_data: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
       }
       validate_personnel_category: {
         Args: { category_key: string }

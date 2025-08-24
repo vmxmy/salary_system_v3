@@ -32,7 +32,7 @@ export const supabase = createClient<Database>(
         return fetch(url, {
           ...options,
           // 设置合理的超时时间
-          signal: AbortSignal.timeout(15000), // 15秒超时
+          signal: AbortSignal.timeout(8000), // 8秒超时，减少等待时间
         }).catch(error => {
           console.error('[Supabase] Network error:', error);
           if (error.name === 'AbortError') {

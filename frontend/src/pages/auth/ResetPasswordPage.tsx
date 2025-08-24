@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { updatePassword } = useAuth();
+  const { updatePassword } = useUnifiedAuth();
   const { t } = useTranslation('auth');
   
   const [isLoading, setIsLoading] = useState(false);
@@ -108,12 +108,14 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="form-control">
-            <label className="label">
+            <label htmlFor="reset-new-password" className="label">
               <span className={cn("label-text", "text-base")}>
                 {t('resetPassword.newPassword') || 'New Password'}
               </span>
             </label>
             <input
+              id="reset-new-password"
+              name="newPassword"
               type="password"
               className={`input input-bordered ${errors.newPassword ? 'input-error' : ''}`}
               value={formData.newPassword}
@@ -124,21 +126,24 @@ export default function ResetPasswordPage() {
               required
               autoComplete="new-password"
               placeholder="••••••••"
+              aria-describedby={errors.newPassword ? "reset-new-password-error" : undefined}
             />
             {errors.newPassword && (
               <label className="label">
-                <span className={cn("label-text-alt text-error", "text-base")}>{errors.newPassword}</span>
+                <span id="reset-new-password-error" className={cn("label-text-alt text-error", "text-base")}>{errors.newPassword}</span>
               </label>
             )}
           </div>
 
           <div className="form-control">
-            <label className="label">
+            <label htmlFor="reset-confirm-password" className="label">
               <span className={cn("label-text", "text-base")}>
                 {t('resetPassword.confirmPassword') || 'Confirm New Password'}
               </span>
             </label>
             <input
+              id="reset-confirm-password"
+              name="confirmPassword"
               type="password"
               className={`input input-bordered ${errors.confirmPassword ? 'input-error' : ''}`}
               value={formData.confirmPassword}
@@ -149,10 +154,11 @@ export default function ResetPasswordPage() {
               required
               autoComplete="new-password"
               placeholder="••••••••"
+              aria-describedby={errors.confirmPassword ? "reset-confirm-password-error" : undefined}
             />
             {errors.confirmPassword && (
               <label className="label">
-                <span className={cn("label-text-alt text-error", "text-base")}>{errors.confirmPassword}</span>
+                <span id="reset-confirm-password-error" className={cn("label-text-alt text-error", "text-base")}>{errors.confirmPassword}</span>
               </label>
             )}
           </div>

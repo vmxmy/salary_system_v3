@@ -58,15 +58,22 @@ export function DataTableColumnFilter<TData, TValue>({
           isFiltered && 'text-primary'
         )}
         title={String(t('filter'))}
+        aria-label={`过滤列 ${column.id}`}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
       >
         <FilterIcon className="h-3 w-3" />
       </button>
 
       {isOpen && (
-        <div className="absolute top-8 left-0 z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg p-3 min-w-48">
+        <div 
+          className="absolute top-8 left-0 z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg p-3 min-w-48"
+          role="dialog"
+          aria-labelledby="filter-title"
+        >
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">
+              <span id="filter-title" className="text-sm font-medium">
                 {String(t('filter'))}
               </span>
               {isFiltered && (
@@ -74,6 +81,7 @@ export function DataTableColumnFilter<TData, TValue>({
                   onClick={handleClearFilter}
                   className="btn btn-ghost btn-xs p-1"
                   title={String(t('clear'))}
+                  aria-label="清除过滤条件"
                 >
                   <XIcon className="h-3 w-3" />
                 </button>
@@ -81,16 +89,20 @@ export function DataTableColumnFilter<TData, TValue>({
             </div>
             
             <input
+              id={`filter-input-${column.id}`}
+              name={`filter_${column.id}`}
               type="text"
               value={filterValue}
               onChange={(e) => handleFilterChange(e.target.value)}
               placeholder={String(t('placeholder.filterColumn'))}
               className="input input-sm w-full"
               autoFocus
+              aria-describedby={`filter-help-${column.id}`}
+              autoComplete="off"
             />
 
             {/* For future enhancement: Add dropdown for specific filter types */}
-            <div className="text-xs text-base-content/60">
+            <div id={`filter-help-${column.id}`} className="text-xs text-base-content/60">
               {String(t('filterHelp'))}
             </div>
           </div>

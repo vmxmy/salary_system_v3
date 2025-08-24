@@ -1,44 +1,30 @@
-// 权限常量定义
+/**
+ * 统一权限常量定义
+ * 
+ * 与数据库权限系统保持一致的权限格式
+ * 这些常量与 unified_permission_config 表中的权限代码对应
+ * 
+ * 基于权限矩阵物化视图中的实际权限格式
+ */
+
+// 权限常量定义（与数据库格式完全匹配）
 export const PERMISSIONS = {
-  // 员工权限
+  // 基础页面访问权限
+  DASHBOARD_READ: 'dashboard.read',
+  
+  // 员工管理权限  
+  EMPLOYEE_MANAGEMENT_READ: 'employee_management.read',
+  EMPLOYEE_MANAGEMENT_WRITE: 'employee_management.write',
   EMPLOYEE_VIEW: 'employee.view',
   EMPLOYEE_CREATE: 'employee.create',
   EMPLOYEE_UPDATE: 'employee.update',
   EMPLOYEE_DELETE: 'employee.delete',
   EMPLOYEE_EXPORT: 'employee.export',
   
-  // 部门权限
-  DEPARTMENT_VIEW: 'department.view',
-  DEPARTMENT_CREATE: 'department.create',
-  DEPARTMENT_UPDATE: 'department.update',
-  DEPARTMENT_DELETE: 'department.delete',
-  
-  // 职位权限
-  POSITION_VIEW: 'position.view',
-  POSITION_CREATE: 'position.create',
-  POSITION_UPDATE: 'position.update',
-  POSITION_DELETE: 'position.delete',
-  
-  // 薪资权限
-  PAYROLL_VIEW: 'payroll.view',
-  PAYROLL_CREATE: 'payroll.create',
-  PAYROLL_UPDATE: 'payroll.update',
-  PAYROLL_DELETE: 'payroll.delete',
-  PAYROLL_CLEAR: 'payroll.clear',
-  PAYROLL_APPROVE: 'payroll.approve',
-  PAYROLL_EXPORT: 'payroll.export',
-  PAYROLL_IMPORT: 'payroll.import',
-  
-  // 报表权限
-  REPORT_VIEW: 'report.view',
-  REPORT_CREATE: 'report.create',
-  REPORT_EXPORT: 'report.export',
-  
-  // 系统管理权限
-  SYSTEM_CONFIG: 'system.config',
-  SYSTEM_BACKUP: 'system.backup',
-  SYSTEM_LOGS: 'system.logs',
-  USER_MANAGEMENT: 'user.management',
+  // 数据访问权限（按范围分级）
+  DATA_ALL_READ: 'data.all.read',
+  DATA_DEPARTMENT_READ: 'data.department.read', 
+  DATA_SELF_READ: 'data.self.read',
   
   // 角色管理权限
   ROLE_VIEW: 'view_roles',
@@ -49,36 +35,93 @@ export const PERMISSIONS = {
   ROLE_HISTORY_VIEW: 'view_role_history',
   ROLE_REQUEST_APPROVE: 'approve_role_requests',
   
+  // 用户管理权限
+  USER_MANAGEMENT_READ: 'user_management.read',
+  USER_MANAGEMENT_WRITE: 'user_management.write',
+  USER_MANAGEMENT: 'user.management',
+  USER_VIEW: 'user.view',
+  USER_CREATE: 'user.create',
+  USER_UPDATE: 'user.update',
+  USER_DELETE: 'user.delete',
+  USER_BATCH_OPERATION: 'user.batch_operation',
+  USER_CHANGE_STATUS: 'user.change_status',
+  USER_ASSIGN_ROLE: 'user.assign_role',
+  USER_REMOVE_ROLE: 'user.remove_role',
+  
+  // 权限管理
+  PERMISSION_MANAGE: 'permission.manage',
+  
+  // 薪资权限（兼容旧格式）
+  PAYROLL_VIEW: 'payroll.view',
+  PAYROLL_CREATE: 'payroll.create',
+  PAYROLL_UPDATE: 'payroll.update',
+  PAYROLL_DELETE: 'payroll.delete',
+  PAYROLL_CLEAR: 'payroll.clear',
+  PAYROLL_IMPORT: 'payroll.import',
+  PAYROLL_APPROVE: 'payroll.approve',
+  PAYROLL_EXPORT: 'payroll.export',
+  
   // 薪资组件权限
   COMPONENT_VIEW: 'component.view',
   COMPONENT_CREATE: 'component.create',
   COMPONENT_UPDATE: 'component.update',
   COMPONENT_DELETE: 'component.delete',
   
-  // 保险配置权限
+  // 保险权限
   INSURANCE_VIEW: 'insurance.view',
   INSURANCE_CONFIG: 'insurance.config',
-  INSURANCE_CALCULATE: 'insurance.calculate'
+  INSURANCE_CALCULATE: 'insurance.calculate',
+  
+  // 报表权限
+  REPORT_VIEW: 'report.view',
+  REPORT_CREATE: 'report.create',
+  REPORT_EXPORT: 'report.export',
+  
+  // 部门权限
+  DEPARTMENT_VIEW: 'department.view',
+  DEPARTMENT_CREATE: 'department.create',
+  DEPARTMENT_UPDATE: 'department.update',
+  DEPARTMENT_DELETE: 'department.delete',
+  
+  // 系统管理权限
+  SYSTEM_CONFIG: 'system.config',
+  SYSTEM_BACKUP: 'system.backup',
+  SYSTEM_LOGS: 'system.logs'
 } as const;
 
-// 角色权限映射
+/**
+ * 角色权限映射（兼容性）
+ * 
+ * 注意：新系统中权限通过数据库统一管理
+ * 这个映射仅用于开发时的权限参考和降级处理
+ */
 export const ROLE_PERMISSIONS = {
   super_admin: ['*'], // 超级管理员拥有所有权限
+  
   admin: [
-    // 员工管理
-    PERMISSIONS.EMPLOYEE_VIEW,
-    PERMISSIONS.EMPLOYEE_CREATE,
-    PERMISSIONS.EMPLOYEE_UPDATE,
-    PERMISSIONS.EMPLOYEE_DELETE,
-    PERMISSIONS.EMPLOYEE_EXPORT,
-    
-    // 部门管理
-    PERMISSIONS.DEPARTMENT_VIEW,
-    PERMISSIONS.DEPARTMENT_CREATE,
-    PERMISSIONS.DEPARTMENT_UPDATE,
-    PERMISSIONS.DEPARTMENT_DELETE,
-    
-    // 薪资管理
+    PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.EMPLOYEE_MANAGEMENT_READ,
+    PERMISSIONS.EMPLOYEE_MANAGEMENT_WRITE,
+    PERMISSIONS.DATA_ALL_READ,
+    PERMISSIONS.USER_MANAGEMENT_READ,
+    PERMISSIONS.USER_MANAGEMENT_WRITE,
+    PERMISSIONS.USER_MANAGEMENT,
+    PERMISSIONS.USER_VIEW,
+    PERMISSIONS.USER_CREATE,
+    PERMISSIONS.USER_UPDATE,
+    PERMISSIONS.USER_DELETE,
+    PERMISSIONS.USER_BATCH_OPERATION,
+    PERMISSIONS.USER_CHANGE_STATUS,
+    PERMISSIONS.USER_ASSIGN_ROLE,
+    PERMISSIONS.USER_REMOVE_ROLE,
+    PERMISSIONS.ROLE_VIEW,
+    PERMISSIONS.ROLE_MANAGE,
+    PERMISSIONS.ROLE_ASSIGN,
+    PERMISSIONS.ROLE_PERMISSION_VIEW,
+    PERMISSIONS.ROLE_PERMISSION_MANAGE,
+    PERMISSIONS.ROLE_HISTORY_VIEW,
+    PERMISSIONS.ROLE_REQUEST_APPROVE,
+    PERMISSIONS.PERMISSION_MANAGE,
     PERMISSIONS.PAYROLL_VIEW,
     PERMISSIONS.PAYROLL_CREATE,
     PERMISSIONS.PAYROLL_UPDATE,
@@ -86,73 +129,159 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.PAYROLL_CLEAR,
     PERMISSIONS.PAYROLL_APPROVE,
     PERMISSIONS.PAYROLL_EXPORT,
-    PERMISSIONS.PAYROLL_IMPORT,
-    
-    // 报表
     PERMISSIONS.REPORT_VIEW,
     PERMISSIONS.REPORT_CREATE,
     PERMISSIONS.REPORT_EXPORT,
-    
-    // 薪资组件
-    PERMISSIONS.COMPONENT_VIEW,
-    PERMISSIONS.COMPONENT_CREATE,
-    PERMISSIONS.COMPONENT_UPDATE,
-    
-    // 保险配置
-    PERMISSIONS.INSURANCE_VIEW,
-    PERMISSIONS.INSURANCE_CONFIG,
-    
-    // 角色管理（部分权限）
-    PERMISSIONS.ROLE_VIEW,
-    PERMISSIONS.ROLE_ASSIGN,
-    PERMISSIONS.ROLE_PERMISSION_VIEW,
-    PERMISSIONS.ROLE_HISTORY_VIEW,
-    
-    // 系统管理
-    PERMISSIONS.USER_MANAGEMENT
-  ],
-  hr_manager: [
-    // 员工查看和基本操作
-    PERMISSIONS.EMPLOYEE_VIEW,
-    PERMISSIONS.EMPLOYEE_CREATE,
-    PERMISSIONS.EMPLOYEE_UPDATE,
-    PERMISSIONS.EMPLOYEE_EXPORT,
-    
-    // 部门查看
     PERMISSIONS.DEPARTMENT_VIEW,
-    
-    // 薪资查看和基本操作
+    PERMISSIONS.DEPARTMENT_CREATE,
+    PERMISSIONS.DEPARTMENT_UPDATE,
+    PERMISSIONS.DEPARTMENT_DELETE,
+    PERMISSIONS.SYSTEM_CONFIG,
+    PERMISSIONS.SYSTEM_BACKUP,
+    PERMISSIONS.SYSTEM_LOGS
+  ],
+  
+  hr_manager: [
+    PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.EMPLOYEE_MANAGEMENT_READ,
+    PERMISSIONS.EMPLOYEE_MANAGEMENT_WRITE,
+    PERMISSIONS.DATA_DEPARTMENT_READ,
+    PERMISSIONS.USER_MANAGEMENT_READ,
+    PERMISSIONS.USER_VIEW,
+    PERMISSIONS.USER_UPDATE,
     PERMISSIONS.PAYROLL_VIEW,
     PERMISSIONS.PAYROLL_CREATE,
     PERMISSIONS.PAYROLL_UPDATE,
     PERMISSIONS.PAYROLL_EXPORT,
-    
-    // 报表查看
     PERMISSIONS.REPORT_VIEW,
     PERMISSIONS.REPORT_EXPORT,
-    
-    // 薪资组件查看
-    PERMISSIONS.COMPONENT_VIEW,
-    
-    // 保险查看
-    PERMISSIONS.INSURANCE_VIEW
+    PERMISSIONS.DEPARTMENT_VIEW
   ],
+  
   manager: [
-    // 员工查看（本部门）
-    PERMISSIONS.EMPLOYEE_VIEW,
-    
-    // 薪资查看（本部门）
+    PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.EMPLOYEE_MANAGEMENT_READ,
+    PERMISSIONS.DATA_DEPARTMENT_READ,
     PERMISSIONS.PAYROLL_VIEW,
-    
-    // 报表查看（本部门）
     PERMISSIONS.REPORT_VIEW
   ],
+  
   employee: [
-    // 只能查看自己的信息
-    PERMISSIONS.EMPLOYEE_VIEW, // 限制为自己
-    PERMISSIONS.PAYROLL_VIEW   // 限制为自己
+    PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.DATA_SELF_READ,
+    PERMISSIONS.PAYROLL_VIEW // 限制为自己的数据
   ]
 } as const;
 
+/**
+ * 权限分组（用于UI组织）
+ */
+export const PERMISSION_GROUPS = {
+  基础功能: [
+    PERMISSIONS.DASHBOARD_READ
+  ],
+  员工管理: [
+    PERMISSIONS.EMPLOYEE_MANAGEMENT_READ,
+    PERMISSIONS.EMPLOYEE_MANAGEMENT_WRITE
+  ],
+  数据访问: [
+    PERMISSIONS.DATA_ALL_READ,
+    PERMISSIONS.DATA_DEPARTMENT_READ,
+    PERMISSIONS.DATA_SELF_READ
+  ],
+  用户管理: [
+    PERMISSIONS.USER_MANAGEMENT_READ,
+    PERMISSIONS.USER_MANAGEMENT_WRITE,
+    PERMISSIONS.USER_MANAGEMENT,
+    PERMISSIONS.USER_VIEW,
+    PERMISSIONS.USER_CREATE,
+    PERMISSIONS.USER_UPDATE,
+    PERMISSIONS.USER_DELETE,
+    PERMISSIONS.USER_BATCH_OPERATION,
+    PERMISSIONS.USER_CHANGE_STATUS,
+    PERMISSIONS.USER_ASSIGN_ROLE,
+    PERMISSIONS.USER_REMOVE_ROLE
+  ],
+  角色管理: [
+    PERMISSIONS.ROLE_VIEW,
+    PERMISSIONS.ROLE_MANAGE,
+    PERMISSIONS.ROLE_ASSIGN,
+    PERMISSIONS.ROLE_PERMISSION_VIEW,
+    PERMISSIONS.ROLE_PERMISSION_MANAGE,
+    PERMISSIONS.ROLE_HISTORY_VIEW,
+    PERMISSIONS.ROLE_REQUEST_APPROVE
+  ],
+  薪资管理: [
+    PERMISSIONS.PAYROLL_VIEW,
+    PERMISSIONS.PAYROLL_CREATE,
+    PERMISSIONS.PAYROLL_UPDATE,
+    PERMISSIONS.PAYROLL_DELETE,
+    PERMISSIONS.PAYROLL_CLEAR,
+    PERMISSIONS.PAYROLL_APPROVE,
+    PERMISSIONS.PAYROLL_EXPORT
+  ],
+  报表管理: [
+    PERMISSIONS.REPORT_VIEW,
+    PERMISSIONS.REPORT_CREATE,
+    PERMISSIONS.REPORT_EXPORT
+  ],
+  系统管理: [
+    PERMISSIONS.SYSTEM_CONFIG,
+    PERMISSIONS.SYSTEM_BACKUP,
+    PERMISSIONS.SYSTEM_LOGS,
+    PERMISSIONS.PERMISSION_MANAGE
+  ]
+} as const;
+
+/**
+ * 权限描述映射（用于UI显示）
+ */
+export const PERMISSION_DESCRIPTIONS = {
+  [PERMISSIONS.DASHBOARD_READ]: '访问仪表板',
+  [PERMISSIONS.EMPLOYEE_MANAGEMENT_READ]: '查看员工信息',
+  [PERMISSIONS.EMPLOYEE_MANAGEMENT_WRITE]: '编辑员工信息',
+  [PERMISSIONS.DATA_ALL_READ]: '访问所有数据',
+  [PERMISSIONS.DATA_DEPARTMENT_READ]: '访问部门数据',
+  [PERMISSIONS.DATA_SELF_READ]: '访问个人数据',
+  [PERMISSIONS.USER_MANAGEMENT_READ]: '查看用户管理',
+  [PERMISSIONS.USER_MANAGEMENT_WRITE]: '用户管理操作',
+  [PERMISSIONS.USER_MANAGEMENT]: '用户管理',
+  [PERMISSIONS.USER_VIEW]: '查看用户',
+  [PERMISSIONS.USER_CREATE]: '创建用户',
+  [PERMISSIONS.USER_UPDATE]: '编辑用户',
+  [PERMISSIONS.USER_DELETE]: '删除用户',
+  [PERMISSIONS.USER_BATCH_OPERATION]: '批量操作用户',
+  [PERMISSIONS.USER_CHANGE_STATUS]: '修改用户状态',
+  [PERMISSIONS.USER_ASSIGN_ROLE]: '分配角色',
+  [PERMISSIONS.USER_REMOVE_ROLE]: '移除角色',
+  [PERMISSIONS.ROLE_VIEW]: '查看角色',
+  [PERMISSIONS.ROLE_MANAGE]: '管理角色',
+  [PERMISSIONS.ROLE_ASSIGN]: '分配角色',
+  [PERMISSIONS.ROLE_PERMISSION_VIEW]: '查看角色权限',
+  [PERMISSIONS.ROLE_PERMISSION_MANAGE]: '管理角色权限',
+  [PERMISSIONS.ROLE_HISTORY_VIEW]: '查看角色历史',
+  [PERMISSIONS.ROLE_REQUEST_APPROVE]: '批准角色申请',
+  [PERMISSIONS.PERMISSION_MANAGE]: '权限管理',
+  [PERMISSIONS.PAYROLL_VIEW]: '查看薪资',
+  [PERMISSIONS.PAYROLL_CREATE]: '创建薪资',
+  [PERMISSIONS.PAYROLL_UPDATE]: '编辑薪资',
+  [PERMISSIONS.PAYROLL_DELETE]: '删除薪资',
+  [PERMISSIONS.PAYROLL_CLEAR]: '清空薪资',
+  [PERMISSIONS.PAYROLL_APPROVE]: '审批薪资',
+  [PERMISSIONS.PAYROLL_EXPORT]: '导出薪资',
+  [PERMISSIONS.REPORT_VIEW]: '查看报表',
+  [PERMISSIONS.REPORT_CREATE]: '创建报表',
+  [PERMISSIONS.REPORT_EXPORT]: '导出报表',
+  [PERMISSIONS.DEPARTMENT_VIEW]: '查看部门',
+  [PERMISSIONS.DEPARTMENT_CREATE]: '创建部门',
+  [PERMISSIONS.DEPARTMENT_UPDATE]: '编辑部门',
+  [PERMISSIONS.DEPARTMENT_DELETE]: '删除部门',
+  [PERMISSIONS.SYSTEM_CONFIG]: '系统配置',
+  [PERMISSIONS.SYSTEM_BACKUP]: '系统备份',
+  [PERMISSIONS.SYSTEM_LOGS]: '系统日志'
+} as const;
+
+// 类型定义
 export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 export type Role = keyof typeof ROLE_PERMISSIONS;
+export type PermissionGroup = keyof typeof PERMISSION_GROUPS;

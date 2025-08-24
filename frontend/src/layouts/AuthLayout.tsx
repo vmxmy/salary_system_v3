@@ -1,12 +1,12 @@
 import { Outlet, Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { useTranslation } from '@/hooks/useTranslation';
 import logoSvg from '@/assets/logos/gaoxiaocai.svg';
 
 export function AuthLayout() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading } = useUnifiedAuth();
   const { t } = useTranslation();
 
   if (loading) {

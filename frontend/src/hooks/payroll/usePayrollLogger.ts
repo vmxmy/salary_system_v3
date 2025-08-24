@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 
 // 支持的操作日志类型
 export type LogAction = 'calculate' | 'calculate_insurance' | 'submit' | 'approve' | 'reject' | 'pay' | 'cancel';
@@ -32,7 +32,7 @@ export interface BatchLogParams {
  * 统一管理所有薪资相关操作的日志记录
  */
 export function usePayrollLogger() {
-  const { user } = useAuth();
+  const { user } = useUnifiedAuth();
 
   /**
    * 记录单个薪资操作日志

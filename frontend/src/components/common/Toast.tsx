@@ -12,7 +12,7 @@ interface ToastProps {
   onClose: (id: string) => void;
 }
 
-const Toast: React.FC<ToastProps> = ({ message, onClose }) => {
+export const Toast: React.FC<ToastProps> = ({ message, onClose }) => {
   useEffect(() => {
     if (message.duration !== 0) {
       const timer = setTimeout(() => {
@@ -86,4 +86,49 @@ export const useToast = () => {
   };
 
   return { messages, removeToast, toast };
+};
+
+// Simple Toast Component with direct props (for backward compatibility)
+interface SimpleToastProps {
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  onClose: () => void;
+}
+
+export const SimpleToast: React.FC<SimpleToastProps> = ({ message, type, onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const getAlertClass = () => {
+    switch (type) {
+      case 'success':
+        return 'alert-success';
+      case 'error':
+        return 'alert-error';
+      case 'warning':
+        return 'alert-warning';
+      case 'info':
+        return 'alert-info';
+      default:
+        return '';
+    }
+  };
+
+  return (
+    <div className="toast toast-top toast-end">
+      <div className={`alert ${getAlertClass()}`}>
+        <span>{message}</span>
+        <button 
+          className="btn btn-ghost btn-xs"
+          onClick={onClose}
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
 };

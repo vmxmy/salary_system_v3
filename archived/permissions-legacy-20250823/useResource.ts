@@ -20,9 +20,9 @@ import type {
   PermissionContext,
   PermissionResult,
   UseResourceOptions,
-  UseResourceReturn,
-  ResourceAccessError
+  UseResourceReturn
 } from '@/types/permission';
+import { ResourceAccessError } from '@/types/permission';
 
 /**
  * 资源访问控制 Hook
@@ -107,15 +107,9 @@ export function useResource(options: UseResourceOptions): UseResourceReturn {
           return user.managedDepartments.includes(targetResourceId);
 
         case 'report':
-          // 报表资源：检查报表创建者或查看权限
-          const { data: reportData, error: reportError } = await supabase
-            .from('reports')
-            .select('created_by, is_public')
-            .eq('id', targetResourceId)
-            .single();
-
-          if (reportError || !reportData) return false;
-          return reportData.created_by === user.id || reportData.is_public;
+          // 报表资源：暂时返回基于角色的权限（reports表不存在）
+          // TODO: 实现报表资源权限检查
+          return user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'hr_manager';
 
         default:
           return true;
@@ -135,24 +129,33 @@ export function useResource(options: UseResourceOptions): UseResourceReturn {
         case 'employee':
           // 检查员工是否在管理的部门中
           const { data: employeeData, error: employeeError } = await supabase
-            .from('view_employees_with_details')
+            .from('view_employee_basic_info')
             .select('department_id')
             .eq('employee_id', targetResourceId)
             .single();
 
           if (employeeError || !employeeData) return false;
-          return user.managedDepartments?.includes(employeeData.department_id) || false;
+          return user.managedDepartments?.includes(employeeData.department_id!) || false;
 
         case 'payroll':
           // 检查薪资记录对应的员工是否在管理部门中
           const { data: payrollData, error: payrollError } = await supabase
             .from('view_payroll_summary')
-            .select('department_id')
+            .select('employee_id')
             .eq('payroll_id', targetResourceId)
             .single();
 
           if (payrollError || !payrollData) return false;
-          return user.managedDepartments?.includes(payrollData.department_id) || false;
+          
+          // 再查询员工的部门信息
+          const { data: empData } = await supabase
+            .from('view_employee_basic_info')
+            .select('department_id')
+            .eq('employee_id', payrollData.employee_id!)
+            .single();
+            
+          if (!empData) return false;
+          return user.managedDepartments?.includes(empData.department_id!) || false;
 
         case 'department':
           return user.managedDepartments?.includes(targetResourceId) || false;

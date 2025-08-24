@@ -29,6 +29,7 @@ export interface PermissionContext {
   resource?: ResourceId;
   environment?: 'development' | 'production' | 'testing';
   timestamp?: Date;
+  metadata?: Record<string, unknown>;
 }
 
 // 权限检查结果
@@ -60,20 +61,32 @@ export interface DynamicPermission {
 }
 
 // 权限申请状态
-export type PermissionRequestStatus = 'pending' | 'approved' | 'rejected' | 'expired';
+export type PermissionRequestStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'revoked';
 
 // 权限申请接口
 export interface PermissionRequest {
   id: string;
   userId: string;
+  userEmail: string;
   permission: Permission;
+  resourceType?: string;
   resourceId?: string;
   reason: string;
+  requestType: 'permission';
   status: PermissionRequestStatus;
+  statusDisplay: string;
   requestedAt: Date;
-  processedAt?: Date;
-  processedBy?: string;
+  updatedAt: Date;
+  reviewedAt?: Date;
+  reviewedBy?: string;
+  reviewerEmail?: string;
+  rejectionReason?: string;
+  effectiveFrom?: Date;
   expiresAt?: Date;
+  durationDays: number;
+  urgencyLevel: 'low' | 'normal' | 'high' | 'urgent';
+  dataScope: 'self' | 'department' | 'all';
+  remainingHours: number;
   metadata?: Record<string, unknown>;
 }
 
@@ -88,7 +101,7 @@ export interface PermissionCacheItem {
 
 // 权限变更事件
 export interface PermissionChangeEvent {
-  type: 'role_changed' | 'permission_granted' | 'permission_revoked' | 'resource_updated';
+  type: 'role_changed' | 'permission_granted' | 'permission_revoked' | 'resource_updated' | 'permission_updated';
   userId: string;
   permission?: Permission;
   role?: Role;
@@ -158,10 +171,15 @@ export interface PermissionManagerConfig {
 
 // Hook 返回类型
 export interface UsePermissionReturn {
-  // 基础权限检查
+  // 基础权限检查 (同步，基于缓存)
   hasPermission: (permission: Permission, resourceId?: string) => boolean;
   hasAnyPermission: (permissions: Permission[], resourceId?: string) => boolean;
   hasAllPermissions: (permissions: Permission[], resourceId?: string) => boolean;
+  
+  // 异步权限检查 (实时从数据库检查)
+  hasPermissionAsync: (permission: Permission, context?: PermissionContext) => Promise<boolean>;
+  hasAnyPermissionAsync: (permissions: Permission[], context?: PermissionContext) => Promise<boolean>;
+  hasAllPermissionsAsync: (permissions: Permission[], context?: PermissionContext) => Promise<boolean>;
   
   // 上下文权限检查
   checkPermission: (permission: Permission, context?: Partial<PermissionContext>) => Promise<PermissionResult>;
@@ -181,6 +199,13 @@ export interface UsePermissionReturn {
   isSubscribed: boolean;
   subscribe: () => void;
   unsubscribe: () => void;
+  
+  // 调试信息
+  debug?: {
+    cacheSize: number;
+    requestCount: number;
+    userId?: string;
+  };
 }
 
 export interface UseRoleReturn {
@@ -203,43 +228,163 @@ export interface UseRoleReturn {
 }
 
 export interface UseResourceReturn {
-  // 资源访问权限
-  canView: boolean;
-  canCreate: boolean;
-  canUpdate: boolean;
-  canDelete: boolean;
-  canExport: boolean;
-  canManage: boolean;
+  // 资源访问检查
+  checkResourceAccess: (action: string, targetResourceId?: string, attributes?: Record<string, any>) => Promise<any>;
+  checkMultipleResources: (action: string, resourceIds: string[]) => Promise<Record<string, any>>;
   
-  // 动态权限检查
-  can: (action: string, resourceId?: string) => boolean;
-  canWithContext: (action: string, context?: Partial<PermissionContext>) => Promise<PermissionResult>;
+  // 便捷权限检查（异步）
+  canView: (targetResourceId?: string) => Promise<boolean>;
+  canCreate: () => Promise<boolean>;
+  canUpdate: (targetResourceId?: string) => Promise<boolean>;
+  canDelete: (targetResourceId?: string) => Promise<boolean>;
+  canExport: (targetResourceId?: string) => Promise<boolean>;
+  canManage: (targetResourceId?: string) => Promise<boolean>;
   
-  // 资源过滤
-  filterAccessible: <T extends { id: string }>(items: T[]) => T[];
-  getAccessibleIds: (ids: string[]) => Promise<string[]>;
+  // 批量操作
+  filterAccessibleResources: <T extends { id: string }>(action: string, resources: T[]) => Promise<T[]>;
+  getAccessibleResourceIds: (action: string, resourceIds: string[]) => Promise<string[]>;
+  
+  // 缓存权限状态（同步）
+  canViewCached: boolean;
+  canCreateCached: boolean;
+  canUpdateCached: boolean;
+  canDeleteCached: boolean;
+  canExportCached: boolean;
+  canManageCached: boolean;
+  
+  // 工具方法
+  buildPermission: (action: string) => string;
+  buildResourceContext: (targetResourceId?: string, attributes?: Record<string, any>) => any;
   
   // 状态
   loading: boolean;
   error: Error | null;
+  
+  // 资源信息
+  resourceType: string;
+  resourceId?: string;
+  scope: string;
+  user: any;
+}
+
+// 资源访问控制Hook返回类型（别名）
+export interface UseResourceAccessReturn extends UseResourceReturn {}
+
+// 权限申请过滤选项
+export interface PermissionRequestFilter {
+  status?: PermissionRequestStatus | 'all';
+  permission?: Permission;
+  requesterId?: string;
+  approverId?: string;
+  requestType?: 'permission' | 'role' | 'all';
+  dateRange?: 'day' | 'week' | 'month' | 'all' | {
+    start: Date;
+    end: Date;
+  };
+  sortBy?: 'created_at' | 'updated_at' | 'expires_at';
+  sortOrder?: 'asc' | 'desc';
+}
+
+// 权限申请统计信息
+export interface PermissionRequestStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  expired: number;
 }
 
 export interface UsePermissionRequestReturn {
   // 权限申请
-  requestPermission: (permission: Permission, resourceId?: string, reason?: string) => Promise<string>;
-  requestTemporaryPermission: (permission: Permission, duration: number, reason: string) => Promise<string>;
+  requestPermission: (options: any) => Promise<string>; // 使用 PermissionRequestOptions
+  batchRequestPermissions: (options: any) => Promise<string[]>; // 使用 BatchPermissionRequestOptions
+  requestTemporaryPermission: (permission: Permission, duration: number, reason: string, resourceId?: string) => Promise<string>;
   
   // 申请管理
-  getMyRequests: () => Promise<PermissionRequest[]>;
-  getPendingRequests: () => Promise<PermissionRequest[]>; // 仅管理员
-  
-  // 申请处理
-  approveRequest: (requestId: string, reason?: string) => Promise<boolean>;
-  rejectRequest: (requestId: string, reason?: string) => Promise<boolean>;
+  fetchMyRequests: () => Promise<PermissionRequest[]>;
+  fetchPendingRequests: () => Promise<PermissionRequest[]>; // 仅管理员
+  getRequestStats: () => Promise<any>; // PermissionRequestStats
+  filterRequests: (requests: PermissionRequest[], filter: any) => PermissionRequest[]; // PermissionRequestFilter
+  cancelRequest: (requestId: string) => Promise<void>;
   
   // 状态跟踪
   myRequests: PermissionRequest[];
   pendingRequests: PermissionRequest[]; // 仅管理员可见
+  canApproveRequests: boolean;
+  loading: boolean;
+  error: Error | null;
+}
+
+// 审批表单数据（从usePermissionApproval.ts导入）
+export interface ApprovalFormData {
+  requestId: string;
+  approved: boolean;
+  reason?: string;
+  modifyExpiration?: boolean;
+  newExpirationDate?: Date;
+  modifyConditions?: boolean;
+  newConditions?: Record<string, any>;
+}
+
+// 批量审批数据
+export interface BatchApprovalData {
+  actions: Array<{
+    requestId: string;
+    action: 'approve' | 'reject';
+    reason?: string;
+    conditions?: Record<string, any>;
+  }>;
+  globalReason?: string;
+}
+
+// 权限审批Hook接口
+export interface UsePermissionApprovalReturn {
+  // 审批数据
+  pendingRequests: PermissionRequest[];
+  approvalHistory: PermissionRequest[];
+  selectedRequests: string[];
+  
+  // 审批操作
+  approveRequest: (formData: ApprovalFormData) => Promise<void>;
+  batchApprove: (batchData: BatchApprovalData) => Promise<void>;
+  quickApprove: (requestId: string, reason?: string) => Promise<void>;
+  quickReject: (requestId: string, reason?: string) => Promise<void>;
+  
+  // 数据管理
+  fetchPendingRequests: () => Promise<PermissionRequest[]>;
+  fetchApprovalHistory: (limit?: number) => Promise<PermissionRequest[]>;
+  getApprovalStats: () => Promise<PermissionRequestStats>;
+  filterRequests: (requests: PermissionRequest[], filter: PermissionRequestFilter) => PermissionRequest[];
+  
+  // 状态管理
+  setSelectedRequests: (requestIds: string[]) => void;
+  
+  // 状态
+  loading: boolean;
+  error: Error | null;
+  canApprove: boolean;
+}
+
+// 角色管理Hook接口
+export interface UseRoleReturn {
+  // 角色信息
+  role: Role;
+  rolePermissions: Permission[];
+  
+  // 角色验证
+  isRole: (targetRole: Role | Role[]) => boolean;
+  hasRoleLevel: (minLevel: Role) => boolean;
+  canEscalate: boolean;
+  
+  // 角色管理
+  switchRole: (newRole: Role) => Promise<boolean>;
+  requestRole: (targetRole: Role, reason: string) => Promise<string>;
+  getMyRoleRequests: () => Promise<any[]>;
+  
+  // 工具方法
+  fetchRolePermissions: (targetRole?: Role) => Promise<Permission[]>;
+  
+  // 状态
   loading: boolean;
   error: Error | null;
 }

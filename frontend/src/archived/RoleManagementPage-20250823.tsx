@@ -146,11 +146,11 @@ export const RoleManagementPage: React.FC = () => {
   ];
 
   return (
-    <PermissionGuard permission="view_roles">
+    <PermissionGuard permissions={["view_roles" as any]}>
       <ManagementPageLayout
         title={pageTitle}
         breadcrumbs={breadcrumbs}
-        actions={toolbarActions}
+        actions={toolbarActions as any}
       >
         <div className="flex flex-col h-full">
           {/* 视图切换选项卡 */}
@@ -398,14 +398,7 @@ export const RoleManagementPage: React.FC = () => {
           }}
           onConfirm={handleConfirmDelete}
           title="确认删除角色"
-          message={
-            <div>
-              <p>您确定要删除角色 <strong>{deletingRole?.role_name}</strong> 吗？</p>
-              <p className="text-sm text-base-content/60 mt-2">
-                此操作不可撤销。如果有用户正在使用此角色，删除操作将会失败。
-              </p>
-            </div>
-          }
+          message={`您确定要删除角色 "${deletingRole?.role_name}" 吗？此操作不可撤销。如果有用户正在使用此角色，删除操作将会失败。`}
           confirmText="删除"
           confirmButtonClass="btn-error"
         />
@@ -413,3 +406,5 @@ export const RoleManagementPage: React.FC = () => {
     </PermissionGuard>
   );
 };
+
+export default RoleManagementPage;

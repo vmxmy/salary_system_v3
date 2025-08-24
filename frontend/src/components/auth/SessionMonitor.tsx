@@ -19,9 +19,10 @@ export function SessionMonitor({ children }: SessionMonitorProps) {
   
   const sessionCheckInterval = useRef<NodeJS.Timeout | undefined>(undefined);
   const lastActivityTime = useRef<number>(Date.now());
+  const lastLogTime = useRef<number>(0);
 
-  // 会话检查间隔 (5分钟)
-  const SESSION_CHECK_INTERVAL = 5 * 60 * 1000;
+  // 会话检查间隔 (10分钟，减少频率)
+  const SESSION_CHECK_INTERVAL = 10 * 60 * 1000;
   // 会话警告时间 (55分钟，Supabase默认是1小时)
   const SESSION_WARNING_TIME = 55 * 60 * 1000;
   // 用户活动超时 (30分钟无活动)
@@ -67,7 +68,11 @@ export function SessionMonitor({ children }: SessionMonitorProps) {
         }
       }
 
-      console.log('[SessionMonitor] Session is valid');
+      // 限制日志输出频率 (每5分钟最多一条)
+      if (now - lastLogTime.current > 5 * 60 * 1000) {
+        console.log('[SessionMonitor] Session is valid');
+        lastLogTime.current = now;
+      }
     } catch (error) {
       console.error('[SessionMonitor] Session check failed:', error);
       // 网络错误等情况，不立即要求重新验证

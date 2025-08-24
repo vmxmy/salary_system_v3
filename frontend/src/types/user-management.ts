@@ -74,6 +74,7 @@ export interface UserSearchFilters {
   search?: string;
   role?: string;
   status?: 'active' | 'inactive' | 'suspended';
+  active?: boolean; // Added for compatibility with UserSearchFilters component
   department?: string;
   has_employee?: boolean;
   created_after?: string;
@@ -126,6 +127,7 @@ export type BatchUserAction =
 export interface BatchUserOperation {
   action: BatchUserAction;
   userIds: string[];
+  role?: string; // Direct property for easy access
   parameters?: {
     role?: string;
     reason?: string;

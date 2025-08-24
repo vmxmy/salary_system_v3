@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { SimplePersistentAIRuntimeProvider } from '../lib/simplePersistentAIRuntime';
-import { useAuth } from '../hooks/useAuth';
+import { useUnifiedAuth } from '../contexts/UnifiedAuthContext';
 
 interface DebugMetrics {
   sessionCreationCount: number;
@@ -25,7 +25,7 @@ const AISessionDebugTest: React.FC = () => {
     sessionIds: []
   });
   
-  const { user } = useAuth();
+  const { user } = useUnifiedAuth();
   const renderCountRef = useRef(0);
   const sessionChangeCountRef = useRef(0);
   const sessionIdsRef = useRef<Set<string>>(new Set());

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useUserRole } from '@/hooks/core/useUserRole';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
+// import { useUserRole } from '@/hooks/core/useUserRole'; // moved to archived
 import { useTranslation } from '@/hooks/useTranslation';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { PermissionGuard } from '@/components/auth/PermissionGuard';
@@ -20,9 +20,13 @@ import { OnboardingButton } from '@/components/onboarding';
  */
 const StatisticsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const userRoleData = useUserRole(user?.email);
-  const { role: userRole, permissions, loading: roleLoading } = userRoleData;
+  const { user } = useUnifiedAuth();
+  // Role information now comes from auth user object (useUserRole moved to archived)
+  // const userRoleData = useUserRole(user?.email);
+  // const { role: userRole, permissions, loading: roleLoading } = userRoleData;
+  const userRole = user?.role || 'employee';
+  const permissions = user?.permissions || [];
+  const roleLoading = false;
   
   // 页面状态管理
   const [pageState, setPageState] = useState<StatisticsPageState>({

@@ -9,7 +9,7 @@ import {
 } from '@assistant-ui/react';
 import { MarkdownTextPrimitive } from '@assistant-ui/react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useAuth } from '../../hooks/useAuth';
+import { useUnifiedAuth } from '../../contexts/UnifiedAuthContext';
 import { XMarkIcon, PaperAirplaneIcon, ArrowDownIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { SparklesIcon } from '@heroicons/react/24/solid';
 import { SimplePersistentAIRuntimeProvider, useSessionContext } from '../../lib/simplePersistentAIRuntime.tsx';
@@ -312,7 +312,7 @@ export const AIChatDrawer: React.FC<{
   isOpen: boolean;
   onClose: () => void;
 }> = memo(({ isOpen, onClose }) => {
-  const { user } = useAuth();
+  const { user } = useUnifiedAuth();
 
   // 🔧 关键修复：使用样式控制显示，避免mount/unmount
   return (
@@ -400,7 +400,7 @@ AIFloatingButton.displayName = 'AIFloatingButton';
 export const AIAssistant: React.FC<AIAssistantProps> = memo(({ className = '' }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string>();
-  const { user } = useAuth();
+  const { user } = useUnifiedAuth();
 
   const handleOpenDrawer = useCallback(() => {
     setIsDrawerOpen(true);

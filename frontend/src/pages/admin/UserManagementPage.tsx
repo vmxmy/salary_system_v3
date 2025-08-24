@@ -1,539 +1,859 @@
 /**
- * 用户管理页面
+ * 用户管理页面 V2 - 基于新权限系统的完全重构版本
  * 
- * 基于 DaisyUI 5 的现代化用户管理界面，支持响应式布局和完整的用户操作功能
+ * 核心特性：
+ * - 基于修复后的 usePermission hook 进行权限控制
+ * - 现代化的响应式UI设计
+ * - 实时数据同步和缓存管理  
+ * - 细粒度权限控制和资源访问管理
+ * - 综合的错误处理和用户体验优化
+ * 
+ * 技术栈：
+ * - React 19 + TypeScript 5.8
+ * - DaisyUI 5 组件库
+ * - TanStack Table v8 数据表格
+ * - 统一权限管理系统
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { usePermission } from '@/hooks/permissions/usePermission';
+import { useResourceAccess } from '@/hooks/permissions/useResourceAccess';
 import { useUserManagement } from '@/hooks/user-management/useUserManagement';
-import { useEnhancedPermission } from '@/hooks/permissions/useEnhancedPermission';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { DataTable } from '@/components/common/DataTable';
-import { PageHeader } from '@/components/common/PageHeader';
-import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { Toast } from '@/components/common/Toast';
-import { UserDetailModal, UserBatchOperationsModal, UserSearchFilters, UserStatisticsCards } from '@/components/admin';
-import { createColumnHelper } from '@tanstack/react-table';
-import type { UserWithDetails, BatchUserAction, UserSearchFilters as SearchFilters } from '@/types/user-management';
+import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
+import type { ColumnDef } from '@tanstack/react-table';
+import type { UserWithPermissions, UserManagementFilters } from '@/hooks/user-management/useUserManagement';
+import type { Permission } from '@/types/permission';
 
-// 表格列配置
-const columnHelper = createColumnHelper<UserWithDetails>();
+// 懒加载模态框组件
+import { lazy } from 'react';
+const UserDetailsModal = lazy(() => import('@/components/admin/UserDetailsModal'));
+const UserCreateModal = lazy(() => import('@/components/admin/UserCreateModal'));
+const UserBatchActionsModal = lazy(() => import('@/components/admin/UserBatchActionsModal'));
 
-export function UserManagementPage() {
-  const { t } = useTranslation('admin');
-  const { hasPermission, hasAnyPermission } = useEnhancedPermission();
+// Icons
+import {
+  UserIcon,
+  UserPlusIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  EllipsisHorizontalIcon,
+  EyeIcon,
+  PencilSquareIcon,
+  TrashIcon,
+  ShieldCheckIcon,
+  UserGroupIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  BoltIcon,
+  ChartBarSquareIcon
+} from '@heroicons/react/24/outline';
+
+/**
+ * 用户管理页面权限配置
+ */
+import { PERMISSIONS } from '@/constants/permissions';
+
+const USER_MANAGEMENT_PERMISSIONS = {
+  READ_USERS: PERMISSIONS.USER_MANAGEMENT_READ,
+  CREATE_USERS: PERMISSIONS.USER_CREATE, 
+  UPDATE_USERS: PERMISSIONS.USER_UPDATE,
+  DELETE_USERS: PERMISSIONS.USER_DELETE,
+  ASSIGN_ROLES: PERMISSIONS.USER_ASSIGN_ROLE,
+  MANAGE_PERMISSIONS: PERMISSIONS.PERMISSION_MANAGE,
+  EXPORT_USERS: PERMISSIONS.USER_MANAGEMENT_WRITE, // Use write permission for export
+  BATCH_OPERATIONS: PERMISSIONS.USER_BATCH_OPERATION
+} as const;
+
+/**
+ * 用户状态常量
+ */
+const UserStatus = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  PENDING: 'pending',
+  SUSPENDED: 'suspended'
+} as const;
+
+/**
+ * 用户角色配置
+ */
+const USER_ROLES = {
+  SUPER_ADMIN: { code: 'super_admin', name: '超级管理员', level: 1, color: 'badge-error' },
+  ADMIN: { code: 'admin', name: '系统管理员', level: 2, color: 'badge-warning' },
+  HR_MANAGER: { code: 'hr_manager', name: '人事经理', level: 3, color: 'badge-info' },
+  MANAGER: { code: 'manager', name: '部门经理', level: 4, color: 'badge-success' },
+  EMPLOYEE: { code: 'employee', name: '普通员工', level: 5, color: 'badge-neutral' }
+} as const;
+
+/**
+ * 数据范围配置
+ */
+const DATA_SCOPES = {
+  ALL: { code: 'all', name: '全部数据', color: 'badge-success', icon: '🌍' },
+  DEPARTMENT: { code: 'department', name: '部门数据', color: 'badge-info', icon: '🏢' },
+  TEAM: { code: 'team', name: '团队数据', color: 'badge-warning', icon: '👥' },
+  SELF: { code: 'self', name: '个人数据', color: 'badge-neutral', icon: '👤' }
+} as const;
+
+/**
+ * 用户管理页面主组件
+ */
+export default function UserManagementPage() {
+  const { user: currentUser } = useUnifiedAuth();
   
-  const {
-    users,
-    total,
-    loading,
-    error,
-    pagination,
-    filters,
-    searchUsers,
-    sortUsers,
-    changePage,
-    changePageSize,
-    createUser,
-    updateUser,
-    deleteUser,
-    performBatchOperation,
-    refreshUsers
-  } = useUserManagement({
-    enableRealtime: true,
-    pageSize: 25
+  // 权限管理 hooks
+  const permission = usePermission({
+    enableCache: true,
+    watchChanges: true,
+    fallbackResult: false,
+    throwOnError: false
   });
 
-  // 页面状态管理
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showBatchModal, setShowBatchModal] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserWithDetails | null>(null);
-  const [batchAction, setBatchAction] = useState<BatchUserAction | null>(null);
-  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
-  const [confirmMessage, setConfirmMessage] = useState('');
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const userResource = useResourceAccess({
+    resourceType: 'employee',
+    scope: 'all',
+    checkOwnership: false
+  });
 
-  // Toast 状态
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
-  const [showToast, setShowToast] = useState(false);
+  // 用户数据管理
+  const userManagement = useUserManagement();
 
-  // 显示 Toast 消息
-  const showToastMessage = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    setToastMessage(message);
-    setToastType(type);
-    setShowToast(true);
-  }, []);
+  // 页面状态
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState<UserManagementFilters>({
+    search: '',
+    role: undefined,
+    active: undefined,
+    sortBy: 'email',
+    sortOrder: 'asc'
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  // 表格列定义
-  const columns = useMemo(() => [
+  // 模态框状态
+  const [modals, setModals] = useState({
+    userDetails: { open: false, userId: null as string | null },
+    userCreate: { open: false },
+    batchActions: { open: false }
+  });
+
+  // 权限检查状态
+  const [permissions, setPermissions] = useState({
+    canRead: false,
+    canCreate: false,
+    canUpdate: false,
+    canDelete: false,
+    canAssignRoles: false,
+    canManagePermissions: false,
+    canExport: false,
+    canBatchOperation: false
+  });
+
+  /**
+   * 初始化权限检查
+   */
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        setIsLoading(true);
+        
+        const permissionChecks = await permission.checkMultiplePermissions([
+          USER_MANAGEMENT_PERMISSIONS.READ_USERS,
+          USER_MANAGEMENT_PERMISSIONS.CREATE_USERS,
+          USER_MANAGEMENT_PERMISSIONS.UPDATE_USERS,
+          USER_MANAGEMENT_PERMISSIONS.DELETE_USERS,
+          USER_MANAGEMENT_PERMISSIONS.ASSIGN_ROLES,
+          USER_MANAGEMENT_PERMISSIONS.MANAGE_PERMISSIONS,
+          USER_MANAGEMENT_PERMISSIONS.EXPORT_USERS,
+          USER_MANAGEMENT_PERMISSIONS.BATCH_OPERATIONS
+        ]);
+
+        setPermissions({
+          canRead: permissionChecks[USER_MANAGEMENT_PERMISSIONS.READ_USERS]?.allowed || false,
+          canCreate: permissionChecks[USER_MANAGEMENT_PERMISSIONS.CREATE_USERS]?.allowed || false,
+          canUpdate: permissionChecks[USER_MANAGEMENT_PERMISSIONS.UPDATE_USERS]?.allowed || false,
+          canDelete: permissionChecks[USER_MANAGEMENT_PERMISSIONS.DELETE_USERS]?.allowed || false,
+          canAssignRoles: permissionChecks[USER_MANAGEMENT_PERMISSIONS.ASSIGN_ROLES]?.allowed || false,
+          canManagePermissions: permissionChecks[USER_MANAGEMENT_PERMISSIONS.MANAGE_PERMISSIONS]?.allowed || false,
+          canExport: permissionChecks[USER_MANAGEMENT_PERMISSIONS.EXPORT_USERS]?.allowed || false,
+          canBatchOperation: permissionChecks[USER_MANAGEMENT_PERMISSIONS.BATCH_OPERATIONS]?.allowed || false
+        });
+
+      } catch (err) {
+        console.error('[UserManagementV2] Permission check failed:', err);
+        setError(err instanceof Error ? err : new Error('权限检查失败'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (currentUser?.id) {
+      checkPermissions();
+    }
+  }, [currentUser?.id]); // Only depend on user ID, not the permission object
+
+  /**
+   * 数据表格列定义
+   */
+  const columnHelper = createDataTableColumnHelper<UserWithPermissions>();
+  
+  const columns = useMemo<ColumnDef<UserWithPermissions, any>[]>(() => [
     // 选择列
-    ...(hasPermission('user:batch_operation') ? [{
+    ...(permissions.canBatchOperation ? [{
       id: 'select',
       header: ({ table }: any) => (
-        <input
-          type="checkbox"
-          className="checkbox checkbox-sm"
-          checked={table.getIsAllPageRowsSelected()}
-          onChange={table.getToggleAllPageRowsSelectedHandler()}
-          aria-label={t('common.selectAll')}
-        />
+        <label className="label cursor-pointer">
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+          />
+        </label>
       ),
       cell: ({ row }: any) => (
-        <input
-          type="checkbox"
-          className="checkbox checkbox-sm"
-          checked={row.getIsSelected()}
-          onChange={row.getToggleSelectedHandler()}
-          aria-label={t('common.selectRow')}
-        />
+        <label className="label cursor-pointer">
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </label>
       ),
       enableSorting: false,
-      enableColumnFilter: false,
-      size: 40
+      enableHiding: false,
+      size: 50,
     }] : []),
 
     // 用户信息列
     columnHelper.accessor('email', {
-      id: 'email',
-      header: t('user.email'),
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <div className="avatar placeholder">
-            <div className="bg-primary text-primary-content rounded-full w-8 h-8">
-              <span className="text-xs font-bold">
-                {row.original.employee_name?.[0] || row.original.email[0].toUpperCase()}
-              </span>
-            </div>
-          </div>
-          <div>
-            <div className="font-semibold text-sm">{row.original.email}</div>
-            {row.original.employee_name && (
-              <div className="text-xs text-base-content/60">{row.original.employee_name}</div>
-            )}
-          </div>
+      id: 'user_info',
+      header: ({ column }) => (
+        <div className="flex items-center gap-2">
+          <UserIcon className="w-4 h-4" />
+          <button
+            className="flex items-center gap-1 hover:text-primary"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          >
+            用户信息
+            <BoltIcon className="w-3 h-3" />
+          </button>
         </div>
       ),
-      size: 250
+      cell: ({ row }) => (
+        <UserInfoCell user={row.original} />
+      ),
+      enableSorting: true,
+      sortingFn: 'alphanumeric',
     }),
 
-    // 部门和职位
+    // 角色和权限列
+    columnHelper.accessor('user_role', {
+      id: 'role_permissions',
+      header: ({ column }) => (
+        <div className="flex items-center gap-2">
+          <ShieldCheckIcon className="w-4 h-4" />
+          <button
+            className="flex items-center gap-1 hover:text-primary"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          >
+            角色权限
+            <BoltIcon className="w-3 h-3" />
+          </button>
+        </div>
+      ),
+      cell: ({ row }) => (
+        <RolePermissionsCell user={row.original} />
+      ),
+      enableSorting: true,
+    }),
+
+    // 部门职位列
     columnHelper.accessor('department_name', {
-      id: 'department',
-      header: t('user.department'),
+      id: 'organization',
+      header: '组织架构',
       cell: ({ row }) => (
-        <div className="text-sm">
-          <div className="font-medium">{row.original.department_name || '-'}</div>
-          {row.original.position_name && (
-            <div className="text-xs text-base-content/60">{row.original.position_name}</div>
-          )}
-        </div>
+        <OrganizationCell user={row.original} />
       ),
-      size: 200
-    }),
-
-    // 角色列
-    columnHelper.accessor('role_names', {
-      id: 'roles',
-      header: t('user.roles'),
-      cell: ({ row }) => (
-        <div className="flex flex-wrap gap-1">
-          {(row.original.role_names || []).map((role, index) => (
-            <span key={index} className="badge badge-primary badge-sm">
-              {t(`role.${role}`, role)}
-            </span>
-          ))}
-        </div>
-      ),
-      enableSorting: false,
-      size: 150
+      enableSorting: true,
     }),
 
     // 状态列
-    columnHelper.accessor('status', {
+    columnHelper.display({
       id: 'status',
-      header: t('user.status'),
-      cell: ({ row }) => {
-        const statusConfig = {
-          active: { class: 'badge-success', text: t('user.status.active') },
-          inactive: { class: 'badge-warning', text: t('user.status.inactive') },
-          suspended: { class: 'badge-error', text: t('user.status.suspended') }
-        };
-        const config = statusConfig[row.original.status];
-        
-        return (
-          <span className={`badge badge-sm ${config.class}`}>
-            {config.text}
-          </span>
-        );
-      },
-      filterFn: 'equals',
-      size: 100
+      header: ({ column }) => (
+        <div className="flex items-center gap-2">
+          <CheckCircleIcon className="w-4 h-4" />
+          状态
+        </div>
+      ),
+      cell: ({ row }) => (
+        <StatusCell user={row.original} />
+      ),
     }),
 
-    // 创建时间列
-    columnHelper.accessor('created_at', {
-      id: 'created_at',
-      header: t('user.createdAt'),
-      cell: ({ getValue }) => {
-        const date = getValue();
-        return date ? new Date(date).toLocaleDateString() : '-';
-      },
-      size: 120
+    // 最后活动时间列
+    columnHelper.accessor('role_assigned_at', {
+      id: 'last_activity',
+      header: ({ column }) => (
+        <div className="flex items-center gap-2">
+          <ClockIcon className="w-4 h-4" />
+          <button
+            className="flex items-center gap-1 hover:text-primary"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          >
+            最后活动
+            <BoltIcon className="w-3 h-3" />
+          </button>
+        </div>
+      ),
+      cell: ({ row }) => (
+        <LastActivityCell user={row.original} />
+      ),
+      enableSorting: true,
     }),
 
     // 操作列
     columnHelper.display({
       id: 'actions',
-      header: t('common.actions'),
+      header: '操作',
       cell: ({ row }) => (
-        <div className="flex gap-1">
-          {hasPermission('user:view') && (
-            <button
-              className="btn btn-ghost btn-xs"
-              onClick={() => handleViewUser(row.original)}
-              title={t('common.view')}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            </button>
-          )}
-
-          {hasPermission('user:update') && (
-            <button
-              className="btn btn-ghost btn-xs"
-              onClick={() => handleEditUser(row.original)}
-              title={t('common.edit')}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-          )}
-
-          {hasPermission('user:delete') && (
-            <button
-              className="btn btn-ghost btn-xs text-error"
-              onClick={() => handleDeleteUser(row.original)}
-              title={t('common.delete')}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          )}
-        </div>
+        <ActionsCell 
+          user={row.original} 
+          permissions={permissions}
+          onViewDetails={(userId) => setModals(prev => ({
+            ...prev,
+            userDetails: { open: true, userId }
+          }))}
+        />
       ),
+      enableSorting: false,
+      enableHiding: false,
       size: 120,
-      enableSorting: false
-    })
-  ], [hasPermission, t]);
+    }),
+  ], [permissions, columnHelper]);
 
-  // 事件处理函数
-  const handleViewUser = useCallback((user: UserWithDetails) => {
-    setEditingUser(user);
-    setShowEditModal(true);
-  }, []);
+  /**
+   * 过滤后的用户数据
+   */
+  const filteredData = useMemo(() => {
+    let filtered = [...(userManagement.users || [])];
 
-  const handleEditUser = useCallback((user: UserWithDetails) => {
-    setEditingUser(user);
-    setShowEditModal(true);
-  }, []);
-
-  const handleDeleteUser = useCallback((user: UserWithDetails) => {
-    setConfirmMessage(t('user.confirmDelete', { email: user.email }));
-    setConfirmAction(() => async () => {
-      try {
-        await deleteUser(user.id);
-        showToastMessage(t('user.deleteSuccess'), 'success');
-      } catch (err) {
-        showToastMessage(t('user.deleteError'), 'error');
-      }
-    });
-    setShowConfirmModal(true);
-  }, [deleteUser, t, showToastMessage]);
-
-  const handleCreateUser = useCallback(() => {
-    setEditingUser(null);
-    setShowCreateModal(true);
-  }, []);
-
-  const handleBatchAction = useCallback((action: BatchUserAction) => {
-    if (selectedUsers.length === 0) {
-      showToastMessage(t('user.noUsersSelected'), 'error');
-      return;
+    // 搜索过滤
+    if (filters.search?.trim()) {
+      const query = filters.search.toLowerCase();
+      filtered = filtered.filter(user => 
+        user.email?.toLowerCase().includes(query) ||
+        user.employee_name?.toLowerCase().includes(query) ||
+        user.department_name?.toLowerCase().includes(query) ||
+        user.position_name?.toLowerCase().includes(query)
+      );
     }
-    setBatchAction(action);
-    setShowBatchModal(true);
-  }, [selectedUsers, t, showToastMessage]);
 
-  const handleSearchChange = useCallback((newFilters: SearchFilters) => {
-    searchUsers(newFilters);
-  }, [searchUsers]);
+    // 角色过滤
+    if (filters.role) {
+      filtered = filtered.filter(user => user.user_role === filters.role);
+    }
 
-  const handleRefresh = useCallback(() => {
-    refreshUsers();
-    showToastMessage(t('common.refreshed'), 'success');
-  }, [refreshUsers, showToastMessage, t]);
+    // 状态过滤
+    if (filters.active !== undefined) {
+      filtered = filtered.filter(user => user.role_active === filters.active);
+    }
 
-  // 检查页面访问权限
-  if (!hasAnyPermission(['user:list', 'user:view', 'user:manage'])) {
+    return filtered;
+  }, [userManagement.users, filters]);
+
+  /**
+   * 统计数据
+   */
+  const stats = useMemo(() => {
+    const data = userManagement.users || [];
+    return {
+      total: data.length,
+      active: data.filter(u => u.role_active && u.config_active).length,
+      inactive: data.filter(u => !u.role_active || !u.config_active).length,
+      byRole: Object.values(USER_ROLES).map(role => ({
+        ...role,
+        count: data.filter(u => u.user_role === role.code).length
+      }))
+    };
+  }, [userManagement.users]);
+
+  /**
+   * 处理批量选择
+   */
+  const handleBatchSelection = useCallback((selection: Record<string, boolean>) => {
+    const selected = new Set(
+      Object.entries(selection)
+        .filter(([, selected]) => selected)
+        .map(([index]) => filteredData[parseInt(index)]?.user_id)
+        .filter(Boolean) as string[]
+    );
+    setSelectedUsers(selected);
+  }, [filteredData]);
+
+  /**
+   * 权限检查失败时的显示组件
+   */
+  if (!permissions.canRead && !isLoading) {
     return (
-      <div className="page-compact">
-        <div className="alert alert-error">
-          <svg className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
-          <span>{t('common.accessDenied')}</span>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center">
+        <div className="text-center max-w-md">
+          <ExclamationTriangleIcon className="w-16 h-16 mx-auto text-warning mb-4" />
+          <h2 className="text-2xl font-bold mb-2">访问受限</h2>
+          <p className="text-base-content/70 mb-6">
+            您没有权限访问用户管理页面。请联系系统管理员申请相应权限。
+          </p>
+          <button 
+            className="btn btn-primary"
+            onClick={() => window.history.back()}
+          >
+            返回上一页
+          </button>
         </div>
       </div>
     );
   }
 
-  // 加载状态
-  if (loading && users.length === 0) {
-    return <LoadingScreen />;
+  /**
+   * 加载状态
+   */
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <span className="loading loading-spinner loading-lg text-primary"></span>
+          <p className="mt-4 text-base-content/70">正在加载用户数据...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="page-compact">
-      {/* 页面标题 */}
-      <PageHeader
-        title={t('user.management')}
-        subtitle={t('user.managementDescription')}
-        breadcrumbs={[
-          { label: t('nav.admin'), href: '/admin' },
-          { label: t('nav.userManagement') }
-        ]}
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      {/* 页面头部 */}
+      <PageHeader 
+        stats={stats}
+        permissions={permissions}
+        onCreateUser={() => setModals(prev => ({ ...prev, userCreate: { open: true } }))}
+        onBatchActions={() => setModals(prev => ({ ...prev, batchActions: { open: true } }))}
+        selectedCount={selectedUsers.size}
       />
 
-      {/* 统计卡片 */}
-      <UserStatisticsCards />
-
       {/* 搜索过滤器 */}
-      <div className="card card-compact bg-base-100 shadow mb-6">
-        <div className="card-body">
-          <UserSearchFilters
-            filters={filters}
-            onFiltersChange={handleSearchChange}
+      <SearchFilters 
+        filters={filters}
+        onFiltersChange={setFilters}
+        availableRoles={Object.values(USER_ROLES)}
+      />
+
+      {/* 批量操作提示 */}
+      {selectedUsers.size > 0 && permissions.canBatchOperation && (
+        <BatchSelectionAlert 
+          selectedCount={selectedUsers.size}
+          onBatchActions={() => setModals(prev => ({ ...prev, batchActions: { open: true } }))}
+          onClearSelection={() => setSelectedUsers(new Set())}
+        />
+      )}
+
+      {/* 数据表格 */}
+      <div className="card bg-base-100 shadow-sm border">
+        <div className="card-body p-0">
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            loading={userManagement.loading}
+            enableRowSelection={permissions.canBatchOperation}
+            onRowSelectionChange={handleBatchSelection}
+            emptyMessage={getEmptyMessage(filters)}
+            showToolbar={true}
+            showGlobalFilter={false}
+            showColumnToggle={true}
+            striped={true}
+            hover={true}
+            initialPagination={{ pageIndex: 0, pageSize: 20 }}
           />
         </div>
       </div>
 
-      {/* 主要内容区域 */}
-      <div className="card card-compact bg-base-100 shadow">
-        {/* 工具栏 */}
-        <div className="card-body toolbar-compact pb-2">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-            {/* 左侧操作按钮 */}
-            <div className="flex flex-wrap gap-2">
-              {hasPermission('user:create') && (
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={handleCreateUser}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  {t('user.create')}
-                </button>
-              )}
-
-              {hasPermission('user:batch_operation') && selectedUsers.length > 0 && (
-                <div className="dropdown">
-                  <div tabIndex={0} role="button" className="btn btn-secondary btn-sm">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    {t('user.batchActions')} ({selectedUsers.length})
-                  </div>
-                  <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-                    <li><a onClick={() => handleBatchAction('activate')}>{t('user.batchActivate')}</a></li>
-                    <li><a onClick={() => handleBatchAction('deactivate')}>{t('user.batchDeactivate')}</a></li>
-                    <li><a onClick={() => handleBatchAction('assign_role')}>{t('user.batchAssignRole')}</a></li>
-                    <li><hr className="my-1" /></li>
-                    <li><a onClick={() => handleBatchAction('delete')} className="text-error">{t('user.batchDelete')}</a></li>
-                  </ul>
-                </div>
-              )}
-
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={handleRefresh}
-                disabled={loading}
-              >
-                <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                {t('common.refresh')}
-              </button>
-            </div>
-
-            {/* 右侧视图切换 */}
-            <div className="join">
-              <button
-                className={`btn btn-sm join-item ${viewMode === 'table' ? 'btn-active' : 'btn-outline'}`}
-                onClick={() => setViewMode('table')}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                {t('common.table')}
-              </button>
-              <button
-                className={`btn btn-sm join-item ${viewMode === 'grid' ? 'btn-active' : 'btn-outline'}`}
-                onClick={() => setViewMode('grid')}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-                {t('common.grid')}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* 数据表格 */}
-        {viewMode === 'table' ? (
-          <div className="card-body pt-0">
-            <DataTable
-              columns={columns}
-              data={users}
-              totalRows={total}
-              currentPage={pagination.page}
-              pageCount={pagination.totalPages}
-              onPaginationChange={({ pageIndex, pageSize }) => {
-                changePage(pageIndex + 1);
-                changePageSize(pageSize);
-              }}
-              onRowSelectionChange={setSelectedUsers}
-              enableRowSelection={hasPermission('user:batch_operation')}
-              loading={loading}
-              emptyMessage={t('user.noUsersFound')}
-              striped
-              hover
-              compact
-            />
-          </div>
-        ) : (
-          // 网格视图（简化版）
-          <div className="card-body pt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {users.map(user => (
-                <div key={user.id} className="card card-compact bg-base-200 hover:bg-base-300 transition-colors">
-                  <div className="card-body">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="avatar placeholder">
-                        <div className="bg-primary text-primary-content rounded-full w-10 h-10">
-                          <span className="font-bold">
-                            {user.employee_name?.[0] || user.email[0].toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm truncate">{user.email}</div>
-                        {user.employee_name && (
-                          <div className="text-xs text-base-content/60 truncate">{user.employee_name}</div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {(user.role_names || []).map((role, index) => (
-                        <span key={index} className="badge badge-primary badge-xs">
-                          {t(`role.${role}`, role)}
-                        </span>
-                      ))}
-                    </div>
-                    
-                    <div className="card-actions justify-end">
-                      <button
-                        className="btn btn-ghost btn-xs"
-                        onClick={() => handleViewUser(user)}
-                      >
-                        {t('common.view')}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* 模态框 */}
-      {showCreateModal && (
-        <UserDetailModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onSave={createUser}
-          mode="create"
-        />
-      )}
+      <Suspense fallback={<div className="loading loading-spinner loading-sm"></div>}>
+        {/* 用户详情模态框 */}
+        {modals.userDetails.open && (
+          <UserDetailsModal
+            isOpen={modals.userDetails.open}
+            userId={modals.userDetails.userId}
+            user={userManagement.users.find(u => u.user_id === modals.userDetails.userId) || null}
+            onClose={() => setModals(prev => ({ ...prev, userDetails: { open: false, userId: null } }))}
+            permissions={permissions}
+            onRefresh={() => userManagement.fetchUsers()}
+          />
+        )}
 
-      {showEditModal && editingUser && (
-        <UserDetailModal
-          isOpen={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          onSave={updateUser}
-          user={editingUser}
-          mode="edit"
-        />
-      )}
+        {/* 用户创建模态框 */}
+        {modals.userCreate.open && (
+          <UserCreateModal
+            isOpen={modals.userCreate.open}
+            employees={[]} // TODO: 从 hook 获取员工列表
+            availableRoles={Object.values(USER_ROLES)}
+            onClose={() => setModals(prev => ({ ...prev, userCreate: { open: false } }))}
+            onSuccess={() => {
+              userManagement.fetchUsers();
+              setModals(prev => ({ ...prev, userCreate: { open: false } }));
+            }}
+            onCreateUser={async (userData) => {
+              await userManagement.createUserProfile(userData.email, userData.employee_id);
+              if (userData.role) {
+                // TODO: 分配角色
+              }
+            }}
+          />
+        )}
 
-      {showBatchModal && batchAction && (
-        <UserBatchOperationsModal
-          isOpen={showBatchModal}
-          onClose={() => setShowBatchModal(false)}
-          onConfirm={performBatchOperation}
-          action={batchAction}
-          selectedUserIds={selectedUsers}
-        />
-      )}
-
-      {showConfirmModal && (
-        <ConfirmModal
-          isOpen={showConfirmModal}
-          onClose={() => setShowConfirmModal(false)}
-          onConfirm={() => {
-            confirmAction?.();
-            setShowConfirmModal(false);
-          }}
-          title={t('common.confirm')}
-          message={confirmMessage}
-          confirmText={t('common.delete')}
-          cancelText={t('common.cancel')}
-          type="danger"
-        />
-      )}
-
-      {/* Toast 通知 */}
-      {showToast && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setShowToast(false)}
-        />
-      )}
+        {/* 批量操作模态框 */}
+        {modals.batchActions.open && (
+          <UserBatchActionsModal
+            isOpen={modals.batchActions.open}
+            selectedUserIds={Array.from(selectedUsers)}
+            selectedUsers={Array.from(selectedUsers).map(userId => {
+              const user = userManagement.users.find(u => u.user_id === userId);
+              return {
+                user_id: userId,
+                email: user?.email || '',
+                employee_name: user?.employee_name || undefined,
+                current_role: user?.user_role || undefined,
+                current_scope: user?.data_scope || undefined,
+                is_active: (user?.role_active && user?.config_active) || false
+              };
+            })}
+            availableRoles={Object.values(USER_ROLES)}
+            onClose={() => setModals(prev => ({ ...prev, batchActions: { open: false } }))}
+            onSuccess={() => {
+              userManagement.fetchUsers();
+              setSelectedUsers(new Set());
+              setModals(prev => ({ ...prev, batchActions: { open: false } }));
+            }}
+            onBatchOperation={async (operation, userIds) => {
+              if (operation.action === 'assign_role' && operation.parameters?.role) {
+                await userManagement.batchAssignRole(userIds, operation.parameters.role);
+              }
+              // TODO: 实现其他批量操作
+            }}
+          />
+        )}
+      </Suspense>
 
       {/* 错误提示 */}
       {error && (
-        <div className="toast toast-top toast-end">
+        <div className="toast toast-end">
           <div className="alert alert-error">
-            <svg className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <ExclamationTriangleIcon className="w-5 h-5" />
             <span>{error.message}</span>
           </div>
         </div>
       )}
     </div>
   );
+}
+
+/**
+ * 页面头部组件
+ */
+interface PageHeaderProps {
+  stats: any;
+  permissions: any;
+  onCreateUser: () => void;
+  onBatchActions: () => void;
+  selectedCount: number;
+}
+
+function PageHeader({ stats, permissions, onCreateUser, onBatchActions, selectedCount }: PageHeaderProps) {
+  return (
+    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      {/* 标题和统计 */}
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <UserGroupIcon className="w-8 h-8 text-primary" />
+          用户管理
+        </h1>
+        <div className="flex items-center gap-4 mt-2 text-sm text-base-content/70">
+          <span className="flex items-center gap-1">
+            <ChartBarSquareIcon className="w-4 h-4" />
+            总计 {stats.total} 名用户
+          </span>
+          <span className="flex items-center gap-1">
+            <CheckCircleIcon className="w-4 h-4 text-success" />
+            {stats.active} 名活跃
+          </span>
+          <span className="flex items-center gap-1">
+            <ExclamationTriangleIcon className="w-4 h-4 text-warning" />
+            {stats.inactive} 名停用
+          </span>
+        </div>
+      </div>
+
+      {/* 操作按钮 */}
+      <div className="flex items-center gap-3">
+        {selectedCount > 0 && permissions.canBatchOperation && (
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={onBatchActions}
+          >
+            批量操作 ({selectedCount})
+          </button>
+        )}
+        
+        {permissions.canCreate && (
+          <button
+            className="btn btn-primary"
+            onClick={onCreateUser}
+          >
+            <UserPlusIcon className="w-4 h-4" />
+            创建用户
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 搜索过滤器组件
+ */
+interface SearchFiltersProps {
+  filters: UserManagementFilters;
+  onFiltersChange: (filters: UserManagementFilters) => void;
+  availableRoles: Array<{ code: string; name: string }>;
+}
+
+function SearchFilters({ filters, onFiltersChange, availableRoles }: SearchFiltersProps) {
+  return (
+    <div className="card bg-base-100 shadow-sm border">
+      <div className="card-body">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* 搜索框 */}
+          <div className="flex-1">
+            <div className="form-control">
+              <div className="input-group">
+                <input
+                  type="text"
+                  placeholder="搜索用户邮箱、姓名、部门..."
+                  className="input input-bordered flex-1"
+                  value={filters.search || ''}
+                  onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+                />
+                <button className="btn btn-square">
+                  <MagnifyingGlassIcon className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 角色过滤 */}
+          <div className="form-control">
+            <select
+              className="select select-bordered"
+              value={filters.role || ''}
+              onChange={(e) => onFiltersChange({ ...filters, role: e.target.value || undefined })}
+            >
+              <option value="">全部角色</option>
+              {availableRoles.map(role => (
+                <option key={role.code} value={role.code}>
+                  {role.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 状态过滤 */}
+          <div className="form-control">
+            <select
+              className="select select-bordered"
+              value={filters.active === undefined ? '' : filters.active.toString()}
+              onChange={(e) => onFiltersChange({ 
+                ...filters, 
+                active: e.target.value === '' ? undefined : e.target.value === 'true' 
+              })}
+            >
+              <option value="">全部状态</option>
+              <option value="true">活跃</option>
+              <option value="false">停用</option>
+            </select>
+          </div>
+
+          {/* 清除过滤器 */}
+          <button
+            className="btn btn-ghost"
+            onClick={() => onFiltersChange({ search: '', role: undefined, active: undefined })}
+          >
+            <FunnelIcon className="w-4 h-4" />
+            清除
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 批量选择提示组件
+ */
+interface BatchSelectionAlertProps {
+  selectedCount: number;
+  onBatchActions: () => void;
+  onClearSelection: () => void;
+}
+
+function BatchSelectionAlert({ selectedCount, onBatchActions, onClearSelection }: BatchSelectionAlertProps) {
+  return (
+    <div className="alert alert-info">
+      <div className="flex-1">
+        <span>已选择 {selectedCount} 名用户</span>
+      </div>
+      <div className="flex gap-2">
+        <button className="btn btn-sm btn-primary" onClick={onBatchActions}>
+          批量操作
+        </button>
+        <button className="btn btn-sm btn-outline" onClick={onClearSelection}>
+          取消选择
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 表格单元格组件
+ */
+function UserInfoCell({ user }: { user: UserWithPermissions }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="avatar placeholder">
+        <div className="bg-primary text-primary-content w-10 h-10 rounded-full">
+          <span className="text-sm font-medium">
+            {user.email?.charAt(0)?.toUpperCase() || user.employee_name?.charAt(0) || 'U'}
+          </span>
+        </div>
+      </div>
+      <div>
+        <div className="font-medium text-sm">{user.email}</div>
+        {user.employee_name && (
+          <div className="text-xs text-base-content/70">{user.employee_name}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RolePermissionsCell({ user }: { user: UserWithPermissions }) {
+  const roleConfig = Object.values(USER_ROLES).find(r => r.code === user.user_role);
+  const scopeConfig = Object.values(DATA_SCOPES).find(s => s.code === user.data_scope);
+  
+  return (
+    <div className="space-y-1">
+      <div className={`badge badge-sm ${roleConfig?.color || 'badge-neutral'}`}>
+        {roleConfig?.name || user.user_role || 'N/A'}
+      </div>
+      {scopeConfig && (
+        <div className={`badge badge-xs ${scopeConfig.color}`}>
+          {scopeConfig.icon} {scopeConfig.name}
+        </div>
+      )}
+      {user.permissions && (
+        <div className="text-xs text-base-content/70">
+          {user.permissions.length} 个权限
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OrganizationCell({ user }: { user: UserWithPermissions }) {
+  return (
+    <div>
+      {user.department_name && (
+        <div className="font-medium text-sm">{user.department_name}</div>
+      )}
+      {user.position_name && (
+        <div className="text-xs text-base-content/70">{user.position_name}</div>
+      )}
+    </div>
+  );
+}
+
+function StatusCell({ user }: { user: UserWithPermissions }) {
+  const isActive = user.role_active && user.config_active;
+  
+  return (
+    <div className={`badge badge-sm ${isActive ? 'badge-success' : 'badge-error'}`}>
+      {isActive ? '正常' : '停用'}
+    </div>
+  );
+}
+
+function LastActivityCell({ user }: { user: UserWithPermissions }) {
+  const activityTime = user.role_assigned_at;
+  
+  return (
+    <div className="text-sm text-base-content/70">
+      {activityTime ? new Date(activityTime).toLocaleDateString('zh-CN') : 'N/A'}
+    </div>
+  );
+}
+
+function ActionsCell({ 
+  user, 
+  permissions, 
+  onViewDetails 
+}: { 
+  user: UserWithPermissions; 
+  permissions: any; 
+  onViewDetails: (userId: string) => void;
+}) {
+  return (
+    <div className="dropdown dropdown-end">
+      <label tabIndex={0} className="btn btn-ghost btn-sm">
+        <EllipsisHorizontalIcon className="w-4 h-4" />
+      </label>
+      <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+        <li>
+          <button onClick={() => user.user_id && onViewDetails(user.user_id)}>
+            <EyeIcon className="w-4 h-4" />
+            查看详情
+          </button>
+        </li>
+        {permissions.canUpdate && (
+          <li>
+            <button>
+              <PencilSquareIcon className="w-4 h-4" />
+              编辑用户
+            </button>
+          </li>
+        )}
+        {permissions.canDelete && (
+          <li>
+            <button className="text-error">
+              <TrashIcon className="w-4 h-4" />
+              删除用户
+            </button>
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * 工具函数
+ */
+function getEmptyMessage(filters: UserManagementFilters): string {
+  const hasFilters = filters.search || filters.role || filters.active !== undefined;
+  return hasFilters 
+    ? "没有找到符合条件的用户"
+    : "暂无用户数据，点击\"创建用户\"开始添加用户";
 }

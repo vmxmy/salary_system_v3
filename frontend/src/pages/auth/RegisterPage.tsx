@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { validateEmail } from '@/lib/utils';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { signUp } = useAuth();
+  const { signUp } = useUnifiedAuth();
   const { t } = useTranslation('auth');
 
   const [isLoading, setIsLoading] = useState(false);
@@ -98,10 +98,12 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="form-control">
-            <label className="label">
+            <label htmlFor="register-fullname" className="label">
               <span className="label-text">{t('register.fullName')}</span>
             </label>
             <input
+              id="register-fullname"
+              name="fullName"
               type="text"
               className={`input input-bordered ${errors.fullName ? 'input-error' : ''}`}
               value={formData.fullName}
@@ -110,19 +112,24 @@ export default function RegisterPage() {
                 setErrors({ ...errors, fullName: '' });
               }}
               required
+              autoComplete="name"
+              placeholder="请输入您的姓名"
+              aria-describedby={errors.fullName ? "register-fullname-error" : undefined}
             />
             {errors.fullName && (
               <label className="label">
-                <span className="label-text-alt text-error">{errors.fullName}</span>
+                <span id="register-fullname-error" className="label-text-alt text-error">{errors.fullName}</span>
               </label>
             )}
           </div>
 
           <div className="form-control">
-            <label className="label">
+            <label htmlFor="register-email" className="label">
               <span className="label-text">{t('register.email')}</span>
             </label>
             <input
+              id="register-email"
+              name="email"
               type="email"
               className={`input input-bordered ${errors.email ? 'input-error' : ''}`}
               value={formData.email}
@@ -132,19 +139,23 @@ export default function RegisterPage() {
               }}
               required
               autoComplete="email"
+              placeholder="admin@example.com"
+              aria-describedby={errors.email ? "register-email-error" : undefined}
             />
             {errors.email && (
               <label className="label">
-                <span className="label-text-alt text-error">{errors.email}</span>
+                <span id="register-email-error" className="label-text-alt text-error">{errors.email}</span>
               </label>
             )}
           </div>
 
           <div className="form-control">
-            <label className="label">
+            <label htmlFor="register-password" className="label">
               <span className="label-text">{t('register.password')}</span>
             </label>
             <input
+              id="register-password"
+              name="password"
               type="password"
               className={`input input-bordered ${errors.password ? 'input-error' : ''}`}
               value={formData.password}
@@ -154,19 +165,23 @@ export default function RegisterPage() {
               }}
               required
               autoComplete="new-password"
+              placeholder="••••••••"
+              aria-describedby={errors.password ? "register-password-error" : undefined}
             />
             {errors.password && (
               <label className="label">
-                <span className="label-text-alt text-error">{errors.password}</span>
+                <span id="register-password-error" className="label-text-alt text-error">{errors.password}</span>
               </label>
             )}
           </div>
 
           <div className="form-control">
-            <label className="label">
+            <label htmlFor="register-confirm-password" className="label">
               <span className="label-text">{t('register.confirmPassword')}</span>
             </label>
             <input
+              id="register-confirm-password"
+              name="confirmPassword"
               type="password"
               className={`input input-bordered ${errors.confirmPassword ? 'input-error' : ''}`}
               value={formData.confirmPassword}
@@ -176,10 +191,12 @@ export default function RegisterPage() {
               }}
               required
               autoComplete="new-password"
+              placeholder="••••••••"
+              aria-describedby={errors.confirmPassword ? "register-confirm-password-error" : undefined}
             />
             {errors.confirmPassword && (
               <label className="label">
-                <span className="label-text-alt text-error">{errors.confirmPassword}</span>
+                <span id="register-confirm-password-error" className="label-text-alt text-error">{errors.confirmPassword}</span>
               </label>
             )}
           </div>

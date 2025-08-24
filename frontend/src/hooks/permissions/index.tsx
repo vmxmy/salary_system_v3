@@ -1,24 +1,35 @@
 /**
- * 权限 Hooks 统一入口
+ * 新版权限 Hooks 统一入口 - 完整版
  * 
- * 提供一套完整的权限管理 Hooks：
- * - useEnhancedPermission: 增强的权限验证
+ * 提供一套完整的权限管理 Hooks，完全基于新的 unified_permission_config 系统：
+ * - usePermission: 核心权限检查
  * - useRole: 角色管理
- * - useResource: 资源访问控制
  * - usePermissionRequest: 权限申请管理
+ * - usePermissionApproval: 权限审批管理
+ * - useResourceAccess: 资源访问控制
  * - usePermissions: 统一权限管理入口
  */
 
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
+import { usePermission } from './usePermission';
+import { useRole } from './useRole';
+// 重新启用所有权限Hook - 编译错误已修复
+import { usePermissionRequest } from './usePermissionRequest';
+import { usePermissionApproval } from './usePermissionApproval';
+import { useResourceAccess } from './useResourceAccess';
 
 // 导出所有权限相关 hooks
-export { useEnhancedPermission } from './useEnhancedPermission';
-export { useRole, roleUtils, ROLE_HIERARCHY } from './useRole';
-export { useResource, resourceUtils } from './useResource';
-export { usePermissionRequest, permissionRequestUtils } from './usePermissionRequest';
+export { usePermission } from './usePermission';
+export { useRole } from './useRole';
+export { usePermissionRequest } from './usePermissionRequest';
+export { usePermissionApproval } from './usePermissionApproval';
+export { useResourceAccess } from './useResourceAccess';
+
+// usePermissions 将在文件末尾通过默认导出提供
 
 // 导出权限管理器
-export { permissionManager, PermissionManager } from '@/lib/permissionManager';
+export { unifiedPermissionManager } from '@/lib/unifiedPermissionManager';
 
 // 导出类型定义
 export type {
@@ -26,182 +37,283 @@ export type {
   Role,
   PermissionContext,
   PermissionResult,
-  ResourceId,
   UsePermissionOptions,
   UsePermissionReturn,
   UseRoleReturn,
-  UseResourceOptions,
-  UseResourceReturn,
   UsePermissionRequestReturn,
+  UseResourceReturn,
   PermissionRequest,
   PermissionRequestStatus,
   PermissionChangeEvent,
   PermissionRule,
-  DynamicPermission,
-  PermissionError,
-  ResourceAccessError,
-  RoleEscalationError
+  ResourceId
 } from '@/types/permission';
+
+// 权限申请系统类型定义 (temporarily disabled)
+// export type {
+//   PermissionRequestFilter,
+//   PermissionRequestStats,
+//   PermissionRequestOptions,
+//   BatchPermissionRequestOptions
+// } from './usePermissionRequest';
+
+// 资源访问控制类型定义 (temporarily disabled)
+// export type {
+//   ResourceType,
+//   ResourceAccessOptions,
+//   ResourceAction
+// } from './useResourceAccess';
 
 // 导出权限常量
 export { PERMISSIONS, ROLE_PERMISSIONS } from '@/constants/permissions';
 
-import { useCallback } from 'react';
-import { useEnhancedPermission } from './useEnhancedPermission';
-import { useRole } from './useRole';
-import { useResource } from './useResource';
-import { usePermissionRequest } from './usePermissionRequest';
 import type { 
   Permission,
-  UsePermissionOptions,
-  UseResourceOptions,
-  ResourceId
+  UsePermissionOptions
 } from '@/types/permission';
 
 /**
- * 统一权限管理 Hook
- * 
- * 整合了所有权限相关功能，提供一个统一的接口
+ * 统一权限管理配置
  */
-export function usePermissions(options: UsePermissionOptions = {}) {
-  const permission = useEnhancedPermission(options);
-  const role = useRole();
-  const request = usePermissionRequest();
+export interface UsePermissionsOptions extends UsePermissionOptions {
+  enableResourceAccess?: boolean;
+  enableRoleManagement?: boolean;
+  enablePermissionRequests?: boolean;
+  enableApprovalWorkflow?: boolean;
+}
 
-  // 创建资源访问控制实例的工厂方法
-  const createResourceControl = useCallback((resourceOptions: UseResourceOptions) => {
-    return useResource({ ...options, ...resourceOptions });
-  }, [options]);
+/**
+ * 权限守卫组件属性
+ */
+interface PermissionGuardProps {
+  children: React.ReactNode;
+  permissions: Permission[];
+  mode?: 'requireAll' | 'requireAny';
+  fallback?: React.ReactNode;
+}
 
-  // 便捷的资源访问方法
-  const forResource = useCallback((
-    resourceType: ResourceId['type'],
-    resourceId?: string,
-    scope?: 'own' | 'department' | 'all'
-  ) => {
-    return createResourceControl({
-      resourceType,
-      resourceId,
-      scope,
-      checkOwnership: scope === 'own',
-      ...options
-    });
-  }, [createResourceControl, options]);
+/**
+ * 角色守卫组件属性
+ */
+interface RoleGuardProps {
+  children: React.ReactNode;
+  roles: string | string[];
+  requireAll?: boolean;
+  fallback?: React.ReactNode;
+}
+
+/**
+ * 统一权限管理Hook
+ * 
+ * 集成所有权限相关功能，提供一个统一的入口
+ */
+export function usePermissions(options: UsePermissionsOptions = {}) {
+  const { user } = useUnifiedAuth();
+  const {
+    enableResourceAccess = true,
+    enableRoleManagement = true,
+    enablePermissionRequests = true,
+    enableApprovalWorkflow = true,
+    ...permissionOptions
+  } = options;
+
+  // 构建基础权限上下文
+  const baseContext = useMemo(() => ({
+    user: user ? {
+      id: user.id,
+      email: user.email,
+      role: user.role as any,
+      departmentId: user.departmentId,
+      managedDepartments: user.managedDepartments
+    } : undefined,
+    timestamp: new Date(),
+  }), [user]);
+
+  // 核心权限Hook
+  const permissionHook = usePermission(permissionOptions);
+  
+  // 角色管理Hook (条件加载)
+  const roleHook = useRole();
+  
+  // 重新启用高级权限Hook
+  const requestHook = enablePermissionRequests ? usePermissionRequest() : undefined;
+  const approvalHook = enableApprovalWorkflow ? usePermissionApproval() : undefined;
+  const resourceHook = enableResourceAccess ? useResourceAccess({
+    resourceType: 'system',
+    fallbackResult: false
+  }) : undefined;
+
+  // 快速权限检查 (简化版本)
+  const can = useCallback(async (permission: Permission, resourceId?: string): Promise<boolean> => {
+    return permissionHook.hasPermission(permission, resourceId);
+  }, [permissionHook]);
 
   return {
-    // 基础权限功能
-    ...permission,
+    // === 核心权限功能 ===
+    checkPermission: permissionHook.checkPermission,
+    checkMultiplePermissions: permissionHook.checkMultiplePermissions,
+    hasPermission: permissionHook.hasPermission,
+    hasAnyPermission: permissionHook.hasAnyPermission,
+    hasAllPermissions: permissionHook.hasAllPermissions,
+    clearPermissionCache: permissionHook.clearCache,
     
-    // 角色管理
-    role: role.role,
-    isRole: role.isRole,
-    hasRoleLevel: role.hasRoleLevel,
-    rolePermissions: role.rolePermissions,
-    canEscalate: role.canEscalate,
-    switchRole: role.switchRole,
-    requestRole: role.requestRole,
+    // === 角色管理 ===
+    ...(enableRoleManagement && {
+      role: roleHook.role,
+      rolePermissions: roleHook.rolePermissions,
+      isRole: roleHook.isRole,
+      hasRoleLevel: roleHook.hasRoleLevel,
+      canEscalate: roleHook.canEscalate,
+      switchRole: roleHook.switchRole,
+      requestRole: roleHook.requestRole,
+    }),
     
-    // 权限申请管理
-    requestPermission: request.requestPermission,
-    requestTemporaryPermission: request.requestTemporaryPermission,
-    getMyRequests: request.getMyRequests,
-    getPendingRequests: request.getPendingRequests,
-    approveRequest: request.approveRequest,
-    rejectRequest: request.rejectRequest,
-    myRequests: request.myRequests,
-    pendingRequests: request.pendingRequests,
+    // === 权限申请功能 ===
+    ...(enablePermissionRequests && requestHook && {
+      requestPermission: requestHook.requestPermission,
+      fetchMyRequests: requestHook.fetchMyRequests,
+      cancelRequest: requestHook.cancelRequest,
+      myRequests: requestHook.myRequests,
+    }),
     
-    // 资源访问控制工厂
-    createResourceControl,
-    forResource,
+    // === 权限审批功能 ===
+    ...(enableApprovalWorkflow && approvalHook && {
+      approveRequest: approvalHook.approveRequest,
+      fetchPendingRequests: approvalHook.fetchPendingRequests,
+      pendingRequests: approvalHook.pendingRequests,
+      canApprove: approvalHook.canApprove,
+    }),
     
-    // 组合状态
-    loading: permission.loading || role.loading || request.loading,
-    error: permission.error || role.error || request.error,
+    // === 资源访问控制功能 ===
+    ...(enableResourceAccess && resourceHook && {
+      checkResourceAccess: resourceHook.checkResourceAccess,
+      canView: resourceHook.canView,
+      canCreate: resourceHook.canCreate,
+      canUpdate: resourceHook.canUpdate,
+      canDelete: resourceHook.canDelete,
+      canExport: resourceHook.canExport,
+      canManage: resourceHook.canManage,
+    }),
+    
+    // === 高级功能 ===
+    can,
+    
+    // === 权限守卫组件 ===
+    PermissionGuard: ({ children, permissions, mode = 'requireAll', fallback }: PermissionGuardProps) => {
+      const [hasPermission, setHasPermission] = React.useState(false);
+      const [checking, setChecking] = React.useState(true);
+      
+      React.useEffect(() => {
+        const checkPermissions = async () => {
+          setChecking(true);
+          try {
+            let result: boolean;
+            if (mode === 'requireAll') {
+              result = await permissionHook.hasAllPermissions(permissions);
+            } else {
+              result = await permissionHook.hasAnyPermission(permissions);
+            }
+            setHasPermission(result);
+          } catch (error) {
+            console.error('Permission check failed:', error);
+            setHasPermission(false);
+          } finally {
+            setChecking(false);
+          }
+        };
+        
+        checkPermissions();
+      }, [permissions, mode]);
+      
+      if (checking) {
+        return null; // 或者返回加载指示器
+      }
+      
+      if (!hasPermission) {
+        return fallback ? <>{fallback}</> : null;
+      }
+      
+      return <>{children}</>;
+    },
+    
+    // === 角色守卫组件 ===
+    RoleGuard: ({ children, roles, requireAll = false, fallback }: RoleGuardProps) => {
+      const [hasRole, setHasRole] = React.useState(false);
+      const [checking, setChecking] = React.useState(true);
+      
+      React.useEffect(() => {
+        if (!enableRoleManagement) {
+          setHasRole(false);
+          setChecking(false);
+          return;
+        }
+        
+        const checkRoles = async () => {
+          setChecking(true);
+          try {
+            const roleArray = Array.isArray(roles) ? roles : [roles];
+            let result: boolean;
+            
+            if (requireAll) {
+              result = roleArray.every(role => roleHook.isRole(role as any));
+            } else {
+              result = roleArray.some(role => roleHook.isRole(role as any));
+            }
+            
+            setHasRole(result);
+          } catch (error) {
+            console.error('Role check failed:', error);
+            setHasRole(false);
+          } finally {
+            setChecking(false);
+          }
+        };
+        
+        checkRoles();
+      }, [roles, requireAll, enableRoleManagement]);
+      
+      if (checking) {
+        return null;
+      }
+      
+      if (!hasRole) {
+        return fallback ? <>{fallback}</> : null;
+      }
+      
+      return <>{children}</>;
+    },
+    
+    // === 状态信息 ===
+    loading: permissionHook.loading || 
+             (enableRoleManagement && roleHook.loading) ||
+             (enablePermissionRequests && requestHook?.loading) ||
+             (enableApprovalWorkflow && approvalHook?.loading) ||
+             (enableResourceAccess && resourceHook?.loading),
+             
+    error: permissionHook.error || 
+           (enableRoleManagement && roleHook.error) ||
+           (enablePermissionRequests && requestHook?.error) ||
+           (enableApprovalWorkflow && approvalHook?.error) ||
+           (enableResourceAccess && resourceHook?.error),
+    
+    // === 用户上下文 ===
+    user,
+    baseContext,
+    
+    // === 配置信息 ===
+    config: {
+      enableResourceAccess,
+      enableRoleManagement,
+      enablePermissionRequests,
+      enableApprovalWorkflow
+    },
+    
+    // === 实时更新 ===
+    isRealtime: true
   };
 }
 
-// 便捷的权限检查函数
-export const createPermissionChecker = (options: UsePermissionOptions = {}) => {
-  return (permission: Permission, resourceId?: string) => {
-    const { hasPermission } = useEnhancedPermission(options);
-    return hasPermission(permission, resourceId);
-  };
-};
-
-// 权限装饰器工厂（用于类组件或函数）
-export const withPermission = (
-  permission: Permission | Permission[],
-  options: UsePermissionOptions = {}
-) => {
-  return function <T extends React.ComponentType<any>>(Component: T): T {
-    const PermissionWrapper = (props: any) => {
-      const { hasPermission, hasAllPermissions } = useEnhancedPermission(options);
-      
-      const hasRequiredPermissions = Array.isArray(permission)
-        ? hasAllPermissions(permission)
-        : hasPermission(permission);
-
-      if (!hasRequiredPermissions) {
-        return (
-          <div className="alert alert-warning">
-            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <span>您没有访问此功能的权限。</span>
-          </div>
-        );
-      }
-
-      return <Component {...props} />;
-    };
-
-    return PermissionWrapper as T;
-  };
-};
-
-// 权限路由守卫工厂
-export const createPermissionGuard = (
-  permission: Permission | Permission[],
-  options: UsePermissionOptions = {}
-) => {
-  return ({ children }: { children: React.ReactNode }) => {
-    const { hasPermission, hasAllPermissions, loading } = useEnhancedPermission(options);
-    
-    if (loading) {
-      return (
-        <div className="flex justify-center items-center p-8">
-          <span className="loading loading-spinner loading-lg"></span>
-        </div>
-      );
-    }
-    
-    const hasRequiredPermissions = Array.isArray(permission)
-      ? hasAllPermissions(permission)
-      : hasPermission(permission);
-
-    if (!hasRequiredPermissions) {
-      return (
-        <div className="hero min-h-screen bg-base-200">
-          <div className="hero-content text-center">
-            <div className="max-w-md">
-              <div className="text-6xl mb-4">🔒</div>
-              <h1 className="text-5xl font-bold">访问受限</h1>
-              <p className="py-6">
-                您没有访问此页面的权限。如需访问，请联系管理员申请相应权限。
-              </p>
-              <button 
-                className="btn btn-primary"
-                onClick={() => window.history.back()}
-              >
-                返回上一页
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return <>{children}</>;
-  };
-};
+/**
+ * 默认导出统一权限Hook
+ */
+export default usePermissions;

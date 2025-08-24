@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { usePayrollLogger } from './usePayrollLogger';
 import type { Database } from '@/types/supabase';
 
@@ -98,7 +98,7 @@ const queryKeys = {
 export function usePayrollApproval() {
   const queryClient = useQueryClient();
   const { showSuccess, showError, showWarning } = useToast();
-  const { user } = useAuth();
+  const { user } = useUnifiedAuth();
   const { logBatch } = usePayrollLogger();
   
   const [isProcessing, setIsProcessing] = useState(false);

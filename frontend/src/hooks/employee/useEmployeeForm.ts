@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useEmployeeList } from './useEmployeeList';
 import { useDepartments } from '../department/useDepartments';
-import { usePositions } from '../position/usePositions';
-import { usePersonnelCategories } from '../category/usePersonnelCategories';
+// Temporarily disabled - hooks moved to archived
+// import { usePositions } from '../position/usePositions';
+// import { usePersonnelCategories } from '../category/usePersonnelCategories';
 import type { CreateEmployeeRequest, EmployeeBasicInfo } from '@/types/employee';
 
 /**
@@ -113,8 +114,13 @@ export function useEmployeeForm(options: EmployeeFormOptions) {
   // 获取依赖数据
   const { actions: employeeActions, loading: employeeLoading } = useEmployeeList();
   const { departments, loading: departmentLoading } = useDepartments();
-  const { positions, loading: positionLoading } = usePositions();
-  const { categories, loading: categoryLoading } = usePersonnelCategories();
+  // Temporarily disabled - hooks moved to archived
+  // const { positions, loading: positionLoading } = usePositions();
+  // const { categories, loading: categoryLoading } = usePersonnelCategories();
+  const positions: any[] = [];
+  const categories: any[] = [];
+  const positionLoading = false;
+  const categoryLoading = false;
   
   // 适配loading状态
   const isDepartmentsLoading = departmentLoading;
@@ -453,7 +459,7 @@ export function useEmployeeForm(options: EmployeeFormOptions) {
     options: {
       departments,
       positions,
-      categories: categories.map(cat => ({
+      categories: categories.map((cat: any) => ({
         id: cat.id,
         name: cat.name,
         level: cat.level,

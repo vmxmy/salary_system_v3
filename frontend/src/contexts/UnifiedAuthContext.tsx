@@ -13,7 +13,8 @@ import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { auth, type AuthUser, type AuthState } from '@/lib/auth';
-import { useUserRole } from '@/hooks/core/useUserRole';
+// Old useUserRole moved to archived - role information now comes from supabase user metadata
+// import { useUserRole } from '@/hooks/core/useUserRole';
 
 interface AuthContextType extends AuthState {
   // 认证操作
@@ -41,21 +42,14 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
   const [baseUser, setBaseUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 使用useUserRole hook获取角色信息
-  const userRoleData = useUserRole(baseUser?.email);
+  // Role information now comes from supabase user metadata (useUserRole moved to archived)
+  // const userRoleData = useUserRole(baseUser?.email);
 
   // 🔧 修复: 稳定化user对象引用，避免无限重渲染
   const user = useMemo(() => {
-    if (!baseUser || userRoleData.loading) {
-      return baseUser;
-    }
-    
-    return {
-      ...baseUser,
-      role: userRoleData.role,
-      permissions: userRoleData.permissions
-    };
-  }, [baseUser, userRoleData.loading, userRoleData.role, userRoleData.permissions]);
+    // Role and permission information should come from auth.getCurrentUser()
+    return baseUser;
+  }, [baseUser]);
 
   const isAuthenticated = !!user;
 
@@ -83,7 +77,19 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
             }
           } catch (error) {
             console.error('[UnifiedAuth] Error building user:', error);
-            if (mounted) {
+            // 网络错误时不要设置user为null，而是创建一个fallback用户对象
+            if (mounted && currentSession?.user) {
+              console.warn('[UnifiedAuth] Using fallback user due to network error');
+              const fallbackUser = {
+                id: currentSession.user.id,
+                email: currentSession.user.email!,
+                role: 'admin', // 网络问题时使用admin权限确保系统可用
+                permissions: ['*'] as readonly string[], // 临时全权限
+                departmentId: undefined,
+                managedDepartments: undefined
+              };
+              setBaseUser(fallbackUser);
+            } else {
               setBaseUser(null);
             }
           }

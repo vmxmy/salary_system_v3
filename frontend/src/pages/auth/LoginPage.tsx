@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { validateEmail, cn } from '@/lib/utils';
 import { auth } from '@/lib/auth';
@@ -8,7 +8,7 @@ import { auth } from '@/lib/auth';
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, signInWithMagicLink } = useAuth();
+  const { signIn, signInWithMagicLink } = useUnifiedAuth();
   const { t } = useTranslation('auth');
 
   const [isLoading, setIsLoading] = useState(false);
@@ -330,10 +330,12 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="form-control">
-            <label className="label">
+            <label htmlFor="login-email" className="label">
               <span className={cn("label-text", "text-base")}>{t('login.email')}</span>
             </label>
             <input
+              id="login-email"
+              name="email"
               type="email"
               className={`input input-bordered ${errors.email ? 'input-error' : ''}`}
               value={formData.email}
@@ -344,10 +346,11 @@ export default function LoginPage() {
               required
               autoComplete="email"
               placeholder="admin@example.com"
+              aria-describedby={errors.email ? "login-email-error" : undefined}
             />
             {errors.email && (
               <label className="label">
-                <span className={cn("label-text-alt text-error", "text-base")}>{errors.email}</span>
+                <span id="login-email-error" className={cn("label-text-alt text-error", "text-base")}>{errors.email}</span>
               </label>
             )}
           </div>
@@ -355,10 +358,12 @@ export default function LoginPage() {
           {loginMethod === 'password' && (
             <>
               <div className="form-control">
-                <label className="label">
+                <label htmlFor="login-password" className="label">
                   <span className={cn("label-text", "text-base")}>{t('login.password')}</span>
                 </label>
                 <input
+                  id="login-password"
+                  name="password"
                   type="password"
                   className={`input input-bordered ${errors.password ? 'input-error' : ''}`}
                   value={formData.password}
@@ -369,18 +374,21 @@ export default function LoginPage() {
                   required
                   autoComplete="current-password"
                   placeholder="••••••••"
+                  aria-describedby={errors.password ? "login-password-error" : undefined}
                 />
                 {errors.password && (
                   <label className="label">
-                    <span className={cn("label-text-alt text-error", "text-base")}>{errors.password}</span>
+                    <span id="login-password-error" className={cn("label-text-alt text-error", "text-base")}>{errors.password}</span>
                   </label>
                 )}
               </div>
 
               <div className="form-control">
-                <label className="label cursor-pointer">
+                <label htmlFor="login-remember-me" className="label cursor-pointer">
                   <span className={cn("label-text", "text-base")}>{t('login.rememberMe')}</span>
                   <input
+                    id="login-remember-me"
+                    name="rememberMe"
                     type="checkbox"
                     className="checkbox checkbox-primary"
                     checked={formData.rememberMe}

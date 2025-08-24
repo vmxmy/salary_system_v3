@@ -6,13 +6,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useEnhancedPermission } from '@/hooks/permissions/useEnhancedPermission';
-import { supabase } from '@/lib/supabase';
+import { usePermissions } from '@/hooks/permissions';
+import { useUserManagement } from '@/hooks/user-management/useUserManagement';
+import { PERMISSIONS } from '@/constants/permissions';
 import type { UserStatistics } from '@/types/user-management';
 
 export function UserStatisticsCards() {
   const { t } = useTranslation('admin');
-  const { hasPermission } = useEnhancedPermission();
+  const { hasPermission } = usePermissions();
+  const { getUserStats, loading: statsLoading, error: statsError } = useUserManagement();
   
   const [stats, setStats] = useState<UserStatistics>({
     total_users: 0,
@@ -30,7 +32,7 @@ export function UserStatisticsCards() {
 
   // 加载统计数据
   const loadStatistics = useCallback(async () => {
-    if (!hasPermission('user:view')) {
+    if (!hasPermission(PERMISSIONS.USER_VIEW)) {
       setLoading(false);
       return;
     }
@@ -39,78 +41,22 @@ export function UserStatisticsCards() {
     setError(null);
 
     try {
-      // 获取用户和角色数据
-      const { data: users, error: usersError } = await supabase
-        .from('user_profiles')
-        .select(`
-          *,
-          user_roles (
-            role,
-            is_active
-          )
-        `);
-
-      if (usersError) throw usersError;
-
-      // 获取权限申请数量
-      const { count: pendingRequests, error: requestsError } = await supabase
-        .from('permission_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      if (requestsError) throw requestsError;
-
-      // 计算统计信息
-      const statistics: UserStatistics = {
-        total_users: users?.length || 0,
-        active_users: 0,
-        inactive_users: 0,
-        suspended_users: 0,
-        users_with_employees: 0,
-        recent_logins: 0,
-        pending_permission_requests: pendingRequests || 0,
-        role_distribution: {}
-      };
-
-      // 分析用户数据
-      users?.forEach(user => {
-        // 统计员工关联
-        if (user.employee_id) {
-          statistics.users_with_employees++;
-        }
-
-        // 分析用户状态和角色
-        const activeRoles = user.user_roles?.filter((r: any) => r.is_active) || [];
-        const hasActiveRole = activeRoles.length > 0;
-
-        if (hasActiveRole) {
-          statistics.active_users++;
-        } else {
-          statistics.inactive_users++;
-        }
-
-        // 统计角色分布
-        activeRoles.forEach((role: any) => {
-          statistics.role_distribution[role.role] = (statistics.role_distribution[role.role] || 0) + 1;
-        });
-      });
-
+      const statistics = await getUserStats();
       setStats(statistics);
-
     } catch (err) {
       console.error('Failed to load user statistics:', err);
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
-  }, [hasPermission]);
+  }, [hasPermission, getUserStats]);
 
   // 初始加载
   useEffect(() => {
     loadStatistics();
   }, [loadStatistics]);
 
-  if (!hasPermission('user:view')) {
+  if (!hasPermission(PERMISSIONS.USER_VIEW)) {
     return null;
   }
 
@@ -307,7 +253,7 @@ export function UserStatisticsCards() {
                 </div>
               </div>
 
-              {hasPermission('permission:manage') && stats.pending_permission_requests > 0 && (
+              {hasPermission(PERMISSIONS.PERMISSION_MANAGE) && stats.pending_permission_requests > 0 && (
                 <div className="card-actions">
                   <button
                     className="btn btn-warning btn-sm w-full"

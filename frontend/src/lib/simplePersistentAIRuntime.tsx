@@ -6,7 +6,7 @@ import {
   type AppendMessage 
 } from '@assistant-ui/react';
 import { supabase } from './supabase';
-import { useAuth } from '../hooks/useAuth';
+import { useUnifiedAuth } from '../contexts/UnifiedAuthContext';
 
 interface PersistentMessage {
   id: string;
@@ -436,7 +436,7 @@ export function SimplePersistentAIRuntimeProvider({
   onSessionChange,
   isActive = true // 默认激活
 }: SimplePersistentAIRuntimeProviderProps) {
-  const { user } = useAuth();
+  const { user } = useUnifiedAuth();
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<PersistentMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);

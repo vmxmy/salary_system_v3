@@ -6,25 +6,25 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useEnhancedPermission } from '@/hooks/permissions/useEnhancedPermission';
+import { usePermissions } from '@/hooks/permissions';
 import { ModernModal } from '@/components/common/ModernModalSystem';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { supabase } from '@/lib/supabase';
-import type { UserWithDetails, CreateUserData, UpdateUserData } from '@/types/user-management';
+import { PERMISSIONS } from '@/constants/permissions';
+import type { UserWithPermissions } from '@/hooks/user-management/useUserManagement';
+import type { CreateUserData, UpdateUserData } from '@/types/user-management';
 
 export interface UserDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: any) => Promise<void>;
-  user?: UserWithDetails;
+  user?: UserWithPermissions;
   mode: 'create' | 'edit' | 'view';
 }
 
 interface Employee {
   id: string;
-  employee_name: string;
-  departments: { department_name: string } | null;
-  positions: { position_name: string } | null;
+  employee_name: string | null;
 }
 
 interface RoleOption {
@@ -41,7 +41,7 @@ export function UserDetailModal({
   mode
 }: UserDetailModalProps) {
   const { t } = useTranslation('admin');
-  const { hasPermission } = useEnhancedPermission();
+  const { hasPermission } = usePermissions();
 
   // 表单状态
   const [formData, setFormData] = useState<Partial<CreateUserData & UpdateUserData>>({
@@ -67,8 +67,8 @@ export function UserDetailModal({
       setFormData({
         email: user.email || '',
         employee_id: user.employee_id || '',
-        role: user.active_role || user.role_names?.[0] || '',
-        status: user.status || 'active'
+        role: user.user_role || '',
+        status: user.role_active ? 'active' : 'inactive'
       });
     } else {
       setFormData({
@@ -89,22 +89,14 @@ export function UserDetailModal({
         .from('employees')
         .select(`
           id,
-          employee_name,
-          employee_job_history (
-            department_id,
-            position_id,
-            departments (
-              name
-            ),
-            positions (
-              name
-            )
-          )
+          employee_name
         `)
         .order('employee_name');
 
       if (error) throw error;
-      setEmployees(data || []);
+      // Filter out employees with null names and ensure proper type
+      const employees = (data || []).filter(emp => emp.employee_name !== null) as Employee[];
+      setEmployees(employees);
     } catch (err) {
       console.error('Failed to load employees:', err);
     }
@@ -193,7 +185,7 @@ export function UserDetailModal({
       if (mode === 'create') {
         await onSave(formData as CreateUserData);
       } else if (mode === 'edit' && user) {
-        await onSave(user.id, formData as UpdateUserData);
+        await onSave({ userId: user.user_id, ...formData } as UpdateUserData);
       }
       onClose();
     } catch (err) {
@@ -205,14 +197,14 @@ export function UserDetailModal({
   }, [formData, validateForm, mode, onSave, user, onClose]);
 
   const canEdit = mode !== 'view' && (
-    (mode === 'create' && hasPermission('user:create')) ||
-    (mode === 'edit' && hasPermission('user:update'))
+    (mode === 'create' && hasPermission(PERMISSIONS.USER_CREATE)) ||
+    (mode === 'edit' && hasPermission(PERMISSIONS.USER_UPDATE))
   );
 
   if (loading) {
     return (
       <ModernModal
-        isOpen={isOpen}
+        open={isOpen}
         onClose={onClose}
         title={t('common.loading')}
         size="lg"
@@ -224,7 +216,7 @@ export function UserDetailModal({
 
   return (
     <ModernModal
-      isOpen={isOpen}
+      open={isOpen}
       onClose={onClose}
       title={
         mode === 'create' 
@@ -234,7 +226,6 @@ export function UserDetailModal({
           : t('user.userDetails')
       }
       size="lg"
-      className="modal-enhanced"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 基本信息 */}
@@ -278,7 +269,7 @@ export function UserDetailModal({
                     className="select select-bordered"
                     value={formData.status || 'active'}
                     onChange={(e) => handleFieldChange('status', e.target.value)}
-                    disabled={!canEdit || !hasPermission('user:change_status')}
+                    disabled={!canEdit || !hasPermission(PERMISSIONS.USER_CHANGE_STATUS)}
                   >
                     <option value="active">{t('user.status.active')}</option>
                     <option value="inactive">{t('user.status.inactive')}</option>
@@ -313,9 +304,6 @@ export function UserDetailModal({
                   {employees.map(emp => (
                     <option key={emp.id} value={emp.id}>
                       {emp.employee_name}
-                      {emp.departments?.department_name && (
-                        ` - ${emp.departments.department_name}`
-                      )}
                     </option>
                   ))}
                 </select>
@@ -329,16 +317,6 @@ export function UserDetailModal({
                   </label>
                   <div className="bg-base-100 p-3 rounded-lg border">
                     <div className="text-sm font-medium">{selectedEmployee.employee_name}</div>
-                    {selectedEmployee.departments?.department_name && (
-                      <div className="text-xs text-base-content/60">
-                        {selectedEmployee.departments.department_name}
-                      </div>
-                    )}
-                    {selectedEmployee.positions?.position_name && (
-                      <div className="text-xs text-base-content/60">
-                        {selectedEmployee.positions.position_name}
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -363,7 +341,7 @@ export function UserDetailModal({
                   className={`select select-bordered ${errors.role ? 'select-error' : ''}`}
                   value={formData.role || ''}
                   onChange={(e) => handleFieldChange('role', e.target.value)}
-                  disabled={!canEdit || !hasPermission('user:assign_role')}
+                  disabled={!canEdit || !hasPermission(PERMISSIONS.USER_ASSIGN_ROLE)}
                   required
                 >
                   <option value="">{t('user.selectRole')}</option>
@@ -436,24 +414,28 @@ export function UserDetailModal({
         )}
 
         {/* 现有角色显示（编辑/查看模式） */}
-        {mode !== 'create' && user && user.roles.length > 0 && (
+        {mode !== 'create' && user && user.user_role && (
           <div className="card card-compact bg-base-200/30">
             <div className="card-body">
               <h3 className="card-title text-lg">{t('user.currentRoles')}</h3>
               
               <div className="flex flex-wrap gap-2">
-                {user.roles.map((userRole, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <span className={`badge ${userRole.is_active ? 'badge-primary' : 'badge-ghost'}`}>
-                      {userRole.role}
+                <div className="flex items-center gap-2">
+                  <span className={`badge ${user.role_active ? 'badge-primary' : 'badge-ghost'}`}>
+                    {user.user_role}
+                  </span>
+                  {user.role_active && (
+                    <span className="badge badge-success badge-sm">
+                      {t('user.active')}
                     </span>
-                    {userRole.is_active && (
-                      <span className="badge badge-success badge-sm">
-                        {t('user.active')}
-                      </span>
-                    )}
+                  )}
+                </div>
+                {/* 显示额外的用户信息 */}
+                {user.permissions && user.permissions.length > 0 && (
+                  <div className="text-xs text-base-content/60 mt-2">
+                    {user.permissions.length} 个权限
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>

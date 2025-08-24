@@ -3,21 +3,26 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 
 export interface ConfirmModalProps {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean; // 向后兼容
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  message: string;
+  message?: string; // 可选，因为可能使用children替代
   details?: string;
   confirmText?: string;
   cancelText?: string;
   confirmVariant?: 'primary' | 'success' | 'warning' | 'error';
+  confirmClassName?: string; // 添加自定义样式支持
+  confirmOnly?: boolean; // 只显示确认按钮，隐藏取消按钮
   loading?: boolean;
   icon?: React.ReactNode;
+  children?: React.ReactNode; // 添加children支持
 }
 
 export function ConfirmModal({
   open,
+  isOpen,
   onClose,
   onConfirm,
   title,
@@ -26,10 +31,16 @@ export function ConfirmModal({
   confirmText,
   cancelText,
   confirmVariant = 'primary',
+  confirmClassName,
+  confirmOnly = false,
   loading = false,
-  icon
+  icon,
+  children
 }: ConfirmModalProps) {
   const { t } = useTranslation(['common']);
+  
+  // 兼容 open 和 isOpen 属性
+  const isModalOpen = open ?? isOpen ?? false;
 
   const handleConfirm = () => {
     onConfirm();
@@ -43,6 +54,9 @@ export function ConfirmModal({
 
   // 根据确认按钮类型设置样式
   const getConfirmButtonClass = () => {
+    // 如果有自定义样式，优先使用
+    if (confirmClassName) return confirmClassName;
+    
     switch (confirmVariant) {
       case 'success': return 'btn-success';
       case 'warning': return 'btn-warning';
@@ -85,7 +99,7 @@ export function ConfirmModal({
     }
   };
 
-  if (!open) return null;
+  if (!isModalOpen) return null;
 
   return (
     <dialog className="modal modal-open">
@@ -98,7 +112,11 @@ export function ConfirmModal({
 
         {/* 消息内容 */}
         <div className="py-2">
-          <p className="text-base-content/80 mb-3 leading-relaxed">{message}</p>
+          {children ? (
+            <div className="text-base-content/80 mb-3">{children}</div>
+          ) : message ? (
+            <p className="text-base-content/80 mb-3 leading-relaxed">{message}</p>
+          ) : null}
           
           {/* 详细信息 */}
           {details && (
@@ -110,13 +128,15 @@ export function ConfirmModal({
 
         {/* 按钮区域 */}
         <div className="modal-action justify-end gap-2 mt-6">
-          <button
-            className="btn btn-ghost"
-            onClick={handleCancel}
-            disabled={loading}
-          >
-            {cancelText || t('common.cancel')}
-          </button>
+          {!confirmOnly && (
+            <button
+              className="btn btn-ghost"
+              onClick={handleCancel}
+              disabled={loading}
+            >
+              {cancelText || t('common.cancel')}
+            </button>
+          )}
           <button
             className={cn(
               'btn',
@@ -197,6 +217,9 @@ export function RollbackConfirmModal({
 }: RollbackConfirmModalProps) {
   const [reason, setReason] = useState('');
   const [showReasonInput, setShowReasonInput] = useState(false);
+  
+  // 兼容 open 属性
+  const isModalOpen = open;
 
   const handleConfirm = () => {
     if (!showReasonInput) {
@@ -217,7 +240,7 @@ export function RollbackConfirmModal({
     onClose();
   };
 
-  if (!open) return null;
+  if (!isModalOpen) return null;
 
   return (
     <dialog className="modal modal-open">

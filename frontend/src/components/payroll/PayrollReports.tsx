@@ -16,6 +16,7 @@ import { getMonthDateRange, getCurrentYearMonth, formatMonth } from '@/lib/dateU
 import { formatCurrency } from '@/lib/format';
 import { usePayrollCreation } from '@/hooks/payroll/usePayrollCreation';
 import { usePermission } from '@/hooks/core';
+import { PERMISSIONS } from '@/constants/permissions';
 import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
 import type { PaginationState, Table } from '@tanstack/react-table';
 
@@ -51,7 +52,7 @@ export function PayrollReports({ selectedMonth, onMonthChange, periodId }: Payro
   const { t } = useTranslation(['common', 'payroll']);
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
-  const { can } = usePermission();
+  const { hasPermission } = usePermission();
 
   // 表格配置管理
   const {
@@ -309,7 +310,7 @@ export function PayrollReports({ selectedMonth, onMonthChange, periodId }: Payro
             </ModernButton> */}
             
             {/* 清空本月按钮 */}
-            {can.clearPayroll() && (
+            {hasPermission(PERMISSIONS.PAYROLL_CLEAR) && (
               <ModernButton
                 onClick={() => setIsClearModalOpen(true)}
                 variant="danger"

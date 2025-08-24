@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 
 interface PermissionGuardProps {
   permissions?: string[];
@@ -31,7 +31,7 @@ export function PermissionGuard({
   fallback = null,
   children,
 }: PermissionGuardProps) {
-  const { hasAllPermissions, hasAnyPermission } = useAuth();
+  const { hasAllPermissions, hasAnyPermission } = useUnifiedAuth();
 
   // If no permissions specified, render children
   if (permissions.length === 0) {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -61,7 +61,7 @@ interface RealtimeConfig {
  */
 export function useSupabaseRealtime(config: RealtimeConfig) {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user } = useUnifiedAuth();
   const { showInfo, showError } = useToast();
   const channelRef = useRef<RealtimeChannel | null>(null);
   const isSubscribedRef = useRef(false);

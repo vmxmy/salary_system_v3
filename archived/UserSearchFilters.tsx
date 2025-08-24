@@ -6,17 +6,18 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { supabase } from '@/lib/supabase';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { UserSearchFilters } from '@/types/user-management';
 
 export interface UserSearchFiltersProps {
   filters: UserSearchFilters;
   onFiltersChange: (filters: UserSearchFilters) => void;
+  departments?: DepartmentOption[]; // 由父组件通过Hook传递
+  roles?: RoleOption[]; // 由父组件通过Hook传递
 }
 
 interface DepartmentOption {
-  department_name: string;
+  name: string;
 }
 
 interface RoleOption {
@@ -24,7 +25,12 @@ interface RoleOption {
   role_name: string;
 }
 
-export function UserSearchFilters({ filters, onFiltersChange }: UserSearchFiltersProps) {
+export function UserSearchFilters({ 
+  filters, 
+  onFiltersChange, 
+  departments: providedDepartments, 
+  roles: providedRoles 
+}: UserSearchFiltersProps) {
   const { t } = useTranslation('admin');
   
   // 本地状态管理
@@ -48,44 +54,39 @@ export function UserSearchFilters({ filters, onFiltersChange }: UserSearchFilter
     onFiltersChange(updatedFilters);
   }, [debouncedSearch, localFilters, onFiltersChange, filters.search]);
 
-  // 加载部门选项
-  const loadDepartments = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('departments')
-        .select('department_name')
-        .eq('is_active', true)
-        .order('department_name');
-
-      if (error) throw error;
-      setDepartments(data || []);
-    } catch (err) {
-      console.error('Failed to load departments:', err);
+  // 初始化部门选项
+  const initializeDepartments = useCallback(() => {
+    if (providedDepartments) {
+      setDepartments(providedDepartments);
+    } else {
+      // 如果没有提供部门数据，设置空数组
+      setDepartments([]);
     }
-  }, []);
+  }, [providedDepartments]);
 
-  // 加载角色选项
-  const loadRoles = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('roles')
-        .select('role_code, role_name')
-        .eq('is_active', true)
-        .order('level');
-
-      if (error) throw error;
-      setRoleOptions(data || []);
-    } catch (err) {
-      console.error('Failed to load roles:', err);
+  // 初始化角色选项  
+  const initializeRoles = useCallback(() => {
+    if (providedRoles) {
+      setRoleOptions(providedRoles);
+    } else {
+      // 如果没有提供角色数据，设置默认角色选项
+      const defaultRoles: RoleOption[] = [
+        { role_code: 'employee', role_name: '员工' },
+        { role_code: 'manager', role_name: '管理员' },
+        { role_code: 'hr_manager', role_name: 'HR管理员' },
+        { role_code: 'admin', role_name: '系统管理员' }
+      ];
+      setRoleOptions(defaultRoles);
     }
-  }, []);
+  }, [providedRoles]);
 
   // 初始化数据
   useEffect(() => {
     setLoading(true);
-    Promise.all([loadDepartments(), loadRoles()])
-      .finally(() => setLoading(false));
-  }, [loadDepartments, loadRoles]);
+    initializeDepartments();
+    initializeRoles();
+    setLoading(false);
+  }, [initializeDepartments, initializeRoles]);
 
   // 处理过滤器变化
   const handleFilterChange = useCallback((key: keyof UserSearchFilters, value: any) => {
@@ -200,8 +201,8 @@ export function UserSearchFilters({ filters, onFiltersChange }: UserSearchFilter
           >
             <option value="">{t('user.allDepartments')}</option>
             {departments.map(dept => (
-              <option key={dept.department_name} value={dept.department_name}>
-                {dept.department_name}
+              <option key={dept.name} value={dept.name}>
+                {dept.name}
               </option>
             ))}
           </select>
@@ -334,7 +335,8 @@ export function UserSearchFilters({ filters, onFiltersChange }: UserSearchFilter
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => {
-              Promise.all([loadDepartments(), loadRoles()]);
+              initializeDepartments();
+              initializeRoles();
             }}
             disabled={loading}
           >

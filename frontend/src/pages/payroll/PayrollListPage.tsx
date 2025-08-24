@@ -41,7 +41,7 @@ import { getMonthDateRange, getCurrentYearMonth, formatMonth } from '@/lib/dateU
 import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
 import { usePermission, PERMISSIONS } from '@/hooks/core';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
 import type { FieldMetadata } from '@/components/common/FieldSelector';
 import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
@@ -64,7 +64,7 @@ export default function PayrollListPage() {
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
   const { hasPermission } = usePermission();
-  const auth = useAuth();
+  const auth = useUnifiedAuth();
 
   // 使用通用模态框管理Hook
   const modalManager = usePayrollModalManager<PayrollData>();

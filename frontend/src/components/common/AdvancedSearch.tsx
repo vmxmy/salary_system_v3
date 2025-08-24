@@ -60,6 +60,8 @@ export function AdvancedSearch<TData>({
         {/* 搜索输入框 */}
         <div className={`relative transition-all duration-300 ${isExpanded ? 'w-80' : 'w-64'}`}>
           <input
+            id="advanced-search-input"
+            name="search"
             type="text"
             value={searchValue}
             onChange={(e) => handleSearch(e.target.value)}
@@ -69,6 +71,10 @@ export function AdvancedSearch<TData>({
             }}
             placeholder={placeholder}
             className="input input-sm input-bordered w-full pl-8 pr-8"
+            autoComplete="off"
+            role="searchbox"
+            aria-label="搜索数据表格"
+            aria-describedby="search-help"
           />
           
           {/* 搜索图标 */}
@@ -80,6 +86,7 @@ export function AdvancedSearch<TData>({
               type="button"
               onClick={handleClear}
               className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle"
+              aria-label="清除搜索内容"
             >
               <XMarkIcon className="w-3 h-3" />
             </button>
@@ -87,7 +94,7 @@ export function AdvancedSearch<TData>({
         </div>
 
         {/* 搜索信息标签 */}
-        <div className="badge badge-ghost badge-sm">
+        <div id="search-help" className="badge badge-ghost badge-sm" role="status" aria-live="polite">
           搜索 {searchFieldCount} 个字段
         </div>
       </div>
@@ -158,13 +165,18 @@ export function CompactSearch<TData>({
   return (
     <div className={`relative ${className}`}>
       <input
+        id="compact-search-input"
+        name="search"
         type="text"
         value={searchValue}
         onChange={(e) => handleSearch(e.target.value)}
         placeholder={placeholder}
         className="input input-sm input-bordered w-full max-w-xs pl-8"
+        autoComplete="off"
+        role="searchbox"
+        aria-label="搜索"
       />
-      <MagnifyingGlassIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/50" />
+      <MagnifyingGlassIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/50" aria-hidden="true" />
     </div>
   );
 }

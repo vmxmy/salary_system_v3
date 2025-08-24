@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ThemeSelector } from '@/components/common/ThemeSelector';
@@ -7,7 +7,7 @@ import { LogoutConfirmModal } from '@/components/common/LogoutConfirmModal';
 import { Link } from 'react-router-dom';
 
 export function Header() {
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useUnifiedAuth();
   const { t } = useTranslation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);

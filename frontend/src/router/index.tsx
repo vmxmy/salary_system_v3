@@ -39,11 +39,18 @@ const DebugPage = lazy(() => import('@/pages/DebugPage'));
 const InsuranceCalculationTest = lazy(() => import('@/pages/test/InsuranceCalculationTest'));
 const InsuranceConfigTest = lazy(() => import('@/pages/test/InsuranceConfigTest'));
 const PayrollCalculationTest = lazy(() => import('@/pages/test/PayrollCalculationTest'));
+const PermissionHooksTestPage = lazy(() => import('@/pages/test/PermissionHooksTestPage'));
 const InsuranceConfigPage = lazy(() => import('@/pages/payroll/InsuranceConfigPage'));
 
 // Admin pages
 const UserManagementPage = lazy(() => import('@/pages/admin/UserManagementPage'));
-const RoleManagementPage = lazy(() => import('@/pages/admin/RoleManagementPage'));
+// const RoleManagementPage = lazy(() => import('@/pages/admin/RoleManagementPage'));
+// Permission pages moved to archive
+// const PermissionResourceManagementPage = lazy(() => import('@/pages/admin/PermissionResourceManagementPage'));
+// const PermissionAssignmentPage = lazy(() => import('@/pages/admin/PermissionAssignmentPage'));
+// const PermissionApprovalPage = lazy(() => import('@/pages/admin/PermissionApprovalPage'));
+// const PermissionRequestPage = lazy(() => import('@/pages/permissions/PermissionRequestPage'));
+// const MyPermissionsPage = lazy(() => import('@/pages/permissions/MyPermissionsPage'));
 
 // Test pages moved to archive
 // const HookTestPage = lazy(() => import('@/pages/test/AuthenticatedHookTestPage'));
@@ -260,6 +267,7 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
+      // Admin management pages
       {
         path: 'admin',
         children: [
@@ -267,18 +275,20 @@ export const router = createBrowserRouter([
             path: 'users',
             element: (
               <Suspense fallback={<LoadingScreen />}>
-                <UserManagementPage />
+                <ProtectedRoute requiredPermissions={['user_management.read']}>
+                  <UserManagementPage />
+                </ProtectedRoute>
               </Suspense>
             ),
           },
-          {
-            path: 'roles',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <RoleManagementPage />
-              </Suspense>
-            ),
-          },
+      //     {
+      //       path: 'roles',
+      //       element: (
+      //         <Suspense fallback={<LoadingScreen />}>
+      //           <RoleManagementPage />
+      //         </Suspense>
+      //       ),
+      //     },
         ],
       },
       {
@@ -345,6 +355,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingScreen />}>
                 <PayrollCalculationTest />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'permission-hooks',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PermissionHooksTestPage />
               </Suspense>
             ),
           },

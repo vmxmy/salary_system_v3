@@ -20,11 +20,11 @@ export * from './employee';
 // 部门相关Hook
 export * from './department';
 
-// 职位相关Hook
-export * from './position';
+// 职位相关Hook - moved to archived
+// export * from './position';
 
-// 人员类别相关Hook
-export * from './category';
+// 人员类别相关Hook - moved to archived
+// export * from './category';
 
 // Dashboard相关Hook
 export * from './dashboard';
@@ -32,15 +32,15 @@ export * from './dashboard';
 // ============ 查询键统一导出（用于缓存管理） ============
 export { employeeQueryKeys } from './employee/useEmployeeList';
 export { departmentQueryKeys } from './department/useDepartments';
-export { positionQueryKeys } from './position/usePositions';
-export { personnelCategoryQueryKeys } from './category/usePersonnelCategories';
+// export { positionQueryKeys } from './position/usePositions'; // moved to archived
+// export { personnelCategoryQueryKeys } from './category/usePersonnelCategories'; // moved to archived
 export { dashboardQueryKeys } from './dashboard/useDashboard';
 
 // ============ 重构前的Hook（逐步迁移中） ============
 
 // 保持向后兼容，原有Hook继续可用但会逐步迁移
 // 这些Hook将在下个版本中标记为deprecated
-export { useAuth } from './useAuth';
+// useAuth已被移除 - 请直接使用 useUnifiedAuth from '@/contexts/UnifiedAuthContext'
 export { useTranslation } from './useTranslation';
 export { useDebounce, useDebouncedValue, useDebouncedCallback } from './useDebounce';
 export { useRealtimeConnection } from './useRealtimeConnection';

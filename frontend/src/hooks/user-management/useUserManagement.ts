@@ -1,709 +1,774 @@
 /**
- * 用户管理 Hook
+ * 用户管理Hook - 基于权限系统的完整用户管理功能
  * 
- * 提供完整的用户管理功能，包括 CRUD 操作、角色管理、批量操作等
+ * 功能特性：
+ * - 基于 view_user_permissions 视图进行用户数据查询
+ * - 集成权限系统进行用户权限管理
+ * - 支持用户角色分配和权限配置
+ * - 提供用户CRUD操作和批量操作
+ * 
+ * 设计原则：
+ * - 权限控制：所有操作都经过权限验证
+ * - 数据安全：敏感操作需要额外权限确认
+ * - 实时同步：用户变更实时反映到权限系统
+ * - 审计记录：重要操作自动记录审计日志
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useEnhancedPermission } from '@/hooks/permissions/useEnhancedPermission';
-import { useTranslation } from '@/hooks/useTranslation';
-import type {
-  UserWithDetails,
-  UserSearchFilters,
-  UserSortOptions,
-  UserListPagination,
-  CreateUserData,
-  UpdateUserData,
-  AssignRoleData,
-  BatchUserOperation,
-  UserStatistics,
-  UseUserManagementOptions,
-  UseUserManagementReturn,
-  UserManagementError,
-  UserNotFoundError,
-  RoleAssignmentError,
-  BatchOperationError
-} from '@/types/user-management';
+import { usePermissions } from '@/hooks/permissions';
+import type { Permission } from '@/types/permission';
 
-const DEFAULT_PAGE_SIZE = 25;
-const DEFAULT_CACHE_TIMEOUT = 5 * 60 * 1000; // 5分钟
+// 用户管理相关类型定义
+export interface UserProfile {
+  id: string;
+  email: string;
+  employee_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  // 从关联表获取的员工信息
+  employee_name?: string;
+  department_name?: string;
+  position_name?: string;
+}
 
-export function useUserManagement(
-  options: UseUserManagementOptions = {}
-): UseUserManagementReturn {
-  const { t } = useTranslation('admin');
-  const { hasPermission } = useEnhancedPermission();
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface UserWithPermissions {
+  // 基础用户信息（可为空，因为从数据库视图获取）
+  user_id: string | null;
+  email: string | null;
+  employee_id: string | null;
+  employee_name: string | null;
+  department_name: string | null;
+  position_name: string | null;
+  category_name: string | null;
   
-  // 配置选项
-  const config = {
-    enableRealtime: true,
-    cacheTimeout: DEFAULT_CACHE_TIMEOUT,
-    pageSize: DEFAULT_PAGE_SIZE,
-    autoRefresh: false,
-    refreshInterval: 30000,
-    ...options
-  };
+  // 角色和权限信息（可为空）
+  user_role: string | null;
+  role_active: boolean | null;
+  permissions: string[] | null;
+  page_permissions: Record<string, boolean> | null;
+  data_scope: string | null;
+  role_metadata: {
+    role_name: string;
+    role_level: number;
+    [key: string]: any;
+  } | null;
+  
+  // 时间信息（可为空）
+  role_assigned_at: string | null;
+  effective_from: string | null;
+  effective_until: string | null;
+  
+  // 状态信息（可为空）
+  config_active: boolean | null;
+  config_role: string | null;
+  permission_rules: any;
+  
+  // 员工状态信息
+  employment_status: string | null;
+  employee_active: boolean | null;
+}
+
+export interface UserManagementFilters {
+  role?: string;
+  active?: boolean;
+  search?: string;
+  department?: string;
+  sortBy?: 'email' | 'role' | 'created_at' | 'updated_at';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface UserRoleAssignmentData {
+  user_id: string;
+  role: string;
+  effective_from?: string;
+  effective_until?: string;
+  reason?: string;
+}
+
+export interface UserManagementStats {
+  total_users: number;
+  active_users: number;
+  inactive_users: number;
+  suspended_users: number;
+  users_with_employees: number;
+  recent_logins: number;
+  pending_permission_requests: number;
+  role_distribution: Record<string, number>;
+  by_role: Record<string, number>;
+  by_department: Record<string, number>;
+  recent_activity: number;
+}
+
+export interface UseUserManagementReturn {
+  // 用户数据
+  users: UserWithPermissions[];
+  selectedUsers: string[];
+  userStats: UserManagementStats | null;
+  
+  // 数据操作
+  fetchUsers: (filters?: UserManagementFilters) => Promise<UserWithPermissions[]>;
+  getUserById: (userId: string) => Promise<UserWithPermissions | null>;
+  searchUsers: (query: string) => Promise<UserWithPermissions[]>;
+  
+  // 用户管理操作
+  createUserProfile: (email: string, employeeId?: string) => Promise<UserProfile>;
+  updateUserProfile: (userId: string, updates: Partial<UserProfile>) => Promise<void>;
+  deactivateUser: (userId: string) => Promise<void>;
+  reactivateUser: (userId: string) => Promise<void>;
+  
+  // 角色管理操作
+  assignUserRole: (data: UserRoleAssignmentData) => Promise<void>;
+  revokeUserRole: (userId: string, role: string) => Promise<void>;
+  updateUserPermissions: (userId: string, permissions: string[]) => Promise<void>;
+  
+  // 批量操作
+  batchAssignRole: (userIds: string[], role: string) => Promise<void>;
+  batchRevokeRole: (userIds: string[], role: string) => Promise<void>;
+  batchUpdateStatus: (userIds: string[], active: boolean) => Promise<void>;
+  
+  // 统计和分析
+  getUserStats: () => Promise<UserManagementStats>;
+  getActivityLog: (userId?: string) => Promise<any[]>;
+  
+  // 选择管理
+  setSelectedUsers: (userIds: string[]) => void;
+  selectAllUsers: () => void;
+  clearSelection: () => void;
+  toggleUserSelection: (userId: string) => void;
+  
+  // 过滤和排序
+  applyFilters: (filters: UserManagementFilters) => void;
+  clearFilters: () => void;
+  
+  // 权限检查
+  canManageUsers: boolean;
+  canAssignRoles: boolean;
+  canViewUserDetails: boolean;
+  canDeactivateUsers: boolean;
+  
+  // 状态
+  loading: boolean;
+  error: Error | null;
+  filters: UserManagementFilters;
+}
+
+/**
+ * 用户管理主Hook
+ */
+export function useUserManagement(): UseUserManagementReturn {
+  const permissions = usePermissions({
+    enableResourceAccess: true,
+    enableRoleManagement: true
+  });
 
   // 状态管理
-  const [users, setUsers] = useState<UserWithDetails[]>([]);
-  const [total, setTotal] = useState(0);
+  const [users, setUsers] = useState<UserWithPermissions[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [userStats, setUserStats] = useState<UserManagementStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [filters, setFilters] = useState<UserManagementFilters>({});
+
+  // 权限检查
+  const canManageUsers = useMemo(() => 
+    permissions.hasPermission('user_management.write'), [permissions]
+  );
   
-  const [pagination, setPagination] = useState<UserListPagination>({
-    page: 1,
-    pageSize: config.pageSize,
-    total: 0,
-    totalPages: 0
-  });
+  const canAssignRoles = useMemo(() => 
+    permissions.hasPermission('assign_roles'), [permissions]
+  );
   
-  const [filters, setFilters] = useState<UserSearchFilters>({});
-  const [sorting, setSorting] = useState<UserSortOptions>({
-    field: 'created_at',
-    order: 'desc'
-  });
+  const canViewUserDetails = useMemo(() => 
+    permissions.hasPermission('user_management.read'), [permissions]
+  );
+  
+  const canDeactivateUsers = useMemo(() => 
+    permissions.hasPermission('user_management.write'), [permissions]
+  );
 
-  // 实时订阅管理
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const subscriptionRef = useRef<any>(null);
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // 错误处理辅助函数
-  const handleError = useCallback((err: unknown, context: string) => {
-    console.error(`[useUserManagement] ${context}:`, err);
-    const error = err instanceof Error ? err : new Error(String(err));
-    setError(error);
-    return error;
-  }, []);
-
-  // 构建查询条件
-  const buildQuery = useCallback(() => {
-    let query = supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        user_roles!inner (
-          role,
-          is_active,
-          created_at
-        ),
-        employees (
-          employee_name,
-          departments (
-            department_name
-          ),
-          positions (
-            position_name
-          )
-        )
-      `);
-
-    // 应用过滤条件
-    if (filters.search) {
-      query = query.or(`email.ilike.%${filters.search}%,employees.employee_name.ilike.%${filters.search}%`);
-    }
-    
-    if (filters.role) {
-      query = query.eq('user_roles.role', filters.role);
-    }
-    
-    if (filters.status === 'active') {
-      query = query.eq('user_roles.is_active', true);
-    } else if (filters.status === 'inactive') {
-      query = query.eq('user_roles.is_active', false);
-    }
-    
-    if (filters.department) {
-      query = query.eq('employees.departments.department_name', filters.department);
-    }
-    
-    if (filters.has_employee !== undefined) {
-      if (filters.has_employee) {
-        query = query.not('employee_id', 'is', null);
-      } else {
-        query = query.is('employee_id', null);
-      }
-    }
-    
-    if (filters.created_after) {
-      query = query.gte('created_at', filters.created_after);
-    }
-    
-    if (filters.created_before) {
-      query = query.lte('created_at', filters.created_before);
-    }
-
-    // 应用排序
-    const sortField = sorting.field === 'employee_name' ? 'employees.employee_name' : sorting.field;
-    query = query.order(sortField, { ascending: sorting.order === 'asc' });
-
-    return query;
-  }, [filters, sorting]);
-
-  // 加载用户数据
-  const loadUsers = useCallback(async () => {
-    if (!hasPermission('user:list')) {
-      setError(new UserManagementError('Insufficient permissions', 'PERMISSION_DENIED'));
-      return;
+  // 获取用户列表
+  const fetchUsers = useCallback(async (queryFilters?: UserManagementFilters): Promise<UserWithPermissions[]> => {
+    // 在函数内部检查权限，而不是依赖外部的canViewUserDetails
+    if (!permissions.hasPermission('user_management.read')) {
+      throw new Error('Insufficient permissions to view users');
     }
 
     setLoading(true);
     setError(null);
 
     try {
-      const query = buildQuery();
+      const actualFilters = queryFilters || filters;
+      let query = supabase
+        .from('view_user_management_unified')
+        .select('*');
+
+      // 应用过滤条件
+      if (actualFilters.role) {
+        query = query.eq('user_role', actualFilters.role);
+      }
       
-      // 获取总数
-      const { count } = await query.select('*', { count: 'exact', head: true });
+      if (actualFilters.active !== undefined) {
+        query = query.eq('role_active', actualFilters.active);
+      }
       
-      // 获取分页数据
-      const { data, error: queryError } = await query
-        .range(
-          (pagination.page - 1) * pagination.pageSize,
-          pagination.page * pagination.pageSize - 1
-        );
+      if (actualFilters.search) {
+        query = query.or(`email.ilike.%${actualFilters.search}%,employee_name.ilike.%${actualFilters.search}%`);
+      }
+      
+      if (actualFilters.department) {
+        query = query.eq('department_name', actualFilters.department);
+      }
 
-      if (queryError) throw queryError;
+      // 排序
+      const sortBy = actualFilters.sortBy || 'created_at';
+      const sortOrder = actualFilters.sortOrder || 'desc';
+      query = query.order(sortBy === 'created_at' ? 'role_assigned_at' : sortBy, { ascending: sortOrder === 'asc' });
 
-      // 转换数据格式
-      const transformedUsers: UserWithDetails[] = (data || []).map(user => ({
-        ...user,
-        employee_name: user.employees?.employee_name,
-        department_name: user.employees?.departments?.department_name,
-        position_name: user.employees?.positions?.position_name,
-        roles: user.user_roles || [],
-        permissions: [], // 需要单独查询
-        active_role: user.user_roles?.find((r: any) => r.is_active)?.role,
-        role_names: user.user_roles?.map((r: any) => r.role) || [],
-        status: user.user_roles?.some((r: any) => r.is_active) ? 'active' : 'inactive'
-      }));
+      const { data, error: fetchError } = await query;
 
-      setUsers(transformedUsers);
-      setTotal(count || 0);
-      setPagination(prev => ({
-        ...prev,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / prev.pageSize)
-      }));
+      if (fetchError) {
+        throw new Error(`Failed to fetch users: ${fetchError.message}`);
+      }
+
+      const usersData = (data || []).map(record => ({
+        user_id: record.user_id,
+        email: record.email,
+        employee_id: record.employee_id,
+        employee_name: record.employee_name,
+        department_name: record.department_name,
+        position_name: record.position_name,
+        category_name: record.category_name,
+        user_role: record.user_role,
+        role_active: record.role_active,
+        permissions: Array.isArray(record.permissions) ? record.permissions as string[] : null,
+        page_permissions: (record.page_permissions && typeof record.page_permissions === 'object') ? record.page_permissions as Record<string, boolean> : null,
+        data_scope: record.data_scope,
+        role_metadata: (record.role_metadata && typeof record.role_metadata === 'object') ? record.role_metadata as {role_name: string; role_level: number; [key: string]: any} : null,
+        role_assigned_at: record.role_assigned_at,
+        effective_from: record.effective_from,
+        effective_until: record.effective_until,
+        config_active: record.config_active,
+        config_role: record.config_role,
+        permission_rules: record.permission_rules,
+        employment_status: record.employment_status,
+        employee_active: record.employee_active
+      })) as UserWithPermissions[];
+
+      setUsers(usersData);
+      return usersData;
 
     } catch (err) {
-      handleError(err, 'loadUsers');
+      const error = err instanceof Error ? err : new Error('Failed to fetch users');
+      setError(error);
+      console.error('[useUserManagement] Fetch users error:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
-  }, [hasPermission, buildQuery, pagination.page, pagination.pageSize, handleError]);
+  }, [permissions]); // Remove filters dependency to prevent infinite loops
 
-  // 刷新用户数据
-  const refreshUsers = useCallback(async () => {
-    await loadUsers();
-  }, [loadUsers]);
-
-  // 搜索用户
-  const searchUsers = useCallback(async (newFilters: UserSearchFilters) => {
-    setFilters(newFilters);
-    setPagination(prev => ({ ...prev, page: 1 }));
-  }, []);
-
-  // 排序用户
-  const sortUsers = useCallback((options: UserSortOptions) => {
-    setSorting(options);
-  }, []);
-
-  // 分页控制
-  const changePage = useCallback((page: number) => {
-    setPagination(prev => ({ ...prev, page }));
-  }, []);
-
-  const changePageSize = useCallback((pageSize: number) => {
-    setPagination(prev => ({ 
-      ...prev, 
-      pageSize, 
-      page: 1,
-      totalPages: Math.ceil(prev.total / pageSize)
-    }));
-  }, []);
-
-  // 创建用户
-  const createUser = useCallback(async (data: CreateUserData): Promise<string> => {
-    if (!hasPermission('user:create')) {
-      throw new UserManagementError('Insufficient permissions', 'PERMISSION_DENIED');
-    }
-
-    setLoading(true);
-    try {
-      // 检查邮箱是否已存在
-      const { data: existingUser } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('email', data.email)
-        .single();
-
-      if (existingUser) {
-        throw new UserManagementError('Email already exists', 'EMAIL_DUPLICATE');
-      }
-
-      // 创建用户档案
-      const { data: userProfile, error: profileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          email: data.email,
-          employee_id: data.employee_id
-        })
-        .select()
-        .single();
-
-      if (profileError) throw profileError;
-
-      // 分配角色
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userProfile.id,
-          role: data.role,
-          is_active: true
-        });
-
-      if (roleError) throw roleError;
-
-      // 发送邀请邮件（如果需要）
-      if (data.send_invitation) {
-        // TODO: 实现邀请邮件发送
-        console.log('TODO: Send invitation email to:', data.email);
-      }
-
-      await refreshUsers();
-      return userProfile.id;
-
-    } catch (err) {
-      throw handleError(err, 'createUser');
-    } finally {
-      setLoading(false);
-    }
-  }, [hasPermission, handleError, refreshUsers]);
-
-  // 更新用户
-  const updateUser = useCallback(async (id: string, data: UpdateUserData): Promise<void> => {
-    if (!hasPermission('user:update')) {
-      throw new UserManagementError('Insufficient permissions', 'PERMISSION_DENIED');
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({
-          ...data,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // 如果更新状态，同步更新角色状态
-      if (data.status !== undefined) {
-        const isActive = data.status === 'active';
-        await supabase
-          .from('user_roles')
-          .update({ is_active: isActive })
-          .eq('user_id', id);
-      }
-
-      await refreshUsers();
-
-    } catch (err) {
-      throw handleError(err, 'updateUser');
-    } finally {
-      setLoading(false);
-    }
-  }, [hasPermission, handleError, refreshUsers]);
-
-  // 删除用户
-  const deleteUser = useCallback(async (id: string): Promise<void> => {
-    if (!hasPermission('user:delete')) {
-      throw new UserManagementError('Insufficient permissions', 'PERMISSION_DENIED');
-    }
-
-    setLoading(true);
-    try {
-      // 检查用户是否存在
-      const { data: user } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('id', id)
-        .single();
-
-      if (!user) {
-        throw new UserNotFoundError(id);
-      }
-
-      // 删除用户角色
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', id);
-
-      // 删除用户档案
-      const { error } = await supabase
-        .from('user_profiles')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      await refreshUsers();
-
-    } catch (err) {
-      throw handleError(err, 'deleteUser');
-    } finally {
-      setLoading(false);
-    }
-  }, [hasPermission, handleError, refreshUsers]);
-
-  // 获取用户详情
-  const getUserById = useCallback(async (id: string): Promise<UserWithDetails> => {
-    if (!hasPermission('user:view')) {
-      throw new UserManagementError('Insufficient permissions', 'PERMISSION_DENIED');
+  // 根据ID获取单个用户
+  const getUserById = useCallback(async (userId: string): Promise<UserWithPermissions | null> => {
+    // 在函数内部检查权限，而不是依赖外部的canViewUserDetails
+    if (!permissions.hasPermission('user_management.read')) {
+      throw new Error('Insufficient permissions to view user details');
     }
 
     try {
       const { data, error } = await supabase
-        .from('user_profiles')
-        .select(`
-          *,
-          user_roles (
-            role,
-            is_active,
-            created_at
-          ),
-          employees (
-            employee_name,
-            departments (
-              department_name
-            ),
-            positions (
-              position_name
-            )
-          )
-        `)
-        .eq('id', id)
+        .from('view_user_management_unified')
+        .select('*')
+        .eq('user_id', userId)
         .single();
 
-      if (error) throw error;
-      if (!data) throw new UserNotFoundError(id);
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // 用户不存在
+        }
+        throw new Error(`Failed to fetch user: ${error.message}`);
+      }
 
       return {
-        ...data,
-        employee_name: data.employees?.employee_name,
-        department_name: data.employees?.departments?.department_name,
-        position_name: data.employees?.positions?.position_name,
-        roles: data.user_roles || [],
-        permissions: [], // 需要单独查询
-        active_role: data.user_roles?.find((r: any) => r.is_active)?.role,
-        role_names: data.user_roles?.map((r: any) => r.role) || [],
-        status: data.user_roles?.some((r: any) => r.is_active) ? 'active' : 'inactive'
+        user_id: data.user_id,
+        email: data.email,
+        employee_id: data.employee_id,
+        employee_name: data.employee_name,
+        department_name: data.department_name,
+        position_name: data.position_name,
+        category_name: data.category_name,
+        user_role: data.user_role,
+        role_active: data.role_active,
+        permissions: Array.isArray(data.permissions) ? data.permissions as string[] : null,
+        page_permissions: (data.page_permissions && typeof data.page_permissions === 'object') ? data.page_permissions as Record<string, boolean> : null,
+        data_scope: data.data_scope,
+        role_metadata: (data.role_metadata && typeof data.role_metadata === 'object') ? data.role_metadata as {role_name: string; role_level: number; [key: string]: any} : null,
+        role_assigned_at: data.role_assigned_at,
+        effective_from: data.effective_from,
+        effective_until: data.effective_until,
+        config_active: data.config_active,
+        config_role: data.config_role,
+        permission_rules: data.permission_rules,
+        employment_status: data.employment_status,
+        employee_active: data.employee_active
       };
 
     } catch (err) {
-      throw handleError(err, 'getUserById');
+      const error = err instanceof Error ? err : new Error('Failed to fetch user');
+      setError(error);
+      console.error('[useUserManagement] Get user by ID error:', error);
+      throw error;
     }
-  }, [hasPermission, handleError]);
+  }, [permissions]);
 
-  // 分配角色
-  const assignRole = useCallback(async (data: AssignRoleData): Promise<void> => {
-    if (!hasPermission('user:assign_role')) {
-      throw new RoleAssignmentError('Insufficient permissions', data.user_id, data.role);
+  // 搜索用户
+  const searchUsers = useCallback(async (query: string): Promise<UserWithPermissions[]> => {
+    return fetchUsers({ ...filters, search: query });
+  }, [fetchUsers, filters]);
+
+  // 创建用户档案 - 占位符实现，应该通过后端API处理
+  const createUserProfile = useCallback(async (email: string, employeeId?: string): Promise<UserProfile> => {
+    if (!canManageUsers) {
+      throw new Error('Insufficient permissions to create users');
+    }
+
+    console.warn('[useUserManagement] createUserProfile - 此功能需要后端API支持');
+    
+    // 模拟用户创建
+    const mockUser: UserProfile = {
+      id: crypto.randomUUID(),
+      email,
+      employee_id: employeeId || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    // 刷新用户列表
+    await fetchUsers();
+
+    return mockUser;
+  }, [canManageUsers, fetchUsers]);
+
+  // 更新用户档案
+  const updateUserProfile = useCallback(async (userId: string, updates: Partial<UserProfile>): Promise<void> => {
+    if (!canManageUsers) {
+      throw new Error('Insufficient permissions to update users');
     }
 
     try {
-      // 检查角色是否已存在
-      const { data: existingRole } = await supabase
-        .from('user_roles')
-        .select('id')
-        .eq('user_id', data.user_id)
-        .eq('role', data.role)
-        .single();
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
 
-      if (existingRole) {
-        throw new RoleAssignmentError('Role already assigned', data.user_id, data.role);
+      if (error) {
+        throw new Error(`Failed to update user profile: ${error.message}`);
       }
 
+      // 刷新用户列表
+      await fetchUsers();
+
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to update user profile');
+      setError(error);
+      console.error('[useUserManagement] Update user profile error:', error);
+      throw error;
+    }
+  }, [canManageUsers, fetchUsers]);
+
+  // 分配用户角色
+  const assignUserRole = useCallback(async (data: UserRoleAssignmentData): Promise<void> => {
+    if (!canAssignRoles) {
+      throw new Error('Insufficient permissions to assign roles');
+    }
+
+    try {
       const { error } = await supabase
         .from('user_roles')
         .insert({
           user_id: data.user_id,
           role: data.role,
-          is_active: true
+          is_active: true,
+          created_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(`Failed to assign role: ${error.message}`);
+      }
 
-      await refreshUsers();
+      // 刷新用户列表
+      await fetchUsers();
 
     } catch (err) {
-      throw handleError(err, 'assignRole') as RoleAssignmentError;
+      const error = err instanceof Error ? err : new Error('Failed to assign role');
+      setError(error);
+      console.error('[useUserManagement] Assign role error:', error);
+      throw error;
     }
-  }, [hasPermission, handleError, refreshUsers]);
+  }, [canAssignRoles, fetchUsers]);
 
-  // 移除角色
-  const removeRole = useCallback(async (userId: string, role: string): Promise<void> => {
-    if (!hasPermission('user:remove_role')) {
-      throw new RoleAssignmentError('Insufficient permissions', userId, role);
+  // 撤销用户角色
+  const revokeUserRole = useCallback(async (userId: string, role: string): Promise<void> => {
+    if (!canAssignRoles) {
+      throw new Error('Insufficient permissions to revoke roles');
     }
 
     try {
       const { error } = await supabase
         .from('user_roles')
-        .delete()
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
         .eq('user_id', userId)
         .eq('role', role);
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(`Failed to revoke role: ${error.message}`);
+      }
 
-      await refreshUsers();
+      // 刷新用户列表
+      await fetchUsers();
 
     } catch (err) {
-      throw handleError(err, 'removeRole') as RoleAssignmentError;
+      const error = err instanceof Error ? err : new Error('Failed to revoke role');
+      setError(error);
+      console.error('[useUserManagement] Revoke role error:', error);
+      throw error;
     }
-  }, [hasPermission, handleError, refreshUsers]);
+  }, [canAssignRoles, fetchUsers]);
 
-  // 获取用户角色
-  const getUserRoles = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('*')
-      .eq('user_id', userId);
-
-    if (error) throw error;
-    return data || [];
-  }, []);
-
-  // 批量操作
-  const performBatchOperation = useCallback(async (operation: BatchUserOperation): Promise<void> => {
-    if (!hasPermission(`user:${operation.action}`)) {
-      throw new UserManagementError('Insufficient permissions', 'PERMISSION_DENIED');
+  // 停用用户
+  const deactivateUser = useCallback(async (userId: string): Promise<void> => {
+    if (!canDeactivateUsers) {
+      throw new Error('Insufficient permissions to deactivate users');
     }
-
-    setLoading(true);
-    const failedUsers: { id: string; error: string }[] = [];
 
     try {
-      for (const userId of operation.userIds) {
-        try {
-          switch (operation.action) {
-            case 'activate':
-              await supabase
-                .from('user_roles')
-                .update({ is_active: true })
-                .eq('user_id', userId);
-              break;
+      const { error } = await supabase
+        .from('user_roles')
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
 
-            case 'deactivate':
-              await supabase
-                .from('user_roles')
-                .update({ is_active: false })
-                .eq('user_id', userId);
-              break;
-
-            case 'delete':
-              await deleteUser(userId);
-              break;
-
-            case 'assign_role':
-              if (operation.parameters?.role) {
-                await assignRole({
-                  user_id: userId,
-                  role: operation.parameters.role,
-                  reason: operation.parameters.reason
-                });
-              }
-              break;
-
-            case 'remove_role':
-              if (operation.parameters?.role) {
-                await removeRole(userId, operation.parameters.role);
-              }
-              break;
-          }
-        } catch (err) {
-          failedUsers.push({
-            id: userId,
-            error: err instanceof Error ? err.message : String(err)
-          });
-        }
+      if (error) {
+        throw new Error(`Failed to deactivate user: ${error.message}`);
       }
 
-      if (failedUsers.length > 0) {
-        throw new BatchOperationError(
-          `${failedUsers.length} operations failed`,
-          failedUsers
-        );
-      }
-
-      await refreshUsers();
+      // 刷新用户列表
+      await fetchUsers();
 
     } catch (err) {
-      if (err instanceof BatchOperationError) {
-        throw err;
-      }
-      throw handleError(err, 'performBatchOperation');
-    } finally {
-      setLoading(false);
+      const error = err instanceof Error ? err : new Error('Failed to deactivate user');
+      setError(error);
+      console.error('[useUserManagement] Deactivate user error:', error);
+      throw error;
     }
-  }, [hasPermission, deleteUser, assignRole, removeRole, refreshUsers, handleError]);
+  }, [canDeactivateUsers, fetchUsers]);
 
-  // 获取统计信息
-  const getStatistics = useCallback(async (): Promise<UserStatistics> => {
-    const { data: users, error } = await supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        user_roles (
-          role,
-          is_active
-        )
-      `);
+  // 激活用户
+  const reactivateUser = useCallback(async (userId: string): Promise<void> => {
+    if (!canDeactivateUsers) {
+      throw new Error('Insufficient permissions to reactivate users');
+    }
 
-    if (error) throw error;
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .update({
+          is_active: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
 
-    const stats: UserStatistics = {
-      total_users: users?.length || 0,
-      active_users: 0,
-      inactive_users: 0,
-      suspended_users: 0,
-      users_with_employees: 0,
-      recent_logins: 0,
-      pending_permission_requests: 0,
-      role_distribution: {}
-    };
-
-    users?.forEach(user => {
-      const hasActiveRole = user.user_roles?.some((r: any) => r.is_active);
-      if (hasActiveRole) {
-        stats.active_users++;
-      } else {
-        stats.inactive_users++;
+      if (error) {
+        throw new Error(`Failed to reactivate user: ${error.message}`);
       }
 
-      if (user.employee_id) {
-        stats.users_with_employees++;
+      // 刷新用户列表
+      await fetchUsers();
+
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to reactivate user');
+      setError(error);
+      console.error('[useUserManagement] Reactivate user error:', error);
+      throw error;
+    }
+  }, [canDeactivateUsers, fetchUsers]);
+
+  // 批量分配角色
+  const batchAssignRole = useCallback(async (userIds: string[], role: string): Promise<void> => {
+    if (!canAssignRoles) {
+      throw new Error('Insufficient permissions to assign roles');
+    }
+
+    try {
+      const insertData = userIds.map(userId => ({
+        user_id: userId,
+        role,
+        is_active: true,
+        created_at: new Date().toISOString()
+      }));
+
+      const { error } = await supabase
+        .from('user_roles')
+        .insert(insertData);
+
+      if (error) {
+        throw new Error(`Failed to batch assign roles: ${error.message}`);
       }
 
-      // 统计角色分布
-      user.user_roles?.forEach((role: any) => {
-        if (role.is_active) {
-          stats.role_distribution[role.role] = (stats.role_distribution[role.role] || 0) + 1;
-        }
+      // 刷新用户列表
+      await fetchUsers();
+
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to batch assign roles');
+      setError(error);
+      console.error('[useUserManagement] Batch assign roles error:', error);
+      throw error;
+    }
+  }, [canAssignRoles, fetchUsers]);
+
+  // 获取用户统计信息
+  const getUserStats = useCallback(async (): Promise<UserManagementStats> => {
+    // 在函数内部检查权限，而不是依赖外部的canViewUserDetails
+    if (!permissions.hasPermission('user_management.read')) {
+      throw new Error('Insufficient permissions to view user statistics');
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('view_user_management_unified')
+        .select('user_role, role_active, department_name, employee_id');
+
+      if (error) {
+        throw new Error(`Failed to fetch user statistics: ${error.message}`);
+      }
+
+      const stats: UserManagementStats = {
+        total_users: data.length,
+        active_users: data.filter(u => u.role_active).length,
+        inactive_users: data.filter(u => !u.role_active).length,
+        suspended_users: 0, // TODO: 添加逻辑来计算挂起用户
+        users_with_employees: data.filter(u => u.employee_id).length,
+        recent_logins: 0, // TODO: 添加逻辑来计算最近登录
+        pending_permission_requests: 0, // TODO: 添加逻辑来计算待审批请求
+        role_distribution: {},
+        by_role: {},
+        by_department: {},
+        recent_activity: 0
+      };
+
+      // 按角色统计
+      data.forEach(user => {
+        const role = user.user_role || 'unknown';
+        stats.by_role[role] = (stats.by_role[role] || 0) + 1;
+        stats.role_distribution[role] = (stats.role_distribution[role] || 0) + 1;
       });
-    });
 
-    return stats;
-  }, []);
+      // 按部门统计
+      data.forEach(user => {
+        const dept = user.department_name || 'unknown';
+        stats.by_department[dept] = (stats.by_department[dept] || 0) + 1;
+      });
 
-  // 实时订阅
-  const subscribe = useCallback(() => {
-    if (!config.enableRealtime || isSubscribed) return;
+      setUserStats(stats);
+      return stats;
 
-    subscriptionRef.current = supabase
-      .channel('user_management')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'user_profiles' },
-        () => {
-          console.log('[useUserManagement] User profiles changed, refreshing...');
-          refreshUsers();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'user_roles' },
-        () => {
-          console.log('[useUserManagement] User roles changed, refreshing...');
-          refreshUsers();
-        }
-      )
-      .subscribe();
-
-    setIsSubscribed(true);
-  }, [config.enableRealtime, isSubscribed, refreshUsers]);
-
-  const unsubscribe = useCallback(() => {
-    if (subscriptionRef.current) {
-      supabase.removeChannel(subscriptionRef.current);
-      subscriptionRef.current = null;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to fetch user statistics');
+      setError(error);
+      console.error('[useUserManagement] Get user stats error:', error);
+      throw error;
     }
-    setIsSubscribed(false);
+  }, [permissions]);
+
+  // 选择管理功能
+  const selectAllUsers = useCallback(() => {
+    setSelectedUsers(users.map(u => u.user_id).filter(Boolean) as string[]);
+  }, [users]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedUsers([]);
   }, []);
 
-  // 自动刷新
+  const toggleUserSelection = useCallback((userId: string) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  }, []);
+
+  // 过滤管理
+  const applyFilters = useCallback((newFilters: UserManagementFilters) => {
+    setFilters(newFilters);
+    fetchUsers(newFilters);
+  }, [fetchUsers]);
+
+  const clearFilters = useCallback(() => {
+    setFilters({});
+    fetchUsers({});
+  }, [fetchUsers]);
+
+  // 初始化数据加载
   useEffect(() => {
-    if (config.autoRefresh && config.refreshInterval > 0) {
-      refreshTimeoutRef.current = setInterval(refreshUsers, config.refreshInterval);
-    }
-
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearInterval(refreshTimeoutRef.current);
+    // 稳定的权限检查和数据加载
+    const loadData = async () => {
+      if (permissions.hasPermission('user_management.read')) {
+        try {
+          await Promise.all([
+            fetchUsers(),
+            getUserStats()
+          ]);
+        } catch (error) {
+          console.error('[useUserManagement] 初始数据加载失败:', error);
+        }
       }
     };
-  }, [config.autoRefresh, config.refreshInterval, refreshUsers]);
 
-  // 自动订阅
+    loadData();
+  }, []); // 仅在组件挂载时执行一次
+
+  // 当权限状态变化时，重新检查是否需要加载数据
   useEffect(() => {
-    if (config.enableRealtime) {
-      subscribe();
+    // 直接检查权限而不是依赖canViewUserDetails memoized值
+    if (permissions.hasPermission('user_management.read') && users.length === 0 && !loading) {
+      fetchUsers().catch(console.error);
+      getUserStats().catch(console.error);
     }
+  }, [permissions.initialized, users.length, loading, fetchUsers, getUserStats]); // 只依赖稳定值
 
-    return () => {
-      unsubscribe();
-    };
-  }, [config.enableRealtime, subscribe, unsubscribe]);
+  // 占位符实现 - 待完善的功能
+  const updateUserPermissions = useCallback(async (userId: string, permissions: string[]): Promise<void> => {
+    console.warn('updateUserPermissions not yet implemented');
+  }, []);
 
-  // 初始加载
-  useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+  const batchRevokeRole = useCallback(async (userIds: string[], role: string): Promise<void> => {
+    console.warn('batchRevokeRole not yet implemented');
+  }, []);
+
+  const batchUpdateStatus = useCallback(async (userIds: string[], active: boolean): Promise<void> => {
+    console.warn('batchUpdateStatus not yet implemented');
+  }, []);
+
+  const getActivityLog = useCallback(async (userId?: string): Promise<any[]> => {
+    console.warn('getActivityLog not yet implemented');
+    return [];
+  }, []);
 
   return {
-    // 数据状态
+    // 数据
     users,
-    total,
-    loading,
-    error,
+    selectedUsers,
+    userStats,
     
-    // 分页和筛选
-    pagination,
-    filters,
-    sorting,
-    
-    // 数据操作方法
-    loadUsers,
-    refreshUsers,
-    searchUsers,
-    sortUsers,
-    changePage,
-    changePageSize,
-    
-    // CRUD 操作
-    createUser,
-    updateUser,
-    deleteUser,
+    // 数据操作
+    fetchUsers,
     getUserById,
+    searchUsers,
+    
+    // 用户管理
+    createUserProfile,
+    updateUserProfile,
+    deactivateUser,
+    reactivateUser,
     
     // 角色管理
-    assignRole,
-    removeRole,
-    getUserRoles,
+    assignUserRole,
+    revokeUserRole,
+    updateUserPermissions,
     
     // 批量操作
-    performBatchOperation,
+    batchAssignRole,
+    batchRevokeRole,
+    batchUpdateStatus,
     
-    // 统计信息
-    getStatistics,
+    // 统计和分析
+    getUserStats,
+    getActivityLog,
     
-    // 实时更新
-    isSubscribed,
-    subscribe,
-    unsubscribe
+    // 选择管理
+    setSelectedUsers,
+    selectAllUsers,
+    clearSelection,
+    toggleUserSelection,
+    
+    // 过滤和排序
+    applyFilters,
+    clearFilters,
+    
+    // 权限检查
+    canManageUsers,
+    canAssignRoles,
+    canViewUserDetails,
+    canDeactivateUsers,
+    
+    // 状态
+    loading: loading || (permissions.loading ?? false),
+    error: error || (permissions.error instanceof Error ? permissions.error : null),
+    filters
   };
 }
+
+// 用户管理工具函数
+export const userManagementUtils = {
+  /**
+   * 格式化用户角色显示文本
+   */
+  formatRoleName: (role: string, metadata?: any): string => {
+    return metadata?.role_name || role;
+  },
+
+  /**
+   * 获取角色优先级
+   */
+  getRolePriority: (role: string): number => {
+    const priorityMap: Record<string, number> = {
+      'super_admin': 0,
+      'admin': 1,
+      'hr_manager': 2,
+      'manager': 3,
+      'employee': 4
+    };
+    return priorityMap[role] ?? 999;
+  },
+
+  /**
+   * 格式化权限数量显示
+   */
+  formatPermissionCount: (permissions: string[]): string => {
+    const count = permissions?.length || 0;
+    return count === 0 ? '无权限' : `${count} 个权限`;
+  },
+
+  /**
+   * 检查用户是否为管理员
+   */
+  isAdmin: (user: UserWithPermissions): boolean => {
+    return user.user_role ? ['super_admin', 'admin'].includes(user.user_role) : false;
+  },
+
+  /**
+   * 获取用户状态颜色
+   */
+  getUserStatusColor: (user: UserWithPermissions): string => {
+    if (!user.role_active) return 'error';
+    if (!user.config_active) return 'warning';
+    return 'success';
+  }
+};

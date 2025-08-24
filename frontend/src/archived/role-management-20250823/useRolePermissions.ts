@@ -101,7 +101,7 @@ export function useRolePermissions() {
         throw new Error(`获取权限失败: ${fetchError.message}`);
       }
 
-      setPermissions(data || []);
+      setPermissions((data || []) as PermissionInfo[]);
       console.log(`[useRolePermissions] 已加载 ${data?.length || 0} 个权限`);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('获取权限失败');
@@ -132,7 +132,7 @@ export function useRolePermissions() {
         throw new Error(`获取角色权限失败: ${fetchError.message}`);
       }
 
-      setRolePermissions(data || []);
+      setRolePermissions((data || []) as RolePermissionAssignment[]);
       console.log(`[useRolePermissions] 已加载 ${data?.length || 0} 个角色权限分配`);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('获取角色权限失败');
@@ -336,7 +336,16 @@ export function useRolePermissions() {
         throw new Error(`获取直接权限失败: ${directError.message}`);
       }
 
-      const directPermissions = (directPerms || []).map(rp => rp.permissions).filter(Boolean);
+      const directPermissions: PermissionInfo[] = (directPerms || [])
+        .map(rp => rp.permissions)
+        .filter(Boolean)
+        .map(p => ({
+          ...p,
+          description: p.description || '',
+          created_at: p.created_at || '',
+          updated_at: p.updated_at || '',
+          is_active: p.is_active ?? true
+        } as PermissionInfo));
 
       // 递归获取继承权限
       const inheritedPermissions: PermissionInfo[] = [];
@@ -365,7 +374,13 @@ export function useRolePermissions() {
           if (parentPerms) {
             parentPerms.forEach(rp => {
               if (rp.permissions && !inheritedPermissions.find(p => p.id === rp.permissions.id)) {
-                inheritedPermissions.push(rp.permissions);
+                inheritedPermissions.push({
+                  ...rp.permissions,
+                  description: rp.permissions.description || '',
+                  created_at: rp.permissions.created_at || '',
+                  updated_at: rp.permissions.updated_at || '',
+                  is_active: rp.permissions.is_active ?? true
+                } as PermissionInfo);
               }
             });
           }

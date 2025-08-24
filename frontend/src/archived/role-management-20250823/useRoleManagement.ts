@@ -167,7 +167,7 @@ export function useRoleManagement() {
         })
       );
 
-      setRoles(rolesWithStats);
+      setRoles(rolesWithStats as RoleInfo[]);
       console.log(`[useRoleManagement] 已加载 ${rolesWithStats.length} 个角色`);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('获取角色失败');
@@ -197,7 +197,7 @@ export function useRoleManagement() {
           .eq('id', roleData.parent_role_id)
           .single();
         
-        if (parentRole) {
+        if (parentRole && parentRole.level !== null) {
           level = parentRole.level + 1;
         }
       }
@@ -224,7 +224,7 @@ export function useRoleManagement() {
         .insert({
           role_id: data.id,
           change_type: 'created',
-          new_values: roleData,
+          new_values: roleData as any,
           changed_by: user.id,
           changed_at: new Date().toISOString()
         });
@@ -273,7 +273,7 @@ export function useRoleManagement() {
           .eq('id', updateData.parent_role_id)
           .single();
         
-        if (parentRole) {
+        if (parentRole && parentRole.level !== null) {
           level = parentRole.level + 1;
         }
       }
@@ -297,8 +297,8 @@ export function useRoleManagement() {
         .insert({
           role_id: updateData.id,
           change_type: 'updated',
-          old_values: oldRole,
-          new_values: updateData,
+          old_values: oldRole as any,
+          new_values: updateData as any,
           changed_by: user.id,
           changed_at: new Date().toISOString()
         });
@@ -433,7 +433,7 @@ export function useRoleManagement() {
       }
 
       return (data || []).map(role => {
-        const userRoles = role.user_roles || [];
+        const userRoles = Array.isArray(role.user_roles) ? role.user_roles : [];
         const activeUsers = userRoles.filter((ur: any) => ur.is_active).length;
         const inactiveUsers = userRoles.filter((ur: any) => !ur.is_active).length;
         
@@ -478,12 +478,12 @@ export function useRoleManagement() {
       return (data || []).map(item => ({
         id: item.id,
         role_id: item.role_id,
-        change_type: item.change_type,
-        old_values: item.old_values,
-        new_values: item.new_values,
-        changed_by: item.changed_by,
+        change_type: item.change_type as RoleChangeHistory['change_type'],
+        old_values: item.old_values as Record<string, any>,
+        new_values: item.new_values as Record<string, any>,
+        changed_by: item.changed_by || 'system',
         changed_at: item.changed_at,
-        reason: item.reason
+        reason: item.reason || undefined
       }));
     } catch (err) {
       console.error('[useRoleManagement] 获取变更历史错误:', err);

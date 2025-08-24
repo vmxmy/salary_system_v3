@@ -98,7 +98,8 @@
     "unknown": "Unknown",
     "applicable": "Applicable",
     "notApplicable": "Not Applicable",
-    "ongoing": "Ongoing"
+    "ongoing": "Ongoing",
+    "retry": "Retry"
   },
   "table": {
     "noData": "No Data",

@@ -8,7 +8,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { ModernModal } from '@/components/common/ModernModalSystem';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { supabase } from '@/lib/supabase';
 import type { BatchUserAction, BatchUserOperation } from '@/types/user-management';
 
 export interface UserBatchOperationsModalProps {
@@ -17,6 +16,8 @@ export interface UserBatchOperationsModalProps {
   onConfirm: (operation: BatchUserOperation) => Promise<void>;
   action: BatchUserAction;
   selectedUserIds: string[];
+  selectedUsers?: UserInfo[]; // 由父组件通过Hook传递
+  availableRoles?: RoleOption[]; // 由父组件通过Hook传递
 }
 
 interface UserInfo {
@@ -37,7 +38,9 @@ export function UserBatchOperationsModal({
   onClose,
   onConfirm,
   action,
-  selectedUserIds
+  selectedUserIds,
+  selectedUsers: providedUsers,
+  availableRoles: providedRoles
 }: UserBatchOperationsModalProps) {
   const { t } = useTranslation('admin');
   
@@ -147,79 +150,52 @@ export function UserBatchOperationsModal({
     return ['delete', 'suspend'].includes(action);
   }, [action]);
 
-  // 加载选中用户信息
-  const loadSelectedUsers = useCallback(async () => {
-    if (selectedUserIds.length === 0) return;
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select(`
-          id,
-          email,
-          employees (
-            employee_name
-          ),
-          user_roles (
-            role
-          )
-        `)
-        .in('id', selectedUserIds);
-
-      if (error) throw error;
-
-      const users: UserInfo[] = (data || []).map(user => ({
-        id: user.id,
-        email: user.email,
-        employee_name: user.employees?.employee_name || undefined,
-        role_names: user.user_roles?.map((r: any) => r.role) || []
+  // 使用传递的用户数据或准备空数组
+  const initializeSelectedUsers = useCallback(() => {
+    if (providedUsers) {
+      setSelectedUsers(providedUsers);
+    } else if (selectedUserIds.length > 0) {
+      // 如果没有提供用户数据，创建基本的用户信息
+      const basicUsers: UserInfo[] = selectedUserIds.map(id => ({
+        id,
+        email: `user-${id}`, // 临时占位符
+        employee_name: undefined,
+        role_names: []
       }));
-
-      setSelectedUsers(users);
-    } catch (err) {
-      console.error('Failed to load selected users:', err);
-    } finally {
-      setLoading(false);
+      setSelectedUsers(basicUsers);
     }
-  }, [selectedUserIds]);
+  }, [providedUsers, selectedUserIds]);
 
-  // 加载角色选项
-  const loadRoles = useCallback(async () => {
+  // 使用传递的角色选项
+  const initializeRoles = useCallback(() => {
     if (!requiresRoleSelection) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('is_active', true);
-
-      if (error) throw error;
-      
-      // 获取唯一角色并转换为RoleOption格式
-      const uniqueRoles = [...new Set((data || []).map(item => item.role))];
-      const roleOptions = uniqueRoles.map(role => ({
-        role_code: role,
-        role_name: role
-      }));
-      
-      setRoleOptions(roleOptions);
-    } catch (err) {
-      console.error('Failed to load roles:', err);
+    
+    if (providedRoles) {
+      setRoleOptions(providedRoles);
+    } else {
+      // 如果没有提供角色数据，设置默认角色选项
+      const defaultRoles: RoleOption[] = [
+        { role_code: 'employee', role_name: '员工' },
+        { role_code: 'manager', role_name: '管理员' },
+        { role_code: 'hr_manager', role_name: 'HR管理员' },
+        { role_code: 'admin', role_name: '系统管理员' }
+      ];
+      setRoleOptions(defaultRoles);
     }
-  }, [requiresRoleSelection]);
+  }, [requiresRoleSelection, providedRoles]);
 
   // 初始化数据
   useEffect(() => {
     if (isOpen) {
-      Promise.all([loadSelectedUsers(), loadRoles()]);
+      initializeSelectedUsers();
+      initializeRoles();
       
       // 重置表单
       setSelectedRole('');
       setReason('');
       setNotify(false);
     }
-  }, [isOpen, loadSelectedUsers, loadRoles]);
+  }, [isOpen, initializeSelectedUsers, initializeRoles]);
 
   // 表单验证
   const isFormValid = useMemo(() => {
@@ -268,7 +244,7 @@ export function UserBatchOperationsModal({
   if (loading) {
     return (
       <ModernModal
-        isOpen={isOpen}
+        open={isOpen}
         onClose={onClose}
         title={t('common.loading')}
         size="lg"
@@ -280,11 +256,10 @@ export function UserBatchOperationsModal({
 
   return (
     <ModernModal
-      isOpen={isOpen}
+      open={isOpen}
       onClose={onClose}
       title={actionConfig.title}
       size="lg"
-      className="modal-enhanced"
     >
       <div className="space-y-6">
         {/* 操作说明 */}

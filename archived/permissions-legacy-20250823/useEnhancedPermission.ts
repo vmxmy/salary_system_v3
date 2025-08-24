@@ -18,9 +18,9 @@ import type {
   PermissionResult,
   UsePermissionOptions,
   UsePermissionReturn,
-  PermissionChangeEvent,
-  PermissionError
+  PermissionChangeEvent
 } from '@/types/permission';
+import { PermissionError } from '@/types/permission';
 
 /**
  * 增强的权限验证 Hook
@@ -45,7 +45,7 @@ export function useEnhancedPermission(options: UsePermissionOptions = {}): UsePe
   }), [options]);
 
   // 防抖处理
-  const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const subscriptionRef = useRef<(() => void) | null>(null);
 
   // 构建权限上下文
@@ -181,7 +181,7 @@ export function useEnhancedPermission(options: UsePermissionOptions = {}): UsePe
     contextOverride?: Partial<PermissionContext>
   ): Promise<Record<Permission, PermissionResult>> => {
     if (!user) {
-      const emptyResult: Record<Permission, PermissionResult> = {};
+      const emptyResult = {} as Record<Permission, PermissionResult>;
       permissions.forEach(permission => {
         emptyResult[permission] = { 
           allowed: config.fallbackPermission, 
@@ -193,7 +193,7 @@ export function useEnhancedPermission(options: UsePermissionOptions = {}): UsePe
 
     if (!config.batchRequests) {
       // 串行处理
-      const results: Record<Permission, PermissionResult> = {};
+      const results = {} as Record<Permission, PermissionResult>;
       for (const permission of permissions) {
         results[permission] = await checkPermission(permission, contextOverride);
       }
@@ -221,7 +221,7 @@ export function useEnhancedPermission(options: UsePermissionOptions = {}): UsePe
       setError(error);
       
       // 返回降级结果
-      const fallbackResults: Record<Permission, PermissionResult> = {};
+      const fallbackResults = {} as Record<Permission, PermissionResult>;
       permissions.forEach(permission => {
         fallbackResults[permission] = { 
           allowed: config.fallbackPermission, 

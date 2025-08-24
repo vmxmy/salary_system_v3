@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { validateEmail, cn } from '@/lib/utils';
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
-  const { resetPassword } = useAuth();
+  const { resetPassword } = useUnifiedAuth();
   const { t } = useTranslation('auth');
   
   const [isLoading, setIsLoading] = useState(false);
@@ -88,12 +88,14 @@ export default function ForgotPasswordPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="form-control">
-            <label className="label">
+            <label htmlFor="forgot-email" className="label">
               <span className={cn("label-text", "text-base")}>
                 {t('forgotPassword.email') || 'Email Address'}
               </span>
             </label>
             <input
+              id="forgot-email"
+              name="email"
               type="email"
               className={`input input-bordered ${error ? 'input-error' : ''}`}
               value={email}
@@ -104,10 +106,11 @@ export default function ForgotPasswordPage() {
               required
               autoComplete="email"
               placeholder="admin@example.com"
+              aria-describedby={error ? "forgot-email-error" : undefined}
             />
             {error && (
               <label className="label">
-                <span className={cn("label-text-alt text-error", "text-base")}>{error}</span>
+                <span id="forgot-email-error" className={cn("label-text-alt text-error", "text-base")}>{error}</span>
               </label>
             )}
           </div>

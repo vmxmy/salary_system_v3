@@ -15,12 +15,8 @@ export type { ErrorHandlerOptions, AppError, ToastService } from './useErrorHand
 export { useLoadingState, useSimpleLoading } from './useLoadingState';
 export type { LoadingState, LoadingAction, LoadingStateOptions } from './useLoadingState';
 
-export { useResource, useResourceData } from './useResource';
-export type { 
-  ResourceService, 
-  SupabaseTableConfig, 
-  UseResourceOptions 
-} from './useResource';
+// Resource hooks moved to archived
+// export { useResource, useResourceData } from './useResource';
 
 // ============ 新架构：智能表格系统 ============
 
@@ -46,6 +42,8 @@ export type { UniversalTableOptions, TableAction } from './useUniversalTable';
 
 // 新迁移的核心工具
 export { useTableConfiguration } from './useTableConfiguration';
-export { usePermission, PERMISSIONS } from './usePermission';
+// Temporary compatibility exports - redirect to new permission system
+export { usePermissions as usePermission } from '../permissions';
+export { PERMISSIONS } from '@/constants/permissions';
 export { useConfirmDialog } from './useConfirmDialog';
-export { useUserRole } from './useUserRole';
+// export { useUserRole } from './useUserRole';

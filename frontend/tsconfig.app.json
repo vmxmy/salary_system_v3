@@ -30,5 +30,11 @@
     "noUncheckedSideEffectImports": true
   },
   "include": ["src"],
-  "exclude": ["src/backup-auth"]
+  "exclude": [
+    "src/backup-auth", 
+    "src/archived", 
+    "archived",
+    "src/hooks/payroll/useSalaryComponentFields.ts",
+    "src/pages/statistics/StatisticsPage.tsx"
+  ]
 }

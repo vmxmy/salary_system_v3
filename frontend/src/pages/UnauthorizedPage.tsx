@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function UnauthorizedPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('common');
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
@@ -13,7 +13,7 @@ export default function UnauthorizedPage() {
           {String(t('permission.deniedMessage'))}
         </p>
         <Link to="/dashboard" className="btn btn-primary">
-          {String(t('back'))} {String(t('nav.dashboard'))}
+          {String(t('common.back'))} {String(t('nav.dashboard'))}
         </Link>
       </div>
     </div>

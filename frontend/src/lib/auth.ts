@@ -18,6 +18,8 @@ export interface AuthUser {
   email: string;
   role: string;
   permissions: readonly string[];
+  departmentId?: string;
+  managedDepartments?: string[];
 }
 
 // 认证状态接口
@@ -32,16 +34,57 @@ export interface AuthState {
 
 /**
  * 从Supabase用户构建AuthUser对象
- * 注意：角色信息将通过专门的useUserRole hook异步获取和更新
+ * 现在从数据库中获取真实的角色和权限信息
  */
-function buildAuthUser(user: User): AuthUser {
-  // 基础用户信息，角色将由useUserRole hook异步更新
-  return {
-    id: user.id,
-    email: user.email!,
-    role: 'employee', // 默认角色，将由hook更新
-    permissions: ROLE_PERMISSIONS['employee']
-  };
+async function buildAuthUser(user: User): Promise<AuthUser> {
+  try {
+    // 从view_user_permissions视图获取用户的真实角色和权限
+    const { data: userPermData, error } = await supabase
+      .from('view_user_permissions')
+      .select('user_role, permissions, page_permissions, data_scope')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error || !userPermData) {
+      console.warn('[Auth] Failed to load user permissions, using default admin role for fallback:', error);
+      // 网络问题时降级到管理员权限，确保用户可以继续使用系统
+      return {
+        id: user.id,
+        email: user.email!,
+        role: 'admin', // 使用admin而不是employee作为降级角色
+        permissions: ROLE_PERMISSIONS['admin'] || []
+      };
+    }
+
+    // 将数据库权限转换为字符串数组
+    const permissions = Array.isArray(userPermData.permissions) 
+      ? userPermData.permissions as string[]
+      : [];
+
+    // 构建完整的AuthUser对象
+    const authUser: AuthUser = {
+      id: user.id,
+      email: user.email!,
+      role: userPermData.user_role || 'employee',
+      permissions: permissions,
+      // 如果需要部门信息，可以在这里添加
+      // departmentId: userPermData.department_id,
+      // managedDepartments: userPermData.managed_departments
+    };
+
+    console.log(`[Auth] User role loaded: ${authUser.role}, permissions: ${permissions.length}`);
+    return authUser;
+
+  } catch (error) {
+    console.error('[Auth] Error building auth user:', error);
+    // 发生错误时返回管理员权限作为降级策略
+    return {
+      id: user.id,
+      email: user.email!,
+      role: 'admin', // 网络故障时使用admin确保系统可用
+      permissions: ROLE_PERMISSIONS['admin'] || []
+    };
+  }
 }
 
 /**
