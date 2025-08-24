@@ -136,7 +136,8 @@ export function usePayrollImportExport() {
             setMessage('导入薪资项目数据...');
             importResult = await importPayrollItems(
               data, 
-              periodId, 
+              periodId,
+              config.mode, // 传递导入模式
               { includeCategories: ['basic_salary', 'benefits', 'personal_tax', 'other_deductions'] },
               (progress) => updateProgress(progress),
               globalProgressRef
@@ -148,6 +149,7 @@ export function usePayrollImportExport() {
             importResult = await importCategoryAssignments(
               data,
               periodId,
+              config.mode, // 传递导入模式
               (progress) => updateProgress(progress),
               globalProgressRef
             );

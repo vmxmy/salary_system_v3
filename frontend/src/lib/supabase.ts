@@ -29,17 +29,34 @@ export const supabase = createClient<Database>(
       },
       // 改进连接处理
       fetch: (url, options = {}) => {
+        const urlString = typeof url === 'string' ? url : url.toString();
+        const timeoutMs = urlString.includes('/rest/v1/rpc/') || 
+                         urlString.includes('import') || 
+                         urlString.includes('batch') ? 120000 : 60000; // 对RPC和批量操作使用2分钟超时，其他使用1分钟
+        
+        const controller = new AbortController();
+        const timeout = setTimeout(() => {
+          controller.abort();
+        }, timeoutMs);
+        
         return fetch(url, {
           ...options,
-          // 设置合理的超时时间（导入操作需要更长时间）
-          signal: AbortSignal.timeout(30000), // 30秒超时，适应导入操作
+          signal: controller.signal,
+        }).then(response => {
+          clearTimeout(timeout);
+          return response;
         }).catch(error => {
+          clearTimeout(timeout);
           console.error('[Supabase] Network error:', error);
-          if (error.name === 'AbortError') {
-            throw new Error('连接超时，请检查网络或项目状态');
+          
+          if (error.name === 'AbortError' || error.message.includes('timed out')) {
+            throw new Error(`连接超时（${timeoutMs/1000}秒），请检查网络连接或项目状态`);
           }
-          if (error.message.includes('ERR_CONNECTION_CLOSED')) {
-            throw new Error('连接已关闭，可能项目已暂停，请检查 Supabase 项目状态');
+          if (error.message.includes('ERR_CONNECTION_CLOSED') || error.message.includes('ERR_NETWORK')) {
+            throw new Error('网络连接失败，可能项目已暂停或网络不稳定');
+          }
+          if (error.message.includes('Failed to fetch')) {
+            throw new Error('无法连接到Supabase服务，请检查网络连接');
           }
           throw error;
         });

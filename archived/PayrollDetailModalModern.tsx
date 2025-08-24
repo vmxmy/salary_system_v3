@@ -315,8 +315,12 @@ function OverviewTab({
         
         <StatCard
           title="扣除合计"
-          value={formatCurrency(payrollData.total_deductions)}
-          variant="error"
+          value={
+            payrollData.total_deductions < 0 
+              ? `+${formatCurrency(Math.abs(payrollData.total_deductions))}` 
+              : formatCurrency(payrollData.total_deductions)
+          }
+          variant={payrollData.total_deductions < 0 ? "success" : "error"}
           icon={
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
@@ -396,10 +400,14 @@ function OverviewTab({
             <div className="text-sm text-base-content/60">收入项目</div>
           </div>
           <div className="text-center p-4 bg-base-200/50 rounded-lg">
-            <div className="text-2xl font-bold text-error">
-              {formatCurrency(statistics.deductions)}
+            <div className={`text-2xl font-bold ${
+              statistics.deductions < 0 ? 'text-success' : 'text-error'
+            }`}>
+              {statistics.deductions < 0 ? '+' : '-'}{formatCurrency(Math.abs(statistics.deductions))}
             </div>
-            <div className="text-sm text-base-content/60">扣除项目</div>
+            <div className="text-sm text-base-content/60">
+              {statistics.deductions < 0 ? '退款项目' : '扣除项目'}
+            </div>
           </div>
           <div className="text-center p-4 bg-base-200/50 rounded-lg">
             <div className="text-2xl font-bold text-primary">
@@ -465,8 +473,15 @@ function BreakdownTab({
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 bg-base-200/50 rounded-lg">
                 <span className="font-medium">小计</span>
-                <span className={`font-bold ${isDeduction ? 'text-error' : 'text-success'}`}>
-                  {isDeduction ? '-' : '+'}{formatCurrency(Math.abs(total))}
+                <span className={`font-bold ${
+                  isDeduction 
+                    ? (total < 0 ? 'text-success' : 'text-error')
+                    : 'text-success'
+                }`}>
+                  {isDeduction 
+                    ? (total < 0 ? '+' : '-')
+                    : '+'
+                  }{formatCurrency(Math.abs(total))}
                 </span>
               </div>
               
@@ -479,8 +494,15 @@ function BreakdownTab({
                         <div className="text-xs text-base-content/60">{item.item_notes}</div>
                       )}
                     </div>
-                    <span className={`font-mono text-sm ${isDeduction ? 'text-error' : 'text-success'}`}>
-                      {isDeduction ? '-' : '+'}{formatCurrency(Math.abs(item.amount || 0))}
+                    <span className={`font-mono text-sm ${
+                      isDeduction 
+                        ? (item.amount < 0 ? 'text-success' : 'text-error')
+                        : 'text-success'
+                    }`}>
+                      {isDeduction 
+                        ? (item.amount < 0 ? '+' : '-')
+                        : '+'
+                      }{formatCurrency(Math.abs(item.amount || 0))}
                     </span>
                   </div>
                 ))}

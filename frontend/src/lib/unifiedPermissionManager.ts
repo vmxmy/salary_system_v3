@@ -65,13 +65,18 @@ class UnifiedPermissionManager implements IPermissionManager {
    */
   private async loadPermissionVersion(): Promise<void> {
     try {
-      const { data, error } = await supabase.rpc('get_current_permission_version');
-      if (error) throw error;
-      
-      this.permissionVersionCache = data;
-      console.log('[UnifiedPermissionManager] Permission version loaded:', data);
+      await this.withRetry(async () => {
+        const { data, error } = await supabase.rpc('get_current_permission_version');
+        if (error) throw error;
+        
+        this.permissionVersionCache = data;
+        console.log('[UnifiedPermissionManager] Permission version loaded:', data);
+        return data;
+      }, 'loadPermissionVersion');
     } catch (error) {
-      console.error('[UnifiedPermissionManager] Failed to load permission version:', error);
+      console.error('[UnifiedPermissionManager] Failed to load permission version after retries:', error);
+      // 设置默认版本避免应用崩溃
+      this.permissionVersionCache = 0;
     }
   }
 
@@ -79,7 +84,7 @@ class UnifiedPermissionManager implements IPermissionManager {
    * 检查权限版本是否有更新
    */
   private async checkVersionUpdate(): Promise<boolean> {
-    try {
+    return this.withRetry(async () => {
       const { data, error } = await supabase.rpc('get_current_permission_version');
       if (error) throw error;
       
@@ -90,10 +95,11 @@ class UnifiedPermissionManager implements IPermissionManager {
         return true;
       }
       return false;
-    } catch (error) {
+    }, 'checkVersionUpdate').catch(error => {
       console.error('[UnifiedPermissionManager] Failed to check version update:', error);
+      // 对于版本检查失败，返回false而不是抛出错误，避免阻塞应用
       return false;
-    }
+    });
   }
 
   /**
@@ -387,6 +393,50 @@ class UnifiedPermissionManager implements IPermissionManager {
       console.error(`[UnifiedPermissionManager] Permission check failed for ${permission}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * 带重试机制的操作执行器
+   */
+  private async withRetry<T>(
+    operation: () => Promise<T>,
+    operationName: string = 'operation',
+    attempts: number = this.config.retryAttempts
+  ): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        
+        // 对于网络相关错误，进行重试
+        const shouldRetry = (
+          error?.message?.includes('timeout') ||
+          error?.message?.includes('network') ||
+          error?.message?.includes('fetch') ||
+          error?.message?.includes('Connection closed') ||
+          error?.code === '23' || // Supabase timeout code
+          (attempt < attempts && !error?.message?.includes('Auth'))
+        );
+        
+        if (!shouldRetry || attempt === attempts) {
+          break;
+        }
+        
+        // 指数退避重试延迟
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        console.warn(
+          `[UnifiedPermissionManager] ${operationName} attempt ${attempt} failed, retrying in ${delay}ms:`, 
+          error?.message || error
+        );
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw lastError;
   }
 
   /**

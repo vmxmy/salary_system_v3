@@ -1,0 +1,1 @@
+- git push 之前要确保编译可以完成,npm run build 没有报错

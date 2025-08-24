@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
+import { createHookRetryInstance } from '@/lib/supabase-retry';
 import type { 
   PayrollPeriodCompleteness, 
   ElementCompleteness
@@ -56,24 +57,37 @@ export const usePayrollPeriodCompleteness = (periodId: string) => {
  */
 export const usePayrollPeriodsCompleteness = () => {
   const { handleError } = useErrorHandler();
+  const retryInstance = createHookRetryInstance('usePayrollPeriodsCompleteness');
 
   return useQuery({
     queryKey: payrollCompletenessQueryKeys.list(),
     queryFn: async (): Promise<PayrollPeriodCompleteness[]> => {
-      const { data, error } = await supabase
-        .from('view_payroll_period_completeness')
-        .select('*')
-        .order('period_year', { ascending: false })
-        .order('period_month', { ascending: false });
+      try {
+        const { data, error } = await retryInstance.viewQuery<PayrollPeriodCompleteness>(
+          'view_payroll_period_completeness',
+          '*',
+          {
+            ordering: (query) => query
+              .order('period_year', { ascending: false })
+              .order('period_month', { ascending: false }),
+            limit: 50 // 限制返回数量，提高查询性能
+          }
+        );
 
-      if (error) {
+        if (error) {
+          handleError(error, { customMessage: '获取周期完整度列表失败' });
+          throw error;
+        }
+
+        return (data || []) as PayrollPeriodCompleteness[];
+      } catch (error) {
+        // 重试失败后的最终错误处理
         handleError(error, { customMessage: '获取周期完整度列表失败' });
         throw error;
       }
-
-      return (data || []) as PayrollPeriodCompleteness[];
     },
     staleTime: 60 * 1000, // 60秒缓存
+    retry: false, // 禁用React Query的默认重试，使用我们的重试机制
   });
 };
 

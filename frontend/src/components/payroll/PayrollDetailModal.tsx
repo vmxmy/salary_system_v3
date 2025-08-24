@@ -432,9 +432,18 @@ export function PayrollDetailModal({
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-error/80 font-medium">{String(t('payroll:totalDeductions'))}</p>
-                  <p className="text-xl font-bold text-error font-mono">
-                    -{formatCurrency(payrollData.total_deductions)}
-                  </p>
+                  {payrollData.total_deductions < 0 ? (
+                    <div>
+                      <p className="text-xl font-bold text-green-600 font-mono">
+                        +{formatCurrency(Math.abs(payrollData.total_deductions))}
+                      </p>
+                      <p className="text-xs text-green-600/70 mt-0.5">净退款</p>
+                    </div>
+                  ) : (
+                    <p className="text-xl font-bold text-error font-mono">
+                      -{formatCurrency(payrollData.total_deductions)}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1077,13 +1086,31 @@ function PayrollBreakdownSection({
     }),
     columnHelper.accessor('amount' as any, {
       header: () => <div className="text-right">金额</div>,
-      cell: (info: any) => (
-        <div className="text-right">
-          <span className="text-sm font-semibold font-mono text-red-600">
-            -{formatCurrency(Math.abs(info.getValue()))}
-          </span>
-        </div>
-      )
+      cell: (info: any) => {
+        const amount = info.getValue();
+        const absAmount = Math.abs(amount);
+        
+        if (amount < 0) {
+          // 负数扣除项目（实际是退款/补发） - 显示为绿色正数
+          return (
+            <div className="text-right">
+              <span className="text-sm font-semibold font-mono text-green-600">
+                +{formatCurrency(absAmount)}
+              </span>
+              <div className="text-xs text-green-600/70 mt-0.5">退款</div>
+            </div>
+          );
+        } else {
+          // 正数扣除项目（实际扣除） - 显示为红色负数
+          return (
+            <div className="text-right">
+              <span className="text-sm font-semibold font-mono text-red-600">
+                -{formatCurrency(absAmount)}
+              </span>
+            </div>
+          );
+        }
+      }
     }),
     columnHelper.accessor('calculation_method' as any, {
       header: '计算方式',
@@ -1127,10 +1154,11 @@ function PayrollBreakdownSection({
     [incomeItems]
   );
   
-  const deductionTotal = useMemo(() => 
-    deductionItems.reduce((sum, item) => sum + Math.abs(item.amount), 0),
-    [deductionItems]
-  );
+  const deductionTotal = useMemo(() => {
+    // 计算实际扣除总额（正数扣除 - 负数退款）
+    const totalDeductions = deductionItems.reduce((sum, item) => sum + item.amount, 0);
+    return totalDeductions;
+  }, [deductionItems]);
 
 
   if (Object.keys(groupedItems).length === 0) {
@@ -1216,8 +1244,11 @@ function PayrollBreakdownSection({
               </div>
               <h3 className="text-sm font-semibold text-red-700">扣除项目</h3>
             </div>
-            <div className="text-sm font-semibold text-red-600">
-              合计: -{formatCurrency(deductionTotal)}
+            <div className={`text-sm font-semibold ${
+              deductionTotal < 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              合计: {deductionTotal < 0 ? '+' : '-'}{formatCurrency(Math.abs(deductionTotal))}
+              {deductionTotal < 0 && <span className="ml-1 text-xs">(净退款)</span>}
             </div>
           </div>
 

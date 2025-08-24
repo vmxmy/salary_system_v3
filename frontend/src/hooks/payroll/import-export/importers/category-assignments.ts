@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { ExcelDataRow, ImportProgress } from '../types';
+import type { ExcelDataRow, ImportProgress, ImportMode } from '../types';
 import { IMPORT_CONFIG } from '../constants';
 
 /**
@@ -8,6 +8,7 @@ import { IMPORT_CONFIG } from '../constants';
 export const importCategoryAssignments = async (
   data: ExcelDataRow[],
   periodId: string,
+  mode: ImportMode = 'upsert',
   onProgressUpdate?: (progress: Partial<ImportProgress>) => void,
   globalProgressRef?: { current: number }
 ) => {

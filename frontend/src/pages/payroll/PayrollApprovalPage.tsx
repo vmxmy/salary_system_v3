@@ -50,10 +50,10 @@ export default function PayrollApprovalPage() {
     // TODO: 添加数据刷新逻辑
   });
   
-  // 设置 Realtime 订阅以自动刷新审批数据（已停用）
+  // 设置 Realtime 订阅以自动刷新审批数据（已启用）
   usePayrollRealtime({
-    enabled: false,
-    showNotifications: false,
+    enabled: true,
+    showNotifications: true,
     onSuccess: (event, payload) => {
       console.log(`[PayrollApproval] Realtime event: ${event}`, payload);
     },

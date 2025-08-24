@@ -337,11 +337,14 @@ export function usePayrollRealtime(options: {
     ],
     cacheInvalidation: {
       queryKeys: [
-        ['payrolls'], // 薪资查询
-        ['employees'], // 员工查询
-        ['departments'], // 部门查询
-        ['positions'], // 职位查询
+        ['payrolls'], // 薪资查询 - 根查询键，会失效所有薪资相关缓存
+        ['employees'], // 员工查询 - 根查询键，会失效所有员工相关缓存
+        ['departments'], // 部门查询 - 根查询键，会失效所有部门相关缓存
+        ['positions'], // 职位查询 - 根查询键，会失效所有职位相关缓存
         ['payroll-statistics'], // 统计查询
+        ['payroll-approval-records'], // 审批记录查询
+        ['payroll-approval-stats'], // 审批统计查询
+        ['payroll-workflow-progress'], // 工作流进度查询
         ['insurance'] // 保险查询
       ],
       refetch: true

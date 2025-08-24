@@ -1,5 +1,5 @@
 import type { Database } from '@/types/supabase';
-import { ImportDataGroup } from '@/types/payroll-import';
+import { ImportDataGroup, ImportMode } from '@/types/payroll-import';
 import type { ImportConfig as PayrollImportConfig } from '@/types/payroll-import';
 
 // 临时定义类型来避免导入错误
@@ -142,3 +142,6 @@ export interface SalaryComponent {
   // 兼容字段（用于业务逻辑）
   is_required?: boolean;
 }
+
+// 重新导出ImportMode类型
+export { ImportMode };

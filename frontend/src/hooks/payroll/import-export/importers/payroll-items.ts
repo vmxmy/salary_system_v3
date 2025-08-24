@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import type { ExcelDataRow, SalaryComponentCategory, ImportProgress, ImportMode } from '../types';
 import { IMPORT_CONFIG } from '../constants';
+import { validateImportData } from '../utils/validation';
+import { createImportLogger, formatDuration } from '../utils/import-logger';
 
 /**
  * 导入薪资项目明细数据（动态获取薪资组件）
@@ -15,13 +17,99 @@ export const importPayrollItems = async (
   onProgressUpdate?: (progress: Partial<ImportProgress>) => void,
   globalProgressRef?: { current: number }
 ) => {
-  console.log('🚀 开始导入薪资项目明细数据');
-  console.log(`📊 数据行数: ${data.length}`);
-  console.log(`🔰 薪资周期ID: ${periodId}`);
-  console.log(`🎯 导入模式: ${mode}`);
-  console.log('📋 配置选项:', options);
+  // 初始化导入日志记录器
+  const logger = createImportLogger(periodId, 'payroll_items', data.length, {
+    enableConsole: true,
+    enableDatabase: false // 当前未启用数据库存储
+  });
+  
+  logger.info('开始导入薪资项目明细数据', {
+    operation: 'import_start',
+    additionalData: { 
+      dataRowCount: data.length, 
+      mode, 
+      includeCategories: options?.includeCategories 
+    }
+  });
   
   const results: any[] = [];
+  const importStartTime = Date.now();
+  
+  // Step 0: 数据验证
+  if (onProgressUpdate) {
+    onProgressUpdate({
+      phase: 'validating',
+      message: '正在验证导入数据...'
+    });
+  }
+  
+  logger.info('开始数据验证', { operation: 'validation_start' });
+  try {
+    const validationConfig = {
+      dataGroup: 'earnings' as const,
+      mode: mode,
+      payPeriod: {
+        start: new Date(),
+        end: new Date()
+      },
+      options: {
+        validateBeforeImport: true,
+        skipInvalidRows: false
+      }
+    };
+    
+    const validationResult = await validateImportData(data, validationConfig);
+    
+    // 记录验证结果
+    logger.logValidationResult(
+      validationResult.isValid,
+      validationResult.errors.length,
+      validationResult.warnings.length
+    );
+    
+    if (!validationResult.isValid) {
+      logger.error('数据验证失败，终止导入', undefined, {
+        operation: 'validation_failed',
+        additionalData: { 
+          errorCount: validationResult.errors.length,
+          errors: validationResult.errors 
+        }
+      });
+      
+      logger.completeSession('failed');
+      return {
+        success: false,
+        totalRows: data.length,
+        successCount: 0,
+        failedCount: data.length,
+        skippedCount: 0,
+        errors: validationResult.errors,
+        warnings: validationResult.warnings,
+        results
+      };
+    }
+    
+    if (validationResult.warnings.length > 0) {
+      logger.warn('数据验证发现警告', {
+        operation: 'validation_warnings',
+        additionalData: { warnings: validationResult.warnings }
+      });
+    }
+    
+  } catch (validationError) {
+    logger.warn('数据验证异常，跳过验证步骤', {
+      operation: 'validation_error',
+      additionalData: { error: validationError }
+    });
+  }
+  
+  // 验证完成，开始导入阶段
+  if (onProgressUpdate) {
+    onProgressUpdate({
+      phase: 'importing',
+      message: '开始导入薪资数据...'
+    });
+  }
   
   // 默认配置：导入所有收入项类别(basic_salary, benefits) + 个人所得税(personal_tax) + 其他扣除项(other_deductions)
   const defaultCategories: SalaryComponentCategory[] = ['basic_salary', 'benefits', 'personal_tax', 'other_deductions'];
@@ -30,23 +118,37 @@ export const importPayrollItems = async (
   console.log('🎯 将导入的薪资组件类别:', includeCategories);
   
   // 获取指定类别的薪资组件
-  console.log('🔍 查询薪资组件数据...');
+  logger.info('查询薪资组件数据', {
+    operation: 'fetch_salary_components',
+    additionalData: { includeCategories }
+  });
+  
   const { data: salaryComponents, error: componentsError } = await supabase
     .from('salary_components')
     .select('id, name, type, category')
     .in('category', includeCategories);
   
   if (componentsError) {
-    console.error('❌ 获取薪资组件失败:', componentsError);
+    logger.error('获取薪资组件失败', componentsError, {
+      operation: 'fetch_salary_components_failed'
+    });
+    logger.completeSession('failed');
     throw new Error('无法获取薪资组件列表');
   }
   
   if (!salaryComponents || salaryComponents.length === 0) {
-    console.error('❌ 未找到任何薪资组件');
+    logger.error('未找到任何薪资组件', undefined, {
+      operation: 'no_salary_components',
+      additionalData: { includeCategories }
+    });
+    logger.completeSession('failed');
     throw new Error('未找到符合条件的薪资组件');
   }
   
-  console.log(`✅ 成功获取 ${salaryComponents.length} 个薪资组件`);
+  logger.success(`成功获取薪资组件`, {
+    operation: 'fetch_salary_components_success',
+    additionalData: { componentCount: salaryComponents.length }
+  });
   
   // 创建组件名称到ID的映射
   const componentMap = new Map(
@@ -84,19 +186,27 @@ export const importPayrollItems = async (
   }
   
   // 批量查询优化：预先获取所有需要的员工数据
-  console.log('\n🚀 批量预加载数据优化...');
+  logger.info('开始批量预加载员工数据', { operation: 'employee_preload_start' });
+  
   const employeeNames = [...new Set(data.map(row => 
     row['员工姓名'] || row['employee_name']
   ).filter(Boolean))];
   
-  console.log(`📊 需要查询的员工数量: ${employeeNames.length}`);
+  logger.info('解析员工姓名', {
+    operation: 'employee_name_extraction',
+    additionalData: { uniqueEmployeeCount: employeeNames.length }
+  });
+  
   const { data: allEmployees, error: employeesError } = await supabase
     .from('employees')
     .select('id, employee_name')
     .in('employee_name', employeeNames);
   
   if (employeesError) {
-    console.error('❌ 批量查询员工失败:', employeesError);
+    logger.error('批量查询员工失败', employeesError, {
+      operation: 'employee_batch_query_failed'
+    });
+    logger.completeSession('failed');
     throw new Error(`批量查询员工失败: ${employeesError.message}`);
   }
   
@@ -104,12 +214,22 @@ export const importPayrollItems = async (
   const employeeMap = new Map(
     (allEmployees || []).map(emp => [emp.employee_name, emp])
   );
-  console.log(`✅ 成功预加载 ${employeeMap.size} 个员工数据`);
   
   // 检查是否有找不到的员工
   const missingEmployees = employeeNames.filter(name => !employeeMap.has(name));
+  
+  // 记录员工解析结果
+  logger.logEmployeeResolution(
+    employeeMap.size,
+    missingEmployees.length,
+    employeeNames.length
+  );
+  
   if (missingEmployees.length > 0) {
-    console.warn('⚠️ 以下员工在数据库中不存在:', missingEmployees);
+    logger.warn('发现缺失员工', {
+      operation: 'missing_employees',
+      additionalData: { missingEmployees }
+    });
   }
   
   // 批量处理优化：先收集所有数据，然后批量插入
@@ -254,7 +374,8 @@ export const importPayrollItems = async (
   
   // Step 4: 批量UPSERT新的薪资记录（防止重复）
   if (newPayrollsToInsert.length > 0) {
-    console.log(`\n🚀 批量UPSERT ${newPayrollsToInsert.length} 条薪资记录...`);
+    logger.logBatchStart('payroll_upsert', newPayrollsToInsert.length, 1);
+    const batchStartTime = Date.now();
     
     const { data: insertedPayrolls, error: insertError } = await supabase
       .from('payrolls')
@@ -265,7 +386,11 @@ export const importPayrollItems = async (
       .select('id, employee_id');
     
     if (insertError) {
-      console.error('❌ 批量UPSERT薪资记录失败:', insertError);
+      logger.error('批量UPSERT薪资记录失败', insertError, {
+        operation: 'payroll_upsert_failed',
+        additionalData: { batchSize: newPayrollsToInsert.length }
+      });
+      logger.completeSession('failed');
       throw new Error(`批量UPSERT薪资记录失败: ${insertError.message}`);
     }
     
@@ -276,7 +401,14 @@ export const importPayrollItems = async (
       });
     }
     
-    console.log(`✅ 成功UPSERT ${insertedPayrolls?.length || 0} 条薪资记录`);
+    const batchDuration = Date.now() - batchStartTime;
+    logger.logBatchComplete(
+      'payroll_upsert',
+      1,
+      insertedPayrolls?.length || 0,
+      0,
+      batchDuration
+    );
   }
   
   // Step 5: 更新薪资项目中的payroll_id
@@ -360,11 +492,33 @@ export const importPayrollItems = async (
     }
   }
   
-  console.log(`\n🎯 薪资项目导入完成:`);
-  console.log(`  - 处理数据行数: ${data.length}`);
-  console.log(`  - 成功UPSERT薪资记录: ${newPayrollsToInsert.length}`);
-  console.log(`  - 成功导入薪资项目: ${validPayrollItems.length}`);
-  console.log(`  - 错误数量: ${errors.length}`);
+  const importDuration = Date.now() - importStartTime;
+  const successCount = data.length - errors.length;
+  
+  // 更新会话统计
+  logger.updateStats(successCount, errors.length);
+  
+  // 记录导入完成
+  logger.success('薪资项目导入完成', {
+    operation: 'import_complete',
+    duration: importDuration,
+    additionalData: {
+      totalRows: data.length,
+      newPayrollRecords: newPayrollsToInsert.length,
+      payrollItems: validPayrollItems.length,
+      successCount,
+      errorCount: errors.length,
+      totalDuration: formatDuration(importDuration)
+    }
+  });
+  
+  // 完成导入会话
+  const sessionStatus = errors.length === 0 ? 'completed' : 'failed';
+  logger.completeSession(sessionStatus);
+  
+  // 输出会话摘要
+  const sessionSummary = logger.getSessionSummary();
+  console.log('📊 导入会话摘要:', sessionSummary);
   
   return {
     success: errors.length === 0,
