@@ -184,7 +184,41 @@ const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
   'personal_insurance': '个人五险一金',
   'personal_tax': '个人所得税',
   'basic_salary': '基本工资',
-  'benefits': '津贴福利'
+  'benefits': '津贴福利',
+  'allowances': '津贴补贴',
+  'bonuses': '奖金',
+  'overtime': '加班费',
+  'other_earnings': '其他收入',
+  'other_deductions': '其他扣除',
+  'employer_insurance': '单位社保',
+  'housing_fund': '住房公积金',
+  'pension_insurance': '养老保险',
+  'medical_insurance': '医疗保险',
+  'unemployment_insurance': '失业保险',
+  'work_injury_insurance': '工伤保险',
+  'maternity_insurance': '生育保险'
+};
+
+// 获取类别显示名称
+const getCategoryDisplayName = (category: string): string => {
+  return CATEGORY_DISPLAY_NAMES[category] || category || '未分类';
+};
+
+// 类别排序优先级 - 确保合理的显示顺序
+const getCategorySortOrder = (category: string): number => {
+  const orderMap: Record<string, number> = {
+    'basic_salary': 1,
+    'allowances': 2,
+    'benefits': 3,
+    'bonuses': 4,
+    'overtime': 5,
+    'other_earnings': 6,
+    'personal_tax': 7,
+    'personal_insurance': 8,
+    'other_deductions': 9, // 确保其他扣除显示在合适位置
+    'employer_insurance': 10
+  };
+  return orderMap[category] || 99;
 };
 
 interface PayrollDetailModalProps {
@@ -350,7 +384,7 @@ export function PayrollDetailModal({
   // Tab配置
   const tabs = [
     { id: 'overview', label: '薪资概览', icon: CurrencyDollarIcon },
-    { id: 'breakdown', label: '收入明细', icon: CalculatorIcon },
+    { id: 'breakdown', label: '薪资明细', icon: CalculatorIcon },
     { id: 'insurance', label: '五险一金', icon: ShieldCheckIcon },
     { id: 'contribution', label: '缴费基数', icon: CreditCardIcon },
     { id: 'tax', label: '个人所得税', icon: DocumentTextIcon },
@@ -616,8 +650,24 @@ interface PayrollBreakdownTabProps {
 function PayrollBreakdownTab({ payrollItems, payroll }: PayrollBreakdownTabProps) {
   const { t } = useTranslation(['payroll', 'common']);
   
-  // 按 category 分组薪资项目
-  const groupedItems = payrollItems.reduce((acc, item) => {
+  // 定义薪资明细标签页要显示的类别
+  const BREAKDOWN_TAB_CATEGORIES = [
+    'basic_salary',      // 基本工资
+    'benefits',          // 津贴福利  
+    'allowances',        // 津贴补贴
+    'bonuses',           // 奖金
+    'overtime',          // 加班费
+    'other_earnings',    // 其他收入
+    'other_deductions'   // 其他扣除
+  ];
+  
+  // 添加调试日志
+  console.log('=== PayrollBreakdownTab 调试信息 ===');
+  console.log('原始薪资项目数据 (payrollItems):', payrollItems);
+  console.log('原始数据数量:', payrollItems.length);
+  
+  // 按 category 分组薪资项目，并过滤只显示指定类别
+  const allGroupedItems = payrollItems.reduce((acc, item) => {
     const category = item.category;
     if (!acc[category]) {
       acc[category] = [];
@@ -625,6 +675,41 @@ function PayrollBreakdownTab({ payrollItems, payroll }: PayrollBreakdownTabProps
     acc[category].push(item);
     return acc;
   }, {} as Record<string, PayrollItemDetail[]>);
+  
+  console.log('所有分组后的数据 (allGroupedItems):', allGroupedItems);
+  console.log('所有类别:', Object.keys(allGroupedItems));
+  console.log('需要显示的类别 (BREAKDOWN_TAB_CATEGORIES):', BREAKDOWN_TAB_CATEGORIES);
+  
+  // 检查 other_deductions 类别
+  if (allGroupedItems['other_deductions']) {
+    console.log('找到 other_deductions 类别，数量:', allGroupedItems['other_deductions'].length);
+    console.log('other_deductions 明细:', allGroupedItems['other_deductions']);
+  } else {
+    console.log('未找到 other_deductions 类别');
+  }
+  
+  // 过滤并排序分组数据，只保留薪资明细页面需要的类别
+  const filteredEntries = Object.entries(allGroupedItems)
+    .filter(([category]) => {
+      const included = BREAKDOWN_TAB_CATEGORIES.includes(category);
+      console.log(`类别 ${category} ${included ? '已包含' : '已过滤'}`);
+      return included;
+    });
+    
+  console.log('过滤后的条目:', filteredEntries.map(([cat, items]) => `${cat}(${items.length}项)`));
+  
+  const groupedItems = filteredEntries
+    .sort(([categoryA], [categoryB]) => {
+      return getCategorySortOrder(categoryA) - getCategorySortOrder(categoryB);
+    })
+    .reduce((acc, [category, items]) => {
+      acc[category] = items;
+      return acc;
+    }, {} as Record<string, PayrollItemDetail[]>);
+    
+  console.log('最终分组数据 (groupedItems):', groupedItems);
+  console.log('最终显示的类别:', Object.keys(groupedItems));
+  console.log('=== 调试信息结束 ===');
 
   // 计算各类别小计
   const categoryTotals = Object.entries(groupedItems).map(([category, items]) => ({
@@ -874,9 +959,51 @@ function PayrollBreakdownSection({
 
   // 准备表格数据
   const incomeItems = useMemo(() => {
-    return Object.entries(groupedItems)
-      .filter(([, items]) => items[0]?.component_type === 'earning')
-      .flatMap(([, items]) => items);
+    console.log('🔍 PayrollBreakdownSection - 计算收入项目');
+    console.log('原始 groupedItems:', groupedItems);
+    
+    const incomeResult = Object.entries(groupedItems)
+      .filter(([category, items]) => {
+        const isEarning = items[0]?.component_type === 'earning';
+        console.log(`类别 ${category}: ${items.length} 项, 第一项类型: ${items[0]?.component_type}, 是否收入: ${isEarning}`);
+        return isEarning;
+      })
+      .flatMap(([category, items]) => {
+        console.log(`收入类别 ${category} 包含项目:`, items.map(item => ({ 
+          name: item.component_name, 
+          amount: item.amount, 
+          type: item.component_type 
+        })));
+        return items;
+      });
+    
+    console.log('最终收入项目数量:', incomeResult.length);
+    console.log('收入项目详情:', incomeResult);
+    return incomeResult;
+  }, [groupedItems]);
+  
+  // 准备扣除项目数据
+  const deductionItems = useMemo(() => {
+    console.log('🔍 PayrollBreakdownSection - 计算扣除项目');
+    
+    const deductionResult = Object.entries(groupedItems)
+      .filter(([category, items]) => {
+        const isDeduction = items[0]?.component_type === 'deduction';
+        console.log(`类别 ${category}: ${items.length} 项, 第一项类型: ${items[0]?.component_type}, 是否扣除: ${isDeduction}`);
+        return isDeduction;
+      })
+      .flatMap(([category, items]) => {
+        console.log(`扣除类别 ${category} 包含项目:`, items.map(item => ({ 
+          name: item.component_name, 
+          amount: item.amount, 
+          type: item.component_type 
+        })));
+        return items;
+      });
+    
+    console.log('最终扣除项目数量:', deductionResult.length);
+    console.log('扣除项目详情:', deductionResult);
+    return deductionResult;
   }, [groupedItems]);
 
 
@@ -894,7 +1021,7 @@ function PayrollBreakdownSection({
       header: '分类',
       cell: (info: any) => (
         <span className="text-xs text-base-content/70">
-          {info.row.original.category || '未知分类'}
+          {getCategoryDisplayName(info.row.original.category) || '未知分类'}
         </span>
       )
     }),
@@ -930,6 +1057,55 @@ function PayrollBreakdownSection({
     })
   ], []);
 
+  // 定义扣除项目表格列
+  const deductionColumns = useMemo(() => [
+    columnHelper.accessor('component_name' as any, {
+      header: '项目名称',
+      cell: info => (
+        <span className="text-sm font-medium text-base-content">
+          {info.getValue() as React.ReactNode}
+        </span>
+      )
+    }),
+    columnHelper.accessor('category' as any, {
+      header: '分类',
+      cell: (info: any) => (
+        <span className="text-xs text-base-content/70">
+          {getCategoryDisplayName(info.row.original.category) || '未知分类'}
+        </span>
+      )
+    }),
+    columnHelper.accessor('amount' as any, {
+      header: () => <div className="text-right">金额</div>,
+      cell: (info: any) => (
+        <div className="text-right">
+          <span className="text-sm font-semibold font-mono text-red-600">
+            -{formatCurrency(Math.abs(info.getValue()))}
+          </span>
+        </div>
+      )
+    }),
+    columnHelper.accessor('calculation_method' as any, {
+      header: '计算方式',
+      cell: info => info.getValue() ? (
+        <span className="text-xs text-base-content/60">
+          {info.getValue() as React.ReactNode}
+        </span>
+      ) : (
+        <span className="text-xs text-base-content/30">-</span>
+      )
+    }),
+    columnHelper.accessor('notes' as any, {
+      header: '备注',
+      cell: info => info.getValue() ? (
+        <span className="text-xs text-base-content/60">
+          {info.getValue() as React.ReactNode}
+        </span>
+      ) : (
+        <span className="text-xs text-base-content/30">-</span>
+      )
+    })
+  ], []);
 
   // 创建收入表格实例
   const incomeTable = useReactTable({
@@ -938,11 +1114,22 @@ function PayrollBreakdownSection({
     getCoreRowModel: getCoreRowModel(),
   });
 
+  // 创建扣除表格实例
+  const deductionTable = useReactTable({
+    data: deductionItems,
+    columns: deductionColumns,
+    getCoreRowModel: getCoreRowModel(),
+  });
 
   // 计算汇总
   const incomeTotal = useMemo(() => 
     incomeItems.reduce((sum, item) => sum + Math.abs(item.amount), 0),
     [incomeItems]
+  );
+  
+  const deductionTotal = useMemo(() => 
+    deductionItems.reduce((sum, item) => sum + Math.abs(item.amount), 0),
+    [deductionItems]
   );
 
 
@@ -1003,6 +1190,57 @@ function PayrollBreakdownSection({
               </thead>
               <tbody>
                 {incomeTable.getRowModel().rows.map(row => (
+                  <tr key={row.id} className="hover:bg-base-100/50">
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id} className="py-2">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 扣除项目表格 */}
+      {deductionItems.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-semibold text-red-700">扣除项目</h3>
+            </div>
+            <div className="text-sm font-semibold text-red-600">
+              合计: -{formatCurrency(deductionTotal)}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="table table-sm w-full">
+              <thead>
+                {deductionTable.getHeaderGroups().map(headerGroup => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map(header => (
+                      <th key={header.id} className="text-xs font-medium">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody>
+                {deductionTable.getRowModel().rows.map(row => (
                   <tr key={row.id} className="hover:bg-base-100/50">
                     {row.getVisibleCells().map(cell => (
                       <td key={cell.id} className="py-2">

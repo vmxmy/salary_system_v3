@@ -145,7 +145,7 @@ export const importCategoryAssignments = async (
   console.log('\n🚀 执行批量数据库操作...');
   console.log(`📊 待插入: ${toInsert.length} 条, 待更新: ${toUpdate.length} 条`);
   
-  // 批量插入新记录（每批 500 条）
+  // 批量插入新记录（每批 100 条）
   if (toInsert.length > 0) {
     const insertChunkSize = IMPORT_CONFIG.BATCH_SIZE;
     for (let i = 0; i < toInsert.length; i += insertChunkSize) {

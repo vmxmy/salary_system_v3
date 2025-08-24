@@ -107,9 +107,47 @@ export function PayrollDetailModalModern({
     } as PayrollDetailData;
   }, [payrollId, payrollsData]);
 
+  // 类别名称映射 - 将英文类别名转换为更友好的中文名称
+  const getCategoryDisplayName = (category: string): string => {
+    const categoryMap: Record<string, string> = {
+      'basic_salary': '基础薪资',
+      'allowances': '津贴补贴', 
+      'bonuses': '奖金',
+      'overtime': '加班费',
+      'other_earnings': '其他收入',
+      'personal_insurance': '个人社保',
+      'employer_insurance': '单位社保',
+      'personal_tax': '个人所得税',
+      'other_deductions': '其他扣除',
+      'housing_fund': '住房公积金',
+      'pension_insurance': '养老保险',
+      'medical_insurance': '医疗保险',
+      'unemployment_insurance': '失业保险',
+      'work_injury_insurance': '工伤保险',
+      'maternity_insurance': '生育保险'
+    };
+    return categoryMap[category] || category || '未分类';
+  };
+
+  // 类别排序优先级 - 确保合理的显示顺序
+  const getCategorySortOrder = (category: string): number => {
+    const orderMap: Record<string, number> = {
+      'basic_salary': 1,
+      'allowances': 2,
+      'bonuses': 3,
+      'overtime': 4,
+      'other_earnings': 5,
+      'personal_tax': 6,
+      'personal_insurance': 7,
+      'other_deductions': 8, // 确保其他扣除显示在合适位置
+      'employer_insurance': 9
+    };
+    return orderMap[category] || 99;
+  };
+
   // Group items by category
   const groupedItems = useMemo(() => {
-    return payrollItems.reduce((acc, item) => {
+    const grouped = payrollItems.reduce((acc, item) => {
       const category = (item as any).category_name || item.category || '未分类';
       if (!acc[category]) {
         acc[category] = [];
@@ -134,6 +172,13 @@ export function PayrollDetailModalModern({
       acc[category].push(convertedItem);
       return acc;
     }, {} as Record<string, PayrollItemDetail[]>);
+
+    // 按类别优先级排序
+    const sortedEntries = Object.entries(grouped).sort(([categoryA], [categoryB]) => {
+      return getCategorySortOrder(categoryA) - getCategorySortOrder(categoryB);
+    });
+
+    return Object.fromEntries(sortedEntries);
   }, [payrollItems]);
 
   // Calculate statistics
@@ -169,12 +214,13 @@ export function PayrollDetailModalModern({
     },
     {
       id: 'breakdown',
-      label: '收入明细',
+      label: '薪资明细',
       icon: <CalculatorIcon className="w-4 h-4" />,
       content: (
         <BreakdownTab 
           groupedItems={groupedItems}
           isLoading={isLoading}
+          getCategoryDisplayName={getCategoryDisplayName}
         />
       )
     },
@@ -370,10 +416,12 @@ function OverviewTab({
 // Modern Breakdown Tab
 function BreakdownTab({ 
   groupedItems,
-  isLoading
+  isLoading,
+  getCategoryDisplayName
 }: { 
   groupedItems: Record<string, PayrollItemDetail[]>;
   isLoading: boolean;
+  getCategoryDisplayName: (category: string) => string;
 }) {
   if (isLoading) {
     return <div className="flex justify-center py-8">
@@ -399,7 +447,7 @@ function BreakdownTab({
         return (
           <InfoCard
             key={category}
-            title={category || '未分类'}
+            title={getCategoryDisplayName(category)}
             subtitle={`${items.length} 项明细`}
             variant={isDeduction ? 'error' : 'success'}
             icon={
