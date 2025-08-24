@@ -42,8 +42,7 @@ export type { UniversalTableOptions, TableAction } from './useUniversalTable';
 
 // 新迁移的核心工具
 export { useTableConfiguration } from './useTableConfiguration';
-// Temporary compatibility exports - redirect to new permission system
-export { usePermissions as usePermission } from '../permissions';
-export { PERMISSIONS } from '@/constants/permissions';
+// Note: usePermission has been moved to @/hooks/permissions/usePermission
+// PERMISSIONS constants available at @/constants/permissions
 export { useConfirmDialog } from './useConfirmDialog';
 // export { useUserRole } from './useUserRole';

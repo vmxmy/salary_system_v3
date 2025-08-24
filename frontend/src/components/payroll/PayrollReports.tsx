@@ -15,7 +15,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { getMonthDateRange, getCurrentYearMonth, formatMonth } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/format';
 import { usePayrollCreation } from '@/hooks/payroll/usePayrollCreation';
-import { usePermission } from '@/hooks/core';
+import { usePermission } from '@/hooks/permissions/usePermission';
 import { PERMISSIONS } from '@/constants/permissions';
 import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
 import type { PaginationState, Table } from '@tanstack/react-table';
