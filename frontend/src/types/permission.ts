@@ -190,6 +190,7 @@ export interface UsePermissionReturn {
   // 权限状态
   loading: boolean;
   error: Error | null;
+  initialized: boolean; // 权限系统初始化状态
   
   // 缓存管理
   clearCache: () => void;

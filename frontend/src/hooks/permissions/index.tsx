@@ -295,6 +295,8 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
            (enablePermissionRequests && requestHook?.error) ||
            (enableApprovalWorkflow && approvalHook?.error) ||
            (enableResourceAccess && resourceHook?.error),
+           
+    initialized: permissionHook.initialized, // 权限系统初始化状态
     
     // === 用户上下文 ===
     user,

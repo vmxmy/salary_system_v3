@@ -381,6 +381,7 @@ export function usePermission(options: PermissionOptions = {}): UsePermissionRet
     // 状态
     loading,
     error,
+    initialized, // 权限系统初始化状态
     
     // 缓存管理
     clearCache: () => clearPermissionCache(),
