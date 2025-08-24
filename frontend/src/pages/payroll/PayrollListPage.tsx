@@ -318,7 +318,9 @@ export default function PayrollListPage() {
               hasData: m.hasData,
               hasPeriod: m.hasPeriod,
               payrollCount: m.payrollCount || 0,
-              expectedEmployeeCount: m.expectedEmployeeCount || 0
+              expectedEmployeeCount: m.expectedEmployeeCount || 0,
+              status: m.periodStatus,  // 传递真实的状态数据
+              isLocked: m.isLocked     // 传递锁定状态
             }))}
             onMonthChange={handleMonthChange}
             isLoading={latestPeriodLoading}

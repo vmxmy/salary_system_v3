@@ -12,7 +12,11 @@ interface PayrollApprovalToolbarProps {
     month: string;
     periodId: string;
     hasData: boolean;
+    hasPeriod?: boolean;
     payrollCount: number;
+    expectedEmployeeCount?: number;
+    status?: 'preparing' | 'ready' | 'review' | 'processing' | 'approved' | 'completed' | 'closed';
+    isLocked?: boolean;
   }>;
   onMonthChange: (month: string) => void;
   isLoadingMonths: boolean;
@@ -60,14 +64,26 @@ export function PayrollApprovalToolbar({
         {/* 左侧：选择器组 */}
         <div className="flex items-center gap-3">
           {/* 薪资周期选择器 */}
-          <PayrollPeriodSelector
-            selectedMonth={selectedMonth}
-            availableMonths={availableMonths}
-            onMonthChange={onMonthChange}
-            isLoading={isLoadingMonths}
-            showCompletenessIndicators={false}
-            size="sm"
-          />
+          <div data-tour="approval-period-selector">
+            <PayrollPeriodSelector
+              selectedMonth={selectedMonth}
+              availableMonths={availableMonths?.map(m => ({
+                month: m.month,
+                periodId: m.periodId,
+                hasData: m.hasData,
+                hasPeriod: m.hasPeriod,
+                payrollCount: m.payrollCount,
+                status: m.status,
+                isLocked: m.isLocked
+              }))}
+              onMonthChange={onMonthChange}
+              isLoading={isLoadingMonths}
+              showDataIndicators={true}  // 启用数据指示器
+              showCompletenessIndicators={false}  // 审批页面不需要完整度指示器
+              onlyShowMonthsWithData={false}  // 允许选择有周期但无数据的月份
+              size="sm"
+            />
+          </div>
           
           {/* 状态选择器 */}
           <div className="flex items-center gap-2">

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAvailablePayrollMonths, checkMonthAvailability, type AvailablePayrollMonth } from '@/hooks/payroll';
 import { usePayrollPeriodsCompleteness } from '@/hooks/payroll/usePayrollPeriodCompleteness';
 import type { PayrollPeriodCompleteness } from '@/types/payroll-completeness';
+import { getStatusConfig, getMonthIndicatorConfig, type PayrollPeriodStatus } from '@/lib/payroll-status-mapping';
 
 interface MonthPickerProps {
   value: string;
@@ -452,60 +453,40 @@ export function MonthPicker({
                             'flex items-center justify-center',
                             'min-w-[1rem] h-4 px-1 text-xs font-bold rounded-full',
                             'border border-base-100',
+                            // 使用状态映射系统确定背景色
                             isSelected 
                               ? 'bg-accent text-accent-content' 
                               : isDisabled && disableMonthsWithData
                               ? 'bg-error text-error-content'
+                              : monthAvailability.periodStatus
+                              ? (() => {
+                                  const config = getStatusConfig(monthAvailability.periodStatus as PayrollPeriodStatus);
+                                  return `${config.bgClass} ${config.textClass}`;
+                                })()
                               : monthAvailability.hasData
                               ? 'bg-success text-success-content'
-                              : 'bg-warning text-warning-content' // 有周期但没有薪资记录
+                              : 'bg-warning text-warning-content' // 后备方案
                           )}
                           title={
                             isDisabled && disableMonthsWithData 
                               ? `已有${monthAvailability.count}条薪资记录，无法重复创建` 
+                              : monthAvailability.periodStatus
+                              ? (() => {
+                                  const config = getStatusConfig(monthAvailability.periodStatus as PayrollPeriodStatus);
+                                  return monthAvailability.hasData
+                                    ? `${monthAvailability.count}条薪资记录 - ${config.label}: ${config.description}${monthAvailability.isLocked ? ' (已锁定)' : ''}`
+                                    : `薪资周期已创建，期望${monthAvailability.expectedCount}人 - ${config.label}: ${config.description}${monthAvailability.isLocked ? ' (已锁定)' : ''}`;
+                                })()
                               : monthAvailability.hasData
-                              ? `${monthAvailability.count}条薪资记录 - 状态: ${
-                                  monthAvailability.periodStatus === 'completed' ? '已完成' :
-                                  monthAvailability.periodStatus === 'processing' ? '处理中' : '草稿'
-                                }${monthAvailability.isLocked ? ' (已锁定)' : ''}`
-                              : `薪资周期已创建，期望${monthAvailability.expectedCount}人 - 状态: ${
-                                  monthAvailability.periodStatus === 'completed' ? '已完成' :
-                                  monthAvailability.periodStatus === 'processing' ? '处理中' : '草稿'
-                                }${monthAvailability.isLocked ? ' (已锁定)' : ''}`
+                              ? `${monthAvailability.count}条薪资记录`
+                              : `薪资周期已创建，期望${monthAvailability.expectedCount}人`
                           }
                         >
                           {monthAvailability.count > 99 ? '99+' : monthAvailability.count}
-                        </motion.div>
-                      )}
-                      
-                      {/* Period status indicator - 左上角 */}
-                      {showDataIndicators && monthAvailability.hasData && monthAvailability.periodStatus && (
-                        <motion.div
-                          initial={{ scale: 0, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ delay: 0.15 }}
-                          className={cn(
-                            'absolute -top-1 -left-1',
-                            'w-3 h-3 rounded-full',
-                            'border border-base-100',
-                            // 根据状态设置颜色
-                            monthAvailability.periodStatus === 'completed' 
-                              ? 'bg-success' 
-                              : monthAvailability.periodStatus === 'processing' 
-                              ? 'bg-info' 
-                              : 'bg-warning',
-                            // 如果被锁定，添加锁定样式
-                            monthAvailability.isLocked && 'ring-2 ring-error ring-offset-1 ring-offset-base-100'
-                          )}
-                          title={`状态: ${
-                            monthAvailability.periodStatus === 'completed' ? '已完成' :
-                            monthAvailability.periodStatus === 'processing' ? '处理中' : '草稿'
-                          }${monthAvailability.isLocked ? ' (已锁定)' : ''}`}
-                        >
-                          {/* 如果已锁定，显示锁图标 */}
+                          {/* 如果已锁定，在数字上显示小锁图标 */}
                           {monthAvailability.isLocked && (
                             <svg 
-                              className="w-2 h-2 absolute inset-0 m-auto text-white" 
+                              className="w-2 h-2 absolute -top-0.5 -right-0.5 text-error bg-base-100 rounded-full p-0.5" 
                               fill="currentColor" 
                               viewBox="0 0 20 20"
                             >
@@ -514,6 +495,7 @@ export function MonthPicker({
                           )}
                         </motion.div>
                       )}
+                      
                       
                       {/* Current month indicator - 如果没有数据但是当前月份，显示小圆点 */}
                       {isCurrent && !(showDataIndicators && monthAvailability.hasData) && (
@@ -567,17 +549,34 @@ export function MonthPicker({
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {showDataIndicators && (
                     <>
+                      {/* 主要状态 */}
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-success border border-base-300"></div>
-                        <span className="text-base-content/70">有薪资数据</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-warning border border-base-300"></div>
-                        <span className="text-base-content/70">仅有周期</span>
+                        <span className="text-base-content/70">已完成</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-info border border-base-300"></div>
                         <span className="text-base-content/70">处理中</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-warning border border-base-300"></div>
+                        <span className="text-base-content/70">审核中</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-primary border border-base-300"></div>
+                        <span className="text-base-content/70">就绪</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-secondary border border-base-300"></div>
+                        <span className="text-base-content/70">已审批</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-neutral border border-base-300"></div>
+                        <span className="text-base-content/70">准备中</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-accent border border-base-300"></div>
+                        <span className="text-base-content/70">已关闭</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-error border border-base-300 ring-2 ring-error ring-offset-1 ring-offset-base-100"></div>

@@ -1,6 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { MonthPicker } from '@/components/common/MonthPicker';
 import { cardEffects } from '@/lib/utils';
+import type { PayrollPeriodStatus } from '@/lib/payroll-status-mapping';
 
 // 可用月份数据接口
 export interface AvailableMonth {
@@ -9,6 +10,8 @@ export interface AvailableMonth {
   hasData?: boolean;
   payrollCount?: number;  // 添加记录数量字段
   completeness?: number;
+  status?: PayrollPeriodStatus;  // 薪资周期状态
+  isLocked?: boolean;  // 是否锁定
   [key: string]: any;
 }
 
@@ -125,8 +128,8 @@ export function PayrollPeriodSelector({
           payrollCount: m.payrollCount || 0,  // 使用实际的记录数量
           hasData: !!m.hasData,
           periodId: m.periodId,
-          periodStatus: 'completed' as const,
-          isLocked: false
+          periodStatus: m.status || 'preparing',  // 使用真实状态，默认为preparing
+          isLocked: m.isLocked || false  // 使用真实锁定状态
         }))}
         onlyShowMonthsWithData={onlyShowMonthsWithData}
         placeholder={placeholder}

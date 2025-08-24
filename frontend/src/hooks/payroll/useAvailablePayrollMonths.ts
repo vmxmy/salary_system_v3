@@ -77,7 +77,7 @@ export function useAvailablePayrollMonths(enabled: boolean = true) {
               hasPeriod: true, // 新增：标识薪资周期存在
               expectedEmployeeCount: period.employee_count || 0, // 新增：期望员工数量
               periodId: period.id,
-              periodStatus: period.status as any || 'draft',
+              periodStatus: period.status as any || 'preparing',
               isLocked: !!period.locked_at
             });
           }

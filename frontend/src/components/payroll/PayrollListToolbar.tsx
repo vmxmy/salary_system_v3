@@ -17,6 +17,8 @@ export interface PayrollListToolbarProps {
     hasPeriod?: boolean;
     payrollCount: number;
     expectedEmployeeCount?: number;
+    status?: 'preparing' | 'ready' | 'review' | 'processing' | 'approved' | 'completed' | 'closed';
+    isLocked?: boolean;
   }>;
   onMonthChange: (month: string) => void;
   isLoading?: boolean;

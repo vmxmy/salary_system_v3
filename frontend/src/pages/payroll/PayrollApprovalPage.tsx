@@ -278,7 +278,11 @@ export default function PayrollApprovalPage() {
               month: m.month,
               periodId: m.periodId || '',
               hasData: m.hasData,
-              payrollCount: m.payrollCount || 0
+              hasPeriod: m.hasPeriod,
+              payrollCount: m.payrollCount || 0,
+              expectedEmployeeCount: m.expectedEmployeeCount,
+              status: m.periodStatus,  // 传递真实的周期状态
+              isLocked: m.isLocked     // 传递锁定状态
             }))}
             onMonthChange={updateSelectedMonth}
             isLoadingMonths={isLoadingMonths}

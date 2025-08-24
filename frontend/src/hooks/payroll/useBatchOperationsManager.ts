@@ -282,6 +282,10 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
       return;
     }
 
+    // 在外层声明变量，确保在 catch 块中也能访问
+    let totalSuccessCount = 0;
+    let totalItems = 0;
+    
     try {
       // 从选中的薪资记录中提取员工ID和名称
       const selectedRecords = processedData
@@ -315,7 +319,7 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
 
       // 批量计算五险一金
       const batchSize = 5;
-      const totalItems = employeeIds.length;
+      totalItems = employeeIds.length; // 赋值给外层变量
       let processedCount = 0;
 
       for (let i = 0; i < totalItems; i += batchSize) {
@@ -344,7 +348,11 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
             saveToDatabase: true
           });
 
-          // 处理结果
+          // 统计当前批次的成功数量
+          const batchSuccessCount = results.filter(r => r.success).length;
+          totalSuccessCount += batchSuccessCount;
+
+          // 处理结果 - 基于实际的计算结果更新UI状态
           results.forEach((result, index) => {
             const record = batchRecords[index];
             const recordId = record?.id || record?.payroll_id || '';
@@ -353,15 +361,18 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
                 ...prev,
                 items: updateBatchApprovalItem(prev.items, recordId, {
                   status: result.success ? 'completed' : 'error',
-                  message: result.success ? '五险一金计算成功' : result.message,
+                  message: result.success ? `五险一金计算成功 (${result.itemsInserted}项)` : result.message,
                   error: result.success ? undefined : result.message
                 })
               }));
             }
           });
 
+          console.log(`批次 ${Math.floor(i / batchSize) + 1} 计算完成: 成功${batchSuccessCount}/${batch.length}, 累计成功${totalSuccessCount}/${processedCount + batch.length}`);
+
         } catch (error) {
-          // 处理批次错误
+          // 处理批次错误 - 当前批次全部标记为失败
+          console.error(`批次 ${Math.floor(i / batchSize) + 1} 执行失败:`, error);
           batchRecords.forEach(record => {
             const recordId = record.id || record.payroll_id || '';
             setCalculationProgressModal(prev => ({
@@ -391,18 +402,23 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
         }
       }
 
-      const successCount = batchItems.filter(item => 
-        item.status === 'completed'
-      ).length;
-
-      showSuccess(`批量计算五险一金完成: 成功 ${successCount}/${totalItems} 条记录`);
+      // 使用真实的成功数量而不是UI状态
+      showSuccess(`批量计算五险一金完成: 成功 ${totalSuccessCount}/${totalItems} 条记录`);
       if (onRefetch) {
         onRefetch();
       }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
-      showError(`批量计算五险一金失败: ${errorMessage}`);
+      console.error('批量计算五险一金完全失败:', error);
+      
+      // 如果有部分成功的记录，应该显示部分成功的信息而不是完全失败
+      if (totalSuccessCount > 0) {
+        showError(`批量计算五险一金部分失败: 成功 ${totalSuccessCount}/${totalItems} 条记录. 错误: ${errorMessage}`);
+      } else {
+        showError(`批量计算五险一金失败: ${errorMessage}`);
+      }
+      
       setCalculationProgressModal(prev => ({
         ...prev,
         allowCancel: false,
