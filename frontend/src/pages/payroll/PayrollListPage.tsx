@@ -263,8 +263,10 @@ export default function PayrollListPage() {
   // 获取统计数据
   const { data: statistics, isLoading: statsLoading } = usePayrollStatistics(selectedMonth);
   
-  // 获取四要素完整度数据
-  const { data: completenessData, isLoading: completenessLoading } = usePayrollPeriodCompleteness(selectedPeriodId);
+  // 获取四要素完整度数据 - 使用实际的 periodId，而不是空字符串
+  // 如果 selectedPeriodId 为空，但有 latestPeriod，则使用 latestPeriod.id
+  const effectivePeriodId = selectedPeriodId || (latestPeriod?.id);
+  const { data: completenessData, isLoading: completenessLoading } = usePayrollPeriodCompleteness(effectivePeriodId || '');
   
   // 检查四要素完整度是否全部达到100%
   const isCompletenessReady = useMemo(() => {

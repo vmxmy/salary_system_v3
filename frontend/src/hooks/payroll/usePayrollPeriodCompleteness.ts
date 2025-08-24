@@ -45,8 +45,9 @@ export const usePayrollPeriodCompleteness = (periodId: string) => {
 
       return data as PayrollPeriodCompleteness;
     },
-    enabled: !!periodId,
+    enabled: !!periodId && periodId.trim() !== '',
     staleTime: 30 * 1000, // 30秒缓存
+    retry: 2, // 增加重试次数
   });
 };
 

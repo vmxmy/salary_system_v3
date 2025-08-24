@@ -31,9 +31,9 @@ export function PayrollCompletenessStats({
   if (!completeness) {
     return (
       <div className={cn("stats shadow w-full", className)}>
-        <div className="stat">
+        <div className="stat place-items-center">
           <div className="stat-title">四要素完整度</div>
-          <div className="stat-value">
+          <div className="stat-value flex items-center justify-center">
             <div className="loading loading-spinner loading-lg"></div>
           </div>
           <div className="stat-desc">数据加载中...</div>
