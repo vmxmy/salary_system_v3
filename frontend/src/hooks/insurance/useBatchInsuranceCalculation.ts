@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAllInsuranceCalculation } from './useAllInsuranceCalculation';
 import { loadStandardInsuranceConfigs, INSURANCE_TYPE_CONFIGS } from './core/insuranceDataService';
 
 export interface BatchInsuranceResult {
@@ -54,6 +53,18 @@ const getStandardComponentId = (insuranceKey: string, isEmployer: boolean): stri
   return isEmployer ? config.componentIdEmployer || null : config.componentIdEmployee || null;
 };
 
+// 住房公积金特殊舍入规则 - 与 InsuranceCalculator 保持一致
+const applyHousingFundRounding = (amount: number): number => {
+  const integerPart = Math.floor(amount);
+  const decimalPart = amount - integerPart;
+  
+  if (decimalPart < 0.1) {
+    return integerPart; // 舍去小数
+  } else {
+    return integerPart + 1; // 进位到下一个整数
+  }
+};
+
 // 🚀 优化的计算函数：使用视图预加载数据，避免重复查询
 const calculateInsuranceFromViewData = async ({
   employeeId,
@@ -100,8 +111,14 @@ const calculateInsuranceFromViewData = async ({
       );
 
       // 计算个人和单位金额
-      const employeeAmount = Math.round((adjustedBase * (employeeRate || 0)) * 100) / 100;
-      const employerAmount = Math.round((adjustedBase * (employerRate || 0)) * 100) / 100;
+      let employeeAmount = Math.round((adjustedBase * (employeeRate || 0)) * 100) / 100;
+      let employerAmount = Math.round((adjustedBase * (employerRate || 0)) * 100) / 100;
+      
+      // 住房公积金特殊舍入规则：小数 < 0.1 舍去，>= 0.1 进位
+      if (insuranceKey === 'housing_fund') {
+        employeeAmount = applyHousingFundRounding(employeeAmount);
+        employerAmount = applyHousingFundRounding(employerAmount);
+      }
 
       // 累加总额
       result.totalEmployeeAmount += employeeAmount;
@@ -144,7 +161,6 @@ export const useBatchInsuranceCalculation = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const { calculateAllInsurance } = useAllInsuranceCalculation();
 
   // 初始化时加载标准配置（只执行一次）
   useEffect(() => {
@@ -506,7 +522,7 @@ export const useBatchInsuranceCalculation = () => {
       setLoading(false);
       throw err;
     }
-  }, [calculateAllInsurance]);
+  }, []);
 
   return {
     calculateBatchInsurance,

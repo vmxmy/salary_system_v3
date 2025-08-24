@@ -189,17 +189,13 @@ export function useSupabaseRealtime(config: RealtimeConfig) {
       } else if (status === 'CHANNEL_ERROR') {
         console.error('[Realtime] Subscription error - this usually means tables are not enabled for Realtime');
         console.log('[Realtime] Make sure tables are added to supabase_realtime publication');
+        console.warn('[Realtime] Falling back to manual refresh mode - data will update on user actions');
+        
         onError?.(new Error('Realtime subscription failed - check table publication settings'));
         
-        // 尝试自动重连（仅在组件仍挂载时）
-        if (isMountedRef.current) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            if (isMountedRef.current) {
-              console.log('[Realtime] Attempting automatic reconnection...');
-              resubscribe();
-            }
-          }, 5000);
-        }
+        // 优雅降级：停用自动重连，改为手动刷新模式
+        console.log('[Realtime] Disabling automatic reconnection to prevent error loops');
+        // 不再尝试自动重连，避免错误循环
       } else if (status === 'TIMED_OUT') {
         console.warn('[Realtime] Subscription timed out, attempting reconnection...');
         if (isMountedRef.current) {
@@ -330,7 +326,12 @@ export function usePayrollRealtime(options: {
         enabled
       },
       {
-        table: 'employee_assignments',
+        table: 'employee_category_assignments',
+        events: ['INSERT', 'UPDATE', 'DELETE'], // 员工类别分配变更
+        enabled
+      },
+      {
+        table: 'employee_job_history', 
         events: ['INSERT', 'UPDATE', 'DELETE'], // 员工岗位变更
         enabled
       }
@@ -374,8 +375,13 @@ export function useEmployeeRealtime(options: {
         enabled
       },
       {
-        table: 'employee_assignments',
+        table: 'employee_category_assignments',
         events: ['INSERT', 'UPDATE', 'DELETE'],
+        enabled
+      },
+      {
+        table: 'employee_job_history',
+        events: ['INSERT', 'UPDATE', 'DELETE'], 
         enabled
       },
       {

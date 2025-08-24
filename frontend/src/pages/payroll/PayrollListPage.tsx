@@ -127,10 +127,10 @@ export default function PayrollListPage() {
   // 使用批量操作管理Hook
   const batchOperationsManager = useBatchOperationsManager(refetch);
   
-  // 设置 Realtime 订阅以自动刷新数据（已启用）
+  // 设置 Realtime 订阅以自动刷新数据（临时禁用，待服务器配置修复）
   usePayrollRealtime({
-    enabled: true, // 启用 Realtime 订阅
-    showNotifications: true, // 显示通知，提供用户反馈
+    enabled: false, // 临时禁用 Realtime 订阅，等待服务器配置修复
+    showNotifications: false, // 禁用通知
     onSuccess: (event, payload) => {
       console.log(`[PayrollList] Realtime event: ${event}`, payload);
       // 数据已通过 queryClient.invalidateQueries 自动刷新

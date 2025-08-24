@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   useInsuranceCalculation,
-  useAllInsuranceCalculation,
   useBatchInsuranceCalculation
 } from '@/hooks/insurance';
 import { usePayrollPeriods } from '@/hooks/payroll/usePayrollPeriod';
@@ -57,7 +56,6 @@ const InsuranceCalculationTest: React.FC = () => {
   });
 
   const { calculateInsurance, loading: singleLoading } = useInsuranceCalculation();
-  const { calculateAllInsurance, loading: allLoading } = useAllInsuranceCalculation();
   const { calculateBatchInsurance, loading: batchLoading, progress } = useBatchInsuranceCalculation();
 
   // 当选择期间后，重置员工选择
@@ -141,28 +139,21 @@ const InsuranceCalculationTest: React.FC = () => {
     setIsCalculating(true);
     
     try {
-      // 🔍 调试：确认复选框状态
-      console.log('📋 [测试页面] 调用calculateAllInsurance前的参数:', {
-        employeeId: selectedEmployee,
+      // 使用批量计算处理单个员工
+      const result = await calculateBatchInsurance({
         periodId: selectedPeriod,
-        saveToDatabase: saveToDatabase,
-        checkboxChecked: saveToDatabase
+        employeeIds: [selectedEmployee],
+        includeOccupationalPension: true,
+        saveToDatabase: saveToDatabase
       });
-
-      const result = await calculateAllInsurance({
-      employeeId: selectedEmployee,
-      periodId: selectedPeriod,
-      includeOccupationalPension: true,
-      saveToDatabase: saveToDatabase
-    });
 
     setTestResults([{
       type: saveToDatabase ? '综合计算结果（已写入数据库）' : '综合计算结果（仅计算）',
-      success: result.success,
-      totalEmployeeAmount: result.totalEmployeeAmount,
-      totalEmployerAmount: result.totalEmployerAmount,
-      details: result.details,
-        errors: result.errors,
+      success: result.length > 0 && result[0].success,
+      totalEmployeeAmount: result.length > 0 ? result[0].totalEmployeeAmount : 0,
+      totalEmployerAmount: result.length > 0 ? result[0].totalEmployerAmount : 0,
+      details: result.length > 0 ? result[0].componentDetails : [],
+      errors: result.length > 0 ? [result[0].message] : [],
         saveToDatabase: saveToDatabase
       }]);
     } catch (error) {
@@ -434,10 +425,10 @@ const InsuranceCalculationTest: React.FC = () => {
           <button 
             className="btn btn-secondary"
             onClick={testAllInsurance}
-            disabled={allLoading || !selectedEmployee || !selectedPeriod}
+            disabled={batchLoading || !selectedEmployee || !selectedPeriod}
             title={saveToDatabase ? '将计算结果保存到数据库' : '仅计算不保存到数据库'}
           >
-            {allLoading ? '计算中...' : (saveToDatabase ? '测试综合计算（写入数据库）' : '测试综合计算（仅计算）')}
+            {batchLoading ? '计算中...' : (saveToDatabase ? '测试综合计算（写入数据库）' : '测试综合计算（仅计算）')}
           </button>
 
           <button 

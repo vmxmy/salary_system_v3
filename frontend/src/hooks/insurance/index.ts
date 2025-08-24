@@ -9,8 +9,7 @@ export type { InsuranceBaseData, InsuranceTypeConfig } from './core/insuranceDat
 export { useInsuranceCalculation } from './useInsuranceCalculation';
 export type { InsuranceCalculationResult, InsuranceCalculationParams } from './useInsuranceCalculation';
 
-export { useAllInsuranceCalculation } from './useAllInsuranceCalculation';
-export type { AllInsuranceResult, InsuranceCalculationDetail } from './useAllInsuranceCalculation';
+// useAllInsuranceCalculation has been removed - use useBatchInsuranceCalculation instead
 
 export { useBatchInsuranceCalculation } from './useBatchInsuranceCalculation';
 export type { BatchInsuranceResult } from './useBatchInsuranceCalculation';

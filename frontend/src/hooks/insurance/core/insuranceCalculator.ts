@@ -28,9 +28,17 @@ export interface CalculationResult {
 export class InsuranceCalculator {
   /**
    * 住房公积金特殊取整规则
+   * 如果小数部分 < 0.1 则舍去，如果 >= 0.1 则进位
    */
   private static applyHousingFundRounding(amount: number): number {
-    return Math.round(amount);
+    const integerPart = Math.floor(amount);
+    const decimalPart = amount - integerPart;
+    
+    if (decimalPart < 0.1) {
+      return integerPart; // 舍去小数
+    } else {
+      return integerPart + 1; // 进位到下一个整数
+    }
   }
 
   /**

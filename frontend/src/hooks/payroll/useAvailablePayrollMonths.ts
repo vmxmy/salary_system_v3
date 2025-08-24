@@ -8,7 +8,7 @@ export interface AvailablePayrollMonth {
   hasPeriod?: boolean; // 是否有薪资周期（新增）
   expectedEmployeeCount?: number; // 期望员工数量（新增）
   periodId?: string; // 关联的周期ID
-  periodStatus?: 'draft' | 'processing' | 'completed'; // 周期状态
+  periodStatus?: 'preparing' | 'ready' | 'processing' | 'review' | 'approved' | 'completed' | 'closed'; // 周期状态
   isLocked?: boolean; // 是否已锁定
 }
 
@@ -107,7 +107,7 @@ export function checkMonthAvailability(
   hasPeriod: boolean; // 是否有薪资周期
   count: number; // 实际薪资记录数量
   expectedCount: number; // 期望员工数量
-  periodStatus?: 'draft' | 'processing' | 'completed';
+  periodStatus?: 'preparing' | 'ready' | 'processing' | 'review' | 'approved' | 'completed' | 'closed';
   isLocked?: boolean;
 } {
   if (!availableMonths) {
@@ -120,7 +120,7 @@ export function checkMonthAvailability(
     hasPeriod: !!monthData?.hasPeriod, // 基于薪资周期存在
     count: monthData?.payrollCount || 0, // 实际薪资记录数量
     expectedCount: monthData?.expectedEmployeeCount || 0, // 期望员工数量
-    periodStatus: monthData?.periodStatus,
+    periodStatus: monthData?.periodStatus as 'preparing' | 'ready' | 'processing' | 'review' | 'approved' | 'completed' | 'closed' | undefined,
     isLocked: monthData?.isLocked
   };
 }

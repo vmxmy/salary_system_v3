@@ -11,6 +11,7 @@
 import { supabase } from './supabase';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { ROLE_PERMISSIONS, PERMISSIONS } from '@/constants/permissions';
+import { fastRetrySupabase } from './supabase-retry';
 
 // 简化的用户接口
 export interface AuthUser {
@@ -38,15 +39,32 @@ export interface AuthState {
  */
 async function buildAuthUser(user: User): Promise<AuthUser> {
   try {
-    // 从view_user_permissions视图获取用户的真实角色和权限
-    const { data: userPermData, error } = await supabase
-      .from('view_user_permissions')
-      .select('user_role, permissions, page_permissions, data_scope')
-      .eq('user_id', user.id)
-      .single();
+    console.log('[Auth] Building user with permissions for:', user.email);
+    
+    // 使用快速重试机制查询用户权限，避免认证卡住
+    const { data: userPermData, error } = await Promise.race([
+      fastRetrySupabase.viewQuery(
+        'view_user_permissions',
+        'user_role, permissions, page_permissions, data_scope',
+        {
+          filters: (query) => query.eq('user_id', user.id),
+          limit: 1
+        }
+      ).then(result => ({ 
+        data: result.data?.[0] || null, 
+        error: result.error 
+      })),
+      
+      // 15秒超时，给网络慢的情况更多时间，但仍防止永远卡住
+      new Promise<{ data: null; error: any }>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Auth query timeout after 15 seconds'));
+        }, 15000);
+      })
+    ]);
 
     if (error || !userPermData) {
-      console.warn('[Auth] Failed to load user permissions, using default admin role for fallback:', error);
+      console.warn('[Auth] Failed to load user permissions, using fallback admin role:', error?.message || 'No data returned');
       // 网络问题时降级到管理员权限，确保用户可以继续使用系统
       return {
         id: user.id,
@@ -57,15 +75,15 @@ async function buildAuthUser(user: User): Promise<AuthUser> {
     }
 
     // 将数据库权限转换为字符串数组
-    const permissions = Array.isArray(userPermData.permissions) 
-      ? userPermData.permissions as string[]
+    const permissions = Array.isArray((userPermData as any)?.permissions) 
+      ? (userPermData as any).permissions as string[]
       : [];
 
     // 构建完整的AuthUser对象
     const authUser: AuthUser = {
       id: user.id,
       email: user.email!,
-      role: userPermData.user_role || 'employee',
+      role: (userPermData as any)?.user_role || 'employee',
       permissions: permissions,
       // 如果需要部门信息，可以在这里添加
       // departmentId: userPermData.department_id,
@@ -359,12 +377,46 @@ export const auth = {
    * 获取当前用户（从会话构建）
    */
   async getCurrentUser(): Promise<AuthUser | null> {
-    const session = await this.getSession();
-    if (!session?.user) {
+    try {
+      console.log('[Auth] Getting current user...');
+      
+      const session = await this.getSession();
+      if (!session?.user) {
+        console.log('[Auth] No session found');
+        return null;
+      }
+
+      // 添加额外的超时保护，确保认证不会永远卡住
+      const userPromise = buildAuthUser(session.user);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('getCurrentUser timeout after 20 seconds'));
+        }, 20000);
+      });
+
+      const user = await Promise.race([userPromise, timeoutPromise]);
+      console.log('[Auth] Current user loaded successfully:', user.email);
+      return user;
+    } catch (error) {
+      console.error('[Auth] Failed to get current user, returning fallback admin:', error);
+      
+      // 如果有会话但无法构建用户，创建一个基本的fallback
+      try {
+        const session = await this.getSession();
+        if (session?.user) {
+          return {
+            id: session.user.id,
+            email: session.user.email!,
+            role: 'admin',
+            permissions: ROLE_PERMISSIONS['admin'] || []
+          };
+        }
+      } catch (fallbackError) {
+        console.error('[Auth] Even fallback failed:', fallbackError);
+      }
+      
       return null;
     }
-
-    return await buildAuthUser(session.user);
   },
 
   /**

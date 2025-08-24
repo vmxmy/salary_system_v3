@@ -574,6 +574,30 @@ export const PayrollImportPage: React.FC = () => {
       return;
     }
 
+    // 增强的薪资周期状态检测
+    const monthData = availableMonths?.find(m => m.month === selectedMonth);
+    
+    if (!monthData) {
+      showError('未找到对应的薪资周期');
+      return;
+    }
+
+    // 检查周期状态是否允许导入
+    const allowedImportStatuses = ['preparing', 'ready'];
+    if (!allowedImportStatuses.includes(monthData.periodStatus || '')) {
+      const statusDescriptions: Record<string, string> = {
+        'processing': '处理中',
+        'review': '审核中',
+        'approved': '已审批',
+        'completed': '已完成',
+        'closed': '已关闭'
+      };
+      
+      const statusDesc = statusDescriptions[monthData.periodStatus || ''] || monthData.periodStatus;
+      showError(`当前周期状态为"${statusDesc}"，不允许导入数据。只有"准备中"或"就绪"状态的周期才能导入数据。`);
+      return;
+    }
+
     setImporting(true);
     setImportResult(null);
     setShowPreviewModal(false);
@@ -813,8 +837,10 @@ export const PayrollImportPage: React.FC = () => {
                           showDataIndicators={true}
                           availableMonths={availableMonths}
                           isMonthDisabledCustom={(yearMonth, monthData) => {
-                            // 禁用状态为"处理中"(processing)或"已完成"(completed)的月份
-                            if (monthData?.periodStatus === 'processing' || monthData?.periodStatus === 'completed') {
+                            // 禁用不允许导入数据的状态月份
+                            // 只有 'preparing' 和 'ready' 状态允许导入
+                            if (monthData?.periodStatus && 
+                                !['preparing', 'ready'].includes(monthData.periodStatus)) {
                               return true;
                             }
                             return false;
@@ -826,7 +852,7 @@ export const PayrollImportPage: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                               d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          不能选择处理中或已完成状态的月份
+                          只能选择"准备中"或"就绪"状态的月份进行数据导入
                         </div>
                       </div>
                     </div>
