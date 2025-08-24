@@ -18,3 +18,5 @@ export * from './PayrollTableContainer';
 export * from './PayrollSearchAndFilter';
 export * from './PayrollPeriodSelector';
 export * from './PayrollStatusSelector';
+export * from './PayrollListToolbar';
+export * from './PayrollStatsSection';

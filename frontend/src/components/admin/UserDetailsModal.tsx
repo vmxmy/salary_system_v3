@@ -322,7 +322,7 @@ function UserAvatar({ user, size = 'md' }: UserAvatarProps) {
   };
 
   return (
-    <div className="avatar placeholder">
+    <div className="avatar avatar-placeholder">
       <div className={`bg-primary text-primary-content rounded-full ${sizeClasses[size]}`}>
         <span className={`font-medium ${textSizes[size]}`}>
           {user.employee_name?.charAt(0) || user.email?.charAt(0) || 'U'}

@@ -138,6 +138,18 @@ export {
   type BatchLogParams
 } from './usePayrollLogger';
 
+// 批量操作管理
+export { useBatchOperationsManager } from './useBatchOperationsManager';
+
+// 薪资数据处理
+export { usePayrollDataProcessor } from './usePayrollDataProcessor';
+
+// 批量验证
+export { usePayrollBatchValidation } from './usePayrollBatchValidation';
+
+// 模态框管理
+export { usePayrollModalManager } from './usePayrollModalManager';
+
 /**
  * 便捷的组合 Hook
  * 提供统一的薪资管理接口

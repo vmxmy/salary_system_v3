@@ -359,7 +359,7 @@ export const QuickActionCenter: React.FC<QuickActionCenterProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="avatar placeholder">
-            <div className="bg-primary text-primary-content rounded-full w-12 h-12">
+            <div className="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
               </svg>

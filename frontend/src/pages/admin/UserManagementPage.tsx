@@ -22,7 +22,7 @@ import { useUserManagement } from '@/hooks/user-management/useUserManagement';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { DataTable } from '@/components/common/DataTable';
 import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, HeaderContext, CellContext } from '@tanstack/react-table';
 import type { UserWithPermissions, UserManagementFilters } from '@/hooks/user-management/useUserManagement';
 import type { Permission } from '@/types/permission';
 
@@ -130,6 +130,7 @@ export default function UserManagementPage() {
     sortBy: 'email',
     sortOrder: 'asc'
   });
+  const [searchInput, setSearchInput] = useState(''); // 分离输入状态用于防抖
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -151,6 +152,17 @@ export default function UserManagementPage() {
     canExport: false,
     canBatchOperation: false
   });
+
+  /**
+   * 搜索防抖效果
+   */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters(prev => ({ ...prev, search: searchInput }));
+    }, 300); // 300ms 防抖延迟
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   /**
    * 初始化权限检查
@@ -200,172 +212,219 @@ export default function UserManagementPage() {
    */
   const columnHelper = createDataTableColumnHelper<UserWithPermissions>();
   
-  const columns = useMemo<ColumnDef<UserWithPermissions, any>[]>(() => [
+  const columns = useMemo(() => {
+    const cols: ColumnDef<UserWithPermissions, any>[] = [];
+    
     // 选择列
-    ...(permissions.canBatchOperation ? [{
-      id: 'select',
-      header: ({ table }: any) => (
-        <label className="label cursor-pointer">
-          <input
-            type="checkbox"
-            className="checkbox checkbox-sm"
-            checked={table.getIsAllPageRowsSelected()}
-            onChange={table.getToggleAllPageRowsSelectedHandler()}
-          />
-        </label>
-      ),
-      cell: ({ row }: any) => (
-        <label className="label cursor-pointer">
-          <input
-            type="checkbox"
-            className="checkbox checkbox-sm"
-            checked={row.getIsSelected()}
-            onChange={row.getToggleSelectedHandler()}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </label>
-      ),
-      enableSorting: false,
-      enableHiding: false,
-      size: 50,
-    }] : []),
+    if (permissions.canBatchOperation) {
+      cols.push({
+        id: 'select',
+        header: ({ table }) => (
+          <label className="label cursor-pointer">
+            <input
+              type="checkbox"
+              className="checkbox checkbox-sm"
+              checked={table.getIsAllPageRowsSelected()}
+              onChange={table.getToggleAllPageRowsSelectedHandler()}
+            />
+          </label>
+        ),
+        cell: ({ row }) => (
+          <label className="label cursor-pointer">
+            <input
+              type="checkbox"
+              className="checkbox checkbox-sm"
+              checked={row.getIsSelected()}
+              onChange={row.getToggleSelectedHandler()}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </label>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        size: 50,
+      });
+    }
 
     // 用户信息列
-    columnHelper.accessor('email', {
-      id: 'user_info',
-      header: ({ column }) => (
-        <div className="flex items-center gap-2">
-          <UserIcon className="w-4 h-4" />
-          <button
-            className="flex items-center gap-1 hover:text-primary"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            用户信息
-            <BoltIcon className="w-3 h-3" />
-          </button>
-        </div>
-      ),
-      cell: ({ row }) => (
-        <UserInfoCell user={row.original} />
-      ),
-      enableSorting: true,
-      sortingFn: 'alphanumeric',
-    }),
+    cols.push(
+      columnHelper.accessor('email', {
+        id: 'user_info',
+        header: ({ column }) => (
+          <div className="flex items-center gap-2">
+            <UserIcon className="w-4 h-4" />
+            <button
+              className="flex items-center gap-1 hover:text-primary"
+              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              aria-label="按用户信息排序"
+              aria-sort={
+                column.getIsSorted() === 'asc' ? 'ascending' : 
+                column.getIsSorted() === 'desc' ? 'descending' : 'none'
+              }
+            >
+              用户信息
+              <BoltIcon className="w-3 h-3" />
+            </button>
+          </div>
+        ),
+        cell: ({ row }) => (
+          <UserInfoCell user={row.original} />
+        ),
+        enableSorting: true,
+        sortingFn: 'alphanumeric',
+      })
+    );
 
     // 角色和权限列
-    columnHelper.accessor('user_role', {
-      id: 'role_permissions',
-      header: ({ column }) => (
-        <div className="flex items-center gap-2">
-          <ShieldCheckIcon className="w-4 h-4" />
-          <button
-            className="flex items-center gap-1 hover:text-primary"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            角色权限
-            <BoltIcon className="w-3 h-3" />
-          </button>
-        </div>
-      ),
-      cell: ({ row }) => (
-        <RolePermissionsCell user={row.original} />
-      ),
-      enableSorting: true,
-    }),
+    cols.push(
+      columnHelper.accessor('user_role', {
+        id: 'role_permissions',
+        header: ({ column }) => (
+          <div className="flex items-center gap-2">
+            <ShieldCheckIcon className="w-4 h-4" />
+            <button
+              className="flex items-center gap-1 hover:text-primary"
+              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              aria-label="按角色权限排序"
+              aria-sort={
+                column.getIsSorted() === 'asc' ? 'ascending' : 
+                column.getIsSorted() === 'desc' ? 'descending' : 'none'
+              }
+            >
+              角色权限
+              <BoltIcon className="w-3 h-3" />
+            </button>
+          </div>
+        ),
+        cell: ({ row }) => (
+          <RolePermissionsCell user={row.original} />
+        ),
+        enableSorting: true,
+      })
+    );
 
     // 部门职位列
-    columnHelper.accessor('department_name', {
-      id: 'organization',
-      header: '组织架构',
-      cell: ({ row }) => (
-        <OrganizationCell user={row.original} />
-      ),
-      enableSorting: true,
-    }),
+    cols.push(
+      columnHelper.accessor('department_name', {
+        id: 'organization',
+        header: '组织架构',
+        cell: ({ row }) => (
+          <OrganizationCell user={row.original} />
+        ),
+        enableSorting: true,
+      })
+    );
 
     // 状态列
-    columnHelper.display({
-      id: 'status',
-      header: ({ column }) => (
-        <div className="flex items-center gap-2">
-          <CheckCircleIcon className="w-4 h-4" />
-          状态
-        </div>
-      ),
-      cell: ({ row }) => (
-        <StatusCell user={row.original} />
-      ),
-    }),
+    cols.push(
+      columnHelper.display({
+        id: 'status',
+        header: ({ column }) => (
+          <div className="flex items-center gap-2">
+            <CheckCircleIcon className="w-4 h-4" />
+            状态
+          </div>
+        ),
+        cell: ({ row }) => (
+          <StatusCell user={row.original} />
+        ),
+      })
+    );
 
     // 最后活动时间列
-    columnHelper.accessor('last_sign_in_at', {
-      id: 'last_activity',
-      header: ({ column }) => (
-        <div className="flex items-center gap-2">
-          <ClockIcon className="w-4 h-4" />
-          <button
-            className="flex items-center gap-1 hover:text-primary"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            最后活动
-            <BoltIcon className="w-3 h-3" />
-          </button>
-        </div>
-      ),
-      cell: ({ row }) => (
-        <LastActivityCell user={row.original} />
-      ),
-      enableSorting: true,
-    }),
+    cols.push(
+      columnHelper.accessor('last_sign_in_at', {
+        id: 'last_activity',
+        header: ({ column }) => (
+          <div className="flex items-center gap-2">
+            <ClockIcon className="w-4 h-4" />
+            <button
+              className="flex items-center gap-1 hover:text-primary"
+              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              aria-label="按最后活动时间排序"
+              aria-sort={
+                column.getIsSorted() === 'asc' ? 'ascending' : 
+                column.getIsSorted() === 'desc' ? 'descending' : 'none'
+              }
+            >
+              最后活动
+              <BoltIcon className="w-3 h-3" />
+            </button>
+          </div>
+        ),
+        cell: ({ row }) => (
+          <LastActivityCell user={row.original} />
+        ),
+        enableSorting: true,
+      })
+    );
 
     // 操作列
-    columnHelper.display({
-      id: 'actions',
-      header: '操作',
-      cell: ({ row }) => (
-        <ActionsCell 
-          user={row.original} 
-          permissions={permissions}
-          onViewDetails={(userId) => setModals(prev => ({
-            ...prev,
-            userDetails: { open: true, userId }
-          }))}
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-      size: 120,
-    }),
-  ], [permissions, columnHelper]);
+    cols.push(
+      columnHelper.display({
+        id: 'actions',
+        header: '操作',
+        cell: ({ row }) => (
+          <ActionsCell 
+            user={row.original} 
+            permissions={permissions}
+            onViewDetails={(userId) => setModals(prev => ({
+              ...prev,
+              userDetails: { open: true, userId }
+            }))}
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        size: 120,
+      })
+    );
+
+    return cols;
+  }, [permissions, columnHelper]);
 
   /**
-   * 过滤后的用户数据
+   * 过滤后的用户数据 - 性能优化版本
    */
   const filteredData = useMemo(() => {
-    let filtered = [...(userManagement.users || [])];
+    const users = userManagement.users || [];
+    if (!users.length) return [];
 
-    // 搜索过滤
-    if (filters.search?.trim()) {
-      const query = filters.search.toLowerCase();
-      filtered = filtered.filter(user => 
-        user.email?.toLowerCase().includes(query) ||
-        user.employee_name?.toLowerCase().includes(query) ||
-        user.department_name?.toLowerCase().includes(query) ||
-        user.position_name?.toLowerCase().includes(query)
-      );
+    // 预计算搜索条件以提高性能
+    const searchQuery = filters.search?.trim()?.toLowerCase();
+    const hasSearchFilter = Boolean(searchQuery);
+    const hasRoleFilter = Boolean(filters.role);
+    const hasActiveFilter = filters.active !== undefined;
+
+    // 如果没有任何过滤条件，直接返回原数据
+    if (!hasSearchFilter && !hasRoleFilter && !hasActiveFilter) {
+      return users;
     }
 
-    // 角色过滤
-    if (filters.role) {
-      filtered = filtered.filter(user => user.user_role === filters.role);
-    }
+    // 单次遍历应用所有过滤条件
+    return users.filter(user => {
+      // 搜索过滤
+      if (hasSearchFilter && searchQuery) {
+        const matchesSearch = 
+          user.email?.toLowerCase().includes(searchQuery) ||
+          user.employee_name?.toLowerCase().includes(searchQuery) ||
+          user.department_name?.toLowerCase().includes(searchQuery) ||
+          user.position_name?.toLowerCase().includes(searchQuery);
+        if (!matchesSearch) return false;
+      }
 
-    // 状态过滤
-    if (filters.active !== undefined) {
-      filtered = filtered.filter(user => user.role_active === filters.active);
-    }
+      // 角色过滤
+      if (hasRoleFilter && filters.role) {
+        if (user.user_role !== filters.role) return false;
+      }
 
-    return filtered;
+      // 状态过滤
+      if (hasActiveFilter) {
+        if (user.role_active !== filters.active) return false;
+      }
+
+      return true;
+    });
   }, [userManagement.users, filters]);
 
   /**
@@ -448,7 +507,9 @@ export default function UserManagementPage() {
       {/* 搜索过滤器 */}
       <SearchFilters 
         filters={filters}
+        searchInput={searchInput}
         onFiltersChange={setFilters}
+        onSearchInputChange={setSearchInput}
         availableRoles={Object.values(USER_ROLES)}
       />
 
@@ -564,9 +625,27 @@ export default function UserManagementPage() {
 /**
  * 页面头部组件
  */
+interface UserStats {
+  total: number;
+  active: number;
+  inactive: number;
+  byRole: Array<{ code: string; name: string; level: number; color: string; count: number }>;
+}
+
+interface UserPermissions {
+  canRead: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+  canAssignRoles: boolean;
+  canManagePermissions: boolean;
+  canExport: boolean;
+  canBatchOperation: boolean;
+}
+
 interface PageHeaderProps {
-  stats: any;
-  permissions: any;
+  stats: UserStats;
+  permissions: UserPermissions;
   onCreateUser: () => void;
   onBatchActions: () => void;
   selectedCount: number;
@@ -603,6 +682,7 @@ function PageHeader({ stats, permissions, onCreateUser, onBatchActions, selected
           <button
             className="btn btn-outline btn-sm"
             onClick={onBatchActions}
+            aria-label={`对已选择的${selectedCount}个用户执行批量操作`}
           >
             批量操作 ({selectedCount})
           </button>
@@ -612,6 +692,7 @@ function PageHeader({ stats, permissions, onCreateUser, onBatchActions, selected
           <button
             className="btn btn-primary"
             onClick={onCreateUser}
+            aria-label="创建新用户"
           >
             <UserPlusIcon className="w-4 h-4" />
             创建用户
@@ -627,11 +708,13 @@ function PageHeader({ stats, permissions, onCreateUser, onBatchActions, selected
  */
 interface SearchFiltersProps {
   filters: UserManagementFilters;
+  searchInput: string;
   onFiltersChange: (filters: UserManagementFilters) => void;
+  onSearchInputChange: (search: string) => void;
   availableRoles: Array<{ code: string; name: string }>;
 }
 
-function SearchFilters({ filters, onFiltersChange, availableRoles }: SearchFiltersProps) {
+function SearchFilters({ filters, searchInput, onFiltersChange, onSearchInputChange, availableRoles }: SearchFiltersProps) {
   return (
     <div className="card bg-base-100 shadow-sm border">
       <div className="card-body">
@@ -639,15 +722,15 @@ function SearchFilters({ filters, onFiltersChange, availableRoles }: SearchFilte
           {/* 搜索框 */}
           <div className="flex-1">
             <div className="form-control">
-              <div className="input-group">
+              <div className="join w-full">
                 <input
                   type="text"
                   placeholder="搜索用户邮箱、姓名、部门..."
-                  className="input input-bordered flex-1"
-                  value={filters.search || ''}
-                  onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+                  className="input input-bordered join-item flex-1"
+                  value={searchInput}
+                  onChange={(e) => onSearchInputChange(e.target.value)}
                 />
-                <button className="btn btn-square">
+                <button className="btn btn-square join-item" aria-label="搜索用户">
                   <MagnifyingGlassIcon className="w-4 h-4" />
                 </button>
               </div>
@@ -689,7 +772,11 @@ function SearchFilters({ filters, onFiltersChange, availableRoles }: SearchFilte
           {/* 清除过滤器 */}
           <button
             className="btn btn-ghost"
-            onClick={() => onFiltersChange({ search: '', role: undefined, active: undefined })}
+            onClick={() => {
+              onFiltersChange({ search: '', role: undefined, active: undefined });
+              onSearchInputChange('');
+            }}
+            aria-label="清除所有过滤条件"
           >
             <FunnelIcon className="w-4 h-4" />
             清除
@@ -716,10 +803,18 @@ function BatchSelectionAlert({ selectedCount, onBatchActions, onClearSelection }
         <span>已选择 {selectedCount} 名用户</span>
       </div>
       <div className="flex gap-2">
-        <button className="btn btn-sm btn-primary" onClick={onBatchActions}>
+        <button 
+          className="btn btn-sm btn-primary" 
+          onClick={onBatchActions}
+          aria-label={`对已选择的${selectedCount}个用户执行批量操作`}
+        >
           批量操作
         </button>
-        <button className="btn btn-sm btn-outline" onClick={onClearSelection}>
+        <button 
+          className="btn btn-sm btn-outline" 
+          onClick={onClearSelection}
+          aria-label="取消选择所有用户"
+        >
           取消选择
         </button>
       </div>
@@ -733,7 +828,7 @@ function BatchSelectionAlert({ selectedCount, onBatchActions, onClearSelection }
 function UserInfoCell({ user }: { user: UserWithPermissions }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="avatar placeholder">
+      <div className="avatar avatar-placeholder">
         <div className="bg-primary text-primary-content w-10 h-10 rounded-full">
           <span className="text-sm font-medium">
             {user.email?.charAt(0)?.toUpperCase() || user.employee_name?.charAt(0) || 'U'}
@@ -814,18 +909,20 @@ function LastActivityCell({ user }: { user: UserWithPermissions }) {
   );
 }
 
-function ActionsCell({ 
-  user, 
-  permissions, 
-  onViewDetails 
-}: { 
-  user: UserWithPermissions; 
-  permissions: any; 
+interface ActionsCellProps {
+  user: UserWithPermissions;
+  permissions: UserPermissions;
   onViewDetails: (userId: string) => void;
-}) {
+}
+
+function ActionsCell({ user, permissions, onViewDetails }: ActionsCellProps) {
   return (
     <div className="dropdown dropdown-end">
-      <label tabIndex={0} className="btn btn-ghost btn-sm">
+      <label 
+        tabIndex={0} 
+        className="btn btn-ghost btn-sm" 
+        aria-label={`${user.employee_name || user.email}的操作菜单`}
+      >
         <EllipsisHorizontalIcon className="w-4 h-4" />
       </label>
       <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">

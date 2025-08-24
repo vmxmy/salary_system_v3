@@ -81,11 +81,13 @@ export function Header() {
         
         {user && (
           <div className="dropdown dropdown-end">
-            <label tabIndex={0} className="btn btn-ghost btn-circle btn-compact avatar">
-              <div className="w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-primary font-semibold text-xs">
-                  {user.email?.charAt(0).toUpperCase()}
-                </span>
+            <label tabIndex={0} className="btn btn-ghost btn-circle btn-compact">
+              <div className="avatar avatar-placeholder">
+                <div className="w-6 rounded-full bg-primary text-primary-content">
+                  <span className="font-semibold text-xs">
+                    {user.email?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
               </div>
             </label>
             <ul tabIndex={0} className="menu menu-sm dropdown-content mt-1 z-[1] p-2 shadow bg-base-100 rounded-box w-48">

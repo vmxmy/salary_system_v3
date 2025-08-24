@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 import logoSvg from '@/assets/logos/gaoxiaocai.svg';
@@ -261,6 +261,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const { t } = useTranslation(['common']);
   const location = useLocation();
+  const navigate = useNavigate();
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['payroll', 'admin', 'permissions', 'testFeatures']); // 默认展开薪资、管理和测试菜单
 
   // 临时翻译映射，保持界面友好
@@ -369,7 +370,12 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               ? "bg-primary text-primary-content" 
               : "hover:bg-base-300"
           )}
-          onClick={onClose}
+          onClick={(e) => {
+            // 防止默认的链接行为，使用编程式导航
+            e.preventDefault();
+            navigate(item.path!);
+            onClose?.();
+          }}
           {...(item.tourId && { 'data-tour': item.tourId })}
         >
           <span className="w-4 h-4 flex-shrink-0">
