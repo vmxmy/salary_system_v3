@@ -68,6 +68,11 @@ export interface UserWithPermissions {
   effective_from: string | null;
   effective_until: string | null;
   
+  // 用户活动时间信息（从 auth.users 获取）
+  last_sign_in_at: string | null;
+  user_created_at: string | null;
+  user_updated_at: string | null;
+  
   // 状态信息（可为空）
   config_active: boolean | null;
   config_role: string | null;
@@ -257,6 +262,10 @@ export function useUserManagement(): UseUserManagementReturn {
         role_assigned_at: record.role_assigned_at,
         effective_from: record.effective_from,
         effective_until: record.effective_until,
+        // 新增：从 auth.users 获取的真实登录活动时间
+        last_sign_in_at: record.last_sign_in_at,
+        user_created_at: record.user_created_at,
+        user_updated_at: record.user_updated_at,
         config_active: record.config_active,
         config_role: record.config_role,
         permission_rules: record.permission_rules,
@@ -315,6 +324,10 @@ export function useUserManagement(): UseUserManagementReturn {
         role_assigned_at: data.role_assigned_at,
         effective_from: data.effective_from,
         effective_until: data.effective_until,
+        // 新增：从 auth.users 获取的真实登录活动时间
+        last_sign_in_at: data.last_sign_in_at,
+        user_created_at: data.user_created_at,
+        user_updated_at: data.user_updated_at,
         config_active: data.config_active,
         config_role: data.config_role,
         permission_rules: data.permission_rules,

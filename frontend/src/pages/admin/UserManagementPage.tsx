@@ -298,7 +298,7 @@ export default function UserManagementPage() {
     }),
 
     // 最后活动时间列
-    columnHelper.accessor('role_assigned_at', {
+    columnHelper.accessor('last_sign_in_at', {
       id: 'last_activity',
       header: ({ column }) => (
         <div className="flex items-center gap-2">
@@ -797,11 +797,19 @@ function StatusCell({ user }: { user: UserWithPermissions }) {
 }
 
 function LastActivityCell({ user }: { user: UserWithPermissions }) {
-  const activityTime = user.role_assigned_at;
+  // 优先使用最后登录时间，如果没有则使用用户更新时间或角色分配时间
+  const activityTime = user.last_sign_in_at || user.user_updated_at || user.role_assigned_at;
   
   return (
-    <div className="text-sm text-base-content/70">
-      {activityTime ? new Date(activityTime).toLocaleDateString('zh-CN') : 'N/A'}
+    <div className="space-y-1">
+      <div className="text-sm text-base-content/70">
+        {activityTime ? new Date(activityTime).toLocaleDateString('zh-CN') : 'N/A'}
+      </div>
+      {user.last_sign_in_at && (
+        <div className="text-xs text-success">
+          最近登录
+        </div>
+      )}
     </div>
   );
 }

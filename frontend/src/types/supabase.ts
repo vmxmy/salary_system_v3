@@ -3618,6 +3618,7 @@ export type Database = {
           employee_id: string | null
           employee_name: string | null
           employment_status: string | null
+          last_sign_in_at: string | null
           page_permissions: Json | null
           permission_rules: Json | null
           permissions: Json | null
@@ -3625,8 +3626,10 @@ export type Database = {
           role_active: boolean | null
           role_assigned_at: string | null
           role_metadata: Json | null
+          user_created_at: string | null
           user_id: string | null
           user_role: string | null
+          user_updated_at: string | null
         }
         Relationships: [
           {
