@@ -35,12 +35,18 @@ export type PayrollPeriodWithStats = {
 
 type PayrollPeriodUpdate = Database['public']['Tables']['payroll_periods']['Update'];
 
-// 周期状态枚举
+// 薪资周期状态枚举 - 与数据库 period_status_enum 保持一致
 export const PeriodStatus = {
-  DRAFT: 'draft',
-  PROCESSING: 'processing',
-  COMPLETED: 'completed',
-  ARCHIVED: 'archived'
+  PREPARING: 'preparing',     // 准备中 - 数据导入阶段
+  READY: 'ready',             // 就绪 - 数据完整，可开始处理  
+  PROCESSING: 'processing',   // 处理中 - 薪资计算进行中
+  REVIEW: 'review',           // 审核中 - 等待审核确认
+  APPROVED: 'approved',       // 已审批 - 可执行发放
+  COMPLETED: 'completed',     // 已完成 - 发放完成
+  CLOSED: 'closed',           // 已关闭 - 周期结束，数据归档
+  // 为了兼容性，添加旧的状态名称映射到新的状态
+  DRAFT: 'preparing',         // 草稿 -> 准备中
+  ARCHIVED: 'closed'          // 已归档 -> 已关闭
 } as const;
 
 export type PeriodStatusType = typeof PeriodStatus[keyof typeof PeriodStatus];

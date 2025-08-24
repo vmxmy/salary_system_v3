@@ -32,10 +32,10 @@ export interface DepartmentPayrollStatistics {
   max_gross_pay: number | null;
   dept_gross_pay_percentage?: number | null;
   dept_employee_percentage?: number | null;
-  // Computed fields
-  pay_month_string?: string;
-  pay_period_start?: string;
-  pay_period_end?: string;
+  // Computed fields - 接受 null 值以匹配数据库返回
+  pay_month_string?: string | null;
+  pay_period_start?: string | null;
+  pay_period_end?: string | null;
 }
 
 // Extended department node for tree structures

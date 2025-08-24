@@ -161,84 +161,65 @@ const StatisticsPage: React.FC = () => {
   // 页面标题
   const pageTitle = t('statistics.title', '统计报表');
 
-  // 渲染模块导航组件 - DaisyUI 5 标准tabs设计
+  // 渲染模块导航组件 - DaisyUI 5 标准tabs设计（简化版）
   const renderModuleNavigation = () => (
-    <div className="card bg-base-100 shadow-sm mb-6">
-      <div className="card-body">
-        {/* 标题区域 */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="avatar">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 01 2-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-          </div>
-          <div>
-            <h2 className="card-title">统计分析模块</h2>
-            <p className="text-sm text-base-content/60">选择分析模块查看详细统计</p>
-          </div>
-        </div>
+    <div className="bg-base-100 border-b border-base-300">
+      <div className="tabs tabs-lifted w-full">
+        <button 
+          className={`tab tab-lg ${pageState.activeModule === 'hr-stats' ? 'tab-active' : ''} ${!hasStatisticsPermission('hr-stats') ? 'tab-disabled' : ''}`}
+          onClick={() => hasStatisticsPermission('hr-stats') && setActiveModule('hr-stats')}
+          disabled={!hasStatisticsPermission('hr-stats')}
+          role="tab"
+          aria-selected={pageState.activeModule === 'hr-stats'}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <span className="hidden sm:inline">人事统计</span>
+          <span className="sm:hidden">人事</span>
+        </button>
         
-        {/* DaisyUI 5 标准tabs - 响应式设计 */}
-        <div className="tabs tabs-lifted w-full">
-          
-          <button 
-            className={`tab tab-lg ${pageState.activeModule === 'hr-stats' ? 'tab-active' : ''} ${!hasStatisticsPermission('hr-stats') ? 'tab-disabled' : ''}`}
-            onClick={() => hasStatisticsPermission('hr-stats') && setActiveModule('hr-stats')}
-            disabled={!hasStatisticsPermission('hr-stats')}
-            role="tab"
-            aria-selected={pageState.activeModule === 'hr-stats'}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <span className="hidden sm:inline">人事统计</span>
-            <span className="sm:hidden">人事</span>
-          </button>
-          
-          <button 
-            className={`tab tab-lg ${pageState.activeModule === 'payroll-stats' ? 'tab-active' : ''} ${!hasStatisticsPermission('payroll-stats') ? 'tab-disabled' : ''}`}
-            onClick={() => hasStatisticsPermission('payroll-stats') && setActiveModule('payroll-stats')}
-            disabled={!hasStatisticsPermission('payroll-stats')}
-            role="tab"
-            aria-selected={pageState.activeModule === 'payroll-stats'}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-            </svg>
-            <span className="hidden sm:inline">薪资统计</span>
-            <span className="sm:hidden">薪资</span>
-          </button>
-          
-          <button 
-            className={`tab tab-lg ${pageState.activeModule === 'trends' ? 'tab-active' : ''} ${!hasStatisticsPermission('trends') ? 'tab-disabled' : ''}`}
-            onClick={() => hasStatisticsPermission('trends') && setActiveModule('trends')}
-            disabled={!hasStatisticsPermission('trends')}
-            role="tab"
-            aria-selected={pageState.activeModule === 'trends'}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
-            <span className="hidden sm:inline">趋势分析</span>
-            <span className="sm:hidden">趋势</span>
-          </button>
-          
-          <button 
-            className={`tab tab-lg ${pageState.activeModule === 'export' ? 'tab-active' : ''} ${!hasStatisticsPermission('export') ? 'tab-disabled' : ''}`}
-            onClick={() => hasStatisticsPermission('export') && setActiveModule('export')}
-            disabled={!hasStatisticsPermission('export')}
-            role="tab"
-            aria-selected={pageState.activeModule === 'export'}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span className="hidden sm:inline">数据导出</span>
-            <span className="sm:hidden">导出</span>
-          </button>
-        </div>
+        <button 
+          className={`tab tab-lg ${pageState.activeModule === 'payroll-stats' ? 'tab-active' : ''} ${!hasStatisticsPermission('payroll-stats') ? 'tab-disabled' : ''}`}
+          onClick={() => hasStatisticsPermission('payroll-stats') && setActiveModule('payroll-stats')}
+          disabled={!hasStatisticsPermission('payroll-stats')}
+          role="tab"
+          aria-selected={pageState.activeModule === 'payroll-stats'}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+          </svg>
+          <span className="hidden sm:inline">薪资统计</span>
+          <span className="sm:hidden">薪资</span>
+        </button>
+        
+        <button 
+          className={`tab tab-lg ${pageState.activeModule === 'trends' ? 'tab-active' : ''} ${!hasStatisticsPermission('trends') ? 'tab-disabled' : ''}`}
+          onClick={() => hasStatisticsPermission('trends') && setActiveModule('trends')}
+          disabled={!hasStatisticsPermission('trends')}
+          role="tab"
+          aria-selected={pageState.activeModule === 'trends'}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+          <span className="hidden sm:inline">趋势分析</span>
+          <span className="sm:hidden">趋势</span>
+        </button>
+        
+        <button 
+          className={`tab tab-lg ${pageState.activeModule === 'export' ? 'tab-active' : ''} ${!hasStatisticsPermission('export') ? 'tab-disabled' : ''}`}
+          onClick={() => hasStatisticsPermission('export') && setActiveModule('export')}
+          disabled={!hasStatisticsPermission('export')}
+          role="tab"
+          aria-selected={pageState.activeModule === 'export'}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span className="hidden sm:inline">数据导出</span>
+          <span className="sm:hidden">导出</span>
+        </button>
       </div>
     </div>
   );

@@ -16,9 +16,12 @@ export interface PayrollStatistics {
   averageNetPay: number;
   statusCounts: {
     draft: number;
+    calculating: number;
+    calculated: number;
     approved: number;
     paid: number;
     cancelled: number;
+    pending: number;
   };
 }
 
@@ -136,8 +139,19 @@ export function usePayrollAnalytics() {
             acc.totalDeductions += item.total_deductions || 0;
             acc.totalNetPay += item.net_pay || 0;
             
+            // 调试状态统计逻辑
+            console.log('[usePayrollAnalytics] Processing item:', {
+              payroll_status: item.payroll_status,
+              status_type: typeof item.payroll_status,
+              status_in_counts: item.payroll_status ? item.payroll_status in acc.statusCounts : false,
+              available_keys: Object.keys(acc.statusCounts),
+              period: targetPeriod
+            });
+            
             if (item.payroll_status && item.payroll_status in acc.statusCounts) {
               acc.statusCounts[item.payroll_status as keyof typeof acc.statusCounts]++;
+            } else if (item.payroll_status) {
+              console.warn('[usePayrollAnalytics] Unknown status:', item.payroll_status);
             }
             
             return acc;
@@ -152,9 +166,12 @@ export function usePayrollAnalytics() {
             averageNetPay: 0,
             statusCounts: {
               draft: 0,
+              calculating: 0,
+              calculated: 0,
               approved: 0,
               paid: 0,
-              cancelled: 0
+              cancelled: 0,
+              pending: 0
             }
           });
 
@@ -164,6 +181,14 @@ export function usePayrollAnalytics() {
             stats.averageDeductions = stats.totalDeductions / stats.totalEmployees;
             stats.averageNetPay = stats.totalNetPay / stats.totalEmployees;
           }
+
+          // 调试最终状态统计结果
+          console.log('[usePayrollAnalytics] Final stats:', {
+            period: targetPeriod,
+            totalEmployees: stats.totalEmployees,
+            statusCounts: stats.statusCounts,
+            totalStatusCount: Object.values(stats.statusCounts).reduce((sum, count) => sum + count, 0)
+          });
 
         return stats as PayrollStatistics;
       },

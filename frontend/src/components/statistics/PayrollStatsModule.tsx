@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { usePayrollAnalytics } from '@/hooks/payroll/usePayrollAnalytics';
 import { useDepartments } from '@/hooks/department/useDepartments';
+import { usePayrollStatusEnum } from '@/hooks/core/useEnumValues';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { StatisticsModuleLayout } from './common';
 
 interface PayrollStatsModuleProps {
   className?: string;
@@ -17,7 +17,7 @@ interface PayrollStatsModuleProps {
  */
 export function PayrollStatsModule({ className = "" }: PayrollStatsModuleProps) {
   const { t } = useTranslation();
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('2025-04');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   
   // 获取数据 - 使用真实的hooks
@@ -30,9 +30,15 @@ export function PayrollStatsModule({ className = "" }: PayrollStatsModuleProps) 
     endPeriod: new Date().toISOString().slice(0, 7)
   });
   const { departments } = useDepartments();
+  
+  // 获取动态枚举值
+  const payrollStatusEnum = usePayrollStatusEnum();
+  
+  // 提取错误信息
+  const enumError = payrollStatusEnum?.error as any;
 
   // 加载状态 - 现代化设计
-  if (payrollStats.isLoading || departmentStats.isLoading || componentAnalysis.isLoading) {
+  if (payrollStats.isLoading || departmentStats.isLoading || componentAnalysis.isLoading || payrollStatusEnum.isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] bg-base-100">
         <div className="flex flex-col items-center gap-4">
@@ -44,8 +50,8 @@ export function PayrollStatsModule({ className = "" }: PayrollStatsModuleProps) 
   }
 
   // 错误状态 - 现代化设计
-  if (payrollStats.error || departmentStats.error || componentAnalysis.error) {
-    const error = payrollStats.error || departmentStats.error || componentAnalysis.error;
+  if (payrollStats.error || departmentStats.error || componentAnalysis.error || payrollStatusEnum.error) {
+    const error = payrollStats.error || departmentStats.error || componentAnalysis.error || payrollStatusEnum.error;
     return (
       <div className="alert alert-error shadow bg-error/10">
         <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
@@ -136,12 +142,11 @@ export function PayrollStatsModule({ className = "" }: PayrollStatsModuleProps) 
   );
 
   return (
-    <StatisticsModuleLayout
-      title="薪资统计分析"
-      description="薪资结构与成本分析"
-      actions={filtersActions}
-      className={className}
-    >
+    <div className={`space-y-6 ${className}`}>
+      {/* 简化标题区域 - 直接放置筛选器 */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-100 p-6 rounded-lg shadow">
+        {filtersActions}
+      </div>
 
       {/* 薪资总览统计 - 标准DaisyUI stats组件 */}
       <div className="stats stats-vertical lg:stats-horizontal shadow bg-base-100 w-full">
@@ -351,39 +356,38 @@ export function PayrollStatsModule({ className = "" }: PayrollStatsModuleProps) 
             </h2>
             
             <div className="grid grid-cols-1 gap-3 mt-4">
-              {payrollStats.data && (() => {
-                const statusData = [
-                  { 
-                    key: 'paid', 
-                    label: '已发放', 
-                    color: 'success', 
-                    count: payrollStats.data.statusCounts.paid 
-                  },
-                  { 
-                    key: 'approved', 
-                    label: '已审批', 
-                    color: 'info', 
-                    count: payrollStats.data.statusCounts.approved 
-                  },
-                  { 
-                    key: 'draft', 
-                    label: '草稿', 
-                    color: 'warning', 
-                    count: payrollStats.data.statusCounts.draft 
-                  },
-                  { 
-                    key: 'cancelled', 
-                    label: '已取消', 
-                    color: 'error', 
-                    count: payrollStats.data.statusCounts.cancelled 
-                  }
-                ];
-                
+              {payrollStats.data && payrollStatusEnum.statusOptions && (() => {
                 const total = payrollStats.data.totalEmployees;
+                
+                // 调试信息：显示实际的状态计数数据
+                console.log('[PayrollStatsModule] Debug Data:', {
+                  selectedPeriod,
+                  totalEmployees: total,
+                  statusCounts: payrollStats.data.statusCounts,
+                  statusOptions: payrollStatusEnum.statusOptions,
+                });
+                
+                // 基于动态枚举值创建状态数据
+                const statusData = payrollStatusEnum.statusOptions.map(option => ({
+                  key: option.value,
+                  label: option.label,
+                  color: option.color,
+                  icon: option.icon,
+                  count: payrollStats.data.statusCounts[option.value as keyof typeof payrollStats.data.statusCounts] || 0,
+                  description: option.description
+                })); // 移除过滤，显示所有状态（包括计数为0的）
                 
                 return statusData.map((status) => (
                   <div key={status.key} className="flex justify-between items-center p-3 bg-base-200 rounded">
-                    <span>{status.label}</span>
+                    <div className="flex items-center gap-2">
+                      {status.icon && <span className="text-lg">{status.icon}</span>}
+                      <div>
+                        <div className="font-medium">{status.label}</div>
+                        {status.description && (
+                          <div className="text-xs text-base-content/60">{status.description}</div>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2">
                       <progress 
                         className={`progress progress-${status.color} w-20`} 
@@ -395,9 +399,24 @@ export function PayrollStatsModule({ className = "" }: PayrollStatsModuleProps) 
                   </div>
                 ));
               })()}
-              {!payrollStats.data && (
+              {!payrollStats.data && !payrollStats.isLoading && (
                 <div className="text-center py-4 text-base-content/70">
-                  暂无发放状态数据
+                  暂无发放状态数据 (期间: {selectedPeriod})
+                </div>
+              )}
+              {payrollStats.data && payrollStats.data.totalEmployees === 0 && (
+                <div className="text-center py-4 text-base-content/70">
+                  选定期间无薪资记录 (期间: {selectedPeriod})
+                </div>
+              )}
+              {payrollStatusEnum.isLoading && (
+                <div className="text-center py-4 text-base-content/70">
+                  正在加载状态枚举值...
+                </div>
+              )}
+              {enumError && (
+                <div className="text-center py-4 text-error">
+                  枚举值加载失败: {enumError.message || '未知错误'}
                 </div>
               )}
             </div>
@@ -465,8 +484,7 @@ export function PayrollStatsModule({ className = "" }: PayrollStatsModuleProps) 
           </div>
         </div>
       )}
-      
-    </StatisticsModuleLayout>
+    </div>
   );
 }
 
