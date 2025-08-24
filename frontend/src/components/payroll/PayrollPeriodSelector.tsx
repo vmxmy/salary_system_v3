@@ -1,5 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { MonthPicker } from '@/components/common/MonthPicker';
+import { cardEffects } from '@/lib/utils';
 
 // 可用月份数据接口
 export interface AvailableMonth {
@@ -160,7 +161,7 @@ export function PayrollPeriodSelector({
   // 如果有卡片类名，使用卡片包装
   if (cardClassName || className.includes('card')) {
     return (
-      <div className={`card bg-base-100 shadow-sm border border-base-200 p-4 ${cardClassName} ${className}`} data-tour="payroll-period-selector">
+      <div className={`${cardEffects.modern} p-4 ${cardClassName} ${className}`} data-tour="payroll-period-selector">
         {content}
       </div>
     );

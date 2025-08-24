@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useManagementDashboard } from '@/hooks/management/useManagementDashboard';
 import { usePersonalizedView } from '@/hooks/personalization/usePersonalizedView';
+import { cardEffects } from '@/lib/utils';
 
 interface QuickActionCenterProps {
   className?: string;
@@ -285,7 +286,7 @@ export const QuickActionCenter: React.FC<QuickActionCenterProps> = ({
     return (
       <div
         key={action.id}
-        className={`card bg-base-100 shadow-lg ${getActionStatusStyle(action)} ${
+        className={`${cardEffects.elevated} ${getActionStatusStyle(action)} ${
           isRecommended ? 'ring-2 ring-primary ring-opacity-50' : ''
         }`}
         onClick={() => handleActionExecute(action)}
@@ -400,7 +401,7 @@ export const QuickActionCenter: React.FC<QuickActionCenterProps> = ({
 
       {/* 智能推荐区域 */}
       {recommendedActions.length > 0 && (
-        <div className="card bg-gradient-to-r from-primary/5 to-secondary/5 shadow-lg">
+        <div className={cardEffects.gradient}>
           <div className="card-body">
             <h2 className="card-title flex items-center gap-2">
               <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
@@ -459,7 +460,7 @@ export const QuickActionCenter: React.FC<QuickActionCenterProps> = ({
 
       {/* 最近操作记录 */}
       {recentActions.length > 0 && (
-        <div className="card bg-base-100 shadow-lg">
+        <div className={cardEffects.elevated}>
           <div className="card-body">
             <h2 className="card-title">最近执行的操作</h2>
             <div className="flex flex-wrap gap-2">

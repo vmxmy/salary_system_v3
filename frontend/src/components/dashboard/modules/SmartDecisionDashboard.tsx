@@ -5,6 +5,7 @@ import { usePersonalizedView } from '@/hooks/personalization/usePersonalizedView
 import { SmartKPICard, BudgetExecutionCard, LaborEfficiencyCard, OrganizationHealthCard, RiskLevelCard } from '../enhanced/SmartKPICard';
 import { InteractiveInsightPanel } from '../enhanced/InteractiveInsightPanel';
 import { RealTimeMonitorCard } from '../enhanced/RealTimeMonitorCard';
+import { cardEffects } from '@/lib/utils';
 
 interface SmartDecisionDashboardProps {
   className?: string;
@@ -75,7 +76,7 @@ export const SmartDecisionDashboard: React.FC<SmartDecisionDashboardProps> = ({
 
   if (hasError) {
     return (
-      <div className={`card bg-base-100 shadow-lg ${className}`}>
+      <div className={`${cardEffects.elevated} ${className}`}>
         <div className="card-body">
           <div className="alert alert-error">
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -169,7 +170,7 @@ export const SmartDecisionDashboard: React.FC<SmartDecisionDashboardProps> = ({
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="card bg-base-100 shadow animate-pulse">
+            <div key={i} className={`${cardEffects.modern} animate-pulse`}>
               <div className="card-body">
                 <div className="h-4 bg-base-300 rounded w-3/4 mb-2"></div>
                 <div className="h-8 bg-base-300 rounded w-1/2 mb-2"></div>

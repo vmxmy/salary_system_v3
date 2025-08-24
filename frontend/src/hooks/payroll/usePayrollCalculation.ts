@@ -24,9 +24,9 @@ export interface PayrollCalculationResult {
   periodId: string;
   
   // 计算结果
-  grossPay: number;        // 应发工资
-  totalDeductions: number; // 扣除总额  
-  netPay: number;          // 实发工资
+  grossPay: number;        // 应发合计
+  totalDeductions: number; // 扣发合计（不包含其他扣除）
+  netPay: number;          // 实发合计
   
   // 明细分解
   breakdown: {
@@ -63,7 +63,7 @@ export interface BatchPayrollCalculationResult {
     successCount: number;
     failureCount: number;
     totalGrossPay: number;
-    totalDeductions: number;
+    totalDeductions: number;        // 扣发合计总额（不包含其他扣除）
     totalNetPay: number;
     totalEmployerInsurance: number; // 单位承担总额
   };
@@ -74,11 +74,13 @@ export interface BatchPayrollCalculationResult {
  * 薪资计算Hook（前端实现）
  * 
  * 计算规则：
- * 1. 应发工资 = basic_salary + benefits + allowances
- * 2. 扣除总额 = personal_insurance + personal_tax + other_deductions
- * 3. 实发工资 = 应发工资 - 扣除总额
+ * 1. 应发合计 = basic_salary + benefits
+ * 2. 扣发合计 = personal_insurance + personal_tax （不包含 other_deductions）
+ * 3. 实发合计 = 应发合计 - 扣发合计 - other_deductions
  * 
- * 注意：employer_insurance（单位保险）不从员工工资中扣除
+ * 注意：
+ * - employer_insurance（单位保险）不从员工工资中扣除
+ * - 扣发合计与其他扣除分开统计，便于财务分析
  */
 export const usePayrollCalculation = () => {
   const [loading, setLoading] = useState(false);
@@ -145,7 +147,7 @@ export const usePayrollCalculation = () => {
       const breakdown = {
         basicSalary: 0,
         benefits: 0,
-        allowances: 0,
+        allowances: 0, // 保留字段但在当前数据库schema中未使用
         personalInsurance: 0,
         personalTax: 0,
         otherDeductions: 0,
@@ -177,10 +179,6 @@ export const usePayrollCalculation = () => {
             if (amount > 0) earningsCount++;
             break;
             
-          case 'allowances':
-            breakdown.allowances += amount;
-            if (amount > 0) earningsCount++;
-            break;
             
           case 'personal_insurance':
             breakdown.personalInsurance += amount;
@@ -208,9 +206,11 @@ export const usePayrollCalculation = () => {
       });
 
       // 4. 计算汇总金额
-      const grossPay = breakdown.basicSalary + breakdown.benefits + breakdown.allowances;
-      const totalDeductions = breakdown.personalInsurance + breakdown.personalTax + breakdown.otherDeductions;
-      const netPay = grossPay - totalDeductions;
+      const grossPay = breakdown.basicSalary + breakdown.benefits;
+      // 扣发合计：仅包含个人保险和个人所得税
+      const totalDeductions = breakdown.personalInsurance + breakdown.personalTax;
+      // 实发工资 = 应发合计 - 扣发合计 - 其他扣除
+      const netPay = grossPay - totalDeductions - breakdown.otherDeductions;
 
       // 5. 构建结果
       const result: PayrollCalculationResult = {

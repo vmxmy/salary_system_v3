@@ -5,7 +5,7 @@ import { payrollQueryKeys } from './usePayroll';
 
 export interface PayrollStatistics {
   totalGrossPay: number;
-  totalDeductions: number;
+  totalDeductions: number;  // 扣发合计总额（不包含其他扣除）
   totalNetPay: number;
   totalTax: number;
   totalInsurance: number;
@@ -91,6 +91,7 @@ export function usePayrollStatistics(yearMonth: string) {
       }
 
       // TODO: 从明细中获取税和保险的具体金额
+      // 注意：totalDeductions 现在是扣发合计（个人保险+个税，不含其他扣除）
       // 暂时使用估算值
       statistics.totalTax = statistics.totalDeductions * 0.3; // 假设30%是个税
       statistics.totalInsurance = statistics.totalDeductions * 0.7; // 假设70%是保险

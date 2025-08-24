@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { PageToolbar } from '@/components/common/PageToolbar';
+import { cardEffects } from '@/lib/utils';
 import { DataTable } from '@/components/common/DataTable';
 import { SimpleSearchBox } from '@/components/common/AdvancedSearchBox';
 import { FieldSelector } from '@/components/common/FieldSelector';
@@ -167,7 +168,7 @@ export function ManagementPageLayout({
     if (!onSearchChange) return null;
     
     return (
-      <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
+      <div className={`${cardEffects.modern} p-4`}>
         <SimpleSearchBox
           value={searchValue}
           onChange={onSearchChange}

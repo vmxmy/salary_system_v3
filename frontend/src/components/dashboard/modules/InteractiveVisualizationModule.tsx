@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useManagementDashboard } from '@/hooks/management/useManagementDashboard';
 import { useSystemMonitoring } from '@/hooks/monitoring/useSystemMonitoring';
 import { usePersonalizedView } from '@/hooks/personalization/usePersonalizedView';
+import { cardEffects } from '@/lib/utils';
 
 interface InteractiveVisualizationModuleProps {
   className?: string;
@@ -155,7 +156,7 @@ export const InteractiveVisualizationModule: React.FC<InteractiveVisualizationMo
     
     return (
       <div 
-        className={`card bg-base-100 shadow-lg transition-all duration-300 ${
+        className={`${cardEffects.elevated} transition-all duration-300 ${
           isHovered ? 'shadow-xl scale-[1.02]' : ''
         } ${interactionMode === 'drill' ? 'cursor-crosshair' : 'cursor-pointer'}`}
         onMouseEnter={() => setIsHovered(true)}
@@ -318,7 +319,7 @@ export const InteractiveVisualizationModule: React.FC<InteractiveVisualizationMo
       </div>
 
       {/* 图表选择器 */}
-      <div className="card bg-base-100 shadow-lg">
+      <div className={cardEffects.elevated}>
         <div className="card-body">
           <h2 className="card-title">图表配置</h2>
           <p className="text-sm text-base-content/70 mb-4">选择要显示的可视化图表</p>
@@ -348,7 +349,7 @@ export const InteractiveVisualizationModule: React.FC<InteractiveVisualizationMo
 
       {/* 交互式筛选器 */}
       {interactionMode === 'filter' && (
-        <div className="card bg-base-100 shadow-lg">
+        <div className={cardEffects.elevated}>
           <div className="card-body">
             <h2 className="card-title">数据筛选</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">

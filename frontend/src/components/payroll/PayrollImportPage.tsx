@@ -12,6 +12,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 import { UploadIcon, FolderIcon, CheckCircleIcon, CloseIcon } from '@/components/common/Icons';
 import { PayrollElement } from '@/types/payroll-completeness';
+import { cardEffects } from '@/lib/utils';
 
 export const PayrollImportPage: React.FC = () => {
   const location = useLocation();
@@ -747,7 +748,7 @@ export const PayrollImportPage: React.FC = () => {
           </div>
           <div className="flex flex-col gap-6">
             {/* 导入配置 - 高级专业设计 */}
-            <div className="card bg-gradient-to-br from-base-100 via-base-100 to-base-100 shadow-2xl border border-base-300/50">
+            <div className={cardEffects.gradient}>
               <div className="card-body p-8">
                 {/* 标题区域 */}
                 <div className="flex items-center gap-4 mb-8">
@@ -985,7 +986,7 @@ export const PayrollImportPage: React.FC = () => {
                     {parseResult && (
                       <div className="space-y-6">
                         {/* 状态概览卡片 */}
-                        <div className="card bg-gradient-to-br from-base-100 to-base-200 shadow-xl border border-base-300">
+                        <div className={cardEffects.gradient}>
                           <div className="card-body">
                             <div className="flex items-center justify-between mb-6">
                               <div className="flex items-center gap-3">
@@ -1125,7 +1126,7 @@ export const PayrollImportPage: React.FC = () => {
                         {/* 工作表详情和匹配状态 */}
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                           {/* 工作表信息 */}
-                          <div className="card bg-base-100 shadow-lg border border-base-300">
+                          <div className={cardEffects.elevated}>
                             <div className="card-body">
                               <div className="flex items-center gap-3 mb-4">
                                 <div className="w-8 h-8 bg-info/10 rounded-lg flex items-center justify-center">
@@ -1187,7 +1188,7 @@ export const PayrollImportPage: React.FC = () => {
                           </div>
 
                           {/* 匹配状态 */}
-                          <div className="card bg-base-100 shadow-lg border border-base-300">
+                          <div className={cardEffects.elevated}>
                             <div className="card-body">
                               <div className="flex items-center gap-3 mb-4">
                                 <div className="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center">
@@ -1271,7 +1272,7 @@ export const PayrollImportPage: React.FC = () => {
                         </div>
 
                         {/* 数据一致性检查 */}
-                        <div className="card bg-base-100 shadow-lg border border-base-300">
+                        <div className={cardEffects.elevated}>
                           <div className="card-body">
                             <div className="flex items-center gap-3 mb-6">
                               <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
@@ -1759,7 +1760,7 @@ export const PayrollImportPage: React.FC = () => {
           </div>
           <div className="flex flex-col gap-6">
             {/* 导出配置 - 高级专业设计 */}
-            <div className="card bg-gradient-to-br from-base-100 via-base-100 to-base-100 shadow-2xl border border-base-300/50">
+            <div className={cardEffects.gradient}>
               <div className="card-body p-8">
                 {/* 标题区域 */}
                 <div className="flex items-center gap-4 mb-8">

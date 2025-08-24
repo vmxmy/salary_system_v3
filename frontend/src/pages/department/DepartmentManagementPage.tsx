@@ -17,6 +17,7 @@ import {
 import { useToast } from '@/contexts/ToastContext';
 import { cn } from '@/lib/utils';
 import { ModernButton } from '@/components/common/ModernButton';
+import { cardEffects } from '@/styles/design-effects';
 import { DepartmentTree } from '@/components/department/DepartmentTree';
 import { DepartmentCardGrid } from '@/components/department/DepartmentCardGrid';
 import { DepartmentSidePanel } from '@/components/department/DepartmentSidePanel';
@@ -490,7 +491,7 @@ export default function DepartmentManagementPage() {
       </div>
 
       {/* 简化的工具栏 */}
-      <div className="card bg-base-100 border border-base-200">
+      <div className={cardEffects.default}>
         <div className="card-body p-4">
           {toolbarContent}
         </div>

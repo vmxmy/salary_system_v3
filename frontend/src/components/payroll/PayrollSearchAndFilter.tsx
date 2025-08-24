@@ -1,6 +1,7 @@
 import React, { useState, useCallback, type ReactNode } from 'react';
 import type { PayrollStatusType } from '@/hooks/payroll/usePayrollTableColumns';
 import type { BasePayrollData } from './PayrollTableContainer';
+import { cardEffects } from '@/styles/design-effects';
 
 // 搜索字段配置
 export interface SearchFieldConfig {
@@ -127,7 +128,7 @@ export function PayrollSearchAndFilter<T extends BasePayrollData = BasePayrollDa
 
   return (
     <div className={`payroll-search-filter ${className}`}>
-      <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
+      <div className={`${cardEffects.default} p-4`}>
         <div className="flex items-center gap-3 flex-wrap">
           {/* 搜索输入框 */}
           <div className="flex items-center gap-2 flex-grow min-w-64">

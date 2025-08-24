@@ -14,6 +14,7 @@ import { createDataTableColumnHelper } from '@/components/common/DataTable/utils
 import type { EmployeeListItem } from '@/types/employee';
 import * as XLSX from 'xlsx';
 import { OnboardingButton } from '@/components/onboarding';
+import { cardEffects } from '@/styles/design-effects';
 
 /**
  * 员工管理页面
@@ -699,7 +700,7 @@ export default function EmployeeManagementPage() {
 
             {/* 批量操作区域 */}
             {selectedIds.length > 0 && (
-              <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
+              <div className={`${cardEffects.default} p-4`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">

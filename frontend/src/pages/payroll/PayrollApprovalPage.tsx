@@ -1,33 +1,30 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { 
   PayrollDetailModal, 
   ApprovalHistoryModal, 
   PayrollBatchActions,
-  PayrollTableContainer,
-  PayrollSearchAndFilter,
-  PayrollPeriodSelector
+  PayrollTableContainer
 } from '@/components/payroll';
-import { CompactPayrollStatusSelector } from '@/components/payroll/PayrollStatusSelector';
+import { PayrollApprovalToolbar } from '@/components/payroll/PayrollApprovalToolbar';
 import { usePayrollRealtime } from '@/hooks/core/useSupabaseRealtime';
 import { usePayrollApproval } from '@/hooks/payroll';
 import { usePayrollPeriodSelection } from '@/hooks/payroll/usePayrollPeriodSelection';
 import { usePayrollDataProcessor } from '@/hooks/payroll/usePayrollDataProcessor';
 import { usePayrollBatchValidation } from '@/hooks/payroll/usePayrollBatchValidation';
 import { usePayrollModalManager } from '@/hooks/payroll/usePayrollModalManager';
+import { useBatchApprovalManager } from '@/hooks/payroll/useBatchApprovalManager';
 import { formatCurrency } from '@/lib/format';
-import { formatMonth } from '@/lib/dateUtils';
 import { ManagementPageLayout } from '@/components/layout/ManagementPageLayout';
 import { useToast } from '@/contexts/ToastContext';
 import { ConfirmModal, BatchConfirmModal, RollbackConfirmModal } from '@/components/common/ConfirmModal';
-import { BatchApprovalProgressModal, createBatchApprovalItems, updateBatchApprovalItem, calculateBatchSummary } from '@/components/payroll/BatchApprovalProgressModal';
-import type { BatchApprovalItem } from '@/components/payroll/BatchApprovalProgressModal';
-import type { PayrollApprovalSummary } from '@/hooks/payroll/usePayrollApproval';
+import { BatchApprovalProgressModal, calculateBatchSummary } from '@/components/payroll/BatchApprovalProgressModal';
 import type { Database } from '@/types/supabase';
 import type { BasePayrollData } from '@/components/payroll/PayrollTableContainer';
 import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
 import { PayrollStatusBadge } from '@/components/common/PayrollStatusBadge';
 import { OnboardingButton } from '@/components/onboarding';
+import { cardEffects } from '@/styles/design-effects';
 
 type PayrollStatus = Database['public']['Enums']['payroll_status'];
 
@@ -44,16 +41,21 @@ export default function PayrollApprovalPage() {
   const { t } = useTranslation(['common', 'payroll']);
   const { showSuccess, showError } = useToast();
   
-  // 使用通用模态框管理Hook
+  // 使用模态框管理Hook
   const modalManager = usePayrollModalManager<PayrollApprovalData>();
+  
+  // 使用批量审批管理Hook
+  const batchApprovalManager = useBatchApprovalManager(() => {
+    // 刷新数据的回调函数
+    // TODO: 添加数据刷新逻辑
+  });
   
   // 设置 Realtime 订阅以自动刷新审批数据（已停用）
   usePayrollRealtime({
-    enabled: false, // 停用 Realtime 订阅
-    showNotifications: false, // 停用通知
+    enabled: false,
+    showNotifications: false,
     onSuccess: (event, payload) => {
       console.log(`[PayrollApproval] Realtime event: ${event}`, payload);
-      // 当有薪资状态变更时，自动刷新审批列表
     },
     onError: (error) => {
       console.error('[PayrollApproval] Realtime error:', error);
@@ -62,31 +64,7 @@ export default function PayrollApprovalPage() {
   
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<PayrollStatus | 'all'>('pending'); // 默认显示待审批状态
-  
-  // 确认模态框状态
-  const [confirmModal, setConfirmModal] = useState<{
-    open: boolean;
-    type: 'approve' | 'paid' | 'rollback';
-    loading: boolean;
-  }>({ open: false, type: 'approve', loading: false });
-
-  // 批量进度模态框状态
-  const [progressModal, setProgressModal] = useState<{
-    open: boolean;
-    type: 'approve' | 'markPaid' | 'rollback';
-    items: BatchApprovalItem[];
-    currentItemId?: string;
-    totalProgress: number;
-    allowCancel: boolean;
-  }>({
-    open: false,
-    type: 'approve',
-    items: [],
-    currentItemId: '',
-    totalProgress: 0,
-    allowCancel: true
-  });
+  const [statusFilter, setStatusFilter] = useState<PayrollStatus | 'all'>('pending');
   
   const { queries, actions, utils, loading, mutations } = usePayrollApproval();
   
@@ -203,417 +181,21 @@ export default function PayrollApprovalPage() {
   }, [statusFilter, stats, currentFilterStats, rawApprovalList]);
 
 
-  // 处理批量审批 - 按照文档指导修正的实现
+  // 批量操作处理函数 - 使用Hook中的实现
   const handleBatchApprove = useCallback(async () => {
-    if (selectedIds.length === 0) {
-      showError('请选择要审批的记录');
-      return;
-    }
-
-    // 准备批量审批数据
-    const selectedRecords = dataProcessor.processedData.filter(record => 
-      record.payroll_id && selectedIds.includes(record.payroll_id)
-    );
-    
-    const batchItems = createBatchApprovalItems(
-      selectedRecords
-        .filter(record => record.payroll_id && record.employee_name)
-        .map(record => ({
-          payroll_id: record.payroll_id!,
-          employee_name: record.employee_name!,
-          net_pay: record.net_pay || 0
-      }))
-    );
-
-    // 关闭确认模态框，显示进度模态框
-    setConfirmModal(prev => ({ ...prev, open: false }));
-    setProgressModal({
-      open: true,
-      type: 'approve',
-      items: batchItems,
-      totalProgress: 0,
-      allowCancel: true
-    });
-
-    try {
-      // 审批操作：使用分批处理模式
-      const batchSize = 5;
-      const totalItems = batchItems.length;
-      let processedCount = 0;
-      
-      for (let i = 0; i < totalItems; i += batchSize) {
-        const batch = selectedIds.slice(i, i + batchSize);
-        
-        // 更新当前批次状态为processing
-        batch.forEach(payrollId => {
-          setProgressModal(prev => ({
-            ...prev,
-            items: updateBatchApprovalItem(prev.items, payrollId, {
-              status: 'processing',
-              message: '正在审批...'
-            }),
-            currentItemId: payrollId
-          }));
-        });
-        
-        try {
-          // 执行真实的API调用并等待完成
-          const results = await new Promise<any[]>((resolve) => {
-            actions.approve(batch, '批量审批');
-            // 模拟等待审批完成的结果
-            setTimeout(() => {
-              resolve(batch.map(payrollId => ({
-                payroll_id: payrollId,
-                success: true,
-                message: '审批成功'
-              })));
-            }, 800);
-          });
-          
-          // 根据真实结果更新每个项目的状态
-          results.forEach((result: any) => {
-            setProgressModal(prev => ({
-              ...prev,
-              items: updateBatchApprovalItem(prev.items, result.payroll_id, {
-                status: result.success ? 'completed' : 'error',
-                message: result.message,
-                error: result.success ? undefined : result.message
-              })
-            }));
-          });
-          
-        } catch (error) {
-          // 处理批次错误
-          batch.forEach(payrollId => {
-            setProgressModal(prev => ({
-              ...prev,
-              items: updateBatchApprovalItem(prev.items, payrollId, {
-                status: 'error',
-                error: error instanceof Error ? error.message : '审批失败'
-              })
-            }));
-          });
-        }
-        
-        // 基于实际处理数量计算真实进度
-        processedCount += batch.length;
-        const progress = Math.min((processedCount / totalItems) * 100, 100);
-        setProgressModal(prev => ({
-          ...prev,
-          totalProgress: progress,
-          currentItemId: undefined
-        }));
-        
-        // 适当延迟以提供视觉反馈
-        if (i + batchSize < totalItems) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-
-      showSuccess(`批量审批完成: 成功审批 ${selectedIds.length} 条记录`);
-      setSelectedIds([]);
-      
-    } catch (error) {
-      showError('批量审批过程中发生错误');
-      setProgressModal(prev => ({
-        ...prev,
-        allowCancel: false,
-        items: prev.items.map(item => 
-          item.status === 'pending' || item.status === 'processing' ? {
-            ...item,
-            status: 'error' as const,
-            error: error instanceof Error ? error.message : '审批失败'
-          } : item
-        ),
-        totalProgress: 100
-      }));
-    }
-  }, [selectedIds, dataProcessor.processedData, actions, showSuccess, showError]);
-
-  // 处理批量标记已发放 - 按照文档指导修正的实现
+    await batchApprovalManager.handleBatchApprove(selectedIds, dataProcessor.processedData);
+    setSelectedIds([]);
+  }, [selectedIds, dataProcessor.processedData, batchApprovalManager]);
+  
   const handleBatchMarkPaid = useCallback(async () => {
-    if (selectedIds.length === 0) {
-      showError('请选择要标记为已发放的记录');
-      return;
-    }
-
-    // 准备批量发放数据
-    const selectedRecords = dataProcessor.processedData.filter(record => 
-      record.payroll_id && selectedIds.includes(record.payroll_id)
-    );
-    
-    const batchItems = createBatchApprovalItems(
-      selectedRecords
-        .filter(record => record.payroll_id && record.employee_name)
-        .map(record => ({
-          payroll_id: record.payroll_id!,
-          employee_name: record.employee_name!,
-          net_pay: record.net_pay || 0
-        }))
-    );
-
-    // 关闭确认模态框，显示进度模态框
-    setConfirmModal(prev => ({ ...prev, open: false }));
-    setProgressModal({
-      open: true,
-      type: 'markPaid',
-      items: batchItems,
-      totalProgress: 0,
-      allowCancel: true
-    });
-
-    try {
-      // 标记发放操作：使用分批处理模式
-      const batchSize = 5;
-      const totalItems = batchItems.length;
-      let processedCount = 0;
-      
-      for (let i = 0; i < totalItems; i += batchSize) {
-        const batch = selectedIds.slice(i, i + batchSize);
-        
-        // 更新当前批次状态为processing
-        batch.forEach(payrollId => {
-          setProgressModal(prev => ({
-            ...prev,
-            items: updateBatchApprovalItem(prev.items, payrollId, {
-              status: 'processing',
-              message: '正在标记发放...'
-            }),
-            currentItemId: payrollId
-          }));
-        });
-        
-        try {
-          // 执行真实的API调用并等待完成
-          const results = await new Promise<any[]>((resolve) => {
-            actions.markPaid(batch, '批量标记发放');
-            // 模拟等待标记完成的结果
-            setTimeout(() => {
-              resolve(batch.map(payrollId => ({
-                payroll_id: payrollId,
-                success: true,
-                message: '发放成功'
-              })));
-            }, 800);
-          });
-          
-          // 根据真实结果更新每个项目的状态
-          results.forEach((result: any) => {
-            setProgressModal(prev => ({
-              ...prev,
-              items: updateBatchApprovalItem(prev.items, result.payroll_id, {
-                status: result.success ? 'completed' : 'error',
-                message: result.message,
-                error: result.success ? undefined : result.message
-              })
-            }));
-          });
-          
-        } catch (error) {
-          // 处理批次错误
-          batch.forEach(payrollId => {
-            setProgressModal(prev => ({
-              ...prev,
-              items: updateBatchApprovalItem(prev.items, payrollId, {
-                status: 'error',
-                error: error instanceof Error ? error.message : '发放失败'
-              })
-            }));
-          });
-        }
-        
-        // 基于实际处理数量计算真实进度
-        processedCount += batch.length;
-        const progress = Math.min((processedCount / totalItems) * 100, 100);
-        setProgressModal(prev => ({
-          ...prev,
-          totalProgress: progress,
-          currentItemId: undefined
-        }));
-        
-        // 适当延迟以提供视觉反馈
-        if (i + batchSize < totalItems) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-
-      showSuccess(`批量发放完成: 成功发放 ${selectedIds.length} 条记录`);
-      setSelectedIds([]);
-      
-    } catch (error) {
-      showError('批量发放过程中发生错误');
-      setProgressModal(prev => ({
-        ...prev,
-        allowCancel: false,
-        items: prev.items.map(item => 
-          item.status === 'pending' || item.status === 'processing' ? {
-            ...item,
-            status: 'error' as const,
-            error: error instanceof Error ? error.message : '发放失败'
-          } : item
-        ),
-        totalProgress: 100
-      }));
-    }
-  }, [selectedIds, dataProcessor.processedData, actions, showSuccess, showError]);
-
-  // 处理批量回滚 - 按照文档指导修正的实现
+    await batchApprovalManager.handleBatchMarkPaid(selectedIds, dataProcessor.processedData);
+    setSelectedIds([]);
+  }, [selectedIds, dataProcessor.processedData, batchApprovalManager]);
+  
   const handleBatchRollback = useCallback(async (reason: string) => {
-    if (selectedIds.length === 0) {
-      showError('请选择要回滚的记录');
-      return;
-    }
-
-    // 准备批量回滚数据
-    const selectedRecords = dataProcessor.processedData.filter(record => 
-      record.payroll_id && selectedIds.includes(record.payroll_id)
-    );
-    
-    const batchItems = createBatchApprovalItems(
-      selectedRecords
-        .filter(record => record.payroll_id && record.employee_name)
-        .map(record => ({
-          payroll_id: record.payroll_id!,
-          employee_name: record.employee_name!,
-          net_pay: record.net_pay || 0
-        }))
-    );
-
-    // 关闭确认模态框，显示进度模态框
-    setConfirmModal(prev => ({ ...prev, open: false }));
-    setProgressModal({
-      open: true,
-      type: 'rollback',
-      items: batchItems,
-      totalProgress: 0,
-      allowCancel: true
-    });
-
-    try {
-      // 回滚操作：采用分批处理模式（策略B）
-      const batchSize = 5;
-      const totalItems = selectedIds.length;
-      let processedCount = 0;
-
-      // 分批处理循环
-      for (let i = 0; i < totalItems; i += batchSize) {
-        const batch = selectedIds.slice(i, i + batchSize);
-        const currentBatch = Math.floor(i / batchSize) + 1;
-        const totalBatches = Math.ceil(totalItems / batchSize);
-
-        console.log(`处理回滚第${currentBatch}/${totalBatches}批, 包含${batch.length}条记录`);
-
-        // 更新当前批次状态为处理中
-        setProgressModal(prev => ({
-          ...prev,
-          currentItemId: batch[0],
-          items: prev.items.map(item => 
-            batch.includes(item.payroll_id) ? {
-              ...item,
-              status: 'processing' as const,
-              message: '正在回滚...'
-            } : item
-          )
-        }));
-
-        try {
-          // 执行当前批次的API调用
-          const results = await new Promise<any[]>((resolve) => {
-            mutations.rollbackPayrolls.mutate(
-              { payrollIds: batch, reason: reason },
-              {
-                onSuccess: (data) => {
-                  console.log(`回滚批次${currentBatch}成功，返回:`, data);
-                  resolve(data);
-                },
-                onError: (error) => {
-                  console.error(`回滚批次${currentBatch}失败:`, error);
-                  const errorResults = batch.map(payrollId => ({
-                    payroll_id: payrollId,
-                    success: false,
-                    message: error.message
-                  }));
-                  resolve(errorResults);
-                }
-              }
-            );
-          });
-
-          // 更新当前批次的结果状态
-          setProgressModal(prev => ({
-            ...prev,
-            items: prev.items.map(item => {
-              const result = results.find(r => r.payroll_id === item.payroll_id);
-              if (result) {
-                return {
-                  ...item,
-                  status: result.success ? 'completed' as const : 'error' as const,
-                  message: result.message || '回滚完成',
-                  error: result.success ? undefined : result.message
-                };
-              }
-              return item;
-            })
-          }));
-
-          processedCount += batch.length;
-          const progress = Math.min((processedCount / totalItems) * 100, 100);
-          
-          setProgressModal(prev => ({
-            ...prev,
-            totalProgress: progress
-          }));
-
-        } catch (error) {
-          // 处理批次异常错误
-          console.error(`回滚批次${currentBatch}异常:`, error);
-          setProgressModal(prev => ({
-            ...prev,
-            items: prev.items.map(item => 
-              batch.includes(item.payroll_id) ? {
-                ...item,
-                status: 'error' as const,
-                error: error instanceof Error ? error.message : '回滚失败'
-              } : item
-            )
-          }));
-          
-          processedCount += batch.length;
-          const progress = Math.min((processedCount / totalItems) * 100, 100);
-          setProgressModal(prev => ({
-            ...prev,
-            totalProgress: progress
-          }));
-        }
-      }
-
-      // 完成所有批次后的最终状态更新
-      setProgressModal(prev => ({
-        ...prev,
-        allowCancel: false,
-        currentItemId: undefined
-      }));
-
-      const successCount = progressModal.items.filter(item => item.status === 'completed').length;
-      showSuccess(`批量回滚完成: 成功回滚 ${successCount} 条记录`);
-      setSelectedIds([]);
-      
-    } catch (error) {
-      showError('批量回滚过程中发生错误');
-      setProgressModal(prev => ({
-        ...prev,
-        allowCancel: false,
-        items: prev.items.map(item => 
-          item.status === 'pending' || item.status === 'processing' ? {
-            ...item,
-            status: 'error' as const,
-            error: error instanceof Error ? error.message : '回滚失败'
-          } : item
-        ),
-        totalProgress: 100
-      }));
-    }
-  }, [selectedIds, dataProcessor.processedData, actions, showSuccess, showError]);
+    await batchApprovalManager.handleBatchRollback(selectedIds, dataProcessor.processedData, reason);
+    setSelectedIds([]);
+  }, [selectedIds, dataProcessor.processedData, batchApprovalManager]);
 
   const isLoading = approvalLoading || statsLoading || isPeriodLoading;
 
@@ -626,7 +208,7 @@ export default function PayrollApprovalPage() {
       exportComponent={null}
       customContent={
         <div className="space-y-6">
-          {/* 薪资审批统计概览 - 使用 DaisyUI 标准 stats 组件 */}
+          {/* 薪资审批统计概览 */}
           <div className="stats shadow w-full" data-tour="approval-workflow">
             <div className="stat">
               <div className="stat-figure text-warning">
@@ -690,109 +272,38 @@ export default function PayrollApprovalPage() {
           </div>
 
           {/* 工具栏 */}
-          <div className="border border-base-200 rounded-lg bg-base-100 p-4">
-            <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-              
-              {/* 左侧：选择器组 */}
-              <div className="flex items-center gap-3">
-                {/* 薪资周期选择器 */}
-                <PayrollPeriodSelector
-                  selectedMonth={selectedMonth}
-                  availableMonths={(availableMonths || []).map(m => ({
-                    month: m.month,
-                    periodId: m.periodId || '',
-                    hasData: m.hasData,
-                    payrollCount: m.payrollCount || 0
-                  }))}
-                  onMonthChange={updateSelectedMonth}
-                  isLoading={isLoadingMonths}
-                  showCompletenessIndicators={false}
-                  size="sm"
-                />
-                
-                {/* 状态选择器 */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-base-content/70 whitespace-nowrap">状态：</span>
-                  <CompactPayrollStatusSelector
-                    value={statusFilter}
-                    onChange={setStatusFilter}
-                    showIcon={false}
-                    className="w-28"
-                    placeholder="全部状态"
-                  />
-                </div>
-              </div>
-
-              {/* 中间：搜索框 */}
-              <div className="flex-1">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="搜索员工姓名、部门名称..."
-                    className="input input-bordered input-sm w-full pr-20"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    disabled={isLoading}
-                  />
-                  <div className="absolute right-1 top-1 flex gap-1">
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-xs"
-                        onClick={() => setSearchQuery('')}
-                        title="清除搜索"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-xs"
-                      title="搜索"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* 右侧：操作按钮组 */}
-              <div className="flex items-center gap-2" data-tour="approval-reports">
-                {/* 审批历史 */}
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={() => modalManager.history.open()}
-                  data-tour="approval-notifications"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  审批历史
-                </button>
-              </div>
-            </div>
-          </div>
+          <PayrollApprovalToolbar
+            selectedMonth={selectedMonth}
+            availableMonths={(availableMonths || []).map(m => ({
+              month: m.month,
+              periodId: m.periodId || '',
+              hasData: m.hasData,
+              payrollCount: m.payrollCount || 0
+            }))}
+            onMonthChange={updateSelectedMonth}
+            isLoadingMonths={isLoadingMonths}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            totalLoading={isLoading}
+            onHistoryClick={() => modalManager.history.open()}
+          />
 
 
           {/* 批量操作区域 */}
           {selectedIds.length > 0 && (
-            <div className="card bg-base-100 shadow-sm border border-base-200 p-4" data-tour="batch-approval">
+            <div className={`${cardEffects.standard} p-4`} data-tour="batch-approval">
               <PayrollBatchActions
                 selectedCount={selectedIds.length}
-                loading={loading.approve || loading.markPaid || loading.rollback || progressModal.open}
+                loading={batchApprovalManager.isLoading}
                 statusStats={batchValidation.statusStats}
                 onClearSelection={() => setSelectedIds([])}
                 actions={[
                   {
                     key: 'approve',
                     label: '批量审批',
-                    onClick: () => setConfirmModal({ open: true, type: 'approve', loading: false }),
+                    onClick: () => batchApprovalManager.setConfirmModal({ open: true, type: 'approve', loading: false }),
                     variant: 'outline',
                     disabled: !batchValidation.canBatchOperate.approve(),
                     title: batchValidation.canBatchOperate.approve() 
@@ -808,7 +319,7 @@ export default function PayrollApprovalPage() {
                   {
                     key: 'mark-paid',
                     label: '标记已发放',
-                    onClick: () => setConfirmModal({ open: true, type: 'paid', loading: false }),
+                    onClick: () => batchApprovalManager.setConfirmModal({ open: true, type: 'paid', loading: false }),
                     variant: 'outline',
                     disabled: !batchValidation.canBatchOperate.markPaid(),
                     title: batchValidation.canBatchOperate.markPaid() 
@@ -824,7 +335,7 @@ export default function PayrollApprovalPage() {
                   {
                     key: 'rollback',
                     label: '回滚',
-                    onClick: () => setConfirmModal({ open: true, type: 'rollback', loading: false }),
+                    onClick: () => batchApprovalManager.setConfirmModal({ open: true, type: 'rollback', loading: false }),
                     variant: 'outline',
                     disabled: !batchValidation.canBatchOperate.rollback(),
                     title: batchValidation.canBatchOperate.rollback() 
@@ -873,60 +384,57 @@ export default function PayrollApprovalPage() {
           />
 
           {/* 确认模态框 */}
-          {confirmModal.type === 'approve' && (
+          {batchApprovalManager.confirmModal.type === 'approve' && (
             <BatchConfirmModal
-              open={confirmModal.open}
+              open={batchApprovalManager.confirmModal.open}
               action="审批"
               selectedCount={selectedIds.length}
               variant="primary"
-              loading={confirmModal.loading}
+              loading={batchApprovalManager.confirmModal.loading}
               onConfirm={handleBatchApprove}
-              onClose={() => setConfirmModal({ open: false, type: 'approve', loading: false })}
+              onClose={() => batchApprovalManager.setConfirmModal({ open: false, type: 'approve', loading: false })}
             />
           )}
 
-          {confirmModal.type === 'paid' && (
+          {batchApprovalManager.confirmModal.type === 'paid' && (
             <BatchConfirmModal
-              open={confirmModal.open}
+              open={batchApprovalManager.confirmModal.open}
               action="发放"
               selectedCount={selectedIds.length}
               variant="success"
-              loading={confirmModal.loading}
+              loading={batchApprovalManager.confirmModal.loading}
               onConfirm={handleBatchMarkPaid}
-              onClose={() => setConfirmModal({ open: false, type: 'approve', loading: false })}
+              onClose={() => batchApprovalManager.setConfirmModal({ open: false, type: 'approve', loading: false })}
             />
           )}
 
-          {confirmModal.type === 'rollback' && (
+          {batchApprovalManager.confirmModal.type === 'rollback' && (
             <RollbackConfirmModal
-              open={confirmModal.open}
+              open={batchApprovalManager.confirmModal.open}
               selectedCount={selectedIds.length}
               onConfirm={handleBatchRollback}
-              onClose={() => setConfirmModal({ open: false, type: 'approve', loading: false })}
-              loading={confirmModal.loading}
+              onClose={() => batchApprovalManager.setConfirmModal({ open: false, type: 'approve', loading: false })}
+              loading={batchApprovalManager.confirmModal.loading}
             />
           )}
 
           {/* 批量审批进度模态框 */}
           <BatchApprovalProgressModal
-            isOpen={progressModal.open}
-            onClose={() => setProgressModal(prev => ({ ...prev, open: false }))}
+            isOpen={batchApprovalManager.progressModal.open}
+            onClose={batchApprovalManager.closeProgressModal}
             title={
-              progressModal.type === 'approve' ? '批量审批进度' :
-              progressModal.type === 'markPaid' ? '批量发放进度' :
-              progressModal.type === 'rollback' ? '批量回滚进度' :
+              batchApprovalManager.progressModal.type === 'approve' ? '批量审批进度' :
+              batchApprovalManager.progressModal.type === 'markPaid' ? '批量发放进度' :
+              batchApprovalManager.progressModal.type === 'rollback' ? '批量回滚进度' :
               '批量操作进度'
             }
-            operationType={progressModal.type}
-            items={progressModal.items}
-            currentItemId={progressModal.currentItemId}
-            totalProgress={progressModal.totalProgress}
-            allowCancel={progressModal.allowCancel}
-            onCancel={() => {
-              // 实现取消逻辑
-              setProgressModal(prev => ({ ...prev, allowCancel: false }));
-            }}
-            summary={progressModal.items.length > 0 ? calculateBatchSummary(progressModal.items) : undefined}
+            operationType={batchApprovalManager.progressModal.type}
+            items={batchApprovalManager.progressModal.items}
+            currentItemId={batchApprovalManager.progressModal.currentItemId}
+            totalProgress={batchApprovalManager.progressModal.totalProgress}
+            allowCancel={batchApprovalManager.progressModal.allowCancel}
+            onCancel={batchApprovalManager.cancelOperation}
+            summary={batchApprovalManager.progressModal.items.length > 0 ? calculateBatchSummary(batchApprovalManager.progressModal.items) : undefined}
           />
         </>
       }

@@ -137,7 +137,7 @@ export function usePayrollImportExport() {
             importResult = await importPayrollItems(
               data, 
               periodId, 
-              { includeCategories: ['basic_salary', 'benefits', 'personal_tax'] },
+              { includeCategories: ['basic_salary', 'benefits', 'personal_tax', 'other_deductions'] },
               (progress) => updateProgress(progress),
               globalProgressRef
             );

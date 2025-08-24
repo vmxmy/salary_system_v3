@@ -19,6 +19,7 @@ import { usePermission } from '@/hooks/permissions/usePermission';
 import { PERMISSIONS } from '@/constants/permissions';
 import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
 import type { PaginationState, Table } from '@tanstack/react-table';
+import { cardEffects } from '@/styles/design-effects';
 
 // 定义薪资数据接口 - 匹配 view_payroll_summary 结构
 interface PayrollData {
@@ -266,7 +267,7 @@ export function PayrollReports({ selectedMonth, onMonthChange, periodId }: Payro
   return (
     <div className="space-y-4">
       {/* 筛选控制 */}
-      <div className="card bg-base-100 shadow-sm border border-base-200 p-4">
+      <div className={`${cardEffects.default} p-4`}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {/* 月份选择 */}
@@ -342,7 +343,7 @@ export function PayrollReports({ selectedMonth, onMonthChange, periodId }: Payro
               >
                 导出
               </ModernButton>
-              <ul className="dropdown-content menu p-2 mt-2 w-52 z-50 bg-base-100 border border-base-200 rounded-xl shadow-lg">
+              <ul className="dropdown-content menu p-2 mt-2 w-52 z-50 bg-base-100 border border-base-content/10 rounded-xl shadow-lg">
                 <li>
                   <a onClick={() => exportTableToCSV(processedData, 'payroll')} className="rounded-lg">
                     CSV
@@ -421,7 +422,7 @@ export function PayrollReports({ selectedMonth, onMonthChange, periodId }: Payro
               >
                 字段配置
               </ModernButton>
-              <div className="dropdown-content menu p-4 mt-2 w-80 z-50 bg-base-100 border border-base-200 rounded-xl shadow-lg max-h-96 overflow-y-auto">
+              <div className="dropdown-content menu p-4 mt-2 w-80 z-50 bg-base-100 border border-base-content/10 rounded-xl shadow-lg max-h-96 overflow-y-auto">
                 <h4 className="font-medium text-base-content mb-3">显示字段配置</h4>
                 <div className="space-y-2">
                   {metadata.defaultFields.map((field: string) => {

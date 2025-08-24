@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
+import { cardEffects } from '@/styles/design-effects';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAvailablePayrollMonths, checkMonthAvailability, type AvailablePayrollMonth } from '@/hooks/payroll';
 import { usePayrollPeriodsCompleteness } from '@/hooks/payroll/usePayrollPeriodCompleteness';
@@ -190,10 +191,11 @@ export function MonthPicker({
       if (monthAvailability.hasData) return true;
     }
     
-    // 如果启用了只显示有数据月份功能，检查该月份是否没有数据
+    // 如果启用了只显示有数据月份功能，检查该月份是否没有数据或周期
     if (onlyShowMonthsWithData && showDataIndicators) {
       const monthAvailability = checkMonthAvailability(availableMonths, yearMonth);
-      if (!monthAvailability.hasData) return true;
+      // 优化逻辑：有薪资周期就可以选择，即使还没有薪资记录
+      if (!monthAvailability.hasData && !monthAvailability.hasPeriod) return true;
     }
     
     return false;
@@ -312,7 +314,7 @@ export function MonthPicker({
             }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className={cn(
-              'card bg-base-100 shadow-lg border border-base-200',
+              cardEffects.elevated,
               'absolute p-6 min-w-[320px] z-[10001]',
               // 根据位置调整方向
               dropdownPosition === 'bottom' 
@@ -398,7 +400,7 @@ export function MonthPicker({
                 const monthString = `${displayYear}-${String(month).padStart(2, '0')}`;
                 const monthAvailability = showDataIndicators 
                   ? checkMonthAvailability(availableMonths, monthString)
-                  : { hasData: false, count: 0, periodStatus: undefined, isLocked: undefined };
+                  : { hasData: false, hasPeriod: false, count: 0, expectedCount: 0, periodStatus: undefined, isLocked: undefined };
                 
                 // Get completeness data for this month
                 const monthCompleteness = getMonthCompleteness(monthString);
@@ -420,6 +422,8 @@ export function MonthPicker({
                       isCurrent && !isSelected && 'ring-2 ring-primary/20 bg-primary/5',
                       // Enhanced styling for months with data
                       monthAvailability.hasData && !isSelected && !isDisabled && 'ring-1 ring-success/30 bg-success/5 hover:bg-success/10',
+                      // Special styling for months with period but no data (draft state)
+                      !monthAvailability.hasData && monthAvailability.hasPeriod && !isSelected && !isDisabled && 'ring-1 ring-warning/30 bg-warning/5 hover:bg-warning/10',
                       // Special styling for disabled months with data (showing they're unavailable)
                       monthAvailability.hasData && isDisabled && disableMonthsWithData && 'ring-1 ring-error/30 bg-error/5'
                     )}
@@ -431,13 +435,14 @@ export function MonthPicker({
                         !isSelected && isHovered && !isDisabled && 'text-primary',
                         isCurrent && !isSelected && 'text-primary',
                         monthAvailability.hasData && !isSelected && !isCurrent && !isDisabled && 'text-success',
+                        !monthAvailability.hasData && monthAvailability.hasPeriod && !isSelected && !isCurrent && !isDisabled && 'text-warning',
                         monthAvailability.hasData && isDisabled && disableMonthsWithData && 'text-error'
                       )}>
                         {getMonthShort(month)}
                       </span>
                       
                       {/* Data availability indicator - 右上角 */}
-                      {showDataIndicators && monthAvailability.hasData && (
+                      {showDataIndicators && (monthAvailability.hasData || monthAvailability.hasPeriod) && (
                         <motion.div
                           initial={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
@@ -451,18 +456,25 @@ export function MonthPicker({
                               ? 'bg-accent text-accent-content' 
                               : isDisabled && disableMonthsWithData
                               ? 'bg-error text-error-content'
-                              : 'bg-success text-success-content'
+                              : monthAvailability.hasData
+                              ? 'bg-success text-success-content'
+                              : 'bg-warning text-warning-content' // 有周期但没有薪资记录
                           )}
                           title={
                             isDisabled && disableMonthsWithData 
                               ? `已有${monthAvailability.count}条薪资记录，无法重复创建` 
-                              : `${monthAvailability.count}条薪资记录 - 状态: ${
+                              : monthAvailability.hasData
+                              ? `${monthAvailability.count}条薪资记录 - 状态: ${
+                                  monthAvailability.periodStatus === 'completed' ? '已完成' :
+                                  monthAvailability.periodStatus === 'processing' ? '处理中' : '草稿'
+                                }${monthAvailability.isLocked ? ' (已锁定)' : ''}`
+                              : `薪资周期已创建，期望${monthAvailability.expectedCount}人 - 状态: ${
                                   monthAvailability.periodStatus === 'completed' ? '已完成' :
                                   monthAvailability.periodStatus === 'processing' ? '处理中' : '草稿'
                                 }${monthAvailability.isLocked ? ' (已锁定)' : ''}`
                           }
                         >
-                          {monthAvailability.count > 99 ? '99' : monthAvailability.count}
+                          {monthAvailability.count > 99 ? '99+' : monthAvailability.count}
                         </motion.div>
                       )}
                       
@@ -550,22 +562,22 @@ export function MonthPicker({
             
             {/* 状态图例 - 仅在显示数据指示器时显示 */}
             {(showDataIndicators || showCompletenessIndicators) && (
-              <div className="mt-3 pt-3 border-t border-base-200">
+              <div className="mt-3 pt-3 border-t border-base-content/10">
                 <div className="text-xs text-base-content/60 mb-2">状态说明：</div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {showDataIndicators && (
                     <>
                       <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-success border border-base-300"></div>
+                        <span className="text-base-content/70">有薪资数据</span>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-warning border border-base-300"></div>
-                        <span className="text-base-content/70">草稿</span>
+                        <span className="text-base-content/70">仅有周期</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-info border border-base-300"></div>
                         <span className="text-base-content/70">处理中</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-success border border-base-300"></div>
-                        <span className="text-base-content/70">已完成</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-error border border-base-300 ring-2 ring-error ring-offset-1 ring-offset-base-100"></div>

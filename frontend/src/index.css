@@ -531,6 +531,132 @@
     min-width: max-content; /* 确保内容完全显示 */
   }
 
+  /* ==========================================
+   * 统一的Card边框样式系统 - 主题色版本
+   * 所有card使用primary主题色边框，确保一致的视觉体验
+   * ========================================== */
+  
+  /* DaisyUI v5 统一主题色边框 - 基于primary色的层次化边框系统 */
+  .card-unified-border {
+    @apply border border-primary/8;
+    transition: border-color 0.2s ease-out;
+  }
+  
+  .card-unified-border-standard {
+    @apply border border-primary/15;
+    transition: border-color 0.2s ease-out;
+  }
+  
+  .card-unified-border-emphasized {
+    @apply border border-primary/25;
+    transition: border-color 0.2s ease-out;
+  }
+  
+  /* 主题适配的primary边框颜色 - 使用CSS变量确保主题响应性 */
+  .card-theme-border {
+    border-color: hsl(var(--p) / 0.08);
+    transition: border-color 0.2s ease-out;
+  }
+  
+  .card-theme-border-standard {
+    border-color: hsl(var(--p) / 0.15);
+    transition: border-color 0.2s ease-out;
+  }
+  
+  .card-theme-border-emphasized {
+    border-color: hsl(var(--p) / 0.25);
+    transition: border-color 0.2s ease-out;
+  }
+  
+  /* 交互状态增强 - hover时primary色加深 */
+  .card-unified-border:hover {
+    @apply border-primary/15;
+  }
+  
+  .card-unified-border-standard:hover {
+    @apply border-primary/25;
+  }
+  
+  .card-unified-border-emphasized:hover {
+    @apply border-primary/35;
+  }
+  
+  /* 确保card在深色主题下primary边框的可见性 */
+  [data-theme*="dark"] .card-unified-border,
+  [data-theme*="night"] .card-unified-border,
+  [data-theme*="coffee"] .card-unified-border,
+  [data-theme*="halloween"] .card-unified-border {
+    @apply border border-primary/12;
+  }
+  
+  [data-theme*="dark"] .card-unified-border-standard,
+  [data-theme*="night"] .card-unified-border-standard,
+  [data-theme*="coffee"] .card-unified-border-standard,
+  [data-theme*="halloween"] .card-unified-border-standard {
+    @apply border border-primary/20;
+  }
+  
+  [data-theme*="dark"] .card-unified-border-emphasized,
+  [data-theme*="night"] .card-unified-border-emphasized,
+  [data-theme*="coffee"] .card-unified-border-emphasized,
+  [data-theme*="halloween"] .card-unified-border-emphasized {
+    @apply border border-primary/30;
+  }
+  
+  /* 高对比度模式下的primary边框增强 */
+  @media (prefers-contrast: high) {
+    .card-unified-border {
+      @apply border-2 border-primary/25;
+    }
+    
+    .card-unified-border-standard {
+      @apply border-2 border-primary/35;
+    }
+    
+    .card-unified-border-emphasized {
+      @apply border-2 border-primary/45;
+    }
+  }
+  
+  /* 特殊主题的primary色适配 - 确保在所有32+主题下都美观 */
+  [data-theme="valentine"] .card-unified-border,
+  [data-theme="pastel"] .card-unified-border,
+  [data-theme="fantasy"] .card-unified-border {
+    @apply border-primary/10; /* 柔和主题稍微减淡 */
+  }
+  
+  [data-theme="cyberpunk"] .card-unified-border,
+  [data-theme="synthwave"] .card-unified-border,
+  [data-theme="luxury"] .card-unified-border {
+    @apply border-primary/15; /* 高对比主题保持标准 */
+  }
+  
+  /* 渐变边框效果支持 - 用于特殊场景 */
+  .card-gradient-border {
+    position: relative;
+    background: linear-gradient(135deg, 
+      hsl(var(--p) / 0.1) 0%,
+      hsl(var(--p) / 0.05) 50%,
+      hsl(var(--p) / 0.1) 100%);
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+  
+  .card-gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    background: linear-gradient(135deg,
+      hsl(var(--p) / 0.2),
+      hsl(var(--p) / 0.1),
+      hsl(var(--p) / 0.2));
+    border-radius: inherit;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    -webkit-mask-composite: xor;
+  }
+
   /* 防止stats在小屏幕上过度压缩 */
   .statistics-kpi-card.stats {
     @apply w-full;

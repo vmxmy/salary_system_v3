@@ -32,6 +32,7 @@ const DesignSystemShowcase = lazy(() => import('@/pages/DesignSystemShowcase'));
 const TypographyShowcasePage = lazy(() => import('@/pages/TypographyShowcasePage'));
 const FontTestPage = lazy(() => import('@/pages/FontTestPage'));
 const MonthPickerDemoPage = lazy(() => import('@/pages/MonthPickerDemoPage'));
+const ThemeBorderTestPage = lazy(() => import('@/pages/demo/ThemeBorderTestPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const DebugPage = lazy(() => import('@/pages/DebugPage'));
@@ -296,6 +297,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingScreen />}>
             <ThemeShowcasePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'theme-border-test',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <ThemeBorderTestPage />
           </Suspense>
         ),
       },

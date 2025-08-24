@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { cn, cardEffects } from '@/lib/utils';
 import type { PayrollPeriodCompleteness } from '@/types/payroll-completeness';
 import { 
   PayrollElement,
@@ -28,7 +28,7 @@ export function PayrollCompletenessStat({
 }: PayrollCompletenessStatProps) {
   if (!completeness) {
     return (
-      <div className={cn("card bg-base-100 shadow-sm border border-base-200", className)}>
+      <div className={cn(cardEffects.modern, className)}>
         <div className="card-body">
           <div className="flex items-center justify-center h-32">
             <div className="loading loading-spinner loading-lg"></div>
@@ -80,7 +80,7 @@ export function PayrollCompletenessStat({
     return (
       <div 
         className={cn(
-          "card bg-base-100 shadow-sm border border-base-200 cursor-pointer hover:shadow-md transition-shadow",
+          `${cardEffects.modern} cursor-pointer hover:shadow-md transition-shadow`,
           className
         )}
         onClick={onClick}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSystemMonitoring } from '@/hooks/monitoring/useSystemMonitoring';
 import { usePersonalizedView } from '@/hooks/personalization/usePersonalizedView';
 import { RealTimeMonitorCard } from '../enhanced/RealTimeMonitorCard';
+import { cardEffects } from '@/lib/utils';
 
 interface RealtimeMonitoringPanelProps {
   className?: string;
@@ -101,7 +102,7 @@ export const RealtimeMonitoringPanel: React.FC<RealtimeMonitoringPanelProps> = (
 
   if (error) {
     return (
-      <div className={`card bg-base-100 shadow-lg ${className}`}>
+      <div className={`${cardEffects.elevated} ${className}`}>
         <div className="card-body">
           <div className="alert alert-error">
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -182,7 +183,7 @@ export const RealtimeMonitoringPanel: React.FC<RealtimeMonitoringPanelProps> = (
       {isLoading && !monitoringData && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="card bg-base-100 shadow animate-pulse">
+            <div key={i} className={`${cardEffects.modern} animate-pulse`}>
               <div className="card-body">
                 <div className="h-6 bg-base-300 rounded w-3/4 mb-4"></div>
                 <div className="space-y-2">

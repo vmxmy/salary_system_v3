@@ -9,7 +9,7 @@ export const importPayrollItems = async (
   data: ExcelDataRow[],
   periodId: string,
   options?: {
-    includeCategories?: SalaryComponentCategory[];  // 要导入的薪资组件类别，默认：['basic_salary', 'benefits', 'personal_tax']
+    includeCategories?: SalaryComponentCategory[];  // 要导入的薪资组件类别，默认：['basic_salary', 'benefits', 'personal_tax', 'other_deductions']
   },
   onProgressUpdate?: (progress: Partial<ImportProgress>) => void,
   globalProgressRef?: { current: number }
@@ -21,8 +21,8 @@ export const importPayrollItems = async (
   
   const results: any[] = [];
   
-  // 默认配置：导入所有收入项类别(basic_salary, benefits) + 个人所得税(personal_tax)
-  const defaultCategories: SalaryComponentCategory[] = ['basic_salary', 'benefits', 'personal_tax'];
+  // 默认配置：导入所有收入项类别(basic_salary, benefits) + 个人所得税(personal_tax) + 其他扣除项(other_deductions)
+  const defaultCategories: SalaryComponentCategory[] = ['basic_salary', 'benefits', 'personal_tax', 'other_deductions'];
   const includeCategories = options?.includeCategories || defaultCategories;
   
   console.log('🎯 将导入的薪资组件类别:', includeCategories);

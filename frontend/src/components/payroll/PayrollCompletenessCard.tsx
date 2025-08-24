@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { cn, cardEffects } from '@/lib/utils';
 import type { PayrollPeriodCompleteness, ElementCompleteness } from '@/types/payroll-completeness';
 import { 
   PAYROLL_ELEMENTS_CONFIG,
@@ -31,7 +31,7 @@ export function PayrollCompletenessCard({
   const completenessLevel = getCompletenessLevel(completeness.overall_completeness_percentage);
   
   return (
-    <div className={cn("card bg-base-100 shadow-sm border border-base-200", className)}>
+    <div className={cn(cardEffects.modern, className)}>
       <div className="card-body">
         {/* 标题区域 */}
         <div className="flex items-center justify-between mb-4">

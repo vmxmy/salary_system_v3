@@ -25,6 +25,7 @@ import { createDataTableColumnHelper } from '@/components/common/DataTable/utils
 import type { ColumnDef, HeaderContext, CellContext } from '@tanstack/react-table';
 import type { UserWithPermissions, UserManagementFilters } from '@/hooks/user-management/useUserManagement';
 import type { Permission } from '@/types/permission';
+import { cardEffects } from '@/lib/utils';
 
 // 懒加载模态框组件
 import { lazy } from 'react';
@@ -523,7 +524,7 @@ export default function UserManagementPage() {
       )}
 
       {/* 数据表格 */}
-      <div className="card bg-base-100 shadow-sm border">
+      <div className={cardEffects.modern}>
         <div className="card-body p-0">
           <DataTable
             columns={columns}
@@ -716,7 +717,7 @@ interface SearchFiltersProps {
 
 function SearchFilters({ filters, searchInput, onFiltersChange, onSearchInputChange, availableRoles }: SearchFiltersProps) {
   return (
-    <div className="card bg-base-100 shadow-sm border">
+    <div className={cardEffects.modern}>
       <div className="card-body">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* 搜索框 */}

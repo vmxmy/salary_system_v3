@@ -14,7 +14,9 @@ export interface PayrollListToolbarProps {
     month: string;
     periodId: string;
     hasData: boolean;
+    hasPeriod?: boolean;
     payrollCount: number;
+    expectedEmployeeCount?: number;
   }>;
   onMonthChange: (month: string) => void;
   isLoading?: boolean;
@@ -57,7 +59,7 @@ export function PayrollListToolbar({
   const { hasPermission } = usePermission();
 
   return (
-    <div className={`${cardEffects.bordered} p-4 ${className}`}>
+    <div className={`${cardEffects.standard} p-4 ${className}`}>
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
         
         {/* 左侧：选择器组 */}
@@ -70,6 +72,7 @@ export function PayrollListToolbar({
               onMonthChange={onMonthChange}
               isLoading={isLoading}
               showCompletenessIndicators={true}
+              onlyShowMonthsWithData={false}
               size="sm"
             />
           </div>

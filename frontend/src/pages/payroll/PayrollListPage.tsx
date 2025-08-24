@@ -316,7 +316,9 @@ export default function PayrollListPage() {
               month: m.month,
               periodId: m.periodId || '',
               hasData: m.hasData,
-              payrollCount: m.payrollCount || 0
+              hasPeriod: m.hasPeriod,
+              payrollCount: m.payrollCount || 0,
+              expectedEmployeeCount: m.expectedEmployeeCount || 0
             }))}
             onMonthChange={handleMonthChange}
             isLoading={latestPeriodLoading}
@@ -354,7 +356,7 @@ export default function PayrollListPage() {
 
           {/* 批量操作区域 */}
           {selectedIds.length > 0 && (
-            <div className={`${cardEffects.bordered} p-4`} data-tour="batch-payroll-operations">
+            <div className={`${cardEffects.standard} p-4`} data-tour="batch-payroll-operations">
               <PayrollBatchActions
                 selectedCount={selectedIds.length}
                 loading={batchOperationsManager.isAnyOperationLoading}
