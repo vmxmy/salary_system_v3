@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { ExcelDataRow, SalaryComponentCategory, ImportProgress } from '../types';
+import type { ExcelDataRow, SalaryComponentCategory, ImportProgress, ImportMode } from '../types';
 import { IMPORT_CONFIG } from '../constants';
 
 /**
@@ -8,6 +8,7 @@ import { IMPORT_CONFIG } from '../constants';
 export const importPayrollItems = async (
   data: ExcelDataRow[],
   periodId: string,
+  mode: ImportMode = 'upsert',  // 添加导入模式参数，默认为upsert
   options?: {
     includeCategories?: SalaryComponentCategory[];  // 要导入的薪资组件类别，默认：['basic_salary', 'benefits', 'personal_tax', 'other_deductions']
   },
@@ -17,6 +18,7 @@ export const importPayrollItems = async (
   console.log('🚀 开始导入薪资项目明细数据');
   console.log(`📊 数据行数: ${data.length}`);
   console.log(`🔰 薪资周期ID: ${periodId}`);
+  console.log(`🎯 导入模式: ${mode}`);
   console.log('📋 配置选项:', options);
   
   const results: any[] = [];
@@ -250,18 +252,21 @@ export const importPayrollItems = async (
     }
   }
   
-  // Step 4: 批量插入新的薪资记录
+  // Step 4: 批量UPSERT新的薪资记录（防止重复）
   if (newPayrollsToInsert.length > 0) {
-    console.log(`\n🚀 批量插入 ${newPayrollsToInsert.length} 条新薪资记录...`);
+    console.log(`\n🚀 批量UPSERT ${newPayrollsToInsert.length} 条薪资记录...`);
     
     const { data: insertedPayrolls, error: insertError } = await supabase
       .from('payrolls')
-      .insert(newPayrollsToInsert)
+      .upsert(newPayrollsToInsert, {
+        onConflict: 'employee_id,period_id',
+        ignoreDuplicates: false
+      })
       .select('id, employee_id');
     
     if (insertError) {
-      console.error('❌ 批量插入薪资记录失败:', insertError);
-      throw new Error(`批量插入薪资记录失败: ${insertError.message}`);
+      console.error('❌ 批量UPSERT薪资记录失败:', insertError);
+      throw new Error(`批量UPSERT薪资记录失败: ${insertError.message}`);
     }
     
     // 更新映射表，使用真实的payroll_id替换临时ID
@@ -271,7 +276,7 @@ export const importPayrollItems = async (
       });
     }
     
-    console.log(`✅ 成功插入 ${insertedPayrolls?.length || 0} 条薪资记录`);
+    console.log(`✅ 成功UPSERT ${insertedPayrolls?.length || 0} 条薪资记录`);
   }
   
   // Step 5: 更新薪资项目中的payroll_id
@@ -291,36 +296,73 @@ export const importPayrollItems = async (
   
   console.log(`✅ 有效薪资项目数量: ${validPayrollItems.length}`);
   
-  // Step 6: 批量插入薪资项目
+  // Step 6: 根据导入模式处理薪资项目
   if (validPayrollItems.length > 0) {
-    console.log('🚀 开始批量插入薪资项目...');
+    console.log(`🚀 开始批量处理薪资项目 (${mode}模式)...`);
     
-    // 分批插入，避免单次请求过大
+    if (mode === 'replace') {
+      // REPLACE模式：先删除该周期的现有数据，再插入新数据
+      console.log('🗑️ REPLACE模式：删除该周期的现有薪资项目数据...');
+      
+      // 获取所有要处理的薪资记录ID
+      const payrollIds = [...new Set(validPayrollItems.map(item => item.payroll_id))];
+      
+      const { error: deleteError } = await supabase
+        .from('payroll_items')
+        .delete()
+        .eq('period_id', periodId)
+        .in('payroll_id', payrollIds);
+      
+      if (deleteError) {
+        console.error('❌ 删除现有薪资项目失败:', deleteError);
+        throw new Error(`删除现有薪资项目失败: ${deleteError.message}`);
+      }
+      
+      console.log(`✅ 成功删除 ${payrollIds.length} 个薪资记录的现有数据`);
+    }
+    
+    // 分批处理，避免单次请求过大
     const batchSize = IMPORT_CONFIG.BATCH_SIZE;
     for (let i = 0; i < validPayrollItems.length; i += batchSize) {
       const batch = validPayrollItems.slice(i, i + batchSize);
       
-      const { error: itemsError } = await supabase
-        .from('payroll_items')
-        .insert(batch);
+      let itemsError;
+      
+      if (mode === 'upsert') {
+        // UPSERT模式：使用upsert方法，遇到冲突时更新
+        console.log(`🔄 UPSERT批次 ${i / batchSize + 1}: 更新或插入 ${batch.length} 条记录`);
+        const { error } = await supabase
+          .from('payroll_items')
+          .upsert(batch, {
+            onConflict: 'payroll_id,component_id'
+          });
+        itemsError = error;
+      } else {
+        // REPLACE模式：纯插入（因为已经删除了冲突数据）
+        console.log(`➕ INSERT批次 ${i / batchSize + 1}: 插入 ${batch.length} 条记录`);
+        const { error } = await supabase
+          .from('payroll_items')
+          .insert(batch);
+        itemsError = error;
+      }
       
       if (itemsError) {
-        console.error(`❌ 批量插入薪资项目失败 (批次 ${i / batchSize + 1}):`, itemsError);
+        console.error(`❌ 批量处理薪资项目失败 (批次 ${i / batchSize + 1}):`, itemsError);
         // 继续处理下一批，而不是中断
         errors.push({
           row: -1,
-          message: `批量插入薪资项目失败 (批次 ${i / batchSize + 1}): ${itemsError.message}`,
+          message: `批量${mode === 'upsert' ? 'UPSERT' : 'INSERT'}薪资项目失败 (批次 ${i / batchSize + 1}): ${itemsError.message}`,
           error: itemsError.message
         });
       } else {
-        console.log(`✅ 成功插入批次 ${i / batchSize + 1}/${Math.ceil(validPayrollItems.length / batchSize)}`);
+        console.log(`✅ 成功处理批次 ${i / batchSize + 1}/${Math.ceil(validPayrollItems.length / batchSize)} (${mode}模式)`);
       }
     }
   }
   
   console.log(`\n🎯 薪资项目导入完成:`);
   console.log(`  - 处理数据行数: ${data.length}`);
-  console.log(`  - 成功创建薪资记录: ${newPayrollsToInsert.length}`);
+  console.log(`  - 成功UPSERT薪资记录: ${newPayrollsToInsert.length}`);
   console.log(`  - 成功导入薪资项目: ${validPayrollItems.length}`);
   console.log(`  - 错误数量: ${errors.length}`);
   
