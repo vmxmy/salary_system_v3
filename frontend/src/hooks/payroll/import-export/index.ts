@@ -22,7 +22,14 @@ import { importCategoryAssignments } from './importers/category-assignments';
 import { importJobAssignments } from './importers/job-assignments';
 import { importContributionBases } from './importers/contribution-bases';
 import { importDeductions } from './importers/deductions';
-import { exportPayrollToExcel, generateImportTemplate } from './exporters/excel-exporter';
+import { 
+  exportPayrollToExcel, 
+  exportPayrollToExcelWithTemplate,
+  generateImportTemplate,
+  generateExcelBuffer 
+} from './exporters/excel-exporter';
+import { getExportTemplate, getAllExportTemplates } from './config/export-templates';
+import { generateExcelFromTemplate, generateFileName, validateTemplate } from './generators/excel-generator';
 import { useImportProgress } from './hooks/useImportProgress';
 
 /**
@@ -278,3 +285,13 @@ export * from './constants';
 export { analyzeFieldMapping } from './utils/field-mapping';
 export { parseExcelFile, validateExcelFile } from './utils/excel-parser';
 export { validateImportData } from './utils/validation';
+
+// 导出新的配置化导出系统
+export { 
+  exportPayrollToExcel, 
+  exportPayrollToExcelWithTemplate,
+  generateImportTemplate,
+  generateExcelBuffer 
+} from './exporters/excel-exporter';
+export { getExportTemplate, getAllExportTemplates } from './config/export-templates';
+export { generateExcelFromTemplate, generateFileName, validateTemplate } from './generators/excel-generator';

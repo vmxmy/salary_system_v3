@@ -160,17 +160,33 @@ export const importContributionBases = async (
     console.log(`🚀 批量插入 ${allContributionBases.length} 条缴费基数记录...`);
     
     try {
+      // 更新进度：开始删除现有数据
+      if (onProgressUpdate && globalProgressRef) {
+        onProgressUpdate({
+          message: '正在清理现有缴费基数数据...'
+        });
+      }
+      
       // 先删除该周期的现有数据，然后插入新数据（upsert替代方案）
       const employeeIds = [...new Set(allContributionBases.map(item => item.employee_id))];
       
       // 删除现有数据
+      console.log(`🗑️ 删除 ${employeeIds.length} 个员工的现有缴费基数数据...`);
       await supabase
         .from('employee_contribution_bases')
         .delete()
         .eq('period_id', periodId)
         .in('employee_id', employeeIds);
       
+      // 更新进度：开始插入新数据
+      if (onProgressUpdate && globalProgressRef) {
+        onProgressUpdate({
+          message: `正在批量插入 ${allContributionBases.length} 条缴费基数记录...`
+        });
+      }
+      
       // 批量插入新数据
+      console.log(`📝 批量插入 ${allContributionBases.length} 条新的缴费基数记录...`);
       const { error: insertError } = await supabase
         .from('employee_contribution_bases')
         .insert(allContributionBases);
@@ -182,8 +198,23 @@ export const importContributionBases = async (
       
       console.log(`✅ 成功插入 ${allContributionBases.length} 条缴费基数记录`);
       
+      // 更新进度：批量操作完成
+      if (onProgressUpdate && globalProgressRef) {
+        onProgressUpdate({
+          message: `成功导入 ${allContributionBases.length} 条缴费基数记录`
+        });
+      }
+      
     } catch (error) {
       console.error('❌ 批量操作失败:', error);
+      
+      // 更新进度：操作失败
+      if (onProgressUpdate && globalProgressRef) {
+        onProgressUpdate({
+          message: `批量操作失败: ${error instanceof Error ? error.message : '未知错误'}`
+        });
+      }
+      
       errors.push({
         row: -1,
         message: `批量插入失败: ${error instanceof Error ? error.message : '未知错误'}`

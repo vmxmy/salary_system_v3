@@ -22,7 +22,6 @@
     "@fontsource/noto-serif-sc": "^5.2.6",
     "@fontsource/source-serif-pro": "^5.2.5",
     "@heroicons/react": "^2.2.0",
-    "@leeoniya/ufuzzy": "^1.0.18",
     "@supabase/supabase-js": "^2.50.3",
     "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/vite": "^4.1.11",
@@ -33,6 +32,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.23.9",
     "i18next": "^25.3.2",
     "i18next-browser-languagedetector": "^8.2.0",
@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
+    "@types/exceljs": "^0.5.3",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.5.2",

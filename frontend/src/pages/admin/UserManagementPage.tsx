@@ -18,6 +18,7 @@
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { usePermission } from '@/hooks/permissions/usePermission';
 import { useResourceAccess } from '@/hooks/permissions/useResourceAccess';
+import { useDynamicPermissions } from '@/hooks/permissions/useDynamicPermissions';
 import { useUserManagement } from '@/hooks/user-management/useUserManagement';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { DataTable } from '@/components/common/DataTable';
@@ -25,11 +26,13 @@ import { createDataTableColumnHelper } from '@/components/common/DataTable/utils
 import type { ColumnDef, HeaderContext, CellContext } from '@tanstack/react-table';
 import type { UserWithPermissions, UserManagementFilters } from '@/hooks/user-management/useUserManagement';
 import type { Permission } from '@/types/permission';
+import type { DynamicPermission } from '@/services/dynamicPermissionService';
 import { cardEffects } from '@/lib/utils';
 
 // 懒加载模态框组件
 import { lazy } from 'react';
 const UserDetailsModal = lazy(() => import('@/components/admin/UserDetailsModal'));
+const UserEditModal = lazy(() => import('@/components/admin/UserEditModal'));
 const UserCreateModal = lazy(() => import('@/components/admin/UserCreateModal'));
 const UserBatchActionsModal = lazy(() => import('@/components/admin/UserBatchActionsModal'));
 
@@ -53,19 +56,20 @@ import {
 } from '@heroicons/react/24/outline';
 
 /**
- * 用户管理页面权限配置
+ * 用户管理页面权限配置 - 基于动态权限系统
  */
 import { PERMISSIONS } from '@/constants/permissions';
 
-const USER_MANAGEMENT_PERMISSIONS = {
-  READ_USERS: PERMISSIONS.USER_MANAGEMENT_READ,
-  CREATE_USERS: PERMISSIONS.USER_CREATE, 
-  UPDATE_USERS: PERMISSIONS.USER_UPDATE,
-  DELETE_USERS: PERMISSIONS.USER_DELETE,
-  ASSIGN_ROLES: PERMISSIONS.USER_ASSIGN_ROLE,
-  MANAGE_PERMISSIONS: PERMISSIONS.PERMISSION_MANAGE,
-  EXPORT_USERS: PERMISSIONS.USER_MANAGEMENT_WRITE, // Use write permission for export
-  BATCH_OPERATIONS: PERMISSIONS.USER_BATCH_OPERATION
+// 权限代码映射（与动态权限系统保持一致）
+const USER_MANAGEMENT_PERMISSION_CODES = {
+  READ_USERS: 'user_management.read',
+  CREATE_USERS: 'user_management.write',
+  UPDATE_USERS: 'user_management.write', 
+  DELETE_USERS: 'user_management.write',
+  ASSIGN_ROLES: 'assign_roles', // 角色分配使用独立权限
+  MANAGE_PERMISSIONS: 'manage_role_permissions', // 权限管理使用独立权限
+  EXPORT_USERS: 'user_management.read',
+  BATCH_OPERATIONS: 'user_management.write'
 } as const;
 
 /**
@@ -119,6 +123,8 @@ export default function UserManagementPage() {
     checkOwnership: false
   });
 
+  // 不再需要 useDynamicPermissions，使用统一的 usePermission Hook
+
   // 用户数据管理
   const userManagement = useUserManagement();
 
@@ -138,6 +144,7 @@ export default function UserManagementPage() {
   // 模态框状态
   const [modals, setModals] = useState({
     userDetails: { open: false, userId: null as string | null },
+    userEdit: { open: false, user: null as UserWithPermissions | null },
     userCreate: { open: false },
     batchActions: { open: false }
   });
@@ -166,47 +173,38 @@ export default function UserManagementPage() {
   }, [searchInput]);
 
   /**
-   * 初始化权限检查
+   * 初始化权限检查 - 使用统一的 usePermission Hook (修复版本，避免无限循环)
    */
   useEffect(() => {
-    const checkPermissions = async () => {
+    // 等待权限系统初始化完成后直接进行权限检查
+    if (currentUser?.id && permission.initialized) {
       try {
         setIsLoading(true);
         
-        const permissionChecks = await permission.checkMultiplePermissions([
-          USER_MANAGEMENT_PERMISSIONS.READ_USERS,
-          USER_MANAGEMENT_PERMISSIONS.CREATE_USERS,
-          USER_MANAGEMENT_PERMISSIONS.UPDATE_USERS,
-          USER_MANAGEMENT_PERMISSIONS.DELETE_USERS,
-          USER_MANAGEMENT_PERMISSIONS.ASSIGN_ROLES,
-          USER_MANAGEMENT_PERMISSIONS.MANAGE_PERMISSIONS,
-          USER_MANAGEMENT_PERMISSIONS.EXPORT_USERS,
-          USER_MANAGEMENT_PERMISSIONS.BATCH_OPERATIONS
-        ]);
-
-        setPermissions({
-          canRead: permissionChecks[USER_MANAGEMENT_PERMISSIONS.READ_USERS]?.allowed || false,
-          canCreate: permissionChecks[USER_MANAGEMENT_PERMISSIONS.CREATE_USERS]?.allowed || false,
-          canUpdate: permissionChecks[USER_MANAGEMENT_PERMISSIONS.UPDATE_USERS]?.allowed || false,
-          canDelete: permissionChecks[USER_MANAGEMENT_PERMISSIONS.DELETE_USERS]?.allowed || false,
-          canAssignRoles: permissionChecks[USER_MANAGEMENT_PERMISSIONS.ASSIGN_ROLES]?.allowed || false,
-          canManagePermissions: permissionChecks[USER_MANAGEMENT_PERMISSIONS.MANAGE_PERMISSIONS]?.allowed || false,
-          canExport: permissionChecks[USER_MANAGEMENT_PERMISSIONS.EXPORT_USERS]?.allowed || false,
-          canBatchOperation: permissionChecks[USER_MANAGEMENT_PERMISSIONS.BATCH_OPERATIONS]?.allowed || false
-        });
+        // 直接使用同步权限检查，避免异步状态更新循环
+        const newPermissions = {
+          canRead: permission.hasPermission(USER_MANAGEMENT_PERMISSION_CODES.READ_USERS),
+          canCreate: permission.hasPermission(USER_MANAGEMENT_PERMISSION_CODES.CREATE_USERS),
+          canUpdate: permission.hasPermission(USER_MANAGEMENT_PERMISSION_CODES.UPDATE_USERS),
+          canDelete: permission.hasPermission(USER_MANAGEMENT_PERMISSION_CODES.DELETE_USERS),
+          canAssignRoles: permission.hasPermission(USER_MANAGEMENT_PERMISSION_CODES.ASSIGN_ROLES),
+          canManagePermissions: permission.hasPermission(USER_MANAGEMENT_PERMISSION_CODES.MANAGE_PERMISSIONS),
+          canExport: permission.hasPermission(USER_MANAGEMENT_PERMISSION_CODES.EXPORT_USERS),
+          canBatchOperation: permission.hasPermission(USER_MANAGEMENT_PERMISSION_CODES.BATCH_OPERATIONS)
+        };
+        
+        setPermissions(newPermissions);
+        setError(null);
+        console.debug('[UserManagementPage] 权限检查完成:', newPermissions);
 
       } catch (err) {
-        console.error('[UserManagementV2] Permission check failed:', err);
+        console.error('[UserManagementPage] 权限检查失败:', err);
         setError(err instanceof Error ? err : new Error('权限检查失败'));
       } finally {
         setIsLoading(false);
       }
-    };
-
-    if (currentUser?.id) {
-      checkPermissions();
     }
-  }, [currentUser?.id]); // Only depend on user ID, not the permission object
+  }, [currentUser?.id, permission.initialized]); // 移除不稳定的函数依赖
 
   /**
    * 数据表格列定义
@@ -373,6 +371,10 @@ export default function UserManagementPage() {
               ...prev,
               userDetails: { open: true, userId }
             }))}
+            onEditUser={(user) => setModals(prev => ({
+              ...prev,
+              userEdit: { open: true, user }
+            }))}
           />
         ),
         enableSorting: false,
@@ -481,14 +483,47 @@ export default function UserManagementPage() {
   }
 
   /**
-   * 加载状态
+   * 加载状态 - 包括权限系统加载
    */
-  if (isLoading) {
+  if (isLoading || permission.loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <span className="loading loading-spinner loading-lg text-primary"></span>
-          <p className="mt-4 text-base-content/70">正在加载用户数据...</p>
+          <p className="mt-4 text-base-content/70">
+            {permission.loading ? '正在加载权限数据...' : '正在加载用户数据...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * 权限系统错误状态
+   */
+  if (permission.error) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center">
+        <div className="text-center max-w-md">
+          <ExclamationTriangleIcon className="w-16 h-16 mx-auto text-error mb-4" />
+          <h2 className="text-2xl font-bold mb-2">权限系统错误</h2>
+          <p className="text-base-content/70 mb-6">
+            权限数据加载失败: {permission.error.message}
+          </p>
+          <div className="flex justify-center gap-4">
+            <button 
+              className="btn btn-primary"
+              onClick={() => window.location.reload()}
+            >
+              重试
+            </button>
+            <button 
+              className="btn btn-ghost"
+              onClick={() => window.history.back()}
+            >
+              返回上一页
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -554,6 +589,20 @@ export default function UserManagementPage() {
             onClose={() => setModals(prev => ({ ...prev, userDetails: { open: false, userId: null } }))}
             permissions={permissions}
             onRefresh={() => userManagement.fetchUsers()}
+          />
+        )}
+
+        {/* 用户编辑模态框 */}
+        {modals.userEdit.open && (
+          <UserEditModal
+            isOpen={modals.userEdit.open}
+            user={modals.userEdit.user}
+            onClose={() => setModals(prev => ({ ...prev, userEdit: { open: false, user: null } }))}
+            onSuccess={() => {
+              userManagement.fetchUsers();
+              setModals(prev => ({ ...prev, userEdit: { open: false, user: null } }));
+            }}
+            permissions={permissions}
           />
         )}
 
@@ -914,9 +963,10 @@ interface ActionsCellProps {
   user: UserWithPermissions;
   permissions: UserPermissions;
   onViewDetails: (userId: string) => void;
+  onEditUser: (user: UserWithPermissions) => void;
 }
 
-function ActionsCell({ user, permissions, onViewDetails }: ActionsCellProps) {
+function ActionsCell({ user, permissions, onViewDetails, onEditUser }: ActionsCellProps) {
   return (
     <div className="dropdown dropdown-end">
       <label 
@@ -935,7 +985,7 @@ function ActionsCell({ user, permissions, onViewDetails }: ActionsCellProps) {
         </li>
         {permissions.canUpdate && (
           <li>
-            <button>
+            <button onClick={() => onEditUser(user)}>
               <PencilSquareIcon className="w-4 h-4" />
               编辑用户
             </button>

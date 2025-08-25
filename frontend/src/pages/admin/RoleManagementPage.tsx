@@ -1,22 +1,33 @@
 /**
- * 角色管理页面 - 基于权限 hooks 系统
+ * 角色管理页面 V2 - 基于DaisyUI设计系统优化
  * 
  * 功能特性：
  * - 完整的角色 CRUD 操作
  * - 权限分配和管理
  * - 角色统计和分析
- * - 响应式设计
+ * - 现代化响应式设计
+ * - 与用户管理页面一致的UI风格
  */
 
-import React, { useState, useEffect } from 'react';
-import { usePermissions } from '@/hooks/permissions';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
+import { usePermission } from '@/hooks/permissions/usePermission';
 import { useRole } from '@/hooks/permissions/useRole';
 import { RoleList } from '@/components/admin/roles/RoleList';
 import { RoleForm } from '@/components/admin/roles/RoleForm';
 import { RoleStatistics } from '@/components/admin/roles/RoleStatistics';
 import { RolePermissionMatrix } from '@/components/admin/roles/RolePermissionMatrix';
-import { PageHeader } from '@/components/common/PageHeader';
 import { useModal } from '@/components/common/Modal';
+import { cardEffects } from '@/lib/utils';
+import {
+  UserGroupIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  PlusIcon,
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
+  ChartBarSquareIcon,
+  ShieldCheckIcon
+} from '@heroicons/react/24/outline';
 
 interface RoleData {
   id: string;
@@ -47,9 +58,9 @@ interface RoleFormData {
 export default function RoleManagementPage() {
   // 权限和角色 hooks
   const roleHook = useRole();
-  const permissions = usePermissions({
-    enableRoleManagement: true,
-    enableResourceAccess: true
+  const permission = usePermission({
+    enableCache: true,
+    watchChanges: true
   });
 
   // 模态框hooks
@@ -212,30 +223,58 @@ export default function RoleManagementPage() {
     await loadSystemRoles();
   };
 
+  /**
+   * 统计数据
+   */
+  const stats = useMemo(() => {
+    const data = roles || [];
+    return {
+      total: data.length,
+      active: data.filter(r => r.isActive).length,
+      system: data.filter(r => r.isSystem).length,
+      totalUsers: data.reduce((sum, r) => sum + (r.userCount || 0), 0),
+      byLevel: [1, 2, 3, 4, 5].map(level => ({
+        level,
+        count: data.filter(r => r.level === level).length,
+        name: level === 5 ? '超级' : level === 4 ? '高级' : level === 3 ? '中级' : level === 2 ? '初级' : '基础'
+      }))
+    };
+  }, [roles]);
+
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       {/* 页面头部 */}
-      <PageHeader
-        title="角色管理"
-        subtitle="管理系统角色，配置权限和用户分配"
+      <PageHeader 
+        stats={stats}
+        onCreateRole={handleCreateRole}
+        onRefresh={handleRefresh}
+        loading={loading}
+      />
+
+      {/* 搜索过滤器 */}
+      <SearchFilters 
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onRefresh={handleRefresh}
+        loading={loading}
       />
 
       {/* 错误提示 */}
       {error && (
-        <div className="alert alert-error">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 13.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
-          <div>
-            <div className="font-bold">角色管理错误</div>
-            <div className="text-sm">{error}</div>
+        <div className="toast toast-end">
+          <div className="alert alert-error">
+            <ExclamationTriangleIcon className="w-5 h-5" />
+            <div>
+              <div className="font-bold">角色管理错误</div>
+              <div className="text-sm">{error}</div>
+            </div>
+            <button 
+              className="btn btn-sm btn-outline" 
+              onClick={() => setError(null)}
+            >
+              关闭
+            </button>
           </div>
-          <button 
-            className="btn btn-sm" 
-            onClick={() => setError(null)}
-          >
-            关闭
-          </button>
         </div>
       )}
 
@@ -245,89 +284,168 @@ export default function RoleManagementPage() {
         loading={loading}
       />
 
-      {/* 操作工具栏 */}
-      <div className="card bg-base-100 shadow-sm">
-        <div className="card-body">
-          <div className="space-y-4">
-            {/* 搜索框 */}
-            <div className="form-control">
-              <div className="input-group">
-                <span className="input-group-text">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-                <input
-                  type="text"
-                  placeholder="搜索角色..."
-                  className="input input-bordered flex-1"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* 操作按钮 */}
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button
-                onClick={handleRefresh}
-                className="btn btn-ghost flex-1 sm:flex-initial"
-                disabled={loading}
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                刷新数据
-              </button>
-              
-              <button
-                onClick={handleCreateRole}
-                className="btn btn-primary flex-1 sm:flex-initial"
-                disabled={loading}
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                创建角色
-              </button>
-            </div>
-          </div>
+      {/* 角色列表 */}
+      <div className={cardEffects.modern}>
+        <div className="card-body p-0">
+          <RoleList
+            roles={filteredRoles}
+            loading={loading}
+            onEdit={handleEditRole}
+            onDelete={handleDeleteRole}
+            onManagePermissions={handleManagePermissions}
+            onRefresh={handleRefresh}
+          />
         </div>
       </div>
 
-      {/* 角色列表 */}
-      <RoleList
-        roles={filteredRoles}
-        loading={loading}
-        onEdit={handleEditRole}
-        onDelete={handleDeleteRole}
-        onManagePermissions={handleManagePermissions}
-        onRefresh={handleRefresh}
-      />
+      {/* 模态框 */}
+      <Suspense fallback={<div className="loading loading-spinner loading-sm"></div>}>
+        {/* 角色表单模态框 */}
+        {showForm && (
+          <RoleForm
+            role={selectedRole}
+            onSave={handleSaveRole}
+            onCancel={() => setShowForm(false)}
+            loading={loading}
+          />
+        )}
 
-      {/* 角色表单模态框 */}
-      {showForm && (
-        <RoleForm
-          role={selectedRole}
-          onSave={handleSaveRole}
-          onCancel={() => setShowForm(false)}
-          loading={loading}
-        />
-      )}
-
-      {/* 权限分配模态框 */}
-      {showPermissionMatrix && selectedRole && (
-        <RolePermissionMatrix
-          role={selectedRole}
-          onUpdatePermissions={handleUpdatePermissions}
-          onClose={() => setShowPermissionMatrix(false)}
-          loading={loading}
-        />
-      )}
+        {/* 权限分配模态框 */}
+        {showPermissionMatrix && selectedRole && (
+          <RolePermissionMatrix
+            role={selectedRole}
+            onUpdatePermissions={handleUpdatePermissions}
+            onClose={() => setShowPermissionMatrix(false)}
+            loading={loading}
+          />
+        )}
+      </Suspense>
 
       {/* 模态框组件 */}
       {modal.AlertModal}
       {modal.ConfirmModal}
+    </div>
+  );
+}
+
+/**
+ * 页面头部组件
+ */
+interface RoleStats {
+  total: number;
+  active: number;
+  system: number;
+  totalUsers: number;
+  byLevel: Array<{ level: number; name: string; count: number }>;
+}
+
+interface PageHeaderProps {
+  stats: RoleStats;
+  onCreateRole: () => void;
+  onRefresh: () => void;
+  loading: boolean;
+}
+
+function PageHeader({ stats, onCreateRole, onRefresh, loading }: PageHeaderProps) {
+  return (
+    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      {/* 标题和统计 */}
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <ShieldCheckIcon className="w-8 h-8 text-primary" />
+          角色管理
+        </h1>
+        <div className="flex items-center gap-4 mt-2 text-sm text-base-content/70">
+          <span className="flex items-center gap-1">
+            <ChartBarSquareIcon className="w-4 h-4" />
+            总计 {stats.total} 个角色
+          </span>
+          <span className="flex items-center gap-1">
+            <UserGroupIcon className="w-4 h-4 text-success" />
+            {stats.active} 个启用
+          </span>
+          <span className="flex items-center gap-1">
+            <ExclamationTriangleIcon className="w-4 h-4 text-info" />
+            {stats.system} 个系统角色
+          </span>
+          <span className="flex items-center gap-1">
+            <UserGroupIcon className="w-4 h-4 text-warning" />
+            {stats.totalUsers} 名用户
+          </span>
+        </div>
+      </div>
+
+      {/* 操作按钮 */}
+      <div className="flex items-center gap-3">
+        <button
+          className="btn btn-outline"
+          onClick={onRefresh}
+          disabled={loading}
+          aria-label="刷新角色数据"
+        >
+          <ArrowPathIcon className="w-4 h-4" />
+          刷新
+        </button>
+        
+        <button
+          className="btn btn-primary"
+          onClick={onCreateRole}
+          disabled={loading}
+          aria-label="创建新角色"
+        >
+          <PlusIcon className="w-4 h-4" />
+          创建角色
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 搜索过滤器组件
+ */
+interface SearchFiltersProps {
+  searchTerm: string;
+  onSearchChange: (search: string) => void;
+  onRefresh: () => void;
+  loading: boolean;
+}
+
+function SearchFilters({ searchTerm, onSearchChange, onRefresh, loading }: SearchFiltersProps) {
+  return (
+    <div className={cardEffects.modern}>
+      <div className="card-body">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* 搜索框 */}
+          <div className="flex-1">
+            <div className="form-control">
+              <div className="join w-full">
+                <input
+                  type="text"
+                  placeholder="搜索角色名称、代码、描述..."
+                  className="input input-bordered join-item flex-1"
+                  value={searchTerm}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                />
+                <button className="btn btn-square join-item" aria-label="搜索角色">
+                  <MagnifyingGlassIcon className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 清除搜索 */}
+          <button
+            className="btn btn-ghost"
+            onClick={() => onSearchChange('')}
+            disabled={!searchTerm || loading}
+            aria-label="清除搜索条件"
+          >
+            <FunnelIcon className="w-4 h-4" />
+            清除
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 
 interface RoleData {
   id: string;
@@ -92,73 +93,62 @@ export function RoleList({
 
   if (loading) {
     return (
-      <div className="card bg-base-100 shadow-sm">
-        <div className="card-body">
-          <div className="flex items-center justify-center py-12">
-            <span className="loading loading-spinner loading-lg"></span>
-            <span className="ml-2">加载角色列表中...</span>
-          </div>
-        </div>
+      <div className="flex items-center justify-center py-12">
+        <span className="loading loading-spinner loading-lg"></span>
+        <span className="ml-2">加载角色列表中...</span>
       </div>
     );
   }
 
   if (roles.length === 0) {
     return (
-      <div className="card bg-base-100 shadow-sm">
-        <div className="card-body">
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">👥</div>
-            <h3 className="text-lg font-semibold mb-2">暂无角色数据</h3>
-            <p className="text-base-content/70 mb-4">还没有创建任何角色，或者当前搜索条件下没有匹配的角色</p>
-            {onRefresh && (
-              <button onClick={onRefresh} className="btn btn-primary">
-                刷新数据
-              </button>
-            )}
-          </div>
-        </div>
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">👥</div>
+        <h3 className="text-lg font-semibold mb-2">暂无角色数据</h3>
+        <p className="text-base-content/70 mb-4">还没有创建任何角色，或者当前搜索条件下没有匹配的角色</p>
+        {onRefresh && (
+          <button onClick={onRefresh} className="btn btn-primary">
+            刷新数据
+          </button>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="card bg-base-100 shadow-sm">
-      <div className="card-body p-0">
-        {/* 表格头部 */}
-        <div className="flex items-center justify-between p-6 pb-0">
-          <h2 className="card-title">角色列表 ({roles.length})</h2>
-          {onRefresh && (
-            <button
-              onClick={onRefresh}
-              className="btn btn-ghost btn-sm"
-              disabled={loading}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              刷新
-            </button>
-          )}
-        </div>
+    <div>
+      <div className="flex items-center justify-between p-6 pb-0">
+        <h2 className="card-title">角色列表 ({roles.length})</h2>
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            className="btn btn-ghost btn-sm"
+            disabled={loading}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            刷新
+          </button>
+        )}
+      </div>
 
-        {/* 响应式表格 */}
-        <div className="overflow-x-auto">
-          <table className="table table-zebra">
-            <thead>
-              <tr>
-                <th>角色信息</th>
-                <th>等级</th>
-                <th>用户数</th>
-                <th>权限数</th>
-                <th>状态</th>
-                <th>更新时间</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {roles.map((role) => (
-                <tr key={role.id} className="hover">
+      <div className="overflow-x-auto">
+        <table className="table table-zebra">
+          <thead>
+            <tr>
+              <th>角色信息</th>
+              <th>等级</th>
+              <th>用户数</th>
+              <th>权限数</th>
+              <th>状态</th>
+              <th>更新时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {roles.map((role) => (
+              <tr key={role.id} className="hover">
                   {/* 角色信息 */}
                   <td>
                     <div className="flex items-start space-x-3">
@@ -234,7 +224,7 @@ export function RoleList({
                           aria-label={`管理角色 ${role.name} 的权限`}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                           </svg>
                           <span className="hidden sm:inline ml-1">权限</span>
                         </button>
@@ -274,11 +264,10 @@ export function RoleList({
                       )}
                     </div>
                   </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

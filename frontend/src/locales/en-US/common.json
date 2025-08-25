@@ -145,6 +145,10 @@
     "serverError": "Server error, please contact administrator",
     "sessionExpired": "Session expired, please login again"
   },
+  "permission": {
+    "denied": "Access Denied",
+    "deniedMessage": "You don't have permission to access this page. Please contact administrator to request relevant permissions"
+  },
   "error": {
     "loadFailed": "Failed to load data"
   },

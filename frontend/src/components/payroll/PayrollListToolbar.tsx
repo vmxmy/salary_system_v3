@@ -2,9 +2,10 @@ import { type ReactNode } from 'react';
 import { PayrollPeriodSelector } from './PayrollPeriodSelector';
 import { CompactPayrollStatusSelector } from './PayrollStatusSelector';
 import { cardEffects, inputEffects } from '@/styles/design-effects';
-import { exportTableToExcel } from '@/components/common/DataTable/utils';
+import { exportPayrollToExcel } from '@/hooks/payroll/import-export/exporters/excel-exporter';
 import { usePermission } from '@/hooks/permissions/usePermission';
-import { PERMISSIONS } from '@/constants/permissions';
+// 移除硬编码权限导入，改为动态权限检查
+import { useToast } from '@/contexts/ToastContext';
 import type { PayrollStatusType } from '@/hooks/payroll';
 
 export interface PayrollListToolbarProps {
@@ -58,7 +59,23 @@ export function PayrollListToolbar({
   additionalActions,
   className = ""
 }: PayrollListToolbarProps) {
-  const { hasPermission } = usePermission();
+  const { hasPermission, initialized } = usePermission();
+  const { showSuccess, showError } = useToast();
+
+  // 专用的薪资导出处理函数
+  const handleExportPayroll = async () => {
+    try {
+      await exportPayrollToExcel({
+        template: 'payroll_summary',
+        filters: { periodId: selectedMonth },
+        format: 'xlsx'
+      });
+      showSuccess('薪资数据导出成功');
+    } catch (error) {
+      console.error('Export failed:', error);
+      showError(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
 
   return (
     <div className={`${cardEffects.standard} p-4 ${className}`}>
@@ -132,12 +149,23 @@ export function PayrollListToolbar({
 
         {/* 右侧：操作按钮组 */}
         <div className="flex items-center gap-2" data-tour="payroll-export-options">
-          {/* 导出按钮 */}
-          <button
+          {/* 导出按钮 - 直接执行完整导出 */}
+          <button 
             className="btn btn-outline btn-sm"
-            onClick={() => exportTableToExcel(exportData, 'payroll-all')}
-            title="导出全部数据"
-            disabled={!exportData || exportData.length === 0}
+            onClick={async () => {
+              try {
+                await exportPayrollToExcel({
+                  template: 'payroll_complete',
+                  filters: { periodId: selectedMonth },
+                  format: 'xlsx'
+                });
+                showSuccess('薪资数据导出成功');
+              } catch (error) {
+                console.error('Export failed:', error);
+                showError(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`);
+              }
+            }}
+            title="导出完整薪资数据（包含四个工作表：薪资收入、缴费基数、职务分配、人员类别）"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -146,8 +174,8 @@ export function PayrollListToolbar({
             导出全部
           </button>
 
-          {/* 清空按钮 */}
-          {hasPermission(PERMISSIONS.PAYROLL_CLEAR) && onClearClick && (
+          {/* 清空按钮 - 只在权限初始化后检查 */}
+          {initialized && hasPermission('payroll.clear') && onClearClick && (
             <button
               className="btn btn-error btn-sm"
               onClick={onClearClick}

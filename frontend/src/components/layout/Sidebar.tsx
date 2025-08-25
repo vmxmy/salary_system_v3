@@ -138,6 +138,26 @@ const menuItems: MenuItem[] = [
         permissions: ['manage_roles'],
       },
       {
+        key: 'permissionManagement',
+        path: '/admin/permissions',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        ),
+        permissions: ['permission_management.read', 'manage_role_permissions'],
+      },
+      {
+        key: 'systemSettings',
+        path: '/admin/system-settings',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+          </svg>
+        ),
+        permissions: ['manage_roles'],
+      },
+      {
         key: 'permissionResources',
         path: '/admin/permissions/resources',
         icon: (
@@ -259,6 +279,18 @@ const menuItems: MenuItem[] = [
         ),
         permissions: [],
       },
+      {
+        key: 'payrollImportV2',
+        path: '/test/payroll-import-v2',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            <circle cx="18" cy="6" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <text x="18" y="8" textAnchor="middle" fontSize="8" fill="currentColor">V2</text>
+          </svg>
+        ),
+        permissions: [],
+      },
     ],
   },
 ];
@@ -289,6 +321,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       'admin': '系统管理',
       'userManagement': '用户管理',
       'roleManagement': '角色管理',
+      'permissionManagement': '权限管理',
+      'systemSettings': '系统设置',
       'permissionResources': '权限资源',
       'permissionAssignment': '权限分配',
       'permissionApproval': '权限审批',
@@ -301,6 +335,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       'fontTest': '字体测试',
       'permissionHooksTest': '权限Hook测试',
       'payrollImportTest': '薪资导入测试',
+      'payrollImportV2': '薪资导入V2 🚀',
     };
     return translations[key] || String(t(`common:nav.${key}`));
   };

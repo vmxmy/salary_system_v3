@@ -106,7 +106,7 @@ async function buildAuthUser(user: User): Promise<AuthUser> {
 }
 
 /**
- * 确保用户Profile记录存在
+ * 确保用户Profile记录存在，并智能分配角色
  */
 async function ensureUserProfile(user: User): Promise<void> {
   try {
@@ -138,16 +138,46 @@ async function ensureUserProfile(user: User): Promise<void> {
       .maybeSingle();
 
     if (!existingRole) {
-      const { error: roleError } = await supabase
+      console.log('[Auth] New user detected, assigning role based on system configuration...');
+      
+      // 使用智能角色分配函数 - 添加类型断言避免编译错误
+      const { data: assignedRole, error: assignError } = await (supabase as any)
+        .rpc('assign_user_role_by_rules', {
+          user_email: user.email!,
+          user_id_param: user.id
+        });
+
+      const roleToAssign = assignedRole || 'employee'; // 降级到默认角色
+      
+      if (assignError) {
+        console.warn('[Auth] Error calling role assignment function:', assignError);
+      }
+
+      console.log(`[Auth] Assigning role '${roleToAssign}' to new user: ${user.email}`);
+
+      // 使用类型断言避免 user_roles 表的类型问题
+      const { error: roleError } = await (supabase as any)
         .from('user_roles')
         .insert({
           user_id: user.id,
-          role: 'employee',
+          role: roleToAssign,
           is_active: true
         });
       
       if (roleError) {
         console.warn('[Auth] Failed to create user role:', roleError);
+        
+        // 如果角色分配失败，尝试使用硬编码的默认值
+        console.log('[Auth] Retrying with fallback employee role...');
+        await supabase
+          .from('user_roles')
+          .insert({
+            user_id: user.id,
+            role: 'employee',
+            is_active: true
+          });
+      } else {
+        console.log(`[Auth] Successfully assigned role '${roleToAssign}' to user ${user.email}`);
       }
     }
   } catch (error) {

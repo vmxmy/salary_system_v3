@@ -4,7 +4,7 @@
  * 负责监控用户会话状态，检测会话过期并触发重新验证
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 
@@ -33,12 +33,15 @@ export function SessionMonitor({ children }: SessionMonitorProps) {
     lastActivityTime.current = Date.now();
   };
 
-  // 定期检查会话状态
-  const checkSessionStatus = async () => {
+  // 定期检查会话状态 - 使用useCallback避免无限重渲染
+  const checkSessionStatus = useCallback(async () => {
     if (!user) return;
 
     try {
-      console.log('[SessionMonitor] Checking session status...');
+      // 减少日志输出，避免控制台刷屏
+      if (Math.random() < 0.1) {
+        console.debug('[SessionMonitor] Checking session status...');
+      }
       
       const isValid = await validateSession();
       const now = Date.now();
@@ -63,21 +66,25 @@ export function SessionMonitor({ children }: SessionMonitorProps) {
         const timeUntilExpiry = expiresAt - now;
 
         if (timeUntilExpiry < SESSION_WARNING_TIME && timeUntilExpiry > 0) {
-          console.warn('[SessionMonitor] Session will expire soon');
+          // 限制会话过期警告的输出频率 (每5分钟最多一条)
+          if (now - lastLogTime.current > 5 * 60 * 1000) {
+            console.warn('[SessionMonitor] Session will expire soon');
+            lastLogTime.current = now;
+          }
           // 静默处理：会话即将过期时不显示弹框，让其自然过期后重新认证
         }
       }
 
-      // 限制日志输出频率 (每5分钟最多一条)
-      if (now - lastLogTime.current > 5 * 60 * 1000) {
-        console.log('[SessionMonitor] Session is valid');
+      // 限制成功日志输出频率 (每10分钟最多一条)
+      if (now - lastLogTime.current > 10 * 60 * 1000) {
+        console.debug('[SessionMonitor] Session is valid');
         lastLogTime.current = now;
       }
     } catch (error) {
       console.error('[SessionMonitor] Session check failed:', error);
       // 网络错误等情况，不立即要求重新验证
     }
-  };
+  }, [user?.id, session?.expires_at, validateSession, requireReAuthentication]); // 稳定化依赖
 
   // 监听用户活动
   useEffect(() => {
@@ -100,7 +107,7 @@ export function SessionMonitor({ children }: SessionMonitorProps) {
     };
   }, []);
 
-  // 启动会话监控
+  // 启动会话监控 - 修复版本，避免无限重渲染
   useEffect(() => {
     if (!user) {
       // 用户未登录，清除会话检查
@@ -126,9 +133,9 @@ export function SessionMonitor({ children }: SessionMonitorProps) {
         sessionCheckInterval.current = undefined;
       }
     };
-  }, [user]);
+  }, [user?.id, checkSessionStatus]); // 使用稳定的依赖
 
-  // 监听页面可见性变化
+  // 监听页面可见性变化 - 修复版本
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && user) {
@@ -143,9 +150,9 @@ export function SessionMonitor({ children }: SessionMonitorProps) {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [user]);
+  }, [user?.id, checkSessionStatus]); // 使用稳定的依赖
 
-  // 监听网络状态变化
+  // 监听网络状态变化 - 修复版本
   useEffect(() => {
     const handleOnline = () => {
       if (user) {
@@ -159,9 +166,9 @@ export function SessionMonitor({ children }: SessionMonitorProps) {
     return () => {
       window.removeEventListener('online', handleOnline);
     };
-  }, [user]);
+  }, [user?.id, checkSessionStatus]); // 使用稳定的依赖
 
-  // 监听路由变化，在保护的路由上进行会话检查
+  // 监听路由变化，在保护的路由上进行会话检查 - 修复版本
   useEffect(() => {
     const protectedRoutes = ['/dashboard', '/employees', '/payroll', '/reports'];
     const isProtectedRoute = protectedRoutes.some(route => 
@@ -173,7 +180,7 @@ export function SessionMonitor({ children }: SessionMonitorProps) {
       updateLastActivity();
       checkSessionStatus();
     }
-  }, [location.pathname, user]);
+  }, [location.pathname, user?.id, checkSessionStatus]); // 使用稳定的依赖
 
   return <>{children}</>;
 }

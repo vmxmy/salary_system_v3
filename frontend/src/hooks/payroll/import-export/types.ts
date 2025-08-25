@@ -88,7 +88,7 @@ export interface FieldMappingAnalysis {
 
 // 向后兼容的基础导入进度接口
 export interface ImportProgress {
-  phase: 'parsing' | 'validating' | 'importing' | 'creating_payrolls' | 'inserting_items' | 'completed' | 'error';
+  phase: 'parsing' | 'validating' | 'importing' | 'creating_payrolls' | 'inserting_items' | 'completed' | 'error' | 'processing' | 'failed';
   
   // 全局进度
   global: {

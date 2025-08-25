@@ -175,7 +175,7 @@ export function getRecommendedFlowsForPage(
  */
 function getAdvancedFlowsForPage(
   pathname: string,
-  userPermissions: readonly string[] = [],
+  _userPermissions: readonly string[] = [],
   completedFlowIds: string[] = []
 ): OnboardingFlow[] {
   // 基于页面类型推荐相关的高级流程

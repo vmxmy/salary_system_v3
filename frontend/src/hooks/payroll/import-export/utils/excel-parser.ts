@@ -64,6 +64,8 @@ export const parseExcelFile = async (
         if (jsonData.length > 0) {
           const excelColumns = Object.keys(jsonData[0]);
           console.log('🔍 开始分析Excel列名与数据库字段的匹配情况...');
+          console.log('📊 Excel列名详情:', excelColumns);
+          console.log('🎯 数据组类型:', dataGroup);
           
           try {
             // 异步执行字段映射分析

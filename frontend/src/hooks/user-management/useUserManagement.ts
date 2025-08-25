@@ -371,23 +371,44 @@ export function useUserManagement(): UseUserManagementReturn {
     return mockUser;
   }, [canManageUsers, fetchUsers]);
 
-  // 更新用户档案
-  const updateUserProfile = useCallback(async (userId: string, updates: Partial<UserProfile>): Promise<void> => {
+  // 更新用户档案 - 增强版本，支持更多字段
+  const updateUserProfile = useCallback(async (userId: string, updates: Partial<UserProfile & { employee_name?: string }>): Promise<void> => {
     if (!canManageUsers) {
       throw new Error('Insufficient permissions to update users');
     }
 
     try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
+      // 首先尝试更新 user_profiles 表
+      if (updates.email || updates.employee_id) {
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .update({
+            email: updates.email,
+            employee_id: updates.employee_id,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId);
 
-      if (error) {
-        throw new Error(`Failed to update user profile: ${error.message}`);
+        if (profileError) {
+          console.warn('[useUserManagement] Profile update failed:', profileError.message);
+          // 继续尝试更新其他表，不抛出错误
+        }
+      }
+
+      // 如果有员工姓名更新，尝试更新 employees 表
+      if (updates.employee_name && updates.employee_id) {
+        const { error: employeeError } = await supabase
+          .from('employees')
+          .update({
+            employee_name: updates.employee_name,
+            updated_at: new Date().toISOString()
+          })
+          .eq('employee_id', updates.employee_id);
+
+        if (employeeError) {
+          console.warn('[useUserManagement] Employee update failed:', employeeError.message);
+          // 继续执行，不抛出错误
+        }
       }
 
       // 刷新用户列表

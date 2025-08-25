@@ -42,11 +42,15 @@ const InsuranceConfigTest = lazy(() => import('@/pages/test/InsuranceConfigTest'
 const PayrollCalculationTest = lazy(() => import('@/pages/test/PayrollCalculationTest'));
 const PermissionHooksTestPage = lazy(() => import('@/pages/test/PermissionHooksTestPage'));
 const PayrollImportTestPage = lazy(() => import('@/pages/test/PayrollImportTestPage'));
+const PayrollImportPageV2 = lazy(() => import('@/components/payroll/import/PayrollImportPageV2'));
 const InsuranceConfigPage = lazy(() => import('@/pages/payroll/InsuranceConfigPage'));
 
 // Admin pages
 const UserManagementPage = lazy(() => import('@/pages/admin/UserManagementPage'));
 const RoleManagementPage = lazy(() => import('@/pages/admin/RoleManagementPage'));
+const PermissionManagementPage = lazy(() => import('@/pages/admin/PermissionManagementPage'));
+const SystemSettingsPage = lazy(() => import('@/pages/admin/SystemSettingsPage'));
+const PermissionDebugPage = lazy(() => import('@/pages/admin/PermissionDebugPage'));
 // Permission pages moved to archive
 // const PermissionResourceManagementPage = lazy(() => import('@/pages/admin/PermissionResourceManagementPage'));
 // const PermissionAssignmentPage = lazy(() => import('@/pages/admin/PermissionAssignmentPage'));
@@ -215,7 +219,7 @@ export const router = createBrowserRouter([
             path: 'import',
             element: (
               <Suspense fallback={<LoadingScreen />}>
-                <PayrollImportPage />
+                <PayrollImportPageV2 />
               </Suspense>
             ),
           },
@@ -290,6 +294,32 @@ export const router = createBrowserRouter([
                 <ProtectedRoute requiredPermissions={['manage_roles']}>
                   <RoleManagementPage />
                 </ProtectedRoute>
+              </Suspense>
+            ),
+          },
+          {
+            path: 'permissions',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <ProtectedRoute requiredPermissions={['permission_management.read', 'manage_role_permissions']}>
+                  <PermissionManagementPage />
+                </ProtectedRoute>
+              </Suspense>
+            ),
+          },
+          {
+            path: 'system-settings',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <SystemSettingsPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'debug-permissions',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PermissionDebugPage />
               </Suspense>
             ),
           },
@@ -383,6 +413,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingScreen />}>
                 <PayrollImportTestPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'payroll-import-v2',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PayrollImportPageV2 />
               </Suspense>
             ),
           },

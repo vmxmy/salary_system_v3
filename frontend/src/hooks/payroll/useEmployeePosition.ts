@@ -187,6 +187,8 @@ export const useEmployeePositionHistory = (employeeId: string) => {
   return useQuery({
     queryKey: employeePositionQueryKeys.positionHistory(employeeId),
     queryFn: async (): Promise<EmployeePosition[]> => {
+      console.log('[useEmployeePositionHistory] 开始获取员工职位历史:', { employeeId });
+      
       // Step 1: Get job history records
       const { data: jobHistoryData, error } = await supabase
         .from('employee_job_history')
@@ -201,6 +203,11 @@ export const useEmployeePositionHistory = (employeeId: string) => {
         `)
         .eq('employee_id', employeeId)
         .order('created_at', { ascending: false });
+
+      console.log('[useEmployeePositionHistory] 获取职位历史原始数据:', {
+        count: jobHistoryData?.length || 0,
+        records: jobHistoryData
+      });
 
       if (error) {
         handleError(error, { customMessage: '获取职位历史失败' });
@@ -424,33 +431,66 @@ export const useAssignEmployeePosition = () => {
     }) => {
       const { employeeId, positionId, departmentId, periodId, notes } = params;
       
+      console.log('[useAssignEmployeePosition] 开始执行职位分配:', {
+        employeeId,
+        positionId,
+        departmentId,
+        periodId,
+        notes
+      });
+      
       // 检查该员工在该周期是否已有职位分配
-      const { data: existingData } = await supabase
+      const { data: existingData, error: queryError } = await supabase
         .from('employee_job_history')
         .select('id')
         .eq('employee_id', employeeId)
         .eq('period_id', periodId)
         .limit(1);
       
+      if (queryError) {
+        console.error('[useAssignEmployeePosition] 查询现有记录失败:', queryError);
+        handleError(queryError, { customMessage: '查询员工职位历史失败' });
+        throw queryError;
+      }
+      
       const existing = existingData?.[0];
+      
+      console.log('[useAssignEmployeePosition] 查询现有记录结果:', {
+        existing,
+        hasExisting: !!existing,
+        operation: existing ? 'UPDATE' : 'INSERT'
+      });
       
       if (existing) {
         // 更新现有记录
+        console.log('[useAssignEmployeePosition] 执行更新操作，记录ID:', existing.id);
+        
+        const updateData = {
+          position_id: positionId,
+          department_id: departmentId,
+          notes
+        };
+        
+        console.log('[useAssignEmployeePosition] 更新数据:', updateData);
+        
         const { data, error } = await supabase
           .from('employee_job_history')
-          .update({
-            position_id: positionId,
-            department_id: departmentId,
-            notes
-          })
+          .update(updateData)
           .eq('id', existing.id)
           .select()
           .single();
         
         if (error) {
+          console.error('[useAssignEmployeePosition] 更新记录失败:', {
+            error,
+            updateData,
+            existingId: existing.id
+          });
           handleError(error, { customMessage: '更新员工职位分配失败' });
           throw error;
         }
+        
+        console.log('[useAssignEmployeePosition] 更新成功:', data);
         return data;
       } else {
         // 创建新记录
@@ -474,15 +514,28 @@ export const useAssignEmployeePosition = () => {
       }
     },
     onSuccess: (data, variables) => {
+      console.log('[useAssignEmployeePosition] onSuccess 开始无效化缓存:', {
+        employeeId: variables.employeeId,
+        departmentId: variables.departmentId,
+        result: data
+      });
+      
       queryClient.invalidateQueries({ 
         queryKey: employeePositionQueryKeys.employeePosition(variables.employeeId) 
       });
+      console.log('[useAssignEmployeePosition] 已无效化员工职位缓存');
+      
       queryClient.invalidateQueries({ 
         queryKey: employeePositionQueryKeys.positionHistory(variables.employeeId) 
       });
+      console.log('[useAssignEmployeePosition] 已无效化职位历史缓存');
+      
       queryClient.invalidateQueries({ 
         queryKey: employeePositionQueryKeys.departmentPositions(variables.departmentId) 
       });
+      console.log('[useAssignEmployeePosition] 已无效化部门职位缓存');
+      
+      console.log('[useAssignEmployeePosition] 缓存无效化完成');
     },
   });
 };

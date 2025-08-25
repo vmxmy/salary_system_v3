@@ -6,8 +6,8 @@
 
 import type { PERMISSIONS, ROLE_PERMISSIONS } from '@/constants/permissions';
 
-// 基础权限类型
-export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];
+// 基础权限类型 - 支持动态权限字符串
+export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS] | string;
 export type Role = keyof typeof ROLE_PERMISSIONS;
 
 // 资源标识符类型
@@ -172,20 +172,20 @@ export interface PermissionManagerConfig {
 // Hook 返回类型
 export interface UsePermissionReturn {
   // 基础权限检查 (同步，基于缓存)
-  hasPermission: (permission: Permission, resourceId?: string) => boolean;
-  hasAnyPermission: (permissions: Permission[], resourceId?: string) => boolean;
-  hasAllPermissions: (permissions: Permission[], resourceId?: string) => boolean;
+  hasPermission: (permission: string, resourceId?: string) => boolean;
+  hasAnyPermission: (permissions: string[], resourceId?: string) => boolean;
+  hasAllPermissions: (permissions: string[], resourceId?: string) => boolean;
   
   // 异步权限检查 (实时从数据库检查)
-  hasPermissionAsync: (permission: Permission, context?: PermissionContext) => Promise<boolean>;
-  hasAnyPermissionAsync: (permissions: Permission[], context?: PermissionContext) => Promise<boolean>;
-  hasAllPermissionsAsync: (permissions: Permission[], context?: PermissionContext) => Promise<boolean>;
+  hasPermissionAsync: (permission: string, context?: PermissionContext) => Promise<boolean>;
+  hasAnyPermissionAsync: (permissions: string[], context?: PermissionContext) => Promise<boolean>;
+  hasAllPermissionsAsync: (permissions: string[], context?: PermissionContext) => Promise<boolean>;
   
   // 上下文权限检查
-  checkPermission: (permission: Permission, context?: Partial<PermissionContext>) => Promise<PermissionResult>;
+  checkPermission: (permission: string, context?: Partial<PermissionContext>) => Promise<PermissionResult>;
   
   // 批量权限检查
-  checkMultiplePermissions: (permissions: Permission[], context?: Partial<PermissionContext>) => Promise<Record<Permission, PermissionResult>>;
+  checkMultiplePermissions: (permissions: string[], context?: Partial<PermissionContext>) => Promise<Record<string, PermissionResult>>;
   
   // 权限状态
   loading: boolean;
@@ -194,13 +194,23 @@ export interface UsePermissionReturn {
   
   // 缓存管理
   clearCache: () => void;
-  invalidatePermission: (permission: Permission, resourceId?: string) => void;
-  populateCache: (permissions: Permission[]) => Promise<void>; // 测试专用：批量预加载权限
+  invalidatePermission: (permission: string, resourceId?: string) => void;
+  populateCache: (permissions: string[]) => Promise<void>; // 测试专用：批量预加载权限
   
   // 实时更新
   isSubscribed: boolean;
   subscribe: () => void;
   unsubscribe: () => void;
+  
+  // 🚀 动态权限发现API
+  discoverUserPermissions: () => Promise<string[]>;  // 发现用户所有权限
+  getPermissionMetadata: (permission: string) => Promise<{
+    code: string;
+    name: string;
+    category: string;
+    description: string;
+  }>;  // 获取权限元数据
+  getAllSystemPermissions: () => Promise<string[]>;  // 获取系统所有可用权限
   
   // 调试信息
   debug?: {

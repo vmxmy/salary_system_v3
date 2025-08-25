@@ -73,11 +73,17 @@ export const FIELD_MAPPINGS = {
   // 缴费基数字段映射
   CONTRIBUTION_BASE_FIELDS: new Map([
     ['养老基数', 'pension_base'],
+    ['养老保险基数', 'pension_base'],
     ['医疗基数', 'medical_base'],
+    ['医疗保险基数', 'medical_base'],
     ['失业基数', 'unemployment_base'],
+    ['失业保险基数', 'unemployment_base'],
     ['工伤基数', 'injury_base'],
+    ['工伤保险基数', 'injury_base'],
     ['生育基数', 'maternity_base'],
-    ['公积金基数', 'housing_fund_base']
+    ['生育保险基数', 'maternity_base'],
+    ['公积金基数', 'housing_fund_base'],
+    ['住房公积金基数', 'housing_fund_base']
   ])
 } as const;
 
@@ -89,12 +95,8 @@ export const IMPORT_CONFIG = {
   PROGRESS_UPDATE_INTERVAL: 100
 } as const;
 
-// 模糊匹配配置
-export const FUZZY_MATCH_CONFIG = {
-  intraMode: 1,  // 允许单个错误
-  intraIns: 1,   // 插入成本
-  intraSub: 1,   // 替换成本
-  intraTrn: 1,   // 交换成本
-  intraDel: 1,   // 删除成本
-  SIMILARITY_THRESHOLD: 0.7
+// 字段匹配配置 - 精确匹配模式
+export const FIELD_MATCHING_CONFIG = {
+  EXACT_MATCH_ONLY: true, // 只使用精确匹配
+  MAX_SUGGESTIONS: 5      // 最大建议字段数量
 } as const;

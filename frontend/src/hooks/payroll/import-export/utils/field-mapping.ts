@@ -1,8 +1,7 @@
-import uFuzzy from '@leeoniya/ufuzzy';
 import { supabase } from '@/lib/supabase';
 import { ImportDataGroup } from '@/types/payroll-import';
 import type { ColumnMatchResult, FieldMappingAnalysis, SalaryComponent } from '../types';
-import { FUZZY_MATCH_CONFIG, FIELD_MAPPINGS } from '../constants';
+import { FIELD_MAPPINGS } from '../constants';
 
 /**
  * 获取薪资组件
@@ -59,61 +58,95 @@ export const buildDbFieldsMapping = (
 ): Map<string, { type: string; required: boolean }> => {
   const dbFields = new Map<string, { type: string; required: boolean }>();
   
-  // 添加基础字段
-  FIELD_MAPPINGS.BASIC_FIELDS.forEach((value, key) => {
-    dbFields.set(key, { type: 'basic', required: true });
-  });
-  
-  // 添加薪资组件字段
-  salaryComponents.forEach(component => {
-    dbFields.set(component.name, { 
-      type: component.type === 'earning' ? 'earning' : 'deduction', 
-      required: component.is_required || false 
-    });
+  // 基础字段始终添加（所有数据组都需要员工姓名）
+  // 注意：这里添加的是Excel中可能出现的字段名，不是数据库字段名
+  FIELD_MAPPINGS.BASIC_FIELDS.forEach((dbFieldName, excelFieldName) => {
+    dbFields.set(excelFieldName, { type: 'basic', required: true });
   });
   
   // 根据数据组添加特定字段
+  if (dataGroup === 'earnings' || dataGroup === 'all') {
+    // 动态添加薪资组件字段（从数据库获取）
+    salaryComponents.forEach(component => {
+      dbFields.set(component.name, { 
+        type: component.type === 'earning' ? 'earning' : 'deduction', 
+        required: component.is_required || false 
+      });
+    });
+  }
+  
   if (dataGroup === 'category' || dataGroup === 'all') {
-    FIELD_MAPPINGS.ASSIGNMENT_FIELDS.forEach((value, key) => {
-      if (key.includes('类别') || key.includes('category')) {
-        dbFields.set(key, { type: 'assignment', required: true });
+    FIELD_MAPPINGS.ASSIGNMENT_FIELDS.forEach((dbFieldName, excelFieldName) => {
+      if (excelFieldName.includes('类别') || excelFieldName.includes('category')) {
+        dbFields.set(excelFieldName, { type: 'assignment', required: true });
       }
     });
   }
   
   if (dataGroup === 'job' || dataGroup === 'all') {
-    FIELD_MAPPINGS.ASSIGNMENT_FIELDS.forEach((value, key) => {
-      if (key.includes('部门') || key.includes('职位') || 
-          key.includes('department') || key.includes('position')) {
-        dbFields.set(key, { type: 'assignment', required: true });
+    FIELD_MAPPINGS.ASSIGNMENT_FIELDS.forEach((dbFieldName, excelFieldName) => {
+      if (excelFieldName.includes('部门') || excelFieldName.includes('职位') || 
+          excelFieldName.includes('department') || excelFieldName.includes('position')) {
+        dbFields.set(excelFieldName, { type: 'assignment', required: true });
       }
     });
   }
   
   if (dataGroup === 'bases' || dataGroup === 'all') {
-    FIELD_MAPPINGS.CONTRIBUTION_BASE_FIELDS.forEach((value, key) => {
-      dbFields.set(key, { type: 'contribution_base', required: false });
+    FIELD_MAPPINGS.CONTRIBUTION_BASE_FIELDS.forEach((dbFieldName, excelFieldName) => {
+      dbFields.set(excelFieldName, { type: 'contribution_base', required: false });
     });
   }
+
+  console.log(`📋 构建字段映射完成，数据组: ${dataGroup}, 字段数量: ${dbFields.size}`);
+  console.log('🔍 期望的Excel字段名:', Array.from(dbFields.keys()));
+  console.log('🔍 字段详情:', Array.from(dbFields.entries()));
 
   return dbFields;
 };
 
 /**
- * 使用 uFuzzy 进行字段匹配
+ * 精确字段匹配函数
+ * 只使用精确匹配，不使用模糊匹配算法
  */
-export const performFuzzyMatching = (
+const performExactMatching = (excelColumn: string, dbField: string): boolean => {
+  // 特别调试 "员工姓名" 字段
+  if (excelColumn === '员工姓名' || dbField === '员工姓名') {
+    console.log(`🎯 特别调试 - Excel: "${excelColumn}", DB: "${dbField}"`);
+  }
+  
+  // 1. 完全精确匹配（忽略大小写）
+  if (excelColumn.toLowerCase() === dbField.toLowerCase()) {
+    if (excelColumn === '员工姓名' || dbField === '员工姓名') {
+      console.log(`✅ 精确匹配成功: "${excelColumn}" === "${dbField}"`);
+    }
+    return true;
+  }
+  
+  // 2. 包含匹配（双向检查）
+  if (excelColumn.includes(dbField) || dbField.includes(excelColumn)) {
+    if (excelColumn === '员工姓名' || dbField === '员工姓名') {
+      console.log(`✅ 包含匹配成功: "${excelColumn}" includes "${dbField}"`);
+    }
+    return true;
+  }
+  
+  return false;
+};
+
+/**
+ * 精确字段匹配实现
+ * 只使用精确匹配规则，不使用模糊匹配算法
+ */
+export const performExactFieldMatching = (
   excelColumns: string[],
   dbFields: Map<string, { type: string; required: boolean }>
 ): ColumnMatchResult[] => {
-  // 使用 uFuzzy 进行高效的模糊匹配
-  // uFuzzy 是2025年最新的高性能模糊匹配库，仅7.5KB，零依赖
-  const uf = new uFuzzy(FUZZY_MATCH_CONFIG);
-
-  // 构建搜索数据库字段列表
   const haystack = Array.from(dbFields.keys());
   
-  console.log('🔍 使用 uFuzzy 进行字段匹配，数据库字段:', haystack);
+  console.log('🔍 使用精确匹配规则进行字段匹配');
+  console.log('📥 输入的Excel列名:', excelColumns);
+  console.log('📋 期望的字段名:', haystack);
 
   const matchResults: ColumnMatchResult[] = [];
 
@@ -121,64 +154,38 @@ export const performFuzzyMatching = (
   excelColumns.forEach(excelColumn => {
     console.log(`🔍 分析Excel列: "${excelColumn}"`);
     
-    // 使用 uFuzzy 进行搜索
-    const idxs = uf.filter(haystack, excelColumn);
+    let matchedField: string | null = null;
     
-    if (idxs && idxs.length > 0) {
-      // 获取匹配信息和排序
-      const info = uf.info(idxs, haystack, excelColumn);
-      const order = uf.sort(info, haystack, excelColumn);
-      
-      if (order.length > 0) {
-        // 获取最佳匹配
-        const bestMatchIdx = info.idx[order[0]];
-        const bestMatchField = haystack[bestMatchIdx];
-        const fieldInfo = dbFields.get(bestMatchField);
-        
-        // 计算相似度分数 (uFuzzy 没有直接提供相似度分数，我们基于排名估算)
-        const similarity = order[0] === 0 ? 1.0 : Math.max(0.6, 1 - (order[0] * 0.1));
-        
-        // 判断匹配类型
-        let matchType: 'exact' | 'fuzzy' | 'unmapped';
-        if (excelColumn.toLowerCase() === bestMatchField.toLowerCase()) {
-          matchType = 'exact';
-        } else if (similarity >= FUZZY_MATCH_CONFIG.SIMILARITY_THRESHOLD) {
-          matchType = 'fuzzy';
-        } else {
-          matchType = 'unmapped';
-        }
-        
-        // 获取建议列表（前3个匹配）
-        const suggestions = order.slice(0, 3).map(idx => haystack[info.idx[idx]]);
-        
-        matchResults.push({
-          excelColumn,
-          dbField: matchType !== 'unmapped' ? bestMatchField : null,
-          matchType,
-          suggestions,
-          isRequired: fieldInfo?.required || false
-        });
-        
-        console.log(`  🎯 匹配结果: ${excelColumn} -> ${bestMatchField} (${matchType}, ${similarity.toFixed(2)})`);
-      } else {
-        matchResults.push({
-          excelColumn,
-          dbField: null,
-          matchType: 'unmapped',
-          suggestions: [],
-          isRequired: false
-        });
-        console.log(`  ❓ 无匹配: ${excelColumn}`);
+    // 遍历所有数据库字段，寻找精确匹配
+    for (const dbField of haystack) {
+      if (performExactMatching(excelColumn, dbField)) {
+        matchedField = dbField;
+        console.log(`  ✅ 精确匹配: ${excelColumn} -> ${dbField}`);
+        break; // 找到第一个匹配就停止
       }
+    }
+    
+    if (matchedField) {
+      const fieldInfo = dbFields.get(matchedField);
+      matchResults.push({
+        excelColumn,
+        dbField: matchedField,
+        matchType: 'exact',
+        suggestions: [matchedField], // 只提供匹配到的字段作为建议
+        isRequired: fieldInfo?.required || false
+      });
     } else {
+      // 提供所有可能的字段作为建议
+      const suggestions = haystack.slice(0, 5); // 前5个字段作为建议
+      
       matchResults.push({
         excelColumn,
         dbField: null,
         matchType: 'unmapped',
-        suggestions: [],
+        suggestions,
         isRequired: false
       });
-      console.log(`  ❓ 无匹配: ${excelColumn}`);
+      console.log(`  ❌ 无精确匹配: ${excelColumn}`);
     }
   });
 
@@ -196,6 +203,7 @@ export const analyzeFieldMapping = async (
   console.log('🔍 开始分析字段映射...');
   console.log('📊 Excel列名:', excelColumns);
   console.log('📋 数据组:', dataGroup);
+  console.log('🔢 Excel列数量:', excelColumns.length);
 
   // 获取薪资组件
   const salaryComponents = await getSalaryComponents(dataGroup);
@@ -203,22 +211,47 @@ export const analyzeFieldMapping = async (
   // 构建数据库字段映射
   const dbFields = buildDbFieldsMapping(salaryComponents, dataGroup);
   
-  // 执行模糊匹配
-  const matchResults = performFuzzyMatching(excelColumns, dbFields);
+  // 执行精确匹配
+  const matchResults = performExactFieldMatching(excelColumns, dbFields);
   
   // 统计分析结果
   const totalColumns = excelColumns.length;
   const mappedColumns = matchResults.filter(r => r.matchType !== 'unmapped').length;
   const unmappedColumns = totalColumns - mappedColumns;
   
-  // 统计必填字段匹配情况
-  const requiredFields = Array.from(dbFields.entries())
-    .filter(([_, info]) => info.required)
-    .map(([field, _]) => field);
-  const requiredFieldsTotal = requiredFields.length;
-  const requiredFieldsMatched = matchResults.filter(r => 
-    r.matchType !== 'unmapped' && requiredFields.includes(r.dbField!)
-  ).length;
+  // 重新设计必填字段检查逻辑 - 按数据库字段分组
+  const requiredDbFields = new Set<string>();
+  
+  // 从FIELD_MAPPINGS中提取必需的数据库字段
+  FIELD_MAPPINGS.BASIC_FIELDS.forEach((dbFieldName, _) => {
+    requiredDbFields.add(dbFieldName);
+  });
+  
+  // 检查每个必需的数据库字段是否有匹配的Excel字段
+  const missingDbFields: string[] = [];
+  requiredDbFields.forEach(requiredDbField => {
+    // 检查是否有任何Excel字段映射到这个数据库字段
+    const hasMapping = Array.from(FIELD_MAPPINGS.BASIC_FIELDS.entries())
+      .filter(([_, dbField]) => dbField === requiredDbField)
+      .some(([excelField, _]) => matchResults.some(r => 
+        r.excelColumn === excelField && r.matchType !== 'unmapped'
+      ));
+    
+    if (!hasMapping) {
+      missingDbFields.push(requiredDbField);
+    }
+  });
+  
+  const requiredFieldsTotal = requiredDbFields.size;
+  const requiredFieldsMatched = requiredFieldsTotal - missingDbFields.length;
+  
+  // 调试必填字段检查
+  console.log('🔍 必填字段检查调试 (重新设计):');
+  console.log('📋 必需的数据库字段:', Array.from(requiredDbFields));
+  console.log('📊 匹配结果:', matchResults.map(r => `${r.excelColumn} -> ${r.dbField} (${r.matchType})`));
+  console.log('❌ 缺少的数据库字段:', missingDbFields);
+  console.log('✅ 成功匹配的数据库字段数量:', requiredFieldsMatched);
+  console.log('📈 必需数据库字段总数:', requiredFieldsTotal);
   
   // 生成警告和建议
   const warnings: string[] = [];
@@ -229,11 +262,8 @@ export const analyzeFieldMapping = async (
   }
   
   if (requiredFieldsMatched < requiredFieldsTotal) {
-    const missingRequired = requiredFields.filter(field => 
-      !matchResults.some(r => r.dbField === field && r.matchType !== 'unmapped')
-    );
-    warnings.push(`缺少必填字段: ${missingRequired.join(', ')}`);
-    recommendations.push('请检查Excel文件是否包含所有必填字段，或手动调整字段映射');
+    warnings.push(`缺少必填的数据库字段: ${missingDbFields.join(', ')}`);
+    recommendations.push('请检查Excel文件是否包含员工姓名字段（可以是"员工姓名"、"姓名"或"name"）');
   }
   
   if (mappedColumns / totalColumns < 0.7) {

@@ -965,6 +965,182 @@ function PayrollBreakdownSection({
   categoryTotals
 }: PayrollBreakdownSectionProps & { payroll: PayrollDetailData }) {
   const { t } = useTranslation(['payroll', 'common']);
+  const { showSuccess, showError } = useToast();
+
+  // 内联编辑状态管理
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingAmount, setEditingAmount] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // 开始编辑
+  const handleStartEdit = useCallback((itemId: string, currentAmount: number) => {
+    console.log('[PayrollBreakdownSection] 🎯 开始编辑薪资项目:', {
+      itemId,
+      currentAmount,
+      editingItemId: editingItemId
+    });
+    setEditingItemId(itemId);
+    setEditingAmount(Math.abs(currentAmount).toString());
+  }, [editingItemId]);
+
+  // 取消编辑
+  const handleCancelEdit = useCallback(() => {
+    setEditingItemId(null);
+    setEditingAmount('');
+  }, []);
+
+  // 保存编辑
+  const handleSaveEdit = useCallback(async (item: PayrollItemDetail) => {
+    if (!editingAmount.trim()) {
+      showError('金额不能为空');
+      return;
+    }
+
+    const newAmount = parseFloat(editingAmount);
+    if (isNaN(newAmount) || newAmount < 0) {
+      showError('请输入有效的金额');
+      return;
+    }
+
+    // 如果金额没有变化，直接取消编辑
+    if (Math.abs(newAmount - Math.abs(item.amount)) < 0.01) {
+      handleCancelEdit();
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      console.log('[PayrollBreakdownSection] 🔧 保存薪资明细项目:', {
+        itemId: item.item_id,
+        payrollId: item.payroll_id,
+        componentName: item.component_name,
+        oldAmount: item.amount,
+        newAmount: item.component_type === 'deduction' && item.amount > 0 ? newAmount : newAmount,
+        componentType: item.component_type
+      });
+
+      // 调用API更新薪资明细项目
+      const { error } = await supabase
+        .from('payroll_items')
+        .update({ 
+          amount: item.component_type === 'deduction' && item.amount > 0 ? newAmount : newAmount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', item.item_id);
+
+      if (error) {
+        console.error('更新薪资明细失败:', error);
+        showError(`更新失败: ${error.message}`);
+        return;
+      }
+
+      console.log('[PayrollBreakdownSection] ✅ 薪资明细项目更新成功');
+      showSuccess('薪资明细更新成功');
+      
+      // 成功后取消编辑状态
+      handleCancelEdit();
+      
+      // 触发父组件重新获取数据
+      window.location.reload(); // 简单的刷新方案，实际项目中应该使用更优雅的数据重新获取
+      
+    } catch (error) {
+      console.error('更新薪资明细失败:', error);
+      showError('更新失败，请重试');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [editingAmount, showError, showSuccess, handleCancelEdit]);
+
+  // 可编辑金额单元格组件
+  const EditableAmountCell = useCallback(({ 
+    item, 
+    isEarning 
+  }: { 
+    item: PayrollItemDetail; 
+    isEarning: boolean; 
+  }) => {
+    const isEditing = editingItemId === item.item_id;
+    const amount = item.amount;
+    const absAmount = Math.abs(amount);
+
+    if (isEditing) {
+      return (
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={editingAmount}
+            onChange={(e) => setEditingAmount(e.target.value)}
+            className="input input-sm input-bordered w-24 text-right font-mono"
+            step="0.01"
+            min="0"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSaveEdit(item);
+              } else if (e.key === 'Escape') {
+                handleCancelEdit();
+              }
+            }}
+          />
+          <div className="flex items-center gap-1">
+            <button
+              className="btn btn-xs btn-success"
+              onClick={() => handleSaveEdit(item)}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <span className="loading loading-xs loading-spinner"></span>
+              ) : (
+                '✓'
+              )}
+            </button>
+            <button
+              className="btn btn-xs btn-ghost"
+              onClick={handleCancelEdit}
+              disabled={isSaving}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // 非编辑状态的显示
+    const displayContent = isEarning ? (
+      <span className="text-sm font-semibold font-mono text-green-600">
+        +{formatCurrency(absAmount)}
+      </span>
+    ) : amount < 0 ? (
+      <div>
+        <span className="text-sm font-semibold font-mono text-green-600">
+          +{formatCurrency(absAmount)}
+        </span>
+        <div className="text-xs text-green-600/70 mt-0.5">退款</div>
+      </div>
+    ) : (
+      <span className="text-sm font-semibold font-mono text-red-600">
+        -{formatCurrency(absAmount)}
+      </span>
+    );
+
+    return (
+      <div 
+        className="flex items-center justify-between group cursor-pointer hover:bg-base-200/50 p-1 -m-1 rounded"
+        onClick={() => handleStartEdit(item.item_id, amount)}
+        title="点击编辑金额"
+      >
+        <div className="text-right flex-1">
+          {displayContent}
+        </div>
+        <button className="btn btn-xs btn-ghost opacity-0 group-hover:opacity-100 ml-2">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
+      </div>
+    );
+  }, [editingItemId, editingAmount, isSaving, handleStartEdit, handleSaveEdit, handleCancelEdit]);
 
   // 准备表格数据
   const incomeItems = useMemo(() => {
@@ -1035,13 +1211,19 @@ function PayrollBreakdownSection({
       )
     }),
     columnHelper.accessor('amount' as any, {
-      header: () => <div className="text-right">金额</div>,
-      cell: (info: any) => (
-        <div className="text-right">
-          <span className="text-sm font-semibold font-mono text-green-600">
-            +{formatCurrency(Math.abs(info.getValue()))}
-          </span>
+      header: () => (
+        <div className="text-right flex items-center justify-end gap-1">
+          金额
+          <svg className="w-3 h-3 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
         </div>
+      ),
+      cell: (info: any) => (
+        <EditableAmountCell 
+          item={info.row.original as PayrollItemDetail} 
+          isEarning={true}
+        />
       )
     }),
     columnHelper.accessor('calculation_method' as any, {
@@ -1085,32 +1267,20 @@ function PayrollBreakdownSection({
       )
     }),
     columnHelper.accessor('amount' as any, {
-      header: () => <div className="text-right">金额</div>,
-      cell: (info: any) => {
-        const amount = info.getValue();
-        const absAmount = Math.abs(amount);
-        
-        if (amount < 0) {
-          // 负数扣除项目（实际是退款/补发） - 显示为绿色正数
-          return (
-            <div className="text-right">
-              <span className="text-sm font-semibold font-mono text-green-600">
-                +{formatCurrency(absAmount)}
-              </span>
-              <div className="text-xs text-green-600/70 mt-0.5">退款</div>
-            </div>
-          );
-        } else {
-          // 正数扣除项目（实际扣除） - 显示为红色负数
-          return (
-            <div className="text-right">
-              <span className="text-sm font-semibold font-mono text-red-600">
-                -{formatCurrency(absAmount)}
-              </span>
-            </div>
-          );
-        }
-      }
+      header: () => (
+        <div className="text-right flex items-center justify-end gap-1">
+          金额
+          <svg className="w-3 h-3 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </div>
+      ),
+      cell: (info: any) => (
+        <EditableAmountCell 
+          item={info.row.original as PayrollItemDetail} 
+          isEarning={false}
+        />
+      )
     }),
     columnHelper.accessor('calculation_method' as any, {
       header: '计算方式',
@@ -1132,7 +1302,7 @@ function PayrollBreakdownSection({
         <span className="text-xs text-base-content/30">-</span>
       )
     })
-  ], []);
+  ], [EditableAmountCell]);
 
   // 创建收入表格实例
   const incomeTable = useReactTable({
@@ -1863,28 +2033,65 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
   }, []);
 
   const handleSaveEdit = useCallback(async () => {
-    if (!editingRowId || !editingData || !employeeId || !periodId) return;
+    if (!editingRowId || !editingData || !employeeId) {
+      console.warn('[PayrollDetailModal] 保存编辑缺少必要参数:', { editingRowId, editingData, employeeId });
+      return;
+    }
+
+    // 🔍 关键修复：找到被编辑记录的原始 period_id
+    const editingRecord = jobInfo?.job_history.find(record => record.id === editingRowId);
+    const targetPeriodId = editingRecord?.period_id;
+    
+    if (!targetPeriodId) {
+      console.error('[PayrollDetailModal] 无法找到被编辑记录的 period_id:', { editingRowId, jobInfo: jobInfo?.job_history });
+      showError('无法确定职务记录所属周期，请刷新页面重试');
+      return;
+    }
+
+    console.log('[PayrollDetailModal] 🎯 修复后的职务信息编辑:', {
+      editingRowId,
+      employeeId,
+      originalPeriodId: targetPeriodId, // 使用记录本身的 period_id
+      currentViewPeriodId: periodId, // 当前查看的薪资记录 period_id 
+      editingData: {
+        position_id: editingData.position_id,
+        department_id: editingData.department_id,
+        notes: editingData.notes
+      }
+    });
 
     setIsLoading(true);
     try {
-      await assignPosition.mutateAsync({
+      const mutationParams = {
         employeeId,
         positionId: editingData.position_id,
         departmentId: editingData.department_id,
-        periodId,
+        periodId: targetPeriodId, // 🔧 使用记录本身的 period_id，不是当前视图的
         notes: editingData.notes
-      });
+      };
+      
+      console.log('[PayrollDetailModal] 调用 assignPosition.mutateAsync 参数:', mutationParams);
+      
+      const result = await assignPosition.mutateAsync(mutationParams);
+      
+      console.log('[PayrollDetailModal] assignPosition.mutateAsync 执行结果:', result);
 
       showSuccess('职务信息更新成功');
       setEditingRowId(null);
       setEditingData(null);
     } catch (error) {
-      showError('职务信息更新失败');
-      console.error('Update position error:', error);
+      console.error('[PayrollDetailModal] 职务信息更新失败:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        editingData,
+        employeeId,
+        targetPeriodId
+      });
+      showError(`职务信息更新失败: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsLoading(false);
     }
-  }, [editingRowId, editingData, employeeId, periodId, assignPosition, showSuccess, showError]);
+  }, [editingRowId, editingData, employeeId, periodId, jobInfo, assignPosition, showSuccess, showError]);
 
   // 新建记录处理函数
   const handleStartCreate = useCallback(() => {
@@ -1902,28 +2109,52 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
   }, []);
 
   const handleSaveCreate = useCallback(async () => {
-    if (!newRecordData || !employeeId || !periodId) return;
+    if (!newRecordData || !employeeId || !periodId) {
+      console.warn('[PayrollDetailModal] 创建职务记录缺少必要参数:', { newRecordData, employeeId, periodId });
+      return;
+    }
     if (!newRecordData.department_id || !newRecordData.position_id) {
       showError('请选择部门和职位');
       return;
     }
 
+    console.log('[PayrollDetailModal] 🆕 开始创建新职务记录:', {
+      employeeId,
+      targetPeriodId: periodId, // 使用当前查看的薪资记录 period_id
+      newRecordData: {
+        position_id: newRecordData.position_id,
+        department_id: newRecordData.department_id,
+        notes: newRecordData.notes
+      }
+    });
+
     setIsLoading(true);
     try {
-      await assignPosition.mutateAsync({
+      const mutationParams = {
         employeeId,
         positionId: newRecordData.position_id,
         departmentId: newRecordData.department_id,
-        periodId,
+        periodId, // 🔧 对于新建，使用当前查看的薪资记录的 period_id
         notes: newRecordData.notes
-      });
+      };
+
+      console.log('[PayrollDetailModal] 创建职务记录参数:', mutationParams);
+
+      const result = await assignPosition.mutateAsync(mutationParams);
+
+      console.log('[PayrollDetailModal] 创建职务记录结果:', result);
 
       showSuccess('职务记录创建成功');
       setIsCreating(false);
       setNewRecordData(null);
     } catch (error) {
+      console.error('[PayrollDetailModal] 创建职务记录失败:', {
+        error,
+        newRecordData,
+        employeeId,
+        periodId
+      });
       showError('职务记录创建失败');
-      console.error('Create position error:', error);
     } finally {
       setIsLoading(false);
     }

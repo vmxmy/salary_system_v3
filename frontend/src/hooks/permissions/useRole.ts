@@ -489,7 +489,7 @@ export function useRole(): UseRoleReturn {
           updated_at: new Date().toISOString()
         })
         .eq('role_code', roleCode)
-        .eq('request_type', 'role_creation');
+        .eq('is_active', true);
 
       if (updateError) throw updateError;
 

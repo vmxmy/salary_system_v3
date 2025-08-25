@@ -10,6 +10,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePermissions } from '@/hooks/permissions';
+import { useDynamicPermissions, usePermissionSelection } from '@/hooks/permissions/useDynamicPermissions';
+import type { DynamicPermission } from '@/services/dynamicPermissionService';
 
 interface RoleData {
   id: string;
@@ -26,15 +28,7 @@ interface RoleData {
   updatedAt: string;
 }
 
-interface Permission {
-  id: string;
-  code: string;
-  name: string;
-  description: string;
-  category: string;
-  resource: string;
-  action: string;
-}
+// 使用动态权限类型，不再需要本地接口定义
 
 interface RolePermissionMatrixProps {
   role: RoleData;
@@ -43,38 +37,7 @@ interface RolePermissionMatrixProps {
   loading?: boolean;
 }
 
-// 模拟权限数据 - 实际应用中应该从API获取
-const MOCK_PERMISSIONS: Permission[] = [
-  // 用户管理
-  { id: '1', code: 'user_management.read', name: '查看用户', description: '可以查看用户列表和详情', category: '用户管理', resource: 'user_management', action: 'read' },
-  { id: '2', code: 'user_management.write', name: '编辑用户', description: '可以创建、编辑和删除用户', category: '用户管理', resource: 'user_management', action: 'write' },
-  { id: '3', code: 'user_management.delete', name: '删除用户', description: '可以删除用户账号', category: '用户管理', resource: 'user_management', action: 'delete' },
-  
-  // 员工管理
-  { id: '4', code: 'employee_management.read', name: '查看员工', description: '可以查看员工信息', category: '员工管理', resource: 'employee_management', action: 'read' },
-  { id: '5', code: 'employee_management.write', name: '编辑员工', description: '可以编辑员工信息', category: '员工管理', resource: 'employee_management', action: 'write' },
-  { id: '6', code: 'employee_management.create', name: '创建员工', description: '可以创建新员工', category: '员工管理', resource: 'employee_management', action: 'create' },
-  
-  // 薪资管理
-  { id: '7', code: 'payroll.read', name: '查看薪资', description: '可以查看薪资数据', category: '薪资管理', resource: 'payroll', action: 'read' },
-  { id: '8', code: 'payroll.write', name: '编辑薪资', description: '可以编辑薪资数据', category: '薪资管理', resource: 'payroll', action: 'write' },
-  { id: '9', code: 'payroll.import', name: '导入薪资', description: '可以批量导入薪资数据', category: '薪资管理', resource: 'payroll', action: 'import' },
-  { id: '10', code: 'payroll.approve', name: '审批薪资', description: '可以审批薪资数据', category: '薪资管理', resource: 'payroll', action: 'approve' },
-  
-  // 角色管理
-  { id: '11', code: 'manage_roles', name: '管理角色', description: '可以创建、编辑和删除角色', category: '系统管理', resource: 'role', action: 'manage' },
-  { id: '12', code: 'view_roles', name: '查看角色', description: '可以查看角色信息', category: '系统管理', resource: 'role', action: 'view' },
-  { id: '13', code: 'assign_roles', name: '分配角色', description: '可以为用户分配角色', category: '系统管理', resource: 'role', action: 'assign' },
-  { id: '14', code: 'view_role_permissions', name: '查看角色权限', description: '可以查看角色的权限配置', category: '系统管理', resource: 'role', action: 'view_permissions' },
-  
-  // 权限管理
-  { id: '15', code: 'manage_role_permissions', name: '管理角色权限', description: '可以为角色分配和管理权限', category: '系统管理', resource: 'permission', action: 'manage_role_permissions' },
-  { id: '16', code: 'permission.manage', name: '权限管理', description: '可以管理权限资源和配置', category: '系统管理', resource: 'permission', action: 'manage' },
-  
-  // 基础权限
-  { id: '17', code: 'dashboard.read', name: '查看仪表板', description: '可以访问系统仪表板', category: '基础功能', resource: 'dashboard', action: 'read' },
-  { id: '18', code: 'statistics:read', name: '查看统计', description: '可以查看统计报表', category: '基础功能', resource: 'statistics', action: 'read' },
-];
+// 权限数据现在通过 useDynamicPermissions Hook 动态获取
 
 export function RolePermissionMatrix({
   role,
@@ -82,92 +45,74 @@ export function RolePermissionMatrix({
   onClose,
   loading = false
 }: RolePermissionMatrixProps) {
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(role.permissions);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [saving, setSaving] = useState(false);
 
-  // 获取权限分组
+  // 使用动态权限Hook替代硬编码数据
+  const dynamicPermissions = useDynamicPermissions({
+    autoLoad: true,
+    enableCache: true,
+    watchChanges: true,
+    onError: (error) => {
+      console.error('[RolePermissionMatrix] 动态权限加载失败:', error);
+    }
+  });
+
+  // 使用权限选择Hook管理权限状态
+  const permissionSelection = usePermissionSelection(role.permissions);
+
+  // 从动态权限Hook获取分类和过滤后的权限
   const permissionCategories = useMemo(() => {
-    const categories = Array.from(new Set(MOCK_PERMISSIONS.map(p => p.category)));
-    return categories.sort();
-  }, []);
+    return dynamicPermissions.categories.map(cat => cat.name);
+  }, [dynamicPermissions.categories]);
 
-  // 过滤权限
-  const filteredPermissions = useMemo(() => {
-    return MOCK_PERMISSIONS.filter(permission => {
-      const matchesSearch = permission.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           permission.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           permission.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesCategory = selectedCategory === 'all' || permission.category === selectedCategory;
-      
-      return matchesSearch && matchesCategory;
-    });
-  }, [searchTerm, selectedCategory]);
-
-  // 按分组组织权限
+  // 按分组组织权限 - 使用动态权限数据
   const permissionsByCategory = useMemo(() => {
-    const grouped: Record<string, Permission[]> = {};
-    filteredPermissions.forEach(permission => {
+    const grouped: Record<string, DynamicPermission[]> = {};
+    dynamicPermissions.filteredPermissions.forEach(permission => {
       if (!grouped[permission.category]) {
         grouped[permission.category] = [];
       }
       grouped[permission.category].push(permission);
     });
     return grouped;
-  }, [filteredPermissions]);
+  }, [dynamicPermissions.filteredPermissions]);
 
-  // 检查权限是否被选中
+  // 检查权限是否被选中 - 委托给权限选择Hook
   const isPermissionSelected = (permissionCode: string) => {
-    return selectedPermissions.includes(permissionCode) || selectedPermissions.includes('*');
+    return permissionSelection.isSelected(permissionCode) || permissionSelection.isSelected('*');
   };
 
-  // 切换单个权限
+  // 切换单个权限 - 使用权限选择Hook
   const togglePermission = (permissionCode: string) => {
-    if (selectedPermissions.includes('*')) {
+    if (permissionSelection.isSelected('*')) {
       // 如果有全部权限，不允许取消单个权限
       return;
     }
-    
-    setSelectedPermissions(prev => {
-      if (prev.includes(permissionCode)) {
-        return prev.filter(p => p !== permissionCode);
-      } else {
-        return [...prev, permissionCode];
-      }
-    });
+    permissionSelection.togglePermission(permissionCode);
   };
 
-  // 切换分组权限
+  // 切换分组权限 - 使用动态权限数据和权限选择Hook
   const toggleCategoryPermissions = (category: string, enable: boolean) => {
-    const categoryPermissions = MOCK_PERMISSIONS
-      .filter(p => p.category === category)
-      .map(p => p.code);
-    
-    setSelectedPermissions(prev => {
-      if (enable) {
-        const newPermissions = new Set([...prev, ...categoryPermissions]);
-        return Array.from(newPermissions);
-      } else {
-        return prev.filter(p => !categoryPermissions.includes(p));
-      }
-    });
-  };
-
-  // 全选/取消全选
-  const toggleAllPermissions = (enable: boolean) => {
-    if (enable) {
-      setSelectedPermissions(['*']);
-    } else {
-      setSelectedPermissions([]);
+    const categoryData = dynamicPermissions.categories.find(cat => cat.name === category);
+    if (categoryData) {
+      permissionSelection.toggleCategoryPermissions(categoryData, enable);
     }
   };
 
-  // 保存权限配置
+  // 全选/取消全选 - 使用权限选择Hook
+  const toggleAllPermissions = (enable: boolean) => {
+    if (enable) {
+      permissionSelection.setSelectedPermissions(['*']);
+    } else {
+      permissionSelection.clearSelection();
+    }
+  };
+
+  // 保存权限配置 - 使用权限选择Hook的数据
   const handleSave = async () => {
     try {
       setSaving(true);
+      const selectedPermissions = permissionSelection.getSelectedPermissions();
       await onUpdatePermissions(role.id, selectedPermissions);
       onClose();
     } catch (error) {
@@ -177,17 +122,62 @@ export function RolePermissionMatrix({
     }
   };
 
-  // 计算选中状态统计
+  // 计算选中状态统计 - 使用动态权限数据和权限选择Hook
   const selectionStats = useMemo(() => {
-    const totalPermissions = MOCK_PERMISSIONS.length;
-    const selectedCount = selectedPermissions.includes('*') ? totalPermissions : selectedPermissions.length;
+    const totalPermissions = dynamicPermissions.permissions.length;
+    const selectedCount = permissionSelection.isSelected('*') ? totalPermissions : permissionSelection.selectedCount;
     
     return {
       total: totalPermissions,
       selected: selectedCount,
-      percentage: Math.round((selectedCount / totalPermissions) * 100)
+      percentage: totalPermissions > 0 ? Math.round((selectedCount / totalPermissions) * 100) : 0
     };
-  }, [selectedPermissions]);
+  }, [dynamicPermissions.permissions.length, permissionSelection.selectedCount, permissionSelection.isSelected]);
+
+  // 显示加载状态
+  if (dynamicPermissions.loading) {
+    return (
+      <div className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-4xl">
+          <div className="flex flex-col items-center justify-center py-12">
+            <span className="loading loading-spinner loading-lg text-primary mb-4"></span>
+            <p className="text-base-content/70">正在加载权限数据...</p>
+          </div>
+        </div>
+        <div className="modal-backdrop" onClick={onClose}></div>
+      </div>
+    );
+  }
+
+  // 显示错误状态
+  if (dynamicPermissions.error) {
+    return (
+      <div className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-4xl">
+          <div className="text-center py-12">
+            <div className="text-error text-6xl mb-4">⚠️</div>
+            <h3 className="text-xl font-bold mb-2">加载权限失败</h3>
+            <p className="text-base-content/70 mb-6">{dynamicPermissions.error.message}</p>
+            <div className="flex justify-center gap-4">
+              <button 
+                className="btn btn-primary"
+                onClick={dynamicPermissions.refreshPermissions}
+              >
+                重试
+              </button>
+              <button 
+                className="btn btn-ghost"
+                onClick={onClose}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="modal-backdrop" onClick={onClose}></div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal modal-open">
@@ -241,8 +231,8 @@ export function RolePermissionMatrix({
                 type="text"
                 placeholder="搜索权限..."
                 className="input input-bordered flex-1"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={dynamicPermissions.searchQuery}
+                onChange={(e) => dynamicPermissions.searchPermissions(e.target.value)}
               />
             </div>
           </div>
@@ -252,8 +242,8 @@ export function RolePermissionMatrix({
             <div className="form-control flex-1">
               <select
                 className="select select-bordered"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                value={dynamicPermissions.selectedCategory}
+                onChange={(e) => dynamicPermissions.filterByCategory(e.target.value)}
               >
                 <option value="all">全部分类</option>
                 {permissionCategories.map(category => (
@@ -329,7 +319,7 @@ export function RolePermissionMatrix({
                           className="checkbox checkbox-primary mr-4"
                           checked={isPermissionSelected(permission.code)}
                           onChange={() => togglePermission(permission.code)}
-                          disabled={saving || selectedPermissions.includes('*')}
+                          disabled={saving || permissionSelection.isSelected('*')}
                           aria-describedby={`permission-desc-${permission.id}`}
                         />
                         <div className="flex-1">

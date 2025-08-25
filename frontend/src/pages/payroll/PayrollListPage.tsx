@@ -34,7 +34,8 @@ import { supabase } from '@/lib/supabase';
 import { usePermission } from '@/hooks/permissions/usePermission';
 import { PERMISSIONS } from '@/constants/permissions';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
-import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
+import { exportTableToCSV, exportTableToJSON } from '@/components/common/DataTable/utils';
+import { generateExcelBuffer } from '@/hooks/payroll/import-export/exporters/excel-exporter';
 import type { FieldMetadata } from '@/components/common/FieldSelector';
 import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
 import { usePayrollDataProcessor } from '@/hooks/payroll/usePayrollDataProcessor';
@@ -236,6 +237,38 @@ export default function PayrollListPage() {
 
   const clearPeriod = useClearPayrollPeriod();
 
+  // 专用的选中数据导出处理函数
+  const handleExportSelected = async (selectedData: PayrollData[]) => {
+    try {
+      const buffer = await generateExcelBuffer(selectedData, { template: 'payroll_summary', format: 'xlsx' });
+      
+      // 创建下载链接
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // 生成文件名
+      const fileName = `薪资数据导出_选中${selectedData.length}条_${selectedMonth}.xlsx`;
+      link.download = fileName;
+      
+      // 触发下载
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // 清理URL
+      window.URL.revokeObjectURL(url);
+      
+      showSuccess(`已导出${selectedData.length}条选中记录`);
+    } catch (error) {
+      console.error('Export selected failed:', error);
+      showError(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
 
 
   // 周期变更处理
@@ -428,7 +461,10 @@ export default function PayrollListPage() {
                   {
                     key: 'export',
                     label: '导出选中',
-                    onClick: () => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id || '')), 'payroll-selected'),
+                    onClick: () => {
+                      const selectedData = processedData.filter(p => selectedIds.includes(p.id || p.payroll_id || ''));
+                      handleExportSelected(selectedData);
+                    },
                     variant: 'outline',
                     title: '导出选中的薪资记录',
                     icon: (

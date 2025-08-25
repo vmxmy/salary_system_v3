@@ -17,7 +17,8 @@ import { formatCurrency } from '@/lib/format';
 import { usePayrollCreation } from '@/hooks/payroll/usePayrollCreation';
 import { usePermission } from '@/hooks/permissions/usePermission';
 import { PERMISSIONS } from '@/constants/permissions';
-import { exportTableToCSV, exportTableToJSON, exportTableToExcel } from '@/components/common/DataTable/utils';
+import { exportTableToCSV, exportTableToJSON } from '@/components/common/DataTable/utils';
+import { exportPayrollToExcel, generateExcelBuffer } from '@/hooks/payroll/import-export/exporters/excel-exporter';
 import type { PaginationState, Table } from '@tanstack/react-table';
 import { cardEffects } from '@/styles/design-effects';
 
@@ -226,6 +227,53 @@ export function PayrollReports({ selectedMonth, onMonthChange, periodId }: Payro
   //   navigate('/payroll/create-cycle');
   // }, [navigate]);
 
+  // 专用的薪资导出处理函数
+  const handleExportPayroll = async () => {
+    try {
+      await exportPayrollToExcel({
+        template: 'payroll_summary',
+        filters: { periodId: selectedMonth },
+        format: 'xlsx'
+      });
+      showSuccess('薪资数据导出成功');
+    } catch (error) {
+      console.error('Export failed:', error);
+      showError(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
+  // 专用的选中数据导出处理函数
+  const handleExportSelected = async (selectedData: PayrollData[]) => {
+    try {
+      const buffer = await generateExcelBuffer(selectedData, { template: 'payroll_summary', format: 'xlsx' });
+      
+      // 创建下载链接
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // 生成文件名
+      const fileName = `薪资数据导出_选中${selectedData.length}条_${selectedMonth}.xlsx`;
+      link.download = fileName;
+      
+      // 触发下载
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // 清理URL
+      window.URL.revokeObjectURL(url);
+      
+      showSuccess(`已导出${selectedData.length}条选中记录`);
+    } catch (error) {
+      console.error('Export selected failed:', error);
+      showError(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
   // 清空本月数据
   const handleClearCurrentMonth = useCallback(async (onProgress?: (step: string, completed: number, total: number) => void) => {
     if (!periodId) {
@@ -328,39 +376,32 @@ export function PayrollReports({ selectedMonth, onMonthChange, periodId }: Payro
               </ModernButton>
             )}
             
-            {/* 导出按钮 */}
-            <div className="dropdown dropdown-end">
-              <ModernButton
-                variant="secondary"
-                size="sm"
-                className="tabindex-0"
-                title={t('common:exportAction')}
-                icon={
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+            {/* 导出按钮 - 直接执行完整导出 */}
+            <ModernButton
+              variant="secondary"
+              size="sm"
+              title="导出完整薪资数据（包含四个工作表：薪资收入、缴费基数、职务分配、人员类别）"
+              icon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              }
+              onClick={async () => {
+                try {
+                  await exportPayrollToExcel({
+                    template: 'payroll_complete',
+                    filters: { periodId: selectedMonth },
+                    format: 'xlsx'
+                  });
+                  showSuccess('薪资数据导出成功');
+                } catch (error) {
+                  console.error('Export failed:', error);
+                  showError(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`);
                 }
-              >
-                导出
-              </ModernButton>
-              <ul className="dropdown-content menu p-2 mt-2 w-52 z-50 bg-base-100 border border-base-content/10 rounded-xl shadow-lg">
-                <li>
-                  <a onClick={() => exportTableToCSV(processedData, 'payroll')} className="rounded-lg">
-                    CSV
-                  </a>
-                </li>
-                <li>
-                  <a onClick={() => exportTableToJSON(processedData, 'payroll')} className="rounded-lg">
-                    JSON
-                  </a>
-                </li>
-                <li>
-                  <a onClick={() => exportTableToExcel(processedData, 'payroll')} className="rounded-lg">
-                    Excel
-                  </a>
-                </li>
-              </ul>
-            </div>
+              }}
+            >
+              导出全部
+            </ModernButton>
           </div>
         </div>
 
@@ -472,7 +513,10 @@ export function PayrollReports({ selectedMonth, onMonthChange, periodId }: Payro
       {selectedIds.length > 0 && (
         <PayrollBatchActions
           selectedCount={selectedIds.length}
-          onExport={() => exportTableToExcel(processedData.filter(p => selectedIds.includes(p.id || p.payroll_id)), 'payroll-selected')}
+          onExport={() => {
+            const selectedData = processedData.filter(p => selectedIds.includes(p.id || p.payroll_id));
+            handleExportSelected(selectedData);
+          }}
           loading={false}
         />
       )}

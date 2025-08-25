@@ -29,6 +29,9 @@ export * from './department';
 // Dashboard相关Hook
 export * from './dashboard';
 
+// 管理员相关Hook
+export * from './admin';
+
 // ============ 查询键统一导出（用于缓存管理） ============
 export { employeeQueryKeys } from './employee/useEmployeeList';
 export { departmentQueryKeys } from './department/useDepartments';
