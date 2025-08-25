@@ -25,7 +25,7 @@ const PayrollDetailPage = lazy(() => import('@/pages/payroll/PayrollDetailPage')
 const PayrollApprovalPage = lazy(() => import('@/pages/payroll/PayrollApprovalPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
-const StatisticsPage = lazy(() => import('@/pages/statistics/StatisticsPage'));
+// const StatisticsPage = lazy(() => import('@/pages/statistics/StatisticsPage')); // Excluded from compilation
 const ThemeShowcasePage = lazy(() => import('@/pages/ThemeShowcasePage'));
 const DesignTokensPage = lazy(() => import('@/pages/DesignTokensPage'));
 const DesignSystemShowcase = lazy(() => import('@/pages/DesignSystemShowcase'));
@@ -41,11 +41,12 @@ const InsuranceCalculationTest = lazy(() => import('@/pages/test/InsuranceCalcul
 const InsuranceConfigTest = lazy(() => import('@/pages/test/InsuranceConfigTest'));
 const PayrollCalculationTest = lazy(() => import('@/pages/test/PayrollCalculationTest'));
 const PermissionHooksTestPage = lazy(() => import('@/pages/test/PermissionHooksTestPage'));
+const PayrollImportTestPage = lazy(() => import('@/pages/test/PayrollImportTestPage'));
 const InsuranceConfigPage = lazy(() => import('@/pages/payroll/InsuranceConfigPage'));
 
 // Admin pages
 const UserManagementPage = lazy(() => import('@/pages/admin/UserManagementPage'));
-// const RoleManagementPage = lazy(() => import('@/pages/admin/RoleManagementPage'));
+const RoleManagementPage = lazy(() => import('@/pages/admin/RoleManagementPage'));
 // Permission pages moved to archive
 // const PermissionResourceManagementPage = lazy(() => import('@/pages/admin/PermissionResourceManagementPage'));
 // const PermissionAssignmentPage = lazy(() => import('@/pages/admin/PermissionAssignmentPage'));
@@ -260,14 +261,14 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
-      {
-        path: 'statistics',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <StatisticsPage />
-          </Suspense>
-        ),
-      },
+      // {
+      //   path: 'statistics',
+      //   element: (
+      //     <Suspense fallback={<LoadingScreen />}>
+      //       <StatisticsPage />
+      //     </Suspense>
+      //   ),
+      // }, // StatisticsPage excluded from compilation
       // Admin management pages
       {
         path: 'admin',
@@ -282,14 +283,16 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
-      //     {
-      //       path: 'roles',
-      //       element: (
-      //         <Suspense fallback={<LoadingScreen />}>
-      //           <RoleManagementPage />
-      //         </Suspense>
-      //       ),
-      //     },
+          {
+            path: 'roles',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <ProtectedRoute requiredPermissions={['manage_roles']}>
+                  <RoleManagementPage />
+                </ProtectedRoute>
+              </Suspense>
+            ),
+          },
         ],
       },
       {
@@ -372,6 +375,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingScreen />}>
                 <PermissionHooksTestPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'payroll-import',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <PayrollImportTestPage />
               </Suspense>
             ),
           },

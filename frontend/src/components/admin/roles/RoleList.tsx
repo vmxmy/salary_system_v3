@@ -110,7 +110,7 @@ export function RoleList({
           <div className="text-center py-12">
             <div className="text-6xl mb-4">👥</div>
             <h3 className="text-lg font-semibold mb-2">暂无角色数据</h3>
-            <p className="text-gray-500 mb-4">还没有创建任何角色，或者当前搜索条件下没有匹配的角色</p>
+            <p className="text-base-content/70 mb-4">还没有创建任何角色，或者当前搜索条件下没有匹配的角色</p>
             {onRefresh && (
               <button onClick={onRefresh} className="btn btn-primary">
                 刷新数据
@@ -172,10 +172,10 @@ export function RoleList({
                             <span className="badge badge-neutral badge-xs">系统</span>
                           )}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-base-content/70">
                           {role.code}
                         </div>
-                        <div className="text-xs text-gray-400 mt-1 max-w-xs truncate">
+                        <div className="text-xs text-base-content/50 mt-1 max-w-xs truncate">
                           {role.description}
                         </div>
                       </div>
@@ -190,7 +190,7 @@ export function RoleList({
                   {/* 用户数 */}
                   <td>
                     <div className="flex items-center">
-                      <svg className="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 mr-1 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h3v-1a5.97 5.97 0 00-3-5.17" />
                       </svg>
                       <span className="font-medium">{role.userCount}</span>
@@ -200,7 +200,7 @@ export function RoleList({
                   {/* 权限数 */}
                   <td>
                     <div className="flex items-center">
-                      <svg className="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 mr-1 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                       </svg>
                       <span className="font-medium">
@@ -218,7 +218,7 @@ export function RoleList({
 
                   {/* 更新时间 */}
                   <td>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-base-content/70">
                       {formatTime(role.updatedAt)}
                     </div>
                   </td>
@@ -231,6 +231,7 @@ export function RoleList({
                           onClick={() => onManagePermissions(role)}
                           className="btn btn-ghost btn-xs text-info hover:bg-info hover:text-info-content"
                           title="管理权限"
+                          aria-label={`管理角色 ${role.name} 的权限`}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
@@ -244,6 +245,7 @@ export function RoleList({
                           onClick={() => onEdit(role)}
                           className="btn btn-ghost btn-xs text-warning hover:bg-warning hover:text-warning-content"
                           title="编辑角色"
+                          aria-label={`编辑角色 ${role.name}`}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -261,6 +263,7 @@ export function RoleList({
                               : 'text-error hover:bg-error hover:text-error-content'
                           }`}
                           title={role.userCount > 0 ? `不能删除：该角色下有 ${role.userCount} 个用户` : '删除角色'}
+                          aria-label={role.userCount > 0 ? `无法删除角色 ${role.name}，该角色下有 ${role.userCount} 个用户` : `删除角色 ${role.name}`}
                           disabled={role.userCount > 0}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

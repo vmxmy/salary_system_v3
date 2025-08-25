@@ -283,7 +283,12 @@ export const DataGroupSelector: React.FC<DataGroupSelectorProps> = ({
 };
 
 // 导出数据组选项配置供其他组件使用
-export const DATA_GROUP_OPTIONS = [
+export const DATA_GROUP_OPTIONS: Array<{
+  value: ImportDataGroup;
+  label: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+}> = [
   {
     value: ImportDataGroup.EARNINGS,
     label: '薪资项目明细',

@@ -219,22 +219,35 @@ export function usePermission(options: PermissionOptions = {}): UsePermissionRet
     return Object.values(results).every(result => result.allowed);
   }, [checkMultiplePermissions]);
 
-  // 同步权限检查（基于缓存）
+  // 同步权限检查（基于缓存）- 改进版本，更明确地处理缓存未命中
   const hasCachedPermission = useCallback((permission: Permission): boolean => {
-    if (!enableCache || !permissionCache[permission]) {
-      return fallbackResult;
+    if (!enableCache) {
+      // 缓存禁用时，返回安全的默认值
+      console.warn(`[usePermission] Cache disabled, cannot perform sync check for: ${permission}`);
+      return false;
+    }
+    
+    if (!permissionCache[permission]) {
+      // 缓存未命中，记录警告并返回安全的默认值
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[usePermission] Permission "${permission}" not found in cache. Consider using checkPermission() for accurate results.`);
+      }
+      return false; // 安全默认值，避免误判
     }
     
     const cached = permissionCache[permission];
     const cacheAge = Date.now() - (cached.context?.timestamp?.getTime() || 0);
     
-    // 缓存过期则返回降级结果
+    // 缓存过期则返回安全默认值并记录警告
     if (cacheAge >= 5 * 60 * 1000) {
-      return fallbackResult;
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[usePermission] Cached permission "${permission}" expired (age: ${Math.round(cacheAge / 1000)}s). Use checkPermission() for fresh results.`);
+      }
+      return false; // 安全默认值
     }
     
     return cached.allowed;
-  }, [enableCache, permissionCache, fallbackResult]);
+  }, [enableCache, permissionCache]);
 
   // 清理权限缓存函数移动到 return 语句之前避免重复声明
 
@@ -245,16 +258,28 @@ export function usePermission(options: PermissionOptions = {}): UsePermissionRet
     const preloadPermissions = async () => {
       setInitialized(true); // 立即设置标志，防止重复执行
       try {
-        // 预加载常用权限到缓存
+        // 扩展的权限预加载列表，包含角色管理相关权限
         const commonPermissions = [
+          // 基础权限
           'user_management.read',
           'user_management.write',
           'dashboard.read',
           'employee_management.read',
-          'assign_roles'
+          
+          // 角色管理相关权限（修复同步检查问题）
+          'manage_roles',
+          'view_roles',
+          'assign_roles',
+          'view_role_permissions',
+          'manage_role_permissions',
+          
+          // 其他常用权限
+          'payroll.read',
+          'payroll.write',
+          'statistics:read'
         ] as Permission[];
 
-        console.log('[usePermission] Preloading common permissions for user:', user.id);
+        console.log('[usePermission] Preloading extended permissions for user:', user.id);
         
         // 使用统一权限管理器直接批量检查，避免触发状态更新
         try {
@@ -272,6 +297,16 @@ export function usePermission(options: PermissionOptions = {}): UsePermissionRet
           setPermissionCache(prev => ({ ...prev, ...newCache }));
           
           console.log('[usePermission] Permission cache preloaded with', commonPermissions.length, 'permissions');
+          
+          // 输出调试信息，帮助诊断缓存状态
+          if (process.env.NODE_ENV === 'development') {
+            const cacheStatus = commonPermissions.map(p => ({
+              permission: p,
+              cached: !!newCache[p],
+              allowed: newCache[p]?.allowed || false
+            }));
+            console.table(cacheStatus);
+          }
         } catch (error) {
           console.error('[usePermission] Error in batch permission check:', error);
           
@@ -357,6 +392,45 @@ export function usePermission(options: PermissionOptions = {}): UsePermissionRet
     }
   }, []);
 
+  // 测试专用：批量预加载权限到缓存
+  const populateCache = useCallback(async (permissions: Permission[]): Promise<void> => {
+    if (!user) {
+      console.warn('[usePermission] Cannot populate cache: user not authenticated');
+      return;
+    }
+    
+    try {
+      console.log(`[usePermission] Populating cache with ${permissions.length} permissions for testing`);
+      
+      const results = await unifiedPermissionManager.checkMultiplePermissions(
+        permissions, 
+        baseContext
+      );
+      
+      const newCache: Record<string, PermissionResult> = {};
+      Object.entries(results).forEach(([permission, result]) => {
+        newCache[permission] = result;
+      });
+      
+      setPermissionCache(prev => ({ ...prev, ...newCache }));
+      
+      console.log('[usePermission] Cache populated successfully');
+      
+      // 调试输出缓存状态
+      if (process.env.NODE_ENV === 'development') {
+        const cacheStatus = permissions.map(p => ({
+          permission: p,
+          cached: !!newCache[p],
+          allowed: newCache[p]?.allowed || false
+        }));
+        console.table(cacheStatus);
+      }
+    } catch (error) {
+      console.error('[usePermission] Error populating cache:', error);
+      throw error;
+    }
+  }, [user, baseContext]);
+
   return {
     // 基础权限检查 (同步版本，基于缓存)
     hasPermission: (permission: Permission, resourceId?: string): boolean => {
@@ -386,6 +460,7 @@ export function usePermission(options: PermissionOptions = {}): UsePermissionRet
     // 缓存管理
     clearCache: () => clearPermissionCache(),
     invalidatePermission: (permission: Permission, resourceId?: string) => clearPermissionCache(permission),
+    populateCache, // 测试专用：批量预加载权限
     
     // 实时更新
     isSubscribed: true,
@@ -396,7 +471,8 @@ export function usePermission(options: PermissionOptions = {}): UsePermissionRet
     debug: {
       cacheSize: Object.keys(permissionCache).length,
       requestCount,
-      userId: user?.id
+      userId: user?.id,
+      ...(process.env.NODE_ENV === 'development' && { cacheContents: permissionCache })
     }
   };
 }

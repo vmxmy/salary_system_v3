@@ -196,7 +196,7 @@ export function RolePermissionMatrix({
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold">权限分配</h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-base-content/70">
               为角色 <span className="font-medium text-primary">{role.name}</span> 分配权限
             </p>
           </div>
@@ -228,54 +228,62 @@ export function RolePermissionMatrix({
         </div>
 
         {/* 搜索和过滤 */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <div className="form-control">
-              <div className="input-group">
-                <span className="input-group-text">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-                <input
-                  type="text"
-                  placeholder="搜索权限..."
-                  className="input input-bordered flex-1"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+        <div className="space-y-4 mb-6">
+          {/* 搜索框 */}
+          <div className="form-control">
+            <div className="input-group">
+              <span className="input-group-text">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                placeholder="搜索权限..."
+                className="input input-bordered flex-1"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
           
-          <div className="form-control min-w-0 sm:min-w-[150px]">
-            <select
-              className="select select-bordered"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <option value="all">全部分类</option>
-              {permissionCategories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
+          {/* 过滤和操作区 */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="form-control flex-1">
+              <select
+                className="select select-bordered"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="all">全部分类</option>
+                {permissionCategories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => toggleAllPermissions(true)}
-              className="btn btn-sm btn-success"
-              disabled={saving}
-            >
-              全选
-            </button>
-            <button
-              onClick={() => toggleAllPermissions(false)}
-              className="btn btn-sm btn-error"
-              disabled={saving}
-            >
-              清空
-            </button>
+            <div className="join">
+              <button
+                onClick={() => toggleAllPermissions(true)}
+                className="btn btn-sm btn-success join-item"
+                disabled={saving}
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                全选
+              </button>
+              <button
+                onClick={() => toggleAllPermissions(false)}
+                className="btn btn-sm btn-error join-item"
+                disabled={saving}
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                清空
+              </button>
+            </div>
           </div>
         </div>
 
@@ -289,14 +297,14 @@ export function RolePermissionMatrix({
 
             return (
               <div key={category} className="collapse collapse-arrow border-b">
-                <input type="checkbox" defaultChecked />
-                <div className="collapse-title min-h-0 py-3">
+                <input type="checkbox" defaultChecked aria-label={`展开或折叠 ${category} 分组`} />
+                <div className="collapse-title min-h-0 py-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <label className="label cursor-pointer p-0">
                         <input
                           type="checkbox"
-                          className={`checkbox checkbox-sm ${isPartialSelected ? 'checkbox-warning' : 'checkbox-primary'}`}
+                          className={`checkbox ${isPartialSelected ? 'checkbox-warning' : 'checkbox-primary'}`}
                           checked={isAllSelected}
                           ref={(el) => {
                             if (el) el.indeterminate = isPartialSelected;
@@ -305,7 +313,7 @@ export function RolePermissionMatrix({
                           disabled={saving}
                         />
                       </label>
-                      <span className="font-medium">{category}</span>
+                      <span className="font-medium text-base">{category}</span>
                     </div>
                     <span className="badge badge-sm">
                       {selectedInCategory} / {categoryPermissions.length}
@@ -315,18 +323,19 @@ export function RolePermissionMatrix({
                 <div className="collapse-content">
                   <div className="grid gap-2">
                     {permissions.map(permission => (
-                      <label key={permission.id} className="label cursor-pointer justify-start py-2">
+                      <label key={permission.id} className="label cursor-pointer justify-start py-3 px-2 hover:bg-base-200/50 rounded-lg transition-colors">
                         <input
                           type="checkbox"
-                          className="checkbox checkbox-sm checkbox-primary mr-3"
+                          className="checkbox checkbox-primary mr-4"
                           checked={isPermissionSelected(permission.code)}
                           onChange={() => togglePermission(permission.code)}
                           disabled={saving || selectedPermissions.includes('*')}
+                          aria-describedby={`permission-desc-${permission.id}`}
                         />
                         <div className="flex-1">
                           <div className="font-medium">{permission.name}</div>
-                          <div className="text-sm text-gray-500">{permission.description}</div>
-                          <div className="text-xs text-gray-400 font-mono mt-1">{permission.code}</div>
+                          <div id={`permission-desc-${permission.id}`} className="text-sm text-base-content/70">{permission.description}</div>
+                          <div className="text-xs text-base-content/50 font-mono mt-1">{permission.code}</div>
                         </div>
                       </label>
                     ))}

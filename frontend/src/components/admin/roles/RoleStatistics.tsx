@@ -174,13 +174,13 @@ export function RoleStatistics({ roles, loading = false, className = '' }: RoleS
               
               {/* 内容 */}
               <div className="flex-1">
-                <div className="text-sm font-medium text-gray-500 mb-1">
+                <div className="text-sm font-medium text-base-content/70 mb-1">
                   {card.title}
                 </div>
-                <div className="text-2xl font-bold text-gray-900 mb-1">
+                <div className="text-2xl font-bold text-base-content mb-1">
                   {card.value.toLocaleString()}
                 </div>
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-base-content/50">
                   {card.subtext}
                 </div>
               </div>

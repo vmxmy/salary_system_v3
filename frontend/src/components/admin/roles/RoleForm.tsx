@@ -206,10 +206,13 @@ export function RoleForm({ role, onSave, onCancel, loading = false }: RoleFormPr
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 disabled={saving}
+                aria-required="true"
+                aria-invalid={errors.name ? 'true' : 'false'}
+                aria-describedby={errors.name ? 'name-error' : undefined}
               />
               {errors.name && (
                 <label className="label">
-                  <span className="label-text-alt text-error">{errors.name}</span>
+                  <span id="name-error" className="label-text-alt text-error" role="alert">{errors.name}</span>
                 </label>
               )}
             </div>
@@ -228,15 +231,18 @@ export function RoleForm({ role, onSave, onCancel, loading = false }: RoleFormPr
                 value={formData.code}
                 onChange={(e) => handleInputChange('code', e.target.value)}
                 disabled={saving || (isEditing && role?.isSystem)}
+                aria-required="true"
+                aria-invalid={errors.code ? 'true' : 'false'}
+                aria-describedby={errors.code ? 'code-error' : (isEditing && role?.isSystem) ? 'code-system-note' : undefined}
               />
               {errors.code && (
                 <label className="label">
-                  <span className="label-text-alt text-error">{errors.code}</span>
+                  <span id="code-error" className="label-text-alt text-error" role="alert">{errors.code}</span>
                 </label>
               )}
               {isEditing && role?.isSystem && (
                 <label className="label">
-                  <span className="label-text-alt text-warning">系统角色代码不可修改</span>
+                  <span id="code-system-note" className="label-text-alt text-warning">系统角色代码不可修改</span>
                 </label>
               )}
             </div>
@@ -253,10 +259,12 @@ export function RoleForm({ role, onSave, onCancel, loading = false }: RoleFormPr
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
               disabled={saving}
+              aria-invalid={errors.description ? 'true' : 'false'}
+              aria-describedby={errors.description ? 'description-error' : undefined}
             />
             {errors.description && (
               <label className="label">
-                <span className="label-text-alt text-error">{errors.description}</span>
+                <span id="description-error" className="label-text-alt text-error" role="alert">{errors.description}</span>
               </label>
             )}
           </div>
@@ -275,6 +283,9 @@ export function RoleForm({ role, onSave, onCancel, loading = false }: RoleFormPr
                 value={formData.level}
                 onChange={(e) => handleInputChange('level', parseInt(e.target.value))}
                 disabled={saving || (isEditing && role?.isSystem)}
+                aria-required="true"
+                aria-invalid={errors.level ? 'true' : 'false'}
+                aria-describedby={errors.level ? 'level-error' : (isEditing && role?.isSystem) ? 'level-system-note' : undefined}
               >
                 {ROLE_LEVELS.map(level => (
                   <option key={level.value} value={level.value}>
@@ -341,7 +352,7 @@ export function RoleForm({ role, onSave, onCancel, loading = false }: RoleFormPr
               />
               <span className="label-text font-medium">启用此角色</span>
             </label>
-            <div className="text-sm text-gray-500 ml-8">
+            <div className="text-sm text-base-content/70 ml-8">
               禁用的角色将不能分配给用户，但不会影响已有用户的权限
             </div>
           </div>

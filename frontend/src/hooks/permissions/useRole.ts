@@ -355,6 +355,157 @@ export function useRole(): UseRoleReturn {
     }
   }, [user]);
 
+  // 获取所有系统角色信息（用于角色管理页面）
+  const getAllSystemRoles = useCallback(async () => {
+    try {
+      // 获取每个角色的用户数统计
+      const { data: userStats, error: userStatsError } = await supabase
+        .from('user_roles')
+        .select('role, user_id')
+        .eq('is_active', true);
+
+      if (userStatsError) throw userStatsError;
+
+      // 统计每个角色的用户数量
+      const userCounts: Record<string, number> = {};
+      (userStats || []).forEach(item => {
+        const roleKey = item.role || 'employee';
+        userCounts[roleKey] = (userCounts[roleKey] || 0) + 1;
+      });
+
+      // 构建角色信息列表
+      const allRoles = Object.entries(ROLE_HIERARCHY).map(([roleCode, level]) => {
+        const info = ROLE_INFO[roleCode as Role];
+        const userCount = userCounts[roleCode] || 0;
+
+        return {
+          id: `role_${roleCode}`,
+          code: roleCode,
+          name: info?.name || roleCode,
+          description: info?.description || '未知角色',
+          level: level,
+          color: info?.color || 'neutral',
+          isSystem: ['super_admin', 'admin'].includes(roleCode),
+          isActive: true,
+          userCount: userCount,
+          permissions: [], // 权限将在需要时异步加载
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+      });
+
+      return allRoles.sort((a, b) => b.level - a.level); // 按权限级别降序排列
+
+    } catch (err) {
+      console.error('[useRole] Error fetching all system roles:', err);
+      return [];
+    }
+  }, []);
+
+  // 获取指定角色的详细权限信息
+  const getRolePermissions = useCallback(async (roleCode: Role) => {
+    try {
+      const permissions = await fetchRolePermissions(roleCode);
+      return permissions;
+    } catch (err) {
+      console.error(`[useRole] Error fetching permissions for role ${roleCode}:`, err);
+      return [];
+    }
+  }, [fetchRolePermissions]);
+
+  // 创建新角色（仅限系统管理员）
+  const createRole = useCallback(async (roleData: {
+    code: string;
+    name: string;
+    description: string;
+    level: number;
+    permissions: Permission[];
+  }) => {
+    if (!user || !hasRoleLevel('admin' as Role)) {
+      throw createRoleError('Insufficient permissions to create role', role);
+    }
+
+    try {
+      // 构建权限规则
+      const permissionRules: Record<string, any> = {};
+      roleData.permissions.forEach(permission => {
+        permissionRules[permission] = {
+          data_scope: 'all',
+          conditions: {},
+          granted_by: user.id,
+          reason: 'Role creation'
+        };
+      });
+
+      // 插入角色权限配置
+      const { error: configError } = await supabase
+        .from('unified_permission_config')
+        .insert({
+          user_id: null, // 系统级别的配置
+          role_code: roleData.code,
+          permission_rules: permissionRules,
+          effective_from: new Date().toISOString(),
+          is_active: true,
+          created_by: user.id,
+          request_type: 'role_creation'
+        });
+
+      if (configError) throw configError;
+
+      console.log(`[useRole] Role created successfully: ${roleData.code}`);
+      return true;
+
+    } catch (err) {
+      const error = err instanceof Error ? err : createRoleError('Role creation failed', role);
+      console.error('[useRole] Role creation error:', error);
+      throw error;
+    }
+  }, [user, role, hasRoleLevel]);
+
+  // 更新角色权限
+  const updateRolePermissions = useCallback(async (roleCode: string, permissions: Permission[]) => {
+    if (!user || !hasRoleLevel('admin' as Role)) {
+      throw createRoleError('Insufficient permissions to update role', role);
+    }
+
+    try {
+      // 构建新的权限规则
+      const permissionRules: Record<string, any> = {};
+      permissions.forEach(permission => {
+        permissionRules[permission] = {
+          data_scope: 'all',
+          conditions: {},
+          granted_by: user.id,
+          reason: 'Role permission update',
+          updated_at: new Date().toISOString()
+        };
+      });
+
+      // 更新角色权限配置
+      const { error: updateError } = await supabase
+        .from('unified_permission_config')
+        .update({
+          permission_rules: permissionRules,
+          updated_at: new Date().toISOString()
+        })
+        .eq('role_code', roleCode)
+        .eq('request_type', 'role_creation');
+
+      if (updateError) throw updateError;
+
+      // 清理相关缓存
+      unifiedPermissionManager.clearCache();
+
+      console.log(`[useRole] Role permissions updated successfully: ${roleCode}`);
+      return true;
+
+    } catch (err) {
+      const error = err instanceof Error ? err : createRoleError('Role update failed', role);
+      console.error('[useRole] Role update error:', error);
+      throw error;
+    }
+  }, [user, role, hasRoleLevel]);
+
   // 初始化角色权限
   useEffect(() => {
     if (user && role) {
@@ -402,6 +553,12 @@ export function useRole(): UseRoleReturn {
     switchRole,
     requestRole,
     getMyRoleRequests,
+    
+    // 系统角色管理（管理员功能）
+    getAllSystemRoles,
+    getRolePermissions,
+    createRole,
+    updateRolePermissions,
     
     // 工具方法
     fetchRolePermissions,

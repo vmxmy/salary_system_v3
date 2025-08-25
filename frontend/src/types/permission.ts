@@ -195,6 +195,7 @@ export interface UsePermissionReturn {
   // 缓存管理
   clearCache: () => void;
   invalidatePermission: (permission: Permission, resourceId?: string) => void;
+  populateCache: (permissions: Permission[]) => Promise<void>; // 测试专用：批量预加载权限
   
   // 实时更新
   isSubscribed: boolean;
@@ -206,27 +207,10 @@ export interface UsePermissionReturn {
     cacheSize: number;
     requestCount: number;
     userId?: string;
+    cacheContents?: Record<string, PermissionResult>; // 开发模式下的缓存内容
   };
 }
 
-export interface UseRoleReturn {
-  // 角色信息
-  role: Role;
-  isRole: (role: Role | Role[]) => boolean;
-  hasRoleLevel: (minLevel: Role) => boolean;
-  
-  // 角色权限
-  rolePermissions: Permission[];
-  canEscalate: boolean;
-  
-  // 状态
-  loading: boolean;
-  error: Error | null;
-  
-  // 角色管理
-  switchRole: (newRole: Role) => Promise<boolean>;
-  requestRole: (role: Role, reason: string) => Promise<string>; // 返回申请ID
-}
 
 export interface UseResourceReturn {
   // 资源访问检查
@@ -381,6 +365,18 @@ export interface UseRoleReturn {
   switchRole: (newRole: Role) => Promise<boolean>;
   requestRole: (targetRole: Role, reason: string) => Promise<string>;
   getMyRoleRequests: () => Promise<any[]>;
+  
+  // 系统角色管理（管理员功能）
+  getAllSystemRoles: () => Promise<any[]>;
+  getRolePermissions: (roleCode: Role) => Promise<Permission[]>;
+  createRole: (roleData: {
+    code: string;
+    name: string;
+    description: string;
+    level: number;
+    permissions: Permission[];
+  }) => Promise<boolean>;
+  updateRolePermissions: (roleCode: string, permissions: Permission[]) => Promise<boolean>;
   
   // 工具方法
   fetchRolePermissions: (targetRole?: Role) => Promise<Permission[]>;
