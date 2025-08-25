@@ -3,6 +3,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useDashboard, dashboardFormatters } from '@/hooks/dashboard';
 // 财务分析报表模块已移除
 import { OnboardingButton } from '@/components/onboarding';
+import { PayrollTrendChart } from '@/components/dashboard/PayrollTrendChart';
 // HookTestPanel已移除，测试功能可通过专门的测试页面访问
 
 export default function DashboardPage() {
@@ -95,6 +96,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* 薪资趋势折线图 - 位置在stats下面 */}
+      <PayrollTrendChart />
 
       <div className="card bg-base-100 shadow">
         <div className="card-body">
