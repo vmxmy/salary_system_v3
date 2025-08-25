@@ -312,6 +312,9 @@ export const useUpdateEarning = () => {
         queryClient.invalidateQueries({ 
           queryKey: ['payrolls', 'detail', data.payroll_id] 
         });
+        // 失效薪资列表和统计查询，确保统计数据自动更新
+        queryClient.invalidateQueries({ queryKey: ['payrolls', 'list'] });
+        queryClient.invalidateQueries({ queryKey: ['payrolls', 'statistics'] });
       }
     },
   });

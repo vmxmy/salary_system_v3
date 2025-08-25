@@ -41,7 +41,6 @@
     "src/backup-auth", 
     "src/archived", 
     "archived",
-    "src/hooks/payroll/useSalaryComponentFields.ts",
-    "src/pages/statistics/StatisticsPage.tsx"
+    "src/hooks/payroll/useSalaryComponentFields.ts"
   ]
 }

@@ -125,8 +125,14 @@ export default function PayrollListPage() {
     pageSize: 1000 // 设置一个较大的值来获取所有数据
   });
 
+  // 创建统一的刷新函数，同时刷新薪资列表和统计数据
+  const handleRefreshAll = useCallback(() => {
+    refetch(); // 刷新薪资列表
+    // 统计数据会通过 React Query 的缓存失效机制自动刷新
+  }, [refetch]);
+
   // 使用批量操作管理Hook
-  const batchOperationsManager = useBatchOperationsManager(refetch);
+  const batchOperationsManager = useBatchOperationsManager(handleRefreshAll);
   
   // 设置 Realtime 订阅以自动刷新数据（临时禁用，待服务器配置修复）
   usePayrollRealtime({

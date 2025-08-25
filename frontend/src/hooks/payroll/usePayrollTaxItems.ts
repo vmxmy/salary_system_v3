@@ -39,10 +39,10 @@ export const usePayrollTaxItems = (payrollId: string | null) => {
 
     // 转换为 TaxItem 格式
     return taxRelatedItems.map(item => ({
-      item_id: item.item_id,
-      component_name: item.component_name,
-      amount: item.amount,
-      item_notes: item.item_notes
+      item_id: item.item_id || '',
+      component_name: item.component_name || '',
+      amount: item.amount || 0,
+      item_notes: item.item_notes || ''
     }));
   }, [payrollItemsData]);
 

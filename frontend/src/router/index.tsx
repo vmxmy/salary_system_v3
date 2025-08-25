@@ -25,7 +25,7 @@ const PayrollDetailPage = lazy(() => import('@/pages/payroll/PayrollDetailPage')
 const PayrollApprovalPage = lazy(() => import('@/pages/payroll/PayrollApprovalPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
-// const StatisticsPage = lazy(() => import('@/pages/statistics/StatisticsPage')); // Excluded from compilation
+const StatisticsPage = lazy(() => import('@/pages/statistics/StatisticsPage'));
 const ThemeShowcasePage = lazy(() => import('@/pages/ThemeShowcasePage'));
 const DesignTokensPage = lazy(() => import('@/pages/DesignTokensPage'));
 const DesignSystemShowcase = lazy(() => import('@/pages/DesignSystemShowcase'));
@@ -265,14 +265,16 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
-      // {
-      //   path: 'statistics',
-      //   element: (
-      //     <Suspense fallback={<LoadingScreen />}>
-      //       <StatisticsPage />
-      //     </Suspense>
-      //   ),
-      // }, // StatisticsPage excluded from compilation
+      {
+        path: 'statistics',
+        element: (
+          <Suspense fallback={<LoadingScreen />}>
+            <ProtectedRoute requiredPermissions={['statistics.view']}>
+              <StatisticsPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
       // Admin management pages
       {
         path: 'admin',

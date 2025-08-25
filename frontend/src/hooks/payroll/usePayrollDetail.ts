@@ -52,23 +52,23 @@ export const usePayrollDetail = (payrollId: string | null) => {
 
       // 转换数据格式
       const result: PayrollDetailData = {
-        id: payrollData.payroll_id,
-        employee_id: payrollData.employee_id,
-        period_id: payrollData.period_id,
-        pay_period_start: payrollData.period_start,
-        pay_period_end: payrollData.period_end,
-        pay_date: payrollData.actual_pay_date || payrollData.scheduled_pay_date,
-        status: payrollData.payroll_status,
+        id: payrollData.payroll_id || '',
+        employee_id: payrollData.employee_id || '',
+        period_id: payrollData.period_id || '',
+        pay_period_start: payrollData.period_start || '',
+        pay_period_end: payrollData.period_end || '',
+        pay_date: payrollData.actual_pay_date || payrollData.scheduled_pay_date || '',
+        status: payrollData.payroll_status || 'draft',
         gross_pay: payrollData.gross_pay || 0,
         total_deductions: payrollData.total_deductions || 0,
         net_pay: payrollData.net_pay || 0,
-        notes: payrollData.notes,
-        created_at: payrollData.created_at,
-        updated_at: payrollData.updated_at,
+        notes: '',
+        created_at: payrollData.created_at || '',
+        updated_at: payrollData.updated_at || '',
         employee: {
-          id: payrollData.employee_id,
-          employee_name: payrollData.employee_name,
-          id_number: payrollData.id_number
+          id: payrollData.employee_id || '',
+          employee_name: payrollData.employee_name || '',
+          id_number: payrollData.id_number || ''
         }
       };
 

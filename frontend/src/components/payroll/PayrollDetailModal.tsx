@@ -1905,15 +1905,20 @@ function ContributionBaseSection({
 
     return (
       <div
-        className="text-right cursor-pointer hover:bg-base-200/50 rounded px-2 py-1 transition-colors group"
+        className="flex items-center justify-between group cursor-pointer hover:bg-base-200/50 p-1 -m-1 rounded"
         onClick={() => handleStartEditBase(base.id, amount)}
+        title="点击编辑缴费基数"
       >
-        <span className="text-sm font-semibold font-mono text-primary">
-          {formatCurrency(amount)}
-        </span>
-        <span className="ml-2 opacity-0 group-hover:opacity-100 text-xs text-base-content/50">
-          点击编辑
-        </span>
+        <div className="text-right flex-1">
+          <span className="text-sm font-semibold font-mono text-primary">
+            {formatCurrency(amount)}
+          </span>
+        </div>
+        <button className="btn btn-xs btn-ghost opacity-0 group-hover:opacity-100 ml-2">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
       </div>
     );
   };
@@ -2137,6 +2142,173 @@ interface TaxDetailsSectionProps {
 
 function TaxDetailsSection({ taxItems }: TaxDetailsSectionProps) {
   const { t } = useTranslation(['payroll', 'common']);
+  const { showSuccess, showError } = useToast();
+
+  // 使用薪资项目更新 hook
+  const updateEarningMutation = useUpdateEarning();
+
+  // 内联编辑状态管理
+  const [editingTaxId, setEditingTaxId] = useState<string | null>(null);
+  const [editingTaxAmount, setEditingTaxAmount] = useState<string>('');
+  const [isSavingTax, setIsSavingTax] = useState(false);
+
+  // 开始编辑个税项目
+  const handleStartEditTax = useCallback((taxId: string, currentAmount: number) => {
+    console.log('[TaxDetailsSection] 🎯 开始编辑个税项目:', {
+      taxId,
+      currentAmount
+    });
+
+    setEditingTaxId(taxId);
+    setEditingTaxAmount(Math.abs(currentAmount).toString());
+  }, []);
+
+  // 取消编辑
+  const handleCancelEditTax = useCallback(() => {
+    setEditingTaxId(null);
+    setEditingTaxAmount('');
+  }, []);
+
+  // 保存编辑
+  const handleSaveEditTax = useCallback(async (taxItem: TaxItem, currentEditingAmount?: string) => {
+    // 优先使用传入的当前编辑金额，避免闭包问题
+    const amountToSave = currentEditingAmount ?? editingTaxAmount;
+
+    if (!amountToSave.trim()) {
+      showError('税额不能为空');
+      return;
+    }
+
+    const newAmount = parseFloat(amountToSave);
+    if (isNaN(newAmount) || newAmount < 0) {
+      showError('请输入有效的税额');
+      return;
+    }
+
+    // 如果金额没有变化，直接取消编辑
+    if (Math.abs(newAmount - Math.abs(taxItem.amount)) < 0.01) {
+      handleCancelEditTax();
+      return;
+    }
+
+    setIsSavingTax(true);
+    try {
+      console.log('[TaxDetailsSection] 🔧 保存个税项目:', {
+        itemId: taxItem.item_id,
+        oldAmount: taxItem.amount,
+        newAmount: newAmount
+      });
+
+      // 使用 hook 更新个税项目
+      await updateEarningMutation.mutateAsync({
+        earningId: taxItem.item_id,
+        data: {
+          amount: newAmount
+        }
+      });
+
+      console.log('[TaxDetailsSection] ✅ 个税项目更新成功');
+      showSuccess('个税项目更新成功');
+
+      // 成功后取消编辑状态
+      handleCancelEditTax();
+
+    } catch (error) {
+      console.error('更新个税项目失败:', error);
+      showError('更新失败，请重试');
+    } finally {
+      setIsSavingTax(false);
+    }
+  }, [showError, showSuccess, handleCancelEditTax, updateEarningMutation, editingTaxAmount]);
+
+  // 可编辑个税金额单元格组件
+  const EditableTaxAmountCell = ({
+    taxItem,
+    currentEditingId,
+    tableInfo
+  }: {
+    taxItem: TaxItem;
+    currentEditingId?: string | null;
+    tableInfo?: any;
+  }) => {
+    const actualEditingId = currentEditingId ?? editingTaxId;
+    const isEditing = actualEditingId === taxItem.item_id;
+    const amount = taxItem.amount;
+
+    if (isEditing) {
+      // 从 table meta 获取最新的 editingTaxAmount，避免闭包问题
+      const { editingTaxAmount: metaEditingAmount } = tableInfo?.table?.options?.meta || {};
+      const currentEditingAmount = metaEditingAmount ?? editingTaxAmount;
+
+      return (
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={currentEditingAmount}
+            onChange={(e) => {
+              // 从 table meta 获取 setEditingTaxAmount，避免闭包问题
+              const { setEditingTaxAmount: metaSetEditingAmount } = tableInfo?.table?.options?.meta || {};
+              if (metaSetEditingAmount) {
+                metaSetEditingAmount(e.target.value);
+              } else {
+                setEditingTaxAmount(e.target.value);
+              }
+            }}
+            className="input input-sm input-bordered w-24 text-right font-mono"
+            step="0.01"
+            min="0"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSaveEditTax(taxItem, currentEditingAmount);
+              } else if (e.key === 'Escape') {
+                handleCancelEditTax();
+              }
+            }}
+          />
+          <div className="flex items-center gap-1">
+            <button
+              className="btn btn-xs btn-success"
+              onClick={() => handleSaveEditTax(taxItem, currentEditingAmount)}
+              disabled={isSavingTax}
+            >
+              {isSavingTax ? (
+                <span className="loading loading-xs loading-spinner"></span>
+              ) : (
+                '✓'
+              )}
+            </button>
+            <button
+              className="btn btn-xs btn-ghost"
+              onClick={handleCancelEditTax}
+              disabled={isSavingTax}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className="flex items-center justify-between group cursor-pointer hover:bg-base-200/50 p-1 -m-1 rounded"
+        onClick={() => handleStartEditTax(taxItem.item_id, amount)}
+        title="点击编辑税额"
+      >
+        <div className="text-right flex-1">
+          <span className="text-sm font-bold font-mono text-error">
+            {formatCurrency(amount)}
+          </span>
+        </div>
+        <button className="btn btn-xs btn-ghost opacity-0 group-hover:opacity-100 ml-2">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
+      </div>
+    );
+  };
 
   // 定义表格列
   const taxColumns = useMemo(() => [
@@ -2149,13 +2321,13 @@ function TaxDetailsSection({ taxItems }: TaxDetailsSectionProps) {
       )
     }),
     taxItemColumnHelper.accessor('amount', {
-      header: '税额',
-      cell: info => (
-        <div className="text-right">
-          <span className="text-sm font-bold font-mono text-error">
-            {formatCurrency(info.getValue())}
-          </span>
-        </div>
+      header: () => <div className="text-right">税额</div>,
+      cell: ({ row, table }) => (
+        <EditableTaxAmountCell
+          taxItem={row.original}
+          currentEditingId={editingTaxId}
+          tableInfo={{ table }}
+        />
       )
     }),
     taxItemColumnHelper.accessor('item_notes', {
@@ -2166,13 +2338,19 @@ function TaxDetailsSection({ taxItems }: TaxDetailsSectionProps) {
         </span>
       )
     })
-  ], []);
+  ], [editingTaxId, handleStartEditTax, handleCancelEditTax, handleSaveEditTax, editingTaxAmount]);
 
   // 创建表格实例
   const taxTable = useReactTable({
     data: taxItems,
     columns: taxColumns,
     getCoreRowModel: getCoreRowModel(),
+    meta: {
+      editingTaxId,
+      setEditingTaxId,
+      editingTaxAmount,
+      setEditingTaxAmount,
+    },
   });
 
   // 计算个税总额

@@ -430,6 +430,10 @@ export const useSetContributionBase = () => {
       queryClient.invalidateQueries({ 
         queryKey: ['payrolls', 'list'] 
       });
+      // 失效统计查询，确保统计数据自动更新
+      queryClient.invalidateQueries({ 
+        queryKey: ['payrolls', 'statistics'] 
+      });
     },
   });
 };

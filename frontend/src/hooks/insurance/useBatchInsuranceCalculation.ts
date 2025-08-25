@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { loadStandardInsuranceConfigs, INSURANCE_TYPE_CONFIGS } from './core/insuranceDataService';
+import { payrollQueryKeys } from '../payroll/usePayroll';
 
 export interface BatchInsuranceResult {
   employeeId: string;
@@ -161,6 +163,7 @@ export const useBatchInsuranceCalculation = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const queryClient = useQueryClient();
 
   // 初始化时加载标准配置（只执行一次）
   useEffect(() => {
@@ -497,6 +500,17 @@ export const useBatchInsuranceCalculation = () => {
         }
         
         console.log(`🎉 批量插入完成，共处理 ${allPayrollItems.length} 条记录`);
+        
+        // 批量插入成功后，失效相关查询缓存，确保统计数据自动更新
+        queryClient.invalidateQueries({ queryKey: payrollQueryKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: payrollQueryKeys.statistics() });
+        // 失效所有相关的详情查询
+        const affectedPayrollIds = [...new Set(allPayrollItems.map(item => item.payroll_id))];
+        affectedPayrollIds.forEach(payrollId => {
+          if (payrollId) {
+            queryClient.invalidateQueries({ queryKey: payrollQueryKeys.detail(payrollId) });
+          }
+        });
       }
 
       const endTime = performance.now();

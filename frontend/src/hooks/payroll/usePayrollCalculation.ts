@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { usePayrollLogger } from './usePayrollLogger';
+import { payrollQueryKeys } from './usePayroll';
 
 /**
  * 薪资项目明细
@@ -85,6 +87,7 @@ export interface BatchPayrollCalculationResult {
 export const usePayrollCalculation = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const logger = usePayrollLogger();
 
   /**
@@ -294,6 +297,10 @@ export const usePayrollCalculation = () => {
           result.errors.push(updateError.message);
         } else {
           result.message = '计算并保存成功';
+          // 失效相关查询缓存，确保统计数据自动更新
+          queryClient.invalidateQueries({ queryKey: payrollQueryKeys.lists() });
+          queryClient.invalidateQueries({ queryKey: payrollQueryKeys.statistics() });
+          queryClient.invalidateQueries({ queryKey: payrollQueryKeys.detail(result.payrollId) });
         }
       } catch (saveError) {
         result.success = false;
@@ -394,6 +401,13 @@ export const usePayrollCalculation = () => {
             // 更新成功的结果消息
             successfulResults.forEach(result => {
               result.message = '计算并保存成功';
+            });
+            // 批量更新成功后，失效相关查询缓存，确保统计数据自动更新
+            queryClient.invalidateQueries({ queryKey: payrollQueryKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: payrollQueryKeys.statistics() });
+            // 失效所有详情查询
+            successfulResults.forEach(result => {
+              queryClient.invalidateQueries({ queryKey: payrollQueryKeys.detail(result.payrollId) });
             });
           }
         }
