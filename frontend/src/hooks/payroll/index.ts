@@ -44,6 +44,17 @@ export {
   type BatchOperationResult
 } from './usePayroll';
 
+// 薪资详情相关
+export {
+  usePayrollDetail,
+  type PayrollDetailData
+} from './usePayrollDetail';
+
+export {
+  usePayrollTaxItems,
+  type TaxItem
+} from './usePayrollTaxItems';
+
 // 薪资相关工具和数据管理
 export { 
   useAvailablePayrollMonths, 

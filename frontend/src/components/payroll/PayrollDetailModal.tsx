@@ -12,6 +12,8 @@ import { useEmployeePositionByPeriod, useEmployeePositionHistory, useAssignEmplo
 import { useDepartmentList } from '@/hooks/department/useDepartments';
 import { useEmployeePositions } from '@/hooks/payroll/useEmployeePosition';
 import { useEmployeeContributionBasesByPeriod } from '@/hooks/payroll/useContributionBase';
+import { useUpdateEarning } from '@/hooks/payroll/usePayrollEarnings';
+import { useSetContributionBase } from '@/hooks/payroll/useContributionBase';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -227,10 +229,10 @@ interface PayrollDetailModalProps {
   onClose: () => void;
 }
 
-export function PayrollDetailModal({ 
-  payrollId, 
-  open, 
-  onClose 
+export function PayrollDetailModal({
+  payrollId,
+  open,
+  onClose
 }: PayrollDetailModalProps) {
   const { t } = useTranslation(['payroll', 'common']);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -243,10 +245,10 @@ export function PayrollDetailModal({
   const [error, setError] = useState<Error | null>(null);
   const { showSuccess, showError, showInfo } = useToast();
 
-  
+
   // 使用hook获取五险一金数据
   const { data: insuranceDetails = [], isLoading: insuranceLoading } = useEmployeeInsuranceDetails(payrollId || '');
-  
+
   // 使用hook获取缴费基数数据
   const [employeeId, setEmployeeId] = useState<string>('');
   const [periodId, setPeriodId] = useState<string>('');
@@ -267,9 +269,9 @@ export function PayrollDetailModal({
         .select('*')
         .eq('payroll_id', payrollId)
         .single();
-      
+
       if (payrollError) throw payrollError;
-      
+
       const payroll = payrollData ? {
         id: payrollData.payroll_id,
         employee_id: payrollData.employee_id,
@@ -290,7 +292,7 @@ export function PayrollDetailModal({
       } : null;
       if (payroll) {
         setPayrollData(payroll as unknown as PayrollDetailData);
-        
+
         // 设置员工ID和周期ID，让hooks自动获取数据
         if (payroll.employee_id) {
           setEmployeeId(payroll.employee_id);
@@ -313,7 +315,7 @@ export function PayrollDetailModal({
           .not('item_id', 'is', null)
           .order('category', { ascending: true })
           .order('component_name', { ascending: true });
-        
+
         if (itemsError) throw itemsError;
         console.log('原始获取的薪资明细数据:', {
           totalCount: items?.length || 0,
@@ -331,21 +333,21 @@ export function PayrollDetailModal({
           } : null
         });
         setPayrollItems(items as PayrollItemDetail[]);
-        
+
         // 从薪资明细中筛选个税项目
-        const taxRelatedItems = (items as PayrollItemDetail[]).filter(item => 
-          item.category === 'personal_tax' || 
+        const taxRelatedItems = (items as PayrollItemDetail[]).filter(item =>
+          item.category === 'personal_tax' ||
           item.component_name.includes('个人所得税') ||
           item.component_name.includes('个税')
         );
-        
+
         const taxItems: TaxItem[] = taxRelatedItems.map(item => ({
           item_id: item.item_id,
           component_name: item.component_name,
           amount: item.amount,
           item_notes: item.item_notes
         }));
-        
+
         setTaxItems(taxItems);
         console.log('筛选出的个税项目:', taxItems);
       } catch (itemError) {
@@ -395,7 +397,7 @@ export function PayrollDetailModal({
   // 薪资概览Tab - 薪资汇总优先显示
   const OverviewTab = () => {
     if (!payrollData) return null;
-    
+
     return (
       <div className="space-y-6">
         {/* 薪资汇总 - 移到顶部 */}
@@ -421,7 +423,7 @@ export function PayrollDetailModal({
                 </div>
               </div>
             </div>
-            
+
             {/* 扣除合计 */}
             <div className="bg-error/5 rounded-lg p-4 border border-error/20">
               <div className="flex items-center gap-3">
@@ -447,7 +449,7 @@ export function PayrollDetailModal({
                 </div>
               </div>
             </div>
-            
+
             {/* 实发工资 - 突出显示 */}
             <div className="bg-primary/5 rounded-lg p-4 border-2 border-primary/30">
               <div className="flex items-center gap-3">
@@ -611,8 +613,8 @@ export function PayrollDetailModal({
                     <TaxTab taxItems={taxItems} />
                   )}
                   {activeTab === 'job' && payrollData && (
-                    <JobTab 
-                      employeeId={payrollData.employee_id} 
+                    <JobTab
+                      employeeId={payrollData.employee_id}
                       payrollId={payrollData.id}
                     />
                   )}
@@ -639,7 +641,7 @@ export function PayrollDetailModal({
             </div>
           </div>
         </div>
-        
+
         {/* 点击背景关闭 */}
         <form method="dialog" className="modal-backdrop">
           <button type="button" onClick={onClose}>关闭</button>
@@ -658,7 +660,7 @@ interface PayrollBreakdownTabProps {
 
 function PayrollBreakdownTab({ payrollItems, payroll }: PayrollBreakdownTabProps) {
   const { t } = useTranslation(['payroll', 'common']);
-  
+
   // 定义薪资明细标签页要显示的类别
   const BREAKDOWN_TAB_CATEGORIES = [
     'basic_salary',      // 基本工资
@@ -669,12 +671,12 @@ function PayrollBreakdownTab({ payrollItems, payroll }: PayrollBreakdownTabProps
     'other_earnings',    // 其他收入
     'other_deductions'   // 其他扣除
   ];
-  
+
   // 添加调试日志
   console.log('=== PayrollBreakdownTab 调试信息 ===');
   console.log('原始薪资项目数据 (payrollItems):', payrollItems);
   console.log('原始数据数量:', payrollItems.length);
-  
+
   // 按 category 分组薪资项目，并过滤只显示指定类别
   const allGroupedItems = payrollItems.reduce((acc, item) => {
     const category = item.category;
@@ -684,11 +686,11 @@ function PayrollBreakdownTab({ payrollItems, payroll }: PayrollBreakdownTabProps
     acc[category].push(item);
     return acc;
   }, {} as Record<string, PayrollItemDetail[]>);
-  
+
   console.log('所有分组后的数据 (allGroupedItems):', allGroupedItems);
   console.log('所有类别:', Object.keys(allGroupedItems));
   console.log('需要显示的类别 (BREAKDOWN_TAB_CATEGORIES):', BREAKDOWN_TAB_CATEGORIES);
-  
+
   // 检查 other_deductions 类别
   if (allGroupedItems['other_deductions']) {
     console.log('找到 other_deductions 类别，数量:', allGroupedItems['other_deductions'].length);
@@ -696,7 +698,7 @@ function PayrollBreakdownTab({ payrollItems, payroll }: PayrollBreakdownTabProps
   } else {
     console.log('未找到 other_deductions 类别');
   }
-  
+
   // 过滤并排序分组数据，只保留薪资明细页面需要的类别
   const filteredEntries = Object.entries(allGroupedItems)
     .filter(([category]) => {
@@ -704,9 +706,9 @@ function PayrollBreakdownTab({ payrollItems, payroll }: PayrollBreakdownTabProps
       console.log(`类别 ${category} ${included ? '已包含' : '已过滤'}`);
       return included;
     });
-    
+
   console.log('过滤后的条目:', filteredEntries.map(([cat, items]) => `${cat}(${items.length}项)`));
-  
+
   const groupedItems = filteredEntries
     .sort(([categoryA], [categoryB]) => {
       return getCategorySortOrder(categoryA) - getCategorySortOrder(categoryB);
@@ -715,7 +717,7 @@ function PayrollBreakdownTab({ payrollItems, payroll }: PayrollBreakdownTabProps
       acc[category] = items;
       return acc;
     }, {} as Record<string, PayrollItemDetail[]>);
-    
+
   console.log('最终分组数据 (groupedItems):', groupedItems);
   console.log('最终显示的类别:', Object.keys(groupedItems));
   console.log('=== 调试信息结束 ===');
@@ -791,7 +793,7 @@ function JobTab({ employeeId, payrollId }: JobTabProps) {
   useEffect(() => {
     const fetchPeriodInfo = async () => {
       if (!payrollId) return;
-      
+
       try {
         // 从薪资记录中获取period_id
         const { data: payrollData } = await supabase
@@ -799,15 +801,15 @@ function JobTab({ employeeId, payrollId }: JobTabProps) {
           .select('period_id')
           .eq('id', payrollId)
           .single();
-        
+
         if (payrollData?.period_id) {
           setPeriodId(payrollData.period_id);
-          
+
           // 获取所有周期信息（用于历史记录日期显示）
           const { data: allPeriodsData } = await supabase
             .from('payroll_periods')
             .select('id, period_name, period_start, period_end, period_year, period_month');
-          
+
           if (allPeriodsData) {
             const periodsMap = new Map();
             allPeriodsData.forEach(period => {
@@ -828,30 +830,30 @@ function JobTab({ employeeId, payrollId }: JobTabProps) {
 
   // 严格查询当前薪资周期的数据 - 只有当periodId存在时才查询
   const shouldQuery = !!(employeeId && periodId);
-  
-  const { 
-    data: employeeCategory, 
-    isLoading: categoryLoading, 
-    error: categoryError 
+
+  const {
+    data: employeeCategory,
+    isLoading: categoryLoading,
+    error: categoryError
   } = useEmployeeCategoryByPeriod(employeeId || '', periodId);
-  
-  const { 
-    data: currentPosition, 
-    isLoading: positionLoading, 
-    error: positionError 
+
+  const {
+    data: currentPosition,
+    isLoading: positionLoading,
+    error: positionError
   } = useEmployeePositionByPeriod(employeeId || '', periodId);
-  
+
   // 严格按当前薪资周期获取职务历史 - 只显示该周期的记录
-  const { 
-    data: allJobHistory, 
-    isLoading: historyLoading, 
-    error: historyError 
+  const {
+    data: allJobHistory,
+    isLoading: historyLoading,
+    error: historyError
   } = useEmployeePositionHistory(employeeId || '');
-  
+
   // 显示所有职务历史记录（已解决重复数据问题）
   const jobHistory = useMemo(() => {
     if (!allJobHistory) return [];
-    
+
     // 显示所有历史记录，按周期时间倒序排列（优先使用period_name中的日期信息）
     return allJobHistory.sort((a, b) => {
       // 如果有周期信息，按周期排序
@@ -866,7 +868,7 @@ function JobTab({ employeeId, payrollId }: JobTabProps) {
   // 构建jobInfo对象 - 包含所有历史记录，使用对应周期的日期范围
   const jobInfo: JobInfo | null = useMemo(() => {
     if (!employeeId) return null;
-    
+
     return {
       employee_category: employeeCategory ? {
         id: employeeCategory.id,
@@ -879,7 +881,7 @@ function JobTab({ employeeId, payrollId }: JobTabProps) {
         const periodInfo = job.period_id ? allPeriodsMap.get(job.period_id) : null;
         const startDate = periodInfo ? periodInfo.period_start : '';
         const endDate = periodInfo ? periodInfo.period_end : undefined;
-        
+
         return {
           id: job.id,
           employee_id: job.employee_id,
@@ -967,10 +969,20 @@ function PayrollBreakdownSection({
   const { t } = useTranslation(['payroll', 'common']);
   const { showSuccess, showError } = useToast();
 
+  // 使用薪资项目更新 hook
+  const updateEarningMutation = useUpdateEarning();
+
   // 内联编辑状态管理
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingAmount, setEditingAmount] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // 组件渲染追踪
+  console.log('[PayrollBreakdownSection] 🎨 组件渲染:', {
+    timestamp: new Date().toISOString(),
+    editingItemId,
+    groupCount: Object.keys(groupedItems || {}).length
+  });
 
   // 开始编辑
   const handleStartEdit = useCallback((itemId: string, currentAmount: number) => {
@@ -979,9 +991,26 @@ function PayrollBreakdownSection({
       currentAmount,
       editingItemId: editingItemId
     });
-    setEditingItemId(itemId);
+
+    // 使用函数式状态更新确保获取最新状态
+    setEditingItemId(prevId => {
+      console.log('[PayrollBreakdownSection] 🔄 状态更新函数执行:', {
+        prevId,
+        newId: itemId
+      });
+      return itemId;
+    });
+
     setEditingAmount(Math.abs(currentAmount).toString());
-  }, [editingItemId]);
+
+    // 添加状态更新后的验证
+    setTimeout(() => {
+      console.log('[PayrollBreakdownSection] ✅ 状态更新后验证:', {
+        newEditingItemId: itemId,
+        stateUpdated: true
+      });
+    }, 100);
+  }, []);
 
   // 取消编辑
   const handleCancelEdit = useCallback(() => {
@@ -990,13 +1019,16 @@ function PayrollBreakdownSection({
   }, []);
 
   // 保存编辑
-  const handleSaveEdit = useCallback(async (item: PayrollItemDetail) => {
-    if (!editingAmount.trim()) {
+  const handleSaveEdit = useCallback(async (item: PayrollItemDetail, currentEditingAmount?: string) => {
+    // 优先使用传入的当前编辑金额，避免闭包问题
+    const amountToSave = currentEditingAmount ?? editingAmount;
+
+    if (!amountToSave.trim()) {
       showError('金额不能为空');
       return;
     }
 
-    const newAmount = parseFloat(editingAmount);
+    const newAmount = parseFloat(amountToSave);
     if (isNaN(newAmount) || newAmount < 0) {
       showError('请输入有效的金额');
       return;
@@ -1015,68 +1047,114 @@ function PayrollBreakdownSection({
         payrollId: item.payroll_id,
         componentName: item.component_name,
         oldAmount: item.amount,
-        newAmount: item.component_type === 'deduction' && item.amount > 0 ? newAmount : newAmount,
+        newAmount: newAmount,
         componentType: item.component_type
       });
 
-      // 调用API更新薪资明细项目
-      const { error } = await supabase
-        .from('payroll_items')
-        .update({ 
-          amount: item.component_type === 'deduction' && item.amount > 0 ? newAmount : newAmount,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', item.item_id);
-
-      if (error) {
-        console.error('更新薪资明细失败:', error);
-        showError(`更新失败: ${error.message}`);
-        return;
-      }
+      // 使用 hook 更新薪资明细项目
+      await updateEarningMutation.mutateAsync({
+        earningId: item.item_id,
+        data: {
+          amount: newAmount
+        }
+      });
 
       console.log('[PayrollBreakdownSection] ✅ 薪资明细项目更新成功');
       showSuccess('薪资明细更新成功');
-      
+
       // 成功后取消编辑状态
       handleCancelEdit();
-      
-      // 触发父组件重新获取数据
-      window.location.reload(); // 简单的刷新方案，实际项目中应该使用更优雅的数据重新获取
-      
+
     } catch (error) {
       console.error('更新薪资明细失败:', error);
       showError('更新失败，请重试');
     } finally {
       setIsSaving(false);
     }
-  }, [editingAmount, showError, showSuccess, handleCancelEdit]);
+  }, [showError, showSuccess, handleCancelEdit, updateEarningMutation]);
 
   // 可编辑金额单元格组件
-  const EditableAmountCell = useCallback(({ 
-    item, 
-    isEarning 
-  }: { 
-    item: PayrollItemDetail; 
-    isEarning: boolean; 
+  const EditableAmountCell = ({
+    item,
+    isEarning,
+    currentEditingId,
+    tableInfo
+  }: {
+    item: PayrollItemDetail;
+    isEarning: boolean;
+    currentEditingId?: string | null;
+    tableInfo?: any; // 添加table信息参数
   }) => {
-    const isEditing = editingItemId === item.item_id;
+    const actualEditingId = currentEditingId ?? editingItemId;
+    const isEditing = actualEditingId === item.item_id;
     const amount = item.amount;
     const absAmount = Math.abs(amount);
 
+    // 调试：检查编辑状态判断
+    const shouldLog = actualEditingId === item.item_id || Math.random() < 0.1; // 只记录编辑中的单元格或10%随机采样
+    if (shouldLog) {
+      console.log(`[EditableAmountCell] ${isEditing ? '✅ EDITING' : '🧩'} 渲染状态检查:`, {
+        itemId: item.item_id,
+        editingItemId,
+        currentEditingId,
+        actualEditingId,
+        isEditing,
+        comparison: `${actualEditingId} === ${item.item_id} = ${actualEditingId === item.item_id}`,
+        componentName: item.component_name,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     if (isEditing) {
+      // 从 table meta 获取最新的 editingAmount，避免闭包问题
+      const { editingAmount: metaEditingAmount } = tableInfo?.table?.options?.meta || {};
+      const currentEditingAmount = metaEditingAmount ?? editingAmount;
+
+      // 调试：检查输入框的值
+      console.log('[EditableAmountCell] 📝 输入框渲染状态:', {
+        itemId: item.item_id,
+        closureEditingAmount: editingAmount,
+        metaEditingAmount: metaEditingAmount,
+        currentEditingAmount: currentEditingAmount,
+        itemAmount: item.amount,
+        absAmount,
+        hasTableInfo: !!tableInfo
+      });
+
       return (
         <div className="flex items-center gap-2">
           <input
             type="number"
-            value={editingAmount}
-            onChange={(e) => setEditingAmount(e.target.value)}
+            value={currentEditingAmount}
+            onChange={(e) => {
+              // 调试：检查输入事件
+              console.log('[EditableAmountCell] 🎯 输入事件:', {
+                value: e.target.value,
+                itemId: item.item_id,
+                hasTableInfo: !!tableInfo,
+                hasTable: !!tableInfo?.table,
+                hasMeta: !!tableInfo?.table?.options?.meta,
+                metaKeys: tableInfo?.table?.options?.meta ? Object.keys(tableInfo.table.options.meta) : 'none'
+              });
+
+              // 从 table meta 获取 setEditingAmount，避免闭包问题
+              const { setEditingAmount: metaSetEditingAmount } = tableInfo?.table?.options?.meta || {};
+              if (metaSetEditingAmount) {
+                console.log('[EditableAmountCell] 🚀 使用 meta setEditingAmount');
+                metaSetEditingAmount(e.target.value);
+              } else {
+                console.log('[EditableAmountCell] ⚠️ 降级到闭包 setEditingAmount');
+                // 降级到闭包版本（应该不会执行到这里）
+                setEditingAmount(e.target.value);
+              }
+            }}
             className="input input-sm input-bordered w-24 text-right font-mono"
             step="0.01"
             min="0"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                handleSaveEdit(item);
+                handleSaveEdit(item, currentEditingAmount);
               } else if (e.key === 'Escape') {
                 handleCancelEdit();
               }
@@ -1085,7 +1163,7 @@ function PayrollBreakdownSection({
           <div className="flex items-center gap-1">
             <button
               className="btn btn-xs btn-success"
-              onClick={() => handleSaveEdit(item)}
+              onClick={() => handleSaveEdit(item, currentEditingAmount)}
               disabled={isSaving}
             >
               {isSaving ? (
@@ -1125,7 +1203,7 @@ function PayrollBreakdownSection({
     );
 
     return (
-      <div 
+      <div
         className="flex items-center justify-between group cursor-pointer hover:bg-base-200/50 p-1 -m-1 rounded"
         onClick={() => handleStartEdit(item.item_id, amount)}
         title="点击编辑金额"
@@ -1140,13 +1218,13 @@ function PayrollBreakdownSection({
         </button>
       </div>
     );
-  }, [editingItemId, editingAmount, isSaving, handleStartEdit, handleSaveEdit, handleCancelEdit]);
+  };
 
   // 准备表格数据
   const incomeItems = useMemo(() => {
     console.log('🔍 PayrollBreakdownSection - 计算收入项目');
     console.log('原始 groupedItems:', groupedItems);
-    
+
     const incomeResult = Object.entries(groupedItems)
       .filter(([category, items]) => {
         const isEarning = items[0]?.component_type === 'earning';
@@ -1154,23 +1232,23 @@ function PayrollBreakdownSection({
         return isEarning;
       })
       .flatMap(([category, items]) => {
-        console.log(`收入类别 ${category} 包含项目:`, items.map(item => ({ 
-          name: item.component_name, 
-          amount: item.amount, 
-          type: item.component_type 
+        console.log(`收入类别 ${category} 包含项目:`, items.map(item => ({
+          name: item.component_name,
+          amount: item.amount,
+          type: item.component_type
         })));
         return items;
       });
-    
+
     console.log('最终收入项目数量:', incomeResult.length);
     console.log('收入项目详情:', incomeResult);
     return incomeResult;
   }, [groupedItems]);
-  
+
   // 准备扣除项目数据
   const deductionItems = useMemo(() => {
     console.log('🔍 PayrollBreakdownSection - 计算扣除项目');
-    
+
     const deductionResult = Object.entries(groupedItems)
       .filter(([category, items]) => {
         const isDeduction = items[0]?.component_type === 'deduction';
@@ -1178,14 +1256,14 @@ function PayrollBreakdownSection({
         return isDeduction;
       })
       .flatMap(([category, items]) => {
-        console.log(`扣除类别 ${category} 包含项目:`, items.map(item => ({ 
-          name: item.component_name, 
-          amount: item.amount, 
-          type: item.component_type 
+        console.log(`扣除类别 ${category} 包含项目:`, items.map(item => ({
+          name: item.component_name,
+          amount: item.amount,
+          type: item.component_type
         })));
         return items;
       });
-    
+
     console.log('最终扣除项目数量:', deductionResult.length);
     console.log('扣除项目详情:', deductionResult);
     return deductionResult;
@@ -1219,12 +1297,18 @@ function PayrollBreakdownSection({
           </svg>
         </div>
       ),
-      cell: (info: any) => (
-        <EditableAmountCell 
-          item={info.row.original as PayrollItemDetail} 
-          isEarning={true}
-        />
-      )
+      cell: (info: any) => {
+        // 从 table meta 获取当前状态，避免闭包问题
+        const { editingItemId: currentEditingId } = info.table.options.meta || {};
+        return (
+          <EditableAmountCell
+            item={info.row.original as PayrollItemDetail}
+            isEarning={true}
+            currentEditingId={currentEditingId}
+            tableInfo={info}
+          />
+        );
+      }
     }),
     columnHelper.accessor('calculation_method' as any, {
       header: '计算方式',
@@ -1275,12 +1359,18 @@ function PayrollBreakdownSection({
           </svg>
         </div>
       ),
-      cell: (info: any) => (
-        <EditableAmountCell 
-          item={info.row.original as PayrollItemDetail} 
-          isEarning={false}
-        />
-      )
+      cell: (info: any) => {
+        // 从 table meta 获取当前状态，避免闭包问题
+        const { editingItemId: currentEditingId } = info.table.options.meta || {};
+        return (
+          <EditableAmountCell
+            item={info.row.original as PayrollItemDetail}
+            isEarning={false}
+            currentEditingId={currentEditingId}
+            tableInfo={info}
+          />
+        );
+      }
     }),
     columnHelper.accessor('calculation_method' as any, {
       header: '计算方式',
@@ -1302,12 +1392,21 @@ function PayrollBreakdownSection({
         <span className="text-xs text-base-content/30">-</span>
       )
     })
-  ], [EditableAmountCell]);
+  ], []); // 移除状态依赖，现在通过 table meta 动态获取
 
   // 创建收入表格实例
   const incomeTable = useReactTable({
     data: incomeItems,
     columns: incomeColumns,
+    meta: {
+      editingItemId,
+      editingAmount,
+      setEditingAmount,
+      isSaving,
+      handleStartEdit,
+      handleSaveEdit,
+      handleCancelEdit
+    },
     getCoreRowModel: getCoreRowModel(),
   });
 
@@ -1315,15 +1414,24 @@ function PayrollBreakdownSection({
   const deductionTable = useReactTable({
     data: deductionItems,
     columns: deductionColumns,
+    meta: {
+      editingItemId,
+      editingAmount,
+      setEditingAmount,
+      isSaving,
+      handleStartEdit,
+      handleSaveEdit,
+      handleCancelEdit
+    },
     getCoreRowModel: getCoreRowModel(),
   });
 
   // 计算汇总
-  const incomeTotal = useMemo(() => 
+  const incomeTotal = useMemo(() =>
     incomeItems.reduce((sum, item) => sum + Math.abs(item.amount), 0),
     [incomeItems]
   );
-  
+
   const deductionTotal = useMemo(() => {
     // 计算实际扣除总额（正数扣除 - 负数退款）
     const totalDeductions = deductionItems.reduce((sum, item) => sum + item.amount, 0);
@@ -1356,8 +1464,8 @@ function PayrollBreakdownSection({
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                    d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12s-1.536-.219-2.121-.659c-1.172-.879-1.172-2.303 0-3.182C10.464 7.781 11.232 7.5 12 7.5s1.536.219 2.121.659" 
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12s-1.536-.219-2.121-.659c-1.172-.879-1.172-2.303 0-3.182C10.464 7.781 11.232 7.5 12 7.5s1.536.219 2.121.659"
                   />
                 </svg>
               </div>
@@ -1378,9 +1486,9 @@ function PayrollBreakdownSection({
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                       </th>
                     ))}
                   </tr>
@@ -1414,9 +1522,8 @@ function PayrollBreakdownSection({
               </div>
               <h3 className="text-sm font-semibold text-red-700">扣除项目</h3>
             </div>
-            <div className={`text-sm font-semibold ${
-              deductionTotal < 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <div className={`text-sm font-semibold ${deductionTotal < 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
               合计: {deductionTotal < 0 ? '+' : '-'}{formatCurrency(Math.abs(deductionTotal))}
               {deductionTotal < 0 && <span className="ml-1 text-xs">(净退款)</span>}
             </div>
@@ -1432,9 +1539,9 @@ function PayrollBreakdownSection({
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                       </th>
                     ))}
                   </tr>
@@ -1490,8 +1597,8 @@ function InsuranceDetailsSection({
         <div className="flex items-center gap-2">
           <span className={cn(
             "badge badge-sm",
-            info.getValue() 
-              ? "badge-success" 
+            info.getValue()
+              ? "badge-success"
               : "badge-warning"
           )}>
             {info.getValue() ? '适用' : '不适用'}
@@ -1534,15 +1641,15 @@ function InsuranceDetailsSection({
   });
 
   // 计算总的个人和企业缴费
-  const totalEmployeeContribution = useMemo(() => 
-    insuranceDetails.reduce((sum, detail) => 
+  const totalEmployeeContribution = useMemo(() =>
+    insuranceDetails.reduce((sum, detail) =>
       sum + (detail.is_applicable ? detail.employee_amount : 0), 0
     ),
     [insuranceDetails]
   );
-  
-  const totalEmployerContribution = useMemo(() => 
-    insuranceDetails.reduce((sum, detail) => 
+
+  const totalEmployerContribution = useMemo(() =>
+    insuranceDetails.reduce((sum, detail) =>
       sum + (detail.is_applicable ? detail.employer_amount : 0), 0
     ),
     [insuranceDetails]
@@ -1614,9 +1721,9 @@ function InsuranceDetailsSection({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </th>
                   ))}
                 </tr>
@@ -1652,6 +1759,171 @@ function ContributionBaseSection({
   contributionBases
 }: ContributionBaseSectionProps) {
   const { t } = useTranslation(['payroll', 'common']);
+  const { showSuccess, showError } = useToast();
+
+  // 使用缴费基数更新 hook
+  const setContributionBaseMutation = useSetContributionBase();
+
+  // 内联编辑状态管理
+  const [editingBaseId, setEditingBaseId] = useState<string | null>(null);
+  const [editingBaseAmount, setEditingBaseAmount] = useState<string>('');
+  const [isSavingBase, setIsSavingBase] = useState(false);
+
+  // 开始编辑缴费基数
+  const handleStartEditBase = useCallback((baseId: string, currentAmount: number) => {
+    console.log('[ContributionBaseSection] 🎯 开始编辑缴费基数:', {
+      baseId,
+      currentAmount
+    });
+
+    setEditingBaseId(baseId);
+    setEditingBaseAmount(Math.abs(currentAmount).toString());
+  }, []);
+
+  // 取消编辑
+  const handleCancelEditBase = useCallback(() => {
+    setEditingBaseId(null);
+    setEditingBaseAmount('');
+  }, []);
+
+  // 保存编辑
+  const handleSaveEditBase = useCallback(async (base: ContributionBase, currentEditingAmount?: string) => {
+    // 优先使用传入的当前编辑金额，避免闭包问题
+    const amountToSave = currentEditingAmount ?? editingBaseAmount;
+
+    if (!amountToSave.trim()) {
+      showError('缴费基数不能为空');
+      return;
+    }
+
+    const newAmount = parseFloat(amountToSave);
+    if (isNaN(newAmount) || newAmount < 0) {
+      showError('请输入有效的缴费基数');
+      return;
+    }
+
+    // 如果金额没有变化，直接取消编辑
+    if (Math.abs(newAmount - Math.abs(base.latest_contribution_base || base.contribution_base)) < 0.01) {
+      handleCancelEditBase();
+      return;
+    }
+
+    setIsSavingBase(true);
+    try {
+      console.log('[ContributionBaseSection] 🔧 保存缴费基数:', {
+        baseId: base.id,
+        employeeId: base.employee_id,
+        insuranceTypeId: base.insurance_type_id,
+        periodId: base.period_id,
+        oldAmount: base.latest_contribution_base || base.contribution_base,
+        newAmount: newAmount
+      });
+
+      // 使用 hook 更新缴费基数
+      await setContributionBaseMutation.mutateAsync({
+        employeeId: base.employee_id,
+        insuranceTypeId: base.insurance_type_id,
+        periodId: base.period_id || '',
+        contributionBase: newAmount
+      });
+
+      console.log('[ContributionBaseSection] ✅ 缴费基数更新成功');
+      showSuccess('缴费基数更新成功');
+
+      // 成功后取消编辑状态
+      handleCancelEditBase();
+
+    } catch (error) {
+      console.error('更新缴费基数失败:', error);
+      showError('更新失败，请重试');
+    } finally {
+      setIsSavingBase(false);
+    }
+  }, [showError, showSuccess, handleCancelEditBase, setContributionBaseMutation, editingBaseAmount]);
+
+  // 可编辑缴费基数单元格组件
+  const EditableBaseAmountCell = ({
+    base,
+    currentEditingId,
+    tableInfo
+  }: {
+    base: ContributionBase;
+    currentEditingId?: string | null;
+    tableInfo?: any;
+  }) => {
+    const actualEditingId = currentEditingId ?? editingBaseId;
+    const isEditing = actualEditingId === base.id;
+    const amount = base.latest_contribution_base || base.contribution_base;
+
+    if (isEditing) {
+      // 从 table meta 获取最新的 editingBaseAmount，避免闭包问题
+      const { editingBaseAmount: metaEditingAmount } = tableInfo?.table?.options?.meta || {};
+      const currentEditingAmount = metaEditingAmount ?? editingBaseAmount;
+
+      return (
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={currentEditingAmount}
+            onChange={(e) => {
+              // 从 table meta 获取 setEditingBaseAmount，避免闭包问题
+              const { setEditingBaseAmount: metaSetEditingAmount } = tableInfo?.table?.options?.meta || {};
+              if (metaSetEditingAmount) {
+                metaSetEditingAmount(e.target.value);
+              } else {
+                setEditingBaseAmount(e.target.value);
+              }
+            }}
+            className="input input-sm input-bordered w-24 text-right font-mono"
+            step="0.01"
+            min="0"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSaveEditBase(base, currentEditingAmount);
+              } else if (e.key === 'Escape') {
+                handleCancelEditBase();
+              }
+            }}
+          />
+          <div className="flex items-center gap-1">
+            <button
+              className="btn btn-xs btn-success"
+              onClick={() => handleSaveEditBase(base, currentEditingAmount)}
+              disabled={isSavingBase}
+            >
+              {isSavingBase ? (
+                <span className="loading loading-xs loading-spinner"></span>
+              ) : (
+                '✓'
+              )}
+            </button>
+            <button
+              className="btn btn-xs btn-ghost"
+              onClick={handleCancelEditBase}
+              disabled={isSavingBase}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className="text-right cursor-pointer hover:bg-base-200/50 rounded px-2 py-1 transition-colors group"
+        onClick={() => handleStartEditBase(base.id, amount)}
+      >
+        <span className="text-sm font-semibold font-mono text-primary">
+          {formatCurrency(amount)}
+        </span>
+        <span className="ml-2 opacity-0 group-hover:opacity-100 text-xs text-base-content/50">
+          点击编辑
+        </span>
+      </div>
+    );
+  };
 
   // 定义表格列
   const contributionColumns = useMemo(() => [
@@ -1665,12 +1937,12 @@ function ContributionBaseSection({
     }),
     contributionColumnHelper.accessor('latest_contribution_base' as keyof ContributionBase, {
       header: () => <div className="text-right">缴费基数</div>,
-      cell: info => (
-        <div className="text-right">
-          <span className="text-sm font-semibold font-mono text-primary">
-            {formatCurrency(info.getValue() as number)}
-          </span>
-        </div>
+      cell: ({ row, table }) => (
+        <EditableBaseAmountCell
+          base={row.original}
+          currentEditingId={editingBaseId}
+          tableInfo={{ table }}
+        />
       )
     }),
     contributionColumnHelper.accessor('latest_employee_rate' as keyof ContributionBase, {
@@ -1725,19 +1997,28 @@ function ContributionBaseSection({
         </span>
       )
     })
-  ], []);
+  ], [editingBaseId, handleStartEditBase, handleCancelEditBase, handleSaveEditBase, editingBaseAmount]);
 
   // 创建表格实例
   const contributionTable = useReactTable({
     data: contributionBases,
     columns: contributionColumns,
     getCoreRowModel: getCoreRowModel(),
+    meta: {
+      editingBaseId,
+      editingBaseAmount,
+      setEditingBaseAmount,
+      isSavingBase,
+      handleStartEditBase,
+      handleCancelEditBase,
+      handleSaveEditBase,
+    },
   });
 
   // 计算基数统计
   const baseStatistics = useMemo(() => {
     if (contributionBases.length === 0) return { average: 0, current: 0, types: 0 };
-    
+
     // 按保险类型分组
     const grouped = contributionBases.reduce((acc, base) => {
       if (!acc[base.insurance_type_name]) {
@@ -1746,16 +2027,16 @@ function ContributionBaseSection({
       acc[base.insurance_type_name].push(base);
       return acc;
     }, {} as Record<string, ContributionBase[]>);
-    
+
     // 获取当前有效的基数（视图已过滤出最新数据）
     const currentBases = Object.entries(grouped).map(([type, bases]) => {
       // 取每个类型的第一个基数（视图已确保是最新的）
       return bases[0]?.latest_contribution_base || 0;
     }).filter(base => base > 0);
-    
+
     return {
-      average: currentBases.length > 0 
-        ? currentBases.reduce((sum, base) => sum + base, 0) / currentBases.length 
+      average: currentBases.length > 0
+        ? currentBases.reduce((sum, base) => sum + base, 0) / currentBases.length
         : 0,
       current: currentBases[0] || 0,
       types: Object.keys(grouped).length
@@ -1828,9 +2109,9 @@ function ContributionBaseSection({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </th>
                   ))}
                 </tr>
@@ -1927,7 +2208,7 @@ function TaxDetailsSection({ taxItems }: TaxDetailsSectionProps) {
           <DocumentTextIcon className="w-5 h-5 text-primary" />
           个人所得税明细
         </h5>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-gradient-to-r from-error/10 to-error/5 rounded-lg p-4">
             <div className="text-sm text-base-content/70 mb-1">个税总额</div>
@@ -1993,7 +2274,7 @@ interface JobInfoSectionProps {
 
 function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) {
   const { t } = useTranslation(['payroll', 'common']);
-  
+
   // 编辑状态管理
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<{
@@ -2002,7 +2283,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
     notes?: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // 新建状态管理
   const [isCreating, setIsCreating] = useState(false);
   const [newRecordData, setNewRecordData] = useState<{
@@ -2010,7 +2291,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
     position_id: string;
     notes?: string;
   } | null>(null);
-  
+
   // 获取部门和职位数据
   const { data: departments } = useDepartmentList();
   const { data: positions } = useEmployeePositions();
@@ -2041,7 +2322,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
     // 🔍 关键修复：找到被编辑记录的原始 period_id
     const editingRecord = jobInfo?.job_history.find(record => record.id === editingRowId);
     const targetPeriodId = editingRecord?.period_id;
-    
+
     if (!targetPeriodId) {
       console.error('[PayrollDetailModal] 无法找到被编辑记录的 period_id:', { editingRowId, jobInfo: jobInfo?.job_history });
       showError('无法确定职务记录所属周期，请刷新页面重试');
@@ -2069,11 +2350,11 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
         periodId: targetPeriodId, // 🔧 使用记录本身的 period_id，不是当前视图的
         notes: editingData.notes
       };
-      
+
       console.log('[PayrollDetailModal] 调用 assignPosition.mutateAsync 参数:', mutationParams);
-      
+
       const result = await assignPosition.mutateAsync(mutationParams);
-      
+
       console.log('[PayrollDetailModal] assignPosition.mutateAsync 执行结果:', result);
 
       showSuccess('职务信息更新成功');
@@ -2167,7 +2448,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
       cell: info => {
         const row = info.row.original;
         const isEditing = editingRowId === row.id;
-        
+
         if (isEditing && editingData) {
           return (
             <select
@@ -2185,7 +2466,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
             </select>
           );
         }
-        
+
         return (
           <span className="text-sm font-medium text-base-content">
             {info.getValue()}
@@ -2198,7 +2479,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
       cell: info => {
         const row = info.row.original;
         const isEditing = editingRowId === row.id;
-        
+
         if (isEditing && editingData) {
           return (
             <select
@@ -2216,7 +2497,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
             </select>
           );
         }
-        
+
         return (
           <span className="text-sm font-medium text-base-content">
             {info.getValue()}
@@ -2280,7 +2561,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
       cell: info => {
         const row = info.row.original;
         const isEditing = editingRowId === row.id;
-        
+
         if (isEditing && editingData) {
           return (
             <input
@@ -2295,7 +2576,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
             />
           );
         }
-        
+
         return (
           <span className="text-sm text-base-content/60">
             {info.getValue() || '-'}
@@ -2310,7 +2591,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
       cell: info => {
         const row = info.row.original;
         const isEditing = editingRowId === row.id;
-        
+
         if (isEditing) {
           return (
             <div className="flex gap-1">
@@ -2341,7 +2622,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
             </div>
           );
         }
-        
+
         return (
           <div className="flex gap-1">
             <button
@@ -2390,7 +2671,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
           <UserCircleIcon className="w-5 h-5 text-primary" />
           员工身份类别
         </h5>
-        
+
         {jobInfo.employee_category ? (
           <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent rounded-lg p-4 border border-primary/10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2428,7 +2709,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
           <BriefcaseIcon className="w-5 h-5 text-primary" />
           职务历史记录
         </h5>
-        
+
         {jobInfo.job_history.length > 0 ? (
           <div className="space-y-4">
             {/* 当前职位概览 */}
@@ -2475,7 +2756,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
                   </div>
                   <h6 className="text-sm font-semibold text-primary">职务变更历史</h6>
                 </div>
-                
+
                 {/* 添加新记录按钮 */}
                 {employeeId && periodId && !isCreating && (
                   <button
@@ -2501,9 +2782,9 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
                             {header.isPlaceholder
                               ? null
                               : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
                           </th>
                         ))}
                       </tr>
@@ -2525,7 +2806,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
                   </tbody>
                 </table>
               </div>
-              
+
               {/* 新建记录表单（在表格下方显示） */}
               {isCreating && (
                 <div className="bg-base-100 rounded-lg p-4 border border-primary/20 mt-4">
@@ -2537,7 +2818,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
                       添加新的职务记录
                     </h6>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     {/* 部门选择 */}
                     <div className="space-y-2">
@@ -2556,7 +2837,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
                         ))}
                       </select>
                     </div>
-                    
+
                     {/* 职位选择 */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-base-content/70">职位 *</label>
@@ -2575,7 +2856,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
                       </select>
                     </div>
                   </div>
-                  
+
                   {/* 备注 */}
                   <div className="space-y-2 mb-4">
                     <label className="text-sm font-medium text-base-content/70">备注</label>
@@ -2590,7 +2871,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
                       rows={2}
                     />
                   </div>
-                  
+
                   {/* 操作按钮 */}
                   <div className="flex gap-2 justify-end">
                     <button
@@ -2651,7 +2932,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
                     创建新的职务记录
                   </h6>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {/* 部门选择 */}
                   <div className="space-y-2">
@@ -2670,7 +2951,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
                       ))}
                     </select>
                   </div>
-                  
+
                   {/* 职位选择 */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-base-content/70">职位 *</label>
@@ -2689,7 +2970,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
                     </select>
                   </div>
                 </div>
-                
+
                 {/* 备注 */}
                 <div className="space-y-2 mb-4">
                   <label className="text-sm font-medium text-base-content/70">备注</label>
@@ -2704,7 +2985,7 @@ function JobInfoSection({ jobInfo, periodId, employeeId }: JobInfoSectionProps) 
                     rows={2}
                   />
                 </div>
-                
+
                 {/* 操作按钮 */}
                 <div className="flex gap-2 justify-end">
                   <button
