@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import type { Table } from '@tanstack/react-table';
+import { useModal } from '@/components/common/Modal';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 
@@ -24,6 +25,7 @@ export function EmployeeExport<TData>({
   fileName = 'employees',
   className,
 }: EmployeeExportProps<TData>) {
+  const modal = useModal();
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [config, setConfig] = useState<ExportConfig>({
@@ -210,7 +212,7 @@ export function EmployeeExport<TData>({
       const { data, columns } = getDataToExport();
       
       if (data.length === 0) {
-        alert('没有数据可导出');
+        modal.showWarning('没有数据可导出');
         return;
       }
 
@@ -257,7 +259,7 @@ export function EmployeeExport<TData>({
       
     } catch (error) {
       console.error('Export failed:', error);
-      alert('导出失败，请重试');
+      modal.showError('导出失败，请重试');
     } finally {
       setIsExporting(false);
     }
@@ -448,6 +450,10 @@ export function EmployeeExport<TData>({
           </div>
         </div>
       )}
+      
+      {/* Modal组件 */}
+      {modal.AlertModal}
+      {modal.ConfirmModal}
     </div>
   );
 }

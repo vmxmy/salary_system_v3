@@ -9,6 +9,7 @@ import {
 } from '@/components/employee';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useConfirmDialog } from '@/hooks/core';
+import { useModal } from '@/components/common/Modal';
 import { UserPlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
 import type { EmployeeListItem } from '@/types/employee';
@@ -23,6 +24,7 @@ import { cardEffects } from '@/styles/design-effects';
 export default function EmployeeManagementPage() {
   const { t } = useTranslation(['employee', 'common']);
   const { dialogState, loading: confirmLoading, hideConfirm, confirmDelete } = useConfirmDialog();
+  const modal = useModal();
   
   // 页面状态
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
@@ -406,7 +408,7 @@ export default function EmployeeManagementPage() {
       
     } catch (error) {
       console.error('Excel导出失败:', error);
-      alert('Excel导出失败，请重试');
+      modal.showError('Excel导出失败，请重试');
     }
   }, []);
 
@@ -414,7 +416,7 @@ export default function EmployeeManagementPage() {
   const handleExportCSV = useCallback(() => {
     console.log('CSV导出被调用，数据长度：', data?.length);
     if (!data || data.length === 0) {
-      alert('没有数据可导出');
+      modal.showWarning('没有数据可导出');
       return;
     }
     
@@ -446,7 +448,7 @@ export default function EmployeeManagementPage() {
   const handleExportExcel = useCallback(async () => {
     console.log('Excel导出被调用，数据长度：', data?.length);
     if (!data || data.length === 0) {
-      alert('没有数据可导出');
+      modal.showWarning('没有数据可导出');
       return;
     }
 
@@ -457,7 +459,7 @@ export default function EmployeeManagementPage() {
   const handleExportJSON = useCallback(() => {
     console.log('JSON导出被调用，数据长度：', data?.length);
     if (!data || data.length === 0) {
-      alert('没有数据可导出');
+      modal.showWarning('没有数据可导出');
       return;
     }
     
@@ -475,7 +477,7 @@ export default function EmployeeManagementPage() {
 
   const handleExportSelected = useCallback(async () => {
     if (selectedIds.length === 0) {
-      alert('请先选择要导出的员工');
+      modal.showInfo('请先选择要导出的员工');
       return;
     }
     
@@ -802,6 +804,10 @@ export default function EmployeeManagementPage() {
           </>
         }
       />
+      
+      {/* Modal组件 */}
+      {modal.AlertModal}
+      {modal.ConfirmModal}
     </>
   );
 }

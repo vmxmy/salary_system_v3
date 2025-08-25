@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import type { Table } from '@tanstack/react-table';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useModal } from '@/components/common/Modal';
 import { cn } from '@/lib/utils';
 
 interface DataExportProps<TData> {
@@ -31,6 +32,7 @@ export function DataExport<TData>({
   className,
 }: DataExportProps<TData>) {
   const { t } = useTranslation('common');
+  const modal = useModal();
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [config, setConfig] = useState<ExportConfig>({
@@ -136,7 +138,7 @@ export function DataExport<TData>({
       const { data, columns } = getDataToExport();
       
       if (data.length === 0) {
-        alert(String(t('export.noDataToExport')));
+        modal.showWarning(String(t('export.noDataToExport')));
         return;
       }
 
@@ -187,7 +189,7 @@ export function DataExport<TData>({
       
     } catch (error) {
       console.error('Export failed:', error);
-      alert(String(t('export.exportFailed')));
+      modal.showError(String(t('export.exportFailed')));
     } finally {
       setIsExporting(false);
     }
@@ -370,6 +372,10 @@ placeholder={String(t('export.enterFileName'))}
           </div>
         </div>
       )}
+      
+      {/* Modal组件 */}
+      {modal.AlertModal}
+      {modal.ConfirmModal}
     </div>
   );
 }

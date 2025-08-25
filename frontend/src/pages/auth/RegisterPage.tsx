@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { validateEmail } from '@/lib/utils';
+import { useModal } from '@/components/common/Modal';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { signUp } = useUnifiedAuth();
   const { t } = useTranslation('auth');
+  const modal = useModal();
 
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -69,8 +71,7 @@ export default function RegisterPage() {
     try {
       await signUp(formData.email, formData.password);
       
-      // For now, use alert - can be replaced with a proper toast system later
-      alert(t('register.success'));
+      modal.showSuccess(t('register.success'));
       navigate('/dashboard');
     } catch (error: any) {
       let errorMessage = t('register.failed');
@@ -79,8 +80,7 @@ export default function RegisterPage() {
         errorMessage = t('register.emailExists');
       }
       
-      // For now, use alert - can be replaced with a proper toast system later
-      alert(errorMessage);
+      modal.showError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -220,6 +220,10 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
+      
+      {/* Modal组件 */}
+      {modal.AlertModal}
+      {modal.ConfirmModal}
     </div>
   );
 }

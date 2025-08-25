@@ -17,6 +17,7 @@ import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { AccordionSection, AccordionContent } from '@/components/common/AccordionSection';
 import { DetailField, FieldGroup } from '@/components/common/DetailField';
 import { ModernButton } from '@/components/common/ModernButton';
+import { useModal } from '@/components/common/Modal';
 // import { DepartmentSalaryChart } from './DepartmentSalaryChart'; // 未使用，暂时注释
 import { DepartmentEmployeePanel } from './DepartmentEmployeePanel';
 import { DepartmentPayrollAnalysis } from './DepartmentPayrollAnalysis';
@@ -46,6 +47,7 @@ export function DepartmentDetailModal({
   
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['basic']));
   const { showSuccess, showError } = useToast();
+  const modal = useModal();
 
   // DaisyUI classes for styling
 
@@ -148,17 +150,20 @@ export function DepartmentDetailModal({
   const handleDelete = useCallback(async () => {
     if (!departmentId || initialMode === 'create') return;
     
-    if (confirm('确定要删除该部门吗？删除后无法恢复。')) {
-      try {
-        await deleteDepartmentMutation.mutateAsync(departmentId);
-        showSuccess('部门删除成功');
-        handleClose();
-      } catch (error) {
-        console.error('Failed to delete department:', error);
-        showError(error instanceof Error ? error.message : '删除失败');
+    modal.confirmDelete(
+      '确定要删除该部门吗？删除后无法恢复。',
+      async () => {
+        try {
+          await deleteDepartmentMutation.mutateAsync(departmentId);
+          showSuccess('部门删除成功');
+          handleClose();
+        } catch (error) {
+          console.error('Failed to delete department:', error);
+          showError(error instanceof Error ? error.message : '删除失败');
+        }
       }
-    }
-  }, [departmentId, initialMode, deleteDepartmentMutation, showSuccess, showError, handleClose]);
+    );
+  }, [departmentId, initialMode, deleteDepartmentMutation, showSuccess, showError, handleClose, modal]);
 
   // 切换部分展开/折叠
   const toggleSection = (sectionId: string) => {
@@ -430,6 +435,10 @@ export function DepartmentDetailModal({
           </div>
         </div>
       </div>
+      
+      {/* Modal组件 */}
+      {modal.AlertModal}
+      {modal.ConfirmModal}
     </div>
   );
 }

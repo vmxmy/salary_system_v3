@@ -5,12 +5,14 @@ import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ThemeSelector } from '@/components/common/ThemeSelector';
 import { LogoutConfirmModal } from '@/components/common/LogoutConfirmModal';
 import { Link } from 'react-router-dom';
+import { useModal } from '@/components/common/Modal';
 
 export function Header() {
   const { user, signOut } = useUnifiedAuth();
   const { t } = useTranslation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const modal = useModal();
 
   const handleSignOutClick = () => {
     setShowLogoutModal(true);
@@ -40,13 +42,16 @@ export function Header() {
       setShowLogoutModal(false);
       
       // 简化的错误处理：如果真的出现了意外错误，提供用户友好的提示
-      alert('退出登录时发生意外错误。如果问题持续存在，请刷新页面后重试。');
+      modal.showError('退出登录时发生意外错误。如果问题持续存在，请刷新页面后重试。');
       
       // 提供重试选项
-      const retry = window.confirm('是否要刷新页面以完成退出？');
-      if (retry) {
-        window.location.reload();
-      }
+      modal.confirmAction(
+        '是否要刷新页面以完成退出？',
+        () => {
+          window.location.reload();
+        },
+        '刷新页面'
+      );
     } finally {
       setIsLoggingOut(false);
     }
@@ -112,6 +117,10 @@ export function Header() {
         onCancel={handleLogoutCancel}
         isLoading={isLoggingOut}
       />
+      
+      {/* Modal组件 */}
+      {modal.AlertModal}
+      {modal.ConfirmModal}
     </header>
   );
 }

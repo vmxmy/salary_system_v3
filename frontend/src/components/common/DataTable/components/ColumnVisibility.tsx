@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Table, VisibilityState } from '@tanstack/react-table';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useModal } from '@/components/common/Modal';
 import { cn } from '@/lib/utils';
 
 interface ColumnVisibilityProps<TData> {
@@ -15,6 +16,7 @@ export function ColumnVisibility<TData>({
   className,
 }: ColumnVisibilityProps<TData>) {
   const { t } = useTranslation('common');
+  const modal = useModal();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -57,7 +59,7 @@ export function ColumnVisibility<TData>({
       const presets = JSON.parse(localStorage.getItem('columnPresets') || '{}');
       presets[presetName] = currentVisibility;
       localStorage.setItem('columnPresets', JSON.stringify(presets));
-      alert(String(t('columns.presetSaved', { name: presetName })));
+      modal.showSuccess(String(t('columns.presetSaved', { name: presetName })));
     }
   };
 
@@ -244,6 +246,10 @@ title={String(t('columns.deletePreset'))}
           </div>
         </div>
       )}
+      
+      {/* Modal组件 */}
+      {modal.AlertModal}
+      {modal.ConfirmModal}
     </div>
   );
 }

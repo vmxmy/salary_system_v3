@@ -3,12 +3,14 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
+import { useModal } from '@/components/common/Modal';
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { updatePassword } = useUnifiedAuth();
   const { t } = useTranslation('auth');
+  const modal = useModal();
   
   const [isLoading, setIsLoading] = useState(false);
   const [isResetSuccessful, setIsResetSuccessful] = useState(false);
@@ -68,7 +70,7 @@ export default function ResetPasswordPage() {
       setIsResetSuccessful(true);
     } catch (error: any) {
       console.error('Password reset failed:', error);
-      alert(t('resetPassword.failed') || 'Failed to reset password. Please try again or request a new reset link.');
+      modal.showError(t('resetPassword.failed') || 'Failed to reset password. Please try again or request a new reset link.');
     } finally {
       setIsLoading(false);
     }
@@ -182,6 +184,10 @@ export default function ResetPasswordPage() {
           {t('resetPassword.backToLogin') || 'Back to login'}
         </Link>
       </div>
+      
+      {/* Modal组件 */}
+      {modal.AlertModal}
+      {modal.ConfirmModal}
     </div>
   );
 }
