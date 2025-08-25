@@ -308,6 +308,10 @@ export const useUpdateEarning = () => {
         queryClient.invalidateQueries({ 
           queryKey: payrollEarningsQueryKeys.payrollEarnings(data.payroll_id) 
         });
+        // 同时失效薪资详情查询，确保 PayrollDetailModal 中的数据自动更新
+        queryClient.invalidateQueries({ 
+          queryKey: ['payrolls', 'detail', data.payroll_id] 
+        });
       }
     },
   });

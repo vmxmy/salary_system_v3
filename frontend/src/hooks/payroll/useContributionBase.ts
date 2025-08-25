@@ -422,6 +422,14 @@ export const useSetContributionBase = () => {
       queryClient.invalidateQueries({ 
         queryKey: contributionBaseQueryKeys.periodBases(variables.periodId) 
       });
+      // 失效该员工在该周期的所有薪资详情查询，确保薪资明细自动更新
+      queryClient.invalidateQueries({ 
+        queryKey: ['payrolls', 'detail'] 
+      });
+      // 也失效薪资列表查询
+      queryClient.invalidateQueries({ 
+        queryKey: ['payrolls', 'list'] 
+      });
     },
   });
 };

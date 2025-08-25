@@ -6,7 +6,7 @@ import { AccordionSection, AccordionContent } from '@/components/common/Accordio
 import { DetailField } from '@/components/common/DetailField';
 import { ModernButton } from '@/components/common/ModernButton';
 import { PayrollStatusBadge } from './PayrollStatusBadge';
-import { PayrollStatus, type PayrollStatusType, useEmployeeInsuranceDetails } from '@/hooks/payroll';
+import { PayrollStatus, type PayrollStatusType, useEmployeeInsuranceDetails, usePayrollDetails } from '@/hooks/payroll';
 import { useEmployeeCategoryByPeriod } from '@/hooks/payroll/useEmployeeCategory';
 import { useEmployeePositionByPeriod, useEmployeePositionHistory, useAssignEmployeePosition } from '@/hooks/payroll/useEmployeePosition';
 import { useDepartmentList } from '@/hooks/department/useDepartments';
@@ -237,9 +237,7 @@ export function PayrollDetailModal({
   const { t } = useTranslation(['payroll', 'common']);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [payrollData, setPayrollData] = useState<PayrollDetailData | null>(null);
-  const [payrollItems, setPayrollItems] = useState<PayrollItemDetail[]>([]);
-  // contributionBases现在从hook中获取，不需要单独的state
-  const [taxItems, setTaxItems] = useState<TaxItem[]>([]);
+  // payrollItems 和 taxItems 现在通过 useMemo 从 hook 数据计算得出
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -249,12 +247,15 @@ export function PayrollDetailModal({
   // 使用hook获取五险一金数据
   const { data: insuranceDetails = [], isLoading: insuranceLoading } = useEmployeeInsuranceDetails(payrollId || '');
 
+  // 使用hook获取薪资明细数据 - 替换手动获取
+  const { data: payrollDetailsData, isLoading: payrollDetailsLoading } = usePayrollDetails(payrollId || '');
+
   // 使用hook获取缴费基数数据
   const [employeeId, setEmployeeId] = useState<string>('');
   const [periodId, setPeriodId] = useState<string>('');
   const { data: contributionBasesData = [], isLoading: basesLoading } = useEmployeeContributionBasesByPeriod(employeeId, periodId);
 
-  // 获取薪资详情数据
+  // 获取薪资基本信息数据
   const fetchPayrollData = useCallback(async () => {
     if (!payrollId) return;
 
@@ -290,6 +291,7 @@ export function PayrollDetailModal({
           id_number: payrollData.id_number
         }
       } : null;
+      
       if (payroll) {
         setPayrollData(payroll as unknown as PayrollDetailData);
 
@@ -302,60 +304,7 @@ export function PayrollDetailModal({
         }
       }
 
-      // 从薪资明细中筛选个税项目（在获取薪资明细后处理）
-      setTaxItems([]);
-
-      // 获取薪资明细项
-      try {
-        console.log('开始获取薪资明细，payrollId:', payrollId);
-        const { data: items, error: itemsError } = await supabase
-          .from('view_payroll_unified')
-          .select('*')
-          .eq('payroll_id', payrollId)
-          .not('item_id', 'is', null)
-          .order('category', { ascending: true })
-          .order('component_name', { ascending: true });
-
-        if (itemsError) throw itemsError;
-        console.log('原始获取的薪资明细数据:', {
-          totalCount: items?.length || 0,
-          rawData: items,
-          dataStructure: items?.length > 0 ? {
-            firstItem: items[0],
-            fieldNames: Object.keys(items[0] || {}),
-            sampleValues: {
-              component_type: items[0]?.component_type,
-              category: items[0]?.category,
-              category_display_name: items[0]?.category,
-              component_name: items[0]?.component_name,
-              amount: items[0]?.amount
-            }
-          } : null
-        });
-        setPayrollItems(items as PayrollItemDetail[]);
-
-        // 从薪资明细中筛选个税项目
-        const taxRelatedItems = (items as PayrollItemDetail[]).filter(item =>
-          item.category === 'personal_tax' ||
-          item.component_name.includes('个人所得税') ||
-          item.component_name.includes('个税')
-        );
-
-        const taxItems: TaxItem[] = taxRelatedItems.map(item => ({
-          item_id: item.item_id,
-          component_name: item.component_name,
-          amount: item.amount,
-          item_notes: item.item_notes
-        }));
-
-        setTaxItems(taxItems);
-        console.log('筛选出的个税项目:', taxItems);
-      } catch (itemError) {
-        console.error('获取薪资明细失败:', itemError);
-        setPayrollItems([]);
-        setTaxItems([]);
-      }
-
+      // Note: 薪资明细现在由 usePayrollDetails hook 自动获取
       // Note: 职务信息现在由JobTab组件中的hooks直接获取
     } catch (err) {
       setIsError(true);
@@ -366,12 +315,56 @@ export function PayrollDetailModal({
     }
   }, [payrollId]);
 
+  // 处理薪资明细数据转换
+  const payrollItems = useMemo(() => {
+    if (!payrollDetailsData) return [];
+    
+    // 转换数据格式以兼容现有组件
+    return payrollDetailsData.map((item: any) => ({
+      item_id: item.item_id,
+      payroll_id: item.payroll_id,
+      employee_id: item.employee_id,
+      employee_name: item.employee_name,
+      period_code: item.period_code,
+      period_name: item.period_name,
+      period_start: item.period_start,
+      period_end: item.period_end,
+      component_id: item.component_id,
+      component_name: item.component_name,
+      component_type: item.component_type,
+      category: item.category,
+      amount: item.amount,
+      item_notes: item.item_notes,
+      gross_pay: item.gross_pay,
+      net_pay: item.net_pay,
+      total_deductions: item.total_deductions,
+    }));
+  }, [payrollDetailsData]);
+
+  // 从薪资明细中筛选个税项目
+  const taxItems = useMemo(() => {
+    const taxRelatedItems = payrollItems.filter(item =>
+      item.category === 'personal_tax' ||
+      item.component_name.includes('个人所得税') ||
+      item.component_name.includes('个税')
+    );
+
+    return taxRelatedItems.map(item => ({
+      item_id: item.item_id,
+      component_name: item.component_name,
+      amount: item.amount,
+      item_notes: item.item_notes
+    }));
+  }, [payrollItems]);
+
   // 当payrollId变化时重新获取数据
   useEffect(() => {
     if (open && payrollId) {
       fetchPayrollData();
     }
   }, [open, payrollId, fetchPayrollData]);
+
+
 
   // 重置状态
   useEffect(() => {
@@ -580,7 +573,7 @@ export function PayrollDetailModal({
 
             {/* Main Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {(isLoading || insuranceLoading || basesLoading) ? (
+              {(isLoading || insuranceLoading || basesLoading || payrollDetailsLoading) ? (
                 <div className="flex items-center justify-center h-full">
                   <span className="loading loading-spinner loading-lg"></span>
                 </div>
