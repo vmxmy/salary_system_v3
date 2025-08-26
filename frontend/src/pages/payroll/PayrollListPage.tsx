@@ -35,7 +35,6 @@ import { usePermission } from '@/hooks/permissions/usePermission';
 import { PERMISSIONS } from '@/constants/permissions';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { exportTableToCSV, exportTableToJSON } from '@/components/common/DataTable/utils';
-import { generateExcelBuffer } from '@/hooks/payroll/import-export/exporters/excel-exporter';
 import type { FieldMetadata } from '@/components/common/FieldSelector';
 import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
 import { usePayrollDataProcessor } from '@/hooks/payroll/usePayrollDataProcessor';
@@ -65,6 +64,18 @@ export default function PayrollListPage() {
   
   // 状态管理
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
+  // 调试：追踪选中ID变化
+  const handleSelectedIdsChange = useCallback((newIds: string[]) => {
+    console.log('🎯 [PayrollListPage] Selection changed:', {
+      previousCount: selectedIds.length,
+      newCount: newIds.length,
+      added: newIds.filter(id => !selectedIds.includes(id)),
+      removed: selectedIds.filter(id => !newIds.includes(id)),
+      newIds: newIds.slice(0, 5) // 只显示前5个ID避免日志过长
+    });
+    setSelectedIds(newIds);
+  }, [selectedIds]);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
   const [selectedMonth, setSelectedMonth] = useState(() => {
     // 默认为当前月份，将在useEffect中更新为最近有记录的月份
@@ -74,6 +85,24 @@ export default function PayrollListPage() {
   // 搜索和筛选状态
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<PayrollStatusType | 'all'>('all');
+  
+  // 调试：追踪筛选条件变化
+  const handleSearchQueryChange = useCallback((query: string) => {
+    console.log('🔍 [PayrollListPage] Search query changed:', {
+      previousQuery: searchQuery,
+      newQuery: query,
+      queryLength: query.length
+    });
+    setSearchQuery(query);
+  }, [searchQuery]);
+  
+  const handleStatusFilterChange = useCallback((status: PayrollStatusType | 'all') => {
+    console.log('📊 [PayrollListPage] Status filter changed:', {
+      previousStatus: statusFilter,
+      newStatus: status
+    });
+    setStatusFilter(status);
+  }, [statusFilter]);
   
   // 模态框状态管理
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
@@ -152,21 +181,37 @@ export default function PayrollListPage() {
   
   // 应用搜索和筛选
   const processedData = useMemo(() => {
+    const originalCount = allData?.length || 0;
     let filteredData = [...(allData || [])];
+    
+    console.log('🔄 [PayrollListPage] Starting data processing:', {
+      originalDataCount: originalCount,
+      statusFilter,
+      searchQuery: searchQuery.trim(),
+      hasSearchQuery: !!searchQuery.trim()
+    });
     
     // 状态筛选
     if (statusFilter !== 'all') {
+      const beforeStatusFilter = filteredData.length;
       filteredData = filteredData.filter(item => {
         const itemStatus = item.payroll_status || item.status;
         return itemStatus === statusFilter;
+      });
+      console.log('📊 [PayrollListPage] Status filter applied:', {
+        statusFilter,
+        beforeCount: beforeStatusFilter,
+        afterCount: filteredData.length,
+        filtered: beforeStatusFilter - filteredData.length
       });
     }
     
     // 搜索筛选
     if (searchQuery.trim()) {
+      const beforeSearchFilter = filteredData.length;
       const query = searchQuery.toLowerCase().trim();
       filteredData = filteredData.filter(item => {
-        return (
+        const matches = (
           item.employee_name?.toLowerCase().includes(query) ||
           item.department_name?.toLowerCase().includes(query) ||
           item.position_name?.toLowerCase().includes(query) ||
@@ -174,8 +219,21 @@ export default function PayrollListPage() {
           (item as any).root_category_name?.toLowerCase().includes(query) ||
           item.payroll_status?.toLowerCase().includes(query)
         );
+        return matches;
+      });
+      console.log('🔍 [PayrollListPage] Search filter applied:', {
+        query,
+        beforeCount: beforeSearchFilter,
+        afterCount: filteredData.length,
+        filtered: beforeSearchFilter - filteredData.length
       });
     }
+    
+    console.log('✅ [PayrollListPage] Final processed data:', {
+      originalCount: originalCount,
+      finalCount: filteredData.length,
+      reductionRate: originalCount > 0 ? ((originalCount - filteredData.length) / originalCount * 100).toFixed(1) + '%' : '0%'
+    });
     
     return filteredData;
   }, [allData, statusFilter, searchQuery]);
@@ -281,32 +339,131 @@ export default function PayrollListPage() {
 
   const clearPeriod = useClearPayrollPeriod();
 
-  // 专用的选中数据导出处理函数
+  // 专用的选中数据导出处理函数 - 动态从表格列定义生成导出列
   const handleExportSelected = async (selectedData: PayrollData[]) => {
     try {
-      const buffer = await generateExcelBuffer(selectedData, { template: 'payroll_summary', format: 'xlsx' });
-      
-      // 创建下载链接
-      const blob = new Blob([buffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      console.log('📊 [PayrollListPage] Starting export with selected data:', {
+        selectedCount: selectedData.length,
+        columnsCount: columns.length,
+        dataPreview: selectedData.slice(0, 2).map(item => ({
+          id: item.id || item.payroll_id,
+          employee_name: item.employee_name,
+          root_category_name: (item as any).root_category_name
+        }))
       });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
+
+      // 动态引入XLSX库
+      const XLSX = await import('xlsx');
       
-      // 生成文件名
-      const fileName = `薪资数据导出_选中${selectedData.length}条_${selectedMonth}.xlsx`;
-      link.download = fileName;
+      // 动态从表格列定义生成导出列配置
+      const exportColumns = columns.map((col: any) => {
+        const columnDef = col.columnDef || col;
+        const header = typeof columnDef.header === 'string' ? columnDef.header : col.id;
+        const accessorKey = columnDef.accessorKey || col.accessorKey;
+        
+        // 为不同字段提供特定的格式化函数
+        let formatter = (val: any) => val || '-';
+        
+        if (accessorKey === 'gross_pay' || accessorKey === 'total_deductions' || accessorKey === 'net_pay') {
+          formatter = (val: any) => typeof val === 'number' ? val : 0;
+        } else if (accessorKey === 'payroll_status') {
+          formatter = (val: any) => {
+            const statusMap: Record<string, string> = {
+              'draft': '草稿',
+              'submitted': '已提交', 
+              'approved': '已审批',
+              'paid': '已发放',
+              'cancelled': '已取消'
+            };
+            return statusMap[val as string] || val || '-';
+          };
+        } else if (accessorKey === 'root_category_name') {
+          formatter = (val: any) => val || '-';
+        }
+        
+        return {
+          header,
+          key: accessorKey,
+          formatter
+        };
+      }).filter(col => col.key && col.header); // 过滤掉无效的列
       
-      // 触发下载
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      console.log('📋 [PayrollListPage] Export columns generated:', {
+        exportColumns: exportColumns.map(col => ({ header: col.header, key: col.key }))
+      });
+
+      // 转换数据为Excel格式
+      const worksheetData = selectedData.map((item, index) => {
+        const row: any = { '序号': index + 1 };
+        exportColumns.forEach(col => {
+          const value = (item as any)[col.key];
+          const formattedValue = col.formatter(value);
+          row[col.header] = formattedValue;
+          
+          // 调试日志：检查关键字段的值
+          if (col.key === 'root_category_name' && index === 0) {
+            console.log('🔍 [Export] Root category debug for first item:', {
+              key: col.key,
+              rawValue: value,
+              formattedValue: formattedValue,
+              itemData: {
+                employee_name: item.employee_name,
+                root_category_name: (item as any).root_category_name,
+                category_name: item.category_name
+              }
+            });
+          }
+        });
+        return row;
+      });
       
-      // 清理URL
-      window.URL.revokeObjectURL(url);
+      console.log('📊 [Export] Worksheet data sample:', {
+        totalRows: worksheetData.length,
+        sampleRow: worksheetData[0],
+        columnHeaders: Object.keys(worksheetData[0] || {})
+      });
+
+      // 创建工作簿和工作表
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
       
-      showSuccess(`已导出${selectedData.length}条选中记录`);
+      // 动态设置列宽
+      const columnWidths = [
+        { wch: 6 }  // 序号
+      ];
+      
+      // 为每个导出列动态设置宽度
+      exportColumns.forEach(col => {
+        let width = 12; // 默认宽度
+        
+        // 根据列类型调整宽度
+        if (col.key === 'employee_name') width = 12;
+        else if (col.key === 'root_category_name') width = 10;
+        else if (col.key === 'department_name') width = 15;
+        else if (col.key === 'position_name') width = 15;
+        else if (col.key === 'category_name') width = 12;
+        else if (col.key?.includes('_pay') || col.key?.includes('deductions')) width = 12;
+        else if (col.key === 'payroll_status') width = 10;
+        
+        columnWidths.push({ wch: width });
+      });
+      worksheet['!cols'] = columnWidths;
+
+      // 添加工作表到工作簿
+      XLSX.utils.book_append_sheet(workbook, worksheet, '薪资数据');
+      
+      // 生成Excel文件并下载
+      const fileName = `薪资数据导出_选中${selectedData.length}条_${exportColumns.length}字段_${selectedMonth}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      
+      console.log('✅ [Export] Export completed successfully:', {
+        fileName,
+        recordCount: selectedData.length,
+        fieldCount: exportColumns.length,
+        fieldsExported: exportColumns.map(col => col.header)
+      });
+      
+      showSuccess(`已导出${selectedData.length}条记录，包含${exportColumns.length}个字段`);
     } catch (error) {
       console.error('Export selected failed:', error);
       showError(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`);
@@ -402,9 +559,9 @@ export default function PayrollListPage() {
             onMonthChange={handleMonthChange}
             isLoading={latestPeriodLoading}
             statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
+            onStatusFilterChange={handleStatusFilterChange}
             searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
+            onSearchQueryChange={handleSearchQueryChange}
             totalLoading={totalLoading}
             exportData={processedData}
             onClearClick={() => setIsClearModalOpen(true)}
@@ -525,12 +682,24 @@ export default function PayrollListPage() {
 
           {/* 表格容器 */}
           <div data-tour="payroll-table">
+            {(() => {
+              console.log('🎯 [PayrollListPage] Rendering table with data:', {
+                processedDataCount: processedData.length,
+                selectedIdsCount: selectedIds.length,
+                isLoading,
+                dataPreview: processedData.slice(0, 3).map(item => ({
+                  id: item.id || item.payroll_id,
+                  name: item.employee_name
+                }))
+              });
+              return null;
+            })()}
             <PayrollTableContainer
               data={processedData}
               columns={columns}
               loading={isLoading}
               selectedIds={selectedIds}
-              onSelectedIdsChange={setSelectedIds}
+              onSelectedIdsChange={handleSelectedIdsChange}
               onViewDetail={modalManager.handlers.handleViewDetail}
               enableRowSelection={true}
             />

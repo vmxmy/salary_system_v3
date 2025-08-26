@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useRef, type ReactNode } from 'react';
+import React, { useMemo, useCallback, useRef, useState, type ReactNode } from 'react';
 import { DataTable } from '@/components/common/DataTable';
 import type { Table, PaginationState } from '@tanstack/react-table';
 
@@ -80,6 +80,9 @@ export function PayrollTableContainer<T extends BasePayrollData = BasePayrollDat
   // 使用ref存储最新数据，避免闭包问题
   const processedDataRef = useRef<T[]>([]);
   processedDataRef.current = data;
+  
+  // 存储table实例以获取筛选后的数据
+  const [tableInstance, setTableInstance] = useState<Table<T> | null>(null);
 
   // 默认查看详情操作
   const defaultViewDetailAction: ActionConfig<T> = useMemo(() => ({
@@ -152,28 +155,65 @@ export function PayrollTableContainer<T extends BasePayrollData = BasePayrollDat
     return {
       id: 'select',
       header: ({ table }: any) => {
-        const isAllSelected = data.length > 0 && selectedIds.length === data.length;
-        const isIndeterminate = selectedIds.length > 0 && selectedIds.length < data.length;
+        // 使用传入的实际数据（已经过页面层筛选）而不是table的内部筛选结果
+        const currentData = data; // 这是经过页面筛选后的数据
+        const currentIds = currentData.map((item: T) => item.id || item.payroll_id).filter(Boolean) as string[];
+        
+        // 计算选中状态 - 基于当前显示的数据
+        const selectedCurrentIds = selectedIds.filter(id => currentIds.includes(id));
+        const isAllCurrentSelected = currentIds.length > 0 && selectedCurrentIds.length === currentIds.length;
+        const isIndeterminate = selectedCurrentIds.length > 0 && selectedCurrentIds.length < currentIds.length;
+        
+        // 调试日志 - 追踪选择状态
+        console.log('🔍 [PayrollTableContainer] Select All Debug:', {
+          totalDataItems: currentData.length,
+          currentIds: currentIds.length,
+          selectedIds: selectedIds.length,
+          selectedCurrentIds: selectedCurrentIds.length,
+          isAllCurrentSelected,
+          isIndeterminate,
+          currentIdsPreview: currentIds.slice(0, 3),
+          selectedIdsPreview: selectedIds.slice(0, 3)
+        });
         
         return (
           <input
             type="checkbox"
             className="checkbox checkbox-sm"
-            checked={isAllSelected}
+            checked={isAllCurrentSelected}
             ref={(el) => {
               if (el) el.indeterminate = isIndeterminate;
             }}
             onChange={(e) => {
+              console.log('📝 [PayrollTableContainer] Select All Clicked:', {
+                checked: e.target.checked,
+                currentData: currentIds.length,
+                beforeSelection: selectedIds.length
+              });
+              
               if (e.target.checked) {
-                // 全选：选择所有数据
-                const allIds = data.map(item => item.id || item.payroll_id).filter(Boolean) as string[];
-                onSelectedIdsChange(allIds);
+                // 全选：选择当前显示的所有数据
+                const newSelectedIds = [...new Set([...selectedIds, ...currentIds])];
+                console.log('✅ [PayrollTableContainer] Select All - Adding:', {
+                  previouslySelected: selectedIds.length,
+                  currentVisible: currentIds.length,
+                  newTotal: newSelectedIds.length,
+                  addedIds: currentIds.filter(id => !selectedIds.includes(id))
+                });
+                onSelectedIdsChange(newSelectedIds);
               } else {
-                // 取消全选
-                onSelectedIdsChange([]);
+                // 取消全选：移除当前显示数据中的选中项
+                const remainingIds = selectedIds.filter(id => !currentIds.includes(id));
+                console.log('❌ [PayrollTableContainer] Unselect All - Removing:', {
+                  previouslySelected: selectedIds.length,
+                  currentVisible: currentIds.length,
+                  newTotal: remainingIds.length,
+                  removedIds: selectedIds.filter(id => currentIds.includes(id))
+                });
+                onSelectedIdsChange(remainingIds);
               }
             }}
-            title={isAllSelected ? "取消全选" : "全选所有数据"}
+            title={isAllCurrentSelected ? `取消全选 (当前显示 ${currentIds.length} 项)` : `全选当前显示 (${currentIds.length} 项)`}
           />
         );
       },
@@ -199,7 +239,7 @@ export function PayrollTableContainer<T extends BasePayrollData = BasePayrollDat
       enableSorting: false,
       enableColumnFilter: false,
     };
-  }, [enableRowSelection, data, selectedIds, onSelectedIdsChange]);
+  }, [enableRowSelection, selectedIds, onSelectedIdsChange]);
 
   // 组装完整的列配置
   const columns = useMemo(() => {
