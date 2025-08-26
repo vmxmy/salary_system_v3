@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "NODE_OPTIONS='--max-old-space-size=2048' npx tsc -b && NODE_OPTIONS='--max-old-space-size=2048' vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "i18n:check": "node scripts/check-i18n.js",
