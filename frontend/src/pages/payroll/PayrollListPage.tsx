@@ -171,6 +171,7 @@ export default function PayrollListPage() {
           item.department_name?.toLowerCase().includes(query) ||
           item.position_name?.toLowerCase().includes(query) ||
           item.category_name?.toLowerCase().includes(query) ||
+          (item as any).root_category_name?.toLowerCase().includes(query) ||
           item.payroll_status?.toLowerCase().includes(query)
         );
       });
@@ -190,6 +191,25 @@ export default function PayrollListPage() {
     columnHelper.accessor('employee_name', {
       header: '员工姓名',
       cell: (info) => info.getValue(),
+      enableColumnFilter: true,
+      filterFn: 'includesString'
+    }),
+    columnHelper.accessor('root_category_name', {
+      header: '根分类',
+      cell: (info) => {
+        const rootCategory = info.getValue();
+        return (
+          <div className="flex items-center gap-1">
+            <span className={`badge badge-sm ${
+              rootCategory === '正编' ? 'badge-success' : 
+              rootCategory === '聘用' ? 'badge-info' : 
+              'badge-neutral'
+            }`}>
+              {rootCategory || '-'}
+            </span>
+          </div>
+        );
+      },
       enableColumnFilter: true,
       filterFn: 'includesString'
     }),
