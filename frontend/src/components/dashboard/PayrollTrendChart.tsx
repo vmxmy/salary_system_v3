@@ -54,9 +54,14 @@ interface CustomTooltipProps {
     payload: MonthlyPayrollTrendData;
   }>;
   label?: string;
+  colors?: {
+    primary: string;
+    warning: string;
+    success: string;
+  };
 }
 
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
+function CustomTooltip({ active, payload, label, colors }: CustomTooltipProps) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     
@@ -66,24 +71,33 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-primary"></div>
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: colors?.primary || '#3b82f6' }}
+              ></div>
               <span className="text-sm">应发总额</span>
             </div>
             <span className="text-sm font-medium">¥{data.totalGrossPay.toLocaleString()}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-warning"></div>
-              <span className="text-sm">扣除总额</span>
-            </div>
-            <span className="text-sm font-medium">¥{data.totalDeductions.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-success"></div>
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: colors?.success || '#10b981' }}
+              ></div>
               <span className="text-sm">实发总额</span>
             </div>
             <span className="text-sm font-medium">¥{data.totalNetPay.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: colors?.warning || '#f59e0b' }}
+              ></div>
+              <span className="text-sm">扣除总额</span>
+            </div>
+            <span className="text-sm font-medium">¥{data.totalDeductions.toLocaleString()}</span>
           </div>
           <div className="border-t border-base-300 pt-2 mt-2">
             <div className="flex items-center justify-between gap-4">
@@ -211,7 +225,7 @@ export function PayrollTrendChart() {
                 tick={{ fontSize: 12 }}
                 label={{ value: '金额 (千元)', angle: -90, position: 'insideLeft' }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip colors={colors} />} />
               <Legend />
               <Line 
                 type="monotone" 
