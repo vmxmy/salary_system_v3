@@ -155,65 +155,90 @@ export function PayrollTableContainer<T extends BasePayrollData = BasePayrollDat
     return {
       id: 'select',
       header: ({ table }: any) => {
-        // 使用传入的实际数据（已经过页面层筛选）而不是table的内部筛选结果
-        const currentData = data; // 这是经过页面筛选后的数据
-        const currentIds = currentData.map((item: T) => item.id || item.payroll_id).filter(Boolean) as string[];
+        // 获取所有筛选结果（不受分页影响）
+        const allFilteredRows = table.getFilteredRowModel().rows;
+        const allFilteredIds = allFilteredRows.map((row: any) => {
+          const item = row.original;
+          return item.id || item.payroll_id;
+        }).filter(Boolean) as string[];
         
-        // 计算选中状态 - 基于当前显示的数据
-        const selectedCurrentIds = selectedIds.filter(id => currentIds.includes(id));
-        const isAllCurrentSelected = currentIds.length > 0 && selectedCurrentIds.length === currentIds.length;
-        const isIndeterminate = selectedCurrentIds.length > 0 && selectedCurrentIds.length < currentIds.length;
+        // 计算选中状态 - 基于所有筛选结果（跨页面）
+        const selectedFilteredIds = selectedIds.filter(id => allFilteredIds.includes(id));
+        const isAllFilteredSelected = allFilteredIds.length > 0 && selectedFilteredIds.length === allFilteredIds.length;
+        const isIndeterminate = selectedFilteredIds.length > 0 && selectedFilteredIds.length < allFilteredIds.length;
+        
+        // 获取当前页面显示的行数（用于调试）
+        const currentPageRows = table.getRowModel().rows;
+        const isPaginated = allFilteredIds.length > currentPageRows.length;
         
         // 调试日志 - 追踪选择状态
-        console.log('🔍 [PayrollTableContainer] Select All Debug:', {
-          totalDataItems: currentData.length,
-          currentIds: currentIds.length,
+        console.log('🔍 [PayrollTableContainer] Select All Debug (All Filtered, Ignore Pagination):', {
+          totalDataItems: data.length,
+          allFilteredItems: allFilteredIds.length,
+          currentPageItems: currentPageRows.length,
           selectedIds: selectedIds.length,
-          selectedCurrentIds: selectedCurrentIds.length,
-          isAllCurrentSelected,
+          selectedFilteredIds: selectedFilteredIds.length,
+          isAllFilteredSelected,
           isIndeterminate,
-          currentIdsPreview: currentIds.slice(0, 3),
-          selectedIdsPreview: selectedIds.slice(0, 3)
+          isPaginated,
+          filteredIdsPreview: allFilteredIds.slice(0, 3),
+          selectedIdsPreview: selectedIds.slice(0, 3),
+          hasColumnFilters: table.getState().columnFilters.length > 0,
+          currentPage: table.getState().pagination.pageIndex + 1,
+          pageSize: table.getState().pagination.pageSize
         });
         
         return (
           <input
             type="checkbox"
             className="checkbox checkbox-sm"
-            checked={isAllCurrentSelected}
+            checked={isAllFilteredSelected}
             ref={(el) => {
               if (el) el.indeterminate = isIndeterminate;
             }}
             onChange={(e) => {
-              console.log('📝 [PayrollTableContainer] Select All Clicked:', {
+              console.log('📝 [PayrollTableContainer] Select All Clicked (All Filtered, Ignore Pagination):', {
                 checked: e.target.checked,
-                currentData: currentIds.length,
-                beforeSelection: selectedIds.length
+                allFilteredItems: allFilteredIds.length,
+                currentPageItems: currentPageRows.length,
+                beforeSelection: selectedIds.length,
+                isPaginated,
+                hasColumnFilters: table.getState().columnFilters.length > 0
               });
               
               if (e.target.checked) {
-                // 全选：选择当前显示的所有数据
-                const newSelectedIds = [...new Set([...selectedIds, ...currentIds])];
-                console.log('✅ [PayrollTableContainer] Select All - Adding:', {
+                // 全选：选择所有筛选结果（跨页面）
+                const newSelectedIds = [...new Set([...selectedIds, ...allFilteredIds])];
+                console.log('✅ [PayrollTableContainer] Select All - Adding (All Filtered, Ignore Pagination):', {
                   previouslySelected: selectedIds.length,
-                  currentVisible: currentIds.length,
+                  allFilteredItems: allFilteredIds.length,
                   newTotal: newSelectedIds.length,
-                  addedIds: currentIds.filter(id => !selectedIds.includes(id))
+                  addedIds: allFilteredIds.filter(id => !selectedIds.includes(id)),
+                  isPaginated
                 });
                 onSelectedIdsChange(newSelectedIds);
               } else {
-                // 取消全选：移除当前显示数据中的选中项
-                const remainingIds = selectedIds.filter(id => !currentIds.includes(id));
-                console.log('❌ [PayrollTableContainer] Unselect All - Removing:', {
+                // 取消全选：移除所有筛选结果中的选中项（跨页面）
+                const remainingIds = selectedIds.filter(id => !allFilteredIds.includes(id));
+                console.log('❌ [PayrollTableContainer] Unselect All - Removing (All Filtered, Ignore Pagination):', {
                   previouslySelected: selectedIds.length,
-                  currentVisible: currentIds.length,
+                  allFilteredItems: allFilteredIds.length,
                   newTotal: remainingIds.length,
-                  removedIds: selectedIds.filter(id => currentIds.includes(id))
+                  removedIds: selectedIds.filter(id => allFilteredIds.includes(id)),
+                  isPaginated
                 });
                 onSelectedIdsChange(remainingIds);
               }
             }}
-            title={isAllCurrentSelected ? `取消全选 (当前显示 ${currentIds.length} 项)` : `全选当前显示 (${currentIds.length} 项)`}
+            title={
+              isPaginated 
+                ? (isAllFilteredSelected 
+                    ? `取消全选所有筛选结果 (共${allFilteredIds.length}项, 跨${Math.ceil(allFilteredIds.length / table.getState().pagination.pageSize)}页)` 
+                    : `全选所有筛选结果 (共${allFilteredIds.length}项, 跨${Math.ceil(allFilteredIds.length / table.getState().pagination.pageSize)}页)`)
+                : (isAllFilteredSelected 
+                    ? `取消全选 (筛选结果 ${allFilteredIds.length} 项)` 
+                    : `全选筛选结果 (${allFilteredIds.length} 项)`)
+            }
           />
         );
       },
@@ -239,7 +264,7 @@ export function PayrollTableContainer<T extends BasePayrollData = BasePayrollDat
       enableSorting: false,
       enableColumnFilter: false,
     };
-  }, [enableRowSelection, selectedIds, onSelectedIdsChange]);
+  }, [enableRowSelection, selectedIds, onSelectedIdsChange, data]);
 
   // 组装完整的列配置
   const columns = useMemo(() => {
