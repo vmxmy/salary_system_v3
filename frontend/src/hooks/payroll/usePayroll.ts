@@ -249,6 +249,7 @@ export const usePayrolls = (filters?: {
         department_name: item.department_name,
         position_name: item.position_name,
         category_name: item.category_name, // 添加身份类别字段
+        root_category_name: item.root_category_name, // 添加根分类字段
         
         // 周期信息
         period_id: item.period_id,  // 现在视图直接提供此字段
