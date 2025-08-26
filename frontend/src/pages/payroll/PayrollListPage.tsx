@@ -182,42 +182,60 @@ export default function PayrollListPage() {
   // 使用批量验证Hook
   const batchValidation = usePayrollBatchValidation(selectedIds, processedData);
 
-  // 创建表格列定义
+  // 移除自定义筛选函数，使用TanStack Table原生筛选
+
+  // 创建表格列定义 - 使用TanStack Table原生筛选函数
   const columnHelper = createDataTableColumnHelper<PayrollData>();
   const columns = useMemo(() => [
     columnHelper.accessor('employee_name', {
       header: '员工姓名',
-      cell: (info) => info.getValue()
+      cell: (info) => info.getValue(),
+      enableColumnFilter: true,
+      filterFn: 'includesString'
     }),
     columnHelper.accessor('department_name', {
       header: '部门',
-      cell: (info) => info.getValue() || '-'
+      cell: (info) => info.getValue() || '-',
+      enableColumnFilter: true,
+      filterFn: 'includesString'
     }),
     columnHelper.accessor('position_name', {
       header: '职位',
-      cell: (info) => info.getValue() || '-'
+      cell: (info) => info.getValue() || '-',
+      enableColumnFilter: true,
+      filterFn: 'includesString'
     }),
     columnHelper.accessor('category_name', {
       header: '人员类别',
-      cell: (info) => info.getValue() || '-'
+      cell: (info) => info.getValue() || '-',
+      enableColumnFilter: true,
+      filterFn: 'includesString'
     }),
     columnHelper.accessor('gross_pay', {
       header: '应发合计',
-      cell: (info) => formatCurrency(info.getValue() || 0)
+      cell: (info) => formatCurrency(info.getValue() || 0),
+      enableColumnFilter: true,
+      filterFn: 'includesString'
     }),
     columnHelper.accessor('total_deductions', {
       header: '扣发合计',
-      cell: (info) => formatCurrency(info.getValue() || 0)
+      cell: (info) => formatCurrency(info.getValue() || 0),
+      enableColumnFilter: true,
+      filterFn: 'includesString'
     }),
     columnHelper.accessor('net_pay', {
       header: '实发合计',
-      cell: (info) => formatCurrency(info.getValue() || 0)
+      cell: (info) => formatCurrency(info.getValue() || 0),
+      enableColumnFilter: true,
+      filterFn: 'includesString'
     }),
     columnHelper.accessor('payroll_status', {
       header: '状态',
       cell: (info) => (
         <PayrollStatusBadge status={info.getValue() as any} />
-      )
+      ),
+      enableColumnFilter: true,
+      filterFn: 'includesString'
     })
   ], [columnHelper]);
 

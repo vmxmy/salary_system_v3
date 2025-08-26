@@ -304,7 +304,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const { t } = useTranslation(['common']);
   const location = useLocation();
   const navigate = useNavigate();
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(['payroll', 'admin', 'permissions', 'testFeatures']); // 默认展开薪资、管理和测试菜单
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['payroll']); // 默认只展开薪资管理菜单
 
   // 临时翻译映射，保持界面友好
   const getDisplayName = (key: string): string => {

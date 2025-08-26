@@ -422,24 +422,66 @@ export function useUserManagement(): UseUserManagementReturn {
     }
   }, [canManageUsers, fetchUsers]);
 
-  // 分配用户角色
+  // 分配用户角色 - 使用 UPSERT 逻辑避免重复记录
   const assignUserRole = useCallback(async (data: UserRoleAssignmentData): Promise<void> => {
     if (!canAssignRoles) {
       throw new Error('Insufficient permissions to assign roles');
     }
 
     try {
-      const { error } = await supabase
+      // 首先禁用该用户的所有现有角色
+      const { error: deactivateError } = await supabase
         .from('user_roles')
-        .insert({
-          user_id: data.user_id,
-          role: data.role,
-          is_active: true,
-          created_at: new Date().toISOString()
-        });
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', data.user_id)
+        .eq('is_active', true);
 
-      if (error) {
-        throw new Error(`Failed to assign role: ${error.message}`);
+      if (deactivateError) {
+        console.warn('[useUserManagement] Failed to deactivate existing roles:', deactivateError.message);
+        // 继续执行，不阻断流程
+      }
+
+      // 检查是否已存在相同用户-角色组合的记录
+      const { data: existingRoles, error: checkError } = await supabase
+        .from('user_roles')
+        .select('id, is_active')
+        .eq('user_id', data.user_id)
+        .eq('role', data.role);
+
+      if (checkError) {
+        throw new Error(`Failed to check existing roles: ${checkError.message}`);
+      }
+
+      if (existingRoles && existingRoles.length > 0) {
+        // 更新现有记录为激活状态
+        const { error: updateError } = await supabase
+          .from('user_roles')
+          .update({
+            is_active: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingRoles[0].id);
+
+        if (updateError) {
+          throw new Error(`Failed to reactivate existing role: ${updateError.message}`);
+        }
+      } else {
+        // 创建新的角色记录
+        const { error: insertError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: data.user_id,
+            role: data.role,
+            is_active: true,
+            created_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          throw new Error(`Failed to assign new role: ${insertError.message}`);
+        }
       }
 
       // 刷新用户列表

@@ -21,6 +21,39 @@ export interface PayrollStatistics {
     cancelled: number;
     total: number;
   };
+  // 按人员类型分组统计
+  byEmployeeType: {
+    regular: {  // 正编人员
+      employeeCount: number;
+      totalGrossPay: number;
+      totalDeductions: number;
+      totalNetPay: number;
+      categories: string[];  // 包含的具体类别
+    };
+    contracted: {  // 聘用人员
+      employeeCount: number;
+      totalGrossPay: number;
+      totalDeductions: number;
+      totalNetPay: number;
+      categories: string[];  // 包含的具体类别
+    };
+  };
+}
+
+// 根据根分类名称判断员工类型（现在直接从数据库获取）
+function getEmployeeType(rootCategoryName: string | null): 'regular' | 'contracted' | 'unknown' {
+  if (!rootCategoryName) return 'unknown';
+  
+  if (rootCategoryName === '正编') {
+    return 'regular';
+  }
+  if (rootCategoryName === '聘用') {
+    return 'contracted';
+  }
+  
+  // 添加调试日志
+  console.log(`Unknown root category: "${rootCategoryName}"`);
+  return 'unknown';
 }
 
 export function usePayrollStatistics(yearMonth: string) {
@@ -68,21 +101,83 @@ export function usePayrollStatistics(yearMonth: string) {
           paid: 0,
           cancelled: 0,
           total: data.length
+        },
+        byEmployeeType: {
+          regular: {
+            employeeCount: 0,
+            totalGrossPay: 0,
+            totalDeductions: 0,
+            totalNetPay: 0,
+            categories: []
+          },
+          contracted: {
+            employeeCount: 0,
+            totalGrossPay: 0,
+            totalDeductions: 0,
+            totalNetPay: 0,
+            categories: []
+          }
         }
       };
 
+      // 用于收集已出现的人员类别
+      const regularCategories = new Set<string>();
+      const contractedCategories = new Set<string>();
+
+      console.log(`Processing ${data.length} payroll records for ${periodCode}`);
+
       // 累计计算
       data.forEach((payroll: any) => {
-        statistics.totalGrossPay += payroll.gross_pay || 0;
-        statistics.totalDeductions += payroll.total_deductions || 0;
-        statistics.totalNetPay += payroll.net_pay || 0;
+        const grossPay = payroll.gross_pay || 0;
+        const deductions = payroll.total_deductions || 0;
+        const netPay = payroll.net_pay || 0;
+        const categoryName = payroll.category_name;
+        const rootCategoryName = payroll.root_category_name; // 使用新的根分类字段
+        
+        // 总体统计
+        statistics.totalGrossPay += grossPay;
+        statistics.totalDeductions += deductions;
+        statistics.totalNetPay += netPay;
+        
+        // 按人员类型分组统计 - 使用根分类而不是具体分类
+        const employeeType = getEmployeeType(rootCategoryName);
+        
+        if (employeeType === 'regular') {
+          statistics.byEmployeeType.regular.employeeCount++;
+          statistics.byEmployeeType.regular.totalGrossPay += grossPay;
+          statistics.byEmployeeType.regular.totalDeductions += deductions;
+          statistics.byEmployeeType.regular.totalNetPay += netPay;
+          if (categoryName) regularCategories.add(categoryName);
+        } else if (employeeType === 'contracted') {
+          statistics.byEmployeeType.contracted.employeeCount++;
+          statistics.byEmployeeType.contracted.totalGrossPay += grossPay;
+          statistics.byEmployeeType.contracted.totalDeductions += deductions;
+          statistics.byEmployeeType.contracted.totalNetPay += netPay;
+          if (categoryName) contractedCategories.add(categoryName);
+        }
         
         // 统计状态数量 - 使用 payroll_status 字段
-        const status = payroll.payroll_status || payroll.status;
-        if (status in statistics.statusCount) {
+        const status = payroll.payroll_status;
+        if (status && status in statistics.statusCount) {
           statistics.statusCount[status as keyof typeof statistics.statusCount]++;
         }
       });
+
+      console.log('Classification results:', {
+        regular: {
+          count: statistics.byEmployeeType.regular.employeeCount,
+          categories: Array.from(regularCategories)
+        },
+        contracted: {
+          count: statistics.byEmployeeType.contracted.employeeCount,
+          categories: Array.from(contractedCategories)
+        },
+        totalProcessed: data.length
+      });
+
+      // 设置实际包含的人员类别
+      statistics.byEmployeeType.regular.categories = Array.from(regularCategories);
+      statistics.byEmployeeType.contracted.categories = Array.from(contractedCategories);
 
       // 计算平均值
       if (statistics.employeeCount > 0) {

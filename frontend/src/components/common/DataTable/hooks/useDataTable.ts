@@ -96,6 +96,8 @@ export function useDataTable<TData>({
     // Options
     enableRowSelection,
     enableColumnResizing,
+    enableColumnFilters: true,
+    enableGlobalFilter: true,
     columnResizeMode: 'onChange',
     manualPagination: pageCount !== undefined,
   });
