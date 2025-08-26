@@ -339,6 +339,12 @@ export const PAYROLL_COMPLETE_TEMPLATE: ExportTemplateConfig = {
           isFixed: true
         },
         {
+          label: '根分类',
+          dataPath: 'root_category_name',
+          width: 10,
+          isFixed: true
+        },
+        {
           label: '部门',
           dataPath: 'department_name',
           width: 15,

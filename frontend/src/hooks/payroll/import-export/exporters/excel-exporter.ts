@@ -428,6 +428,7 @@ const generateMultiSheetExcelBuffer = async (
         employeeDetailsMap.set(key, {
           employee_id: item.employee_id,
           employee_name: item.employee_name,
+          root_category_name: item.root_category_name || '',
           department_name: item.department_name || '',
           position_name: item.position_name || '',
           pay_month: item.pay_month || item.period_name || '',
@@ -476,6 +477,7 @@ const generateMultiSheetExcelBuffer = async (
       const row: any = {
         '序号': index + 1,
         '员工姓名': item.employee_name,
+        '根分类': item.root_category_name,
         '部门': item.department_name,
         '职位': item.position_name,
         '薪资月份': item.pay_month
@@ -500,6 +502,7 @@ const generateMultiSheetExcelBuffer = async (
     const columnWidths = [
       { wch: 8 },  // 序号
       { wch: 12 }, // 员工姓名
+      { wch: 10 }, // 根分类
       { wch: 15 }, // 部门
       { wch: 15 }, // 职位
       { wch: 12 }, // 薪资月份
