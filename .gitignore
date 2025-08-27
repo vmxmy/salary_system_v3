@@ -232,7 +232,11 @@ archived_*.tar.gz
 # Data files (production data should not be in git)
 工资数据/
 exports/
-reports/
+# 只忽略根目录和数据相关的reports目录，不影响源代码中的reports
+/reports/
+*/reports/
+!src/*/reports/
+!frontend/src/*/reports/
 
 # Development tools and artifacts
 backup_tool/backups/
