@@ -41,30 +41,25 @@ async function buildAuthUser(user: User): Promise<AuthUser> {
   try {
     console.log('[Auth] Building user with permissions for:', user.email);
     
-    // 使用快速重试机制查询用户权限，避免认证卡住
-    const { data: userPermData, error } = await Promise.race([
-      fastRetrySupabase.viewQuery(
-        'view_user_permissions',
-        'user_role, permissions, page_permissions, data_scope',
-        {
-          filters: (query) => query.eq('user_id', user.id),
-          limit: 1
-        }
-      ).then(result => ({ 
-        data: result.data?.[0] || null, 
-        error: result.error 
-      })),
-      
-      // 15秒超时，给网络慢的情况更多时间，但仍防止永远卡住
-      new Promise<{ data: null; error: any }>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Auth query timeout after 15 seconds'));
-        }, 15000);
-      })
-    ]);
+    // 🔧 修复：使用更简单、直接的查询，避免复杂的重试机制
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Auth query timeout after 8 seconds'));
+      }, 8000); // 减少到8秒，避免用户等待太久
+    });
 
-    if (error || !userPermData) {
-      console.warn('[Auth] Failed to load user permissions, using fallback admin role:', error?.message || 'No data returned');
+    // 直接查询，不使用复杂的重试包装器
+    const queryPromise = supabase
+      .from('view_user_permissions')
+      .select('user_role, permissions, page_permissions, data_scope')
+      .eq('user_id', user.id)
+      .limit(1)
+      .single();
+
+    const result = await Promise.race([queryPromise, timeoutPromise]);
+
+    if (result.error || !result.data) {
+      console.warn('[Auth] Failed to load user permissions, using fallback admin role:', result.error?.message || 'No data returned');
       // 网络问题时降级到管理员权限，确保用户可以继续使用系统
       return {
         id: user.id,
@@ -75,19 +70,19 @@ async function buildAuthUser(user: User): Promise<AuthUser> {
     }
 
     // 将数据库权限转换为字符串数组
-    const permissions = Array.isArray((userPermData as any)?.permissions) 
-      ? (userPermData as any).permissions as string[]
+    const permissions = Array.isArray(result.data.permissions) 
+      ? result.data.permissions as string[]
       : [];
 
     // 构建完整的AuthUser对象
     const authUser: AuthUser = {
       id: user.id,
       email: user.email!,
-      role: (userPermData as any)?.user_role || 'employee',
+      role: result.data.user_role || 'employee',
       permissions: permissions,
       // 如果需要部门信息，可以在这里添加
-      // departmentId: userPermData.department_id,
-      // managedDepartments: userPermData.managed_departments
+      // departmentId: result.data.department_id,
+      // managedDepartments: result.data.managed_departments
     };
 
     console.log(`[Auth] User role loaded: ${authUser.role}, permissions: ${permissions.length}`);
@@ -405,6 +400,7 @@ export const auth = {
 
   /**
    * 获取当前用户（从会话构建）
+   * 🔧 修复：移除嵌套超时，依赖buildAuthUser的单一超时机制
    */
   async getCurrentUser(): Promise<AuthUser | null> {
     try {
@@ -416,15 +412,8 @@ export const auth = {
         return null;
       }
 
-      // 添加额外的超时保护，确保认证不会永远卡住
-      const userPromise = buildAuthUser(session.user);
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('getCurrentUser timeout after 20 seconds'));
-        }, 20000);
-      });
-
-      const user = await Promise.race([userPromise, timeoutPromise]);
+      // 🔧 修复：直接调用buildAuthUser，不添加额外超时层
+      const user = await buildAuthUser(session.user);
       console.log('[Auth] Current user loaded successfully:', user.email);
       return user;
     } catch (error) {

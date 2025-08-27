@@ -13,7 +13,6 @@ if (import.meta.env.DEV) {
 }
 
 function App() {
-
   return (
     <I18nextProvider i18n={i18n}>
       <ToastProvider>
