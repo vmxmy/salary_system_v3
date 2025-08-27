@@ -6,6 +6,7 @@ import type {
   VisibilityState,
   RowSelectionState,
   ColumnSizingState,
+  ColumnPinningState,
   Table
 } from '@tanstack/react-table';
 
@@ -34,6 +35,8 @@ export interface DataTableProps<TData, TValue> {
   initialSorting?: SortingState;
   initialPagination?: PaginationState;
   initialColumnVisibility?: VisibilityState;
+  initialRowSelection?: RowSelectionState;
+  initialColumnPinning?: ColumnPinningState;
   // UI Options
   loading?: boolean;
   emptyMessage?: string;
@@ -95,6 +98,8 @@ export interface UseDataTableOptions<TData> {
   initialColumnVisibility?: VisibilityState;
   initialPagination?: PaginationState;
   initialColumnSizing?: ColumnSizingState;
+  initialRowSelection?: RowSelectionState;
+  initialColumnPinning?: ColumnPinningState;
 }
 
 export interface UseDataTableReturn<TData> {

@@ -11,6 +11,7 @@ import {
   type VisibilityState,
   type RowSelectionState,
   type ColumnSizingState,
+  type ColumnPinningState,
 } from '@tanstack/react-table';
 import type { UseDataTableOptions, UseDataTableReturn } from '../types';
 
@@ -27,14 +28,17 @@ export function useDataTable<TData>({
   initialColumnVisibility = {},
   initialPagination = { pageIndex: 0, pageSize: 10 },
   initialColumnSizing = {},
+  initialRowSelection = {},
+  initialColumnPinning = { left: [], right: [] },
 }: UseDataTableOptions<TData>): UseDataTableReturn<TData> {
   // Table states
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(initialColumnFilters);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(initialColumnVisibility);
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>(initialRowSelection);
   const [pagination, setPagination] = useState<PaginationState>(initialPagination);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(initialColumnSizing);
+  const [columnPinning, setColumnPinning] = useState<ColumnPinningState>(initialColumnPinning);
   const [globalFilter, setGlobalFilter] = useState('');
 
   // 自定义的分页设置函数，处理外部回调
@@ -83,6 +87,7 @@ export function useDataTable<TData>({
       rowSelection,
       pagination,
       columnSizing,
+      columnPinning,
       globalFilter,
     },
     // State setters
@@ -92,12 +97,14 @@ export function useDataTable<TData>({
     onRowSelectionChange: handleRowSelectionChange,
     onPaginationChange: handlePaginationChange,
     onColumnSizingChange: setColumnSizing,
+    onColumnPinningChange: setColumnPinning,
     onGlobalFilterChange: setGlobalFilter,
     // Options
     enableRowSelection,
     enableColumnResizing,
     enableColumnFilters: true,
     enableGlobalFilter: true,
+    enableColumnPinning: true,
     columnResizeMode: 'onChange',
     manualPagination: pageCount !== undefined,
   });
