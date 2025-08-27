@@ -17,6 +17,8 @@ import {
   useSalaryComponents,
   useDeleteSalaryComponent,
   useBatchDeleteSalaryComponents,
+  useSalaryComponentFilters,
+  useCategoriesByType,
   type SalaryComponent,
   type SalaryComponentQuery,
   type ComponentType,
@@ -40,8 +42,14 @@ export function SalaryComponentTable({ onEdit, onView }: SalaryComponentTablePro
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState('');
+  
+  // 筛选器状态
+  const [selectedType, setSelectedType] = useState<ComponentType | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<ComponentCategory | null>(null);
 
   const { data: components = [], isLoading, error, refetch } = useSalaryComponents(query);
+  const { data: filterOptions, isLoading: isLoadingFilters } = useSalaryComponentFilters();
+  const availableCategories = useCategoriesByType(selectedType);
   const deleteMutation = useDeleteSalaryComponent();
   const batchDeleteMutation = useBatchDeleteSalaryComponents();
 
@@ -194,6 +202,29 @@ export function SalaryComponentTable({ onEdit, onView }: SalaryComponentTablePro
     },
   ], [onEdit, onView, deleteMutation.isPending]);
 
+  // 处理筛选器变化
+  const handleTypeChange = (type: ComponentType | null) => {
+    setSelectedType(type);
+    setSelectedCategory(null); // 重置类别选择
+    
+    // 更新查询参数
+    setQuery(prev => ({
+      ...prev,
+      type: type || undefined,
+      category: undefined,
+    }));
+  };
+
+  const handleCategoryChange = (category: ComponentCategory | null) => {
+    setSelectedCategory(category);
+    
+    // 更新查询参数
+    setQuery(prev => ({
+      ...prev,
+      category: category || undefined,
+    }));
+  };
+
   const table = useReactTable({
     data: components,
     columns,
@@ -263,69 +294,106 @@ export function SalaryComponentTable({ onEdit, onView }: SalaryComponentTablePro
 
   return (
     <div className="space-y-4">
-      {/* 搜索和筛选工具栏 */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-        {/* 搜索框 */}
-        <div className="flex-1 max-w-md">
-          <div className="form-control">
+      {/* 搜索和筛选工具栏 - 优化布局，全部左对齐 */}
+      <div className="flex flex-col gap-4">
+        {/* 搜索框和筛选器同行 */}
+        <div className="flex flex-col sm:flex-row gap-3 items-start">
+          {/* 搜索框 */}
+          <div className="form-control w-full sm:w-80">
             <div className="input-group">
               <input
                 type="text"
                 placeholder="搜索组件名称..."
-                className="input input-bordered flex-1"
+                className="input input-bordered input-sm flex-1"
                 value={globalFilter}
                 onChange={(e) => setGlobalFilter(e.target.value)}
               />
-              <button className="btn btn-square">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <button className="btn btn-square btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </button>
             </div>
           </div>
-        </div>
 
-        {/* 筛选选项 */}
-        <div className="flex flex-wrap gap-2">
-          <select
-            className="select select-bordered select-sm"
-            value={table.getColumn('type')?.getFilterValue() as string || 'all'}
-            onChange={(e) => {
-              const value = e.target.value;
-              table.getColumn('type')?.setFilterValue(value === 'all' ? undefined : [value]);
-            }}
-          >
-            <option value="all">所有类型</option>
-            {Object.entries(COMPONENT_TYPE_CONFIG).map(([key, config]) => (
-              <option key={key} value={key}>{config.label}</option>
-            ))}
-          </select>
-
-          <select
-            className="select select-bordered select-sm"
-            value={table.getColumn('category')?.getFilterValue() as string || 'all'}
-            onChange={(e) => {
-              const value = e.target.value;
-              table.getColumn('category')?.setFilterValue(value === 'all' ? undefined : [value]);
-            }}
-          >
-            <option value="all">所有类别</option>
-            {Object.entries(COMPONENT_CATEGORY_CONFIG).map(([key, config]) => (
-              <option key={key} value={key}>{config.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* 批量操作 */}
-        {table.getFilteredSelectedRowModel().rows.length > 0 && (
-          <div className="flex gap-2">
-            <button
-              className={`btn btn-error btn-sm ${batchDeleteMutation.isPending ? 'loading' : ''}`}
-              onClick={handleBatchDelete}
-              disabled={batchDeleteMutation.isPending}
+          {/* 两级联动筛选器 */}
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* 类型筛选器 */}
+            <select
+              className="select select-bordered select-sm min-w-[120px]"
+              value={selectedType || 'all'}
+              onChange={(e) => {
+                const value = e.target.value;
+                handleTypeChange(value === 'all' ? null : value as ComponentType);
+              }}
+              disabled={isLoadingFilters}
             >
-              批量删除 ({table.getFilteredSelectedRowModel().rows.length})
-            </button>
+              <option value="all">所有类型</option>
+              {filterOptions?.types.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label} ({option.count})
+                </option>
+              ))}
+            </select>
+
+            {/* 类别筛选器 - 依赖类型选择 */}
+            <select
+              className="select select-bordered select-sm min-w-[140px]"
+              value={selectedCategory || 'all'}
+              onChange={(e) => {
+                const value = e.target.value;
+                handleCategoryChange(value === 'all' ? null : value as ComponentCategory);
+              }}
+              disabled={!selectedType || availableCategories.length === 0}
+            >
+              <option value="all">
+                {!selectedType ? '请先选择类型' : '所有类别'}
+              </option>
+              {availableCategories.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label} ({option.count})
+                </option>
+              ))}
+            </select>
+
+            {/* 清除筛选按钮 */}
+            {(selectedType || selectedCategory) && (
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setSelectedType(null);
+                  setSelectedCategory(null);
+                  setQuery({});
+                }}
+                title="清除筛选条件"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                清除
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 批量操作行 */}
+        {table.getFilteredSelectedRowModel().rows.length > 0 && (
+          <div className="flex justify-between items-center bg-base-200 p-3 rounded-lg">
+            <div className="text-sm">
+              已选择 <span className="font-semibold">{table.getFilteredSelectedRowModel().rows.length}</span> 个组件
+            </div>
+            <div className="flex gap-2">
+              <button
+                className={`btn btn-error btn-sm ${batchDeleteMutation.isPending ? 'loading' : ''}`}
+                onClick={handleBatchDelete}
+                disabled={batchDeleteMutation.isPending}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                批量删除
+              </button>
+            </div>
           </div>
         )}
       </div>

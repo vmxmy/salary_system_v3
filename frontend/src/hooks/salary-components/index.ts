@@ -31,3 +31,14 @@ export {
   COPY_STRATEGY_CONFIG,
   STABILITY_LEVEL_CONFIG,
 } from '@/types/salary-component';
+
+export {
+  useSalaryComponentFilters,
+  useCategoriesByType,
+} from './useSalaryComponentFilters';
+
+export type {
+  FilterOption,
+  CategoryFilterOption,
+  SalaryComponentFilters,
+} from './useSalaryComponentFilters';

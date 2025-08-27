@@ -159,194 +159,215 @@ export function SalaryComponentFormModal({
 
   return (
     <div className="modal modal-open">
-      <div className="modal-box w-11/12 max-w-2xl">
-        <h3 className="font-bold text-lg mb-4">
-          {isEditing ? '编辑薪资组件' : '新增薪资组件'}
-        </h3>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 组件名称 */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">
-                组件名称 <span className="text-error">*</span>
-              </span>
-            </label>
-            <input
-              type="text"
-              className={`input input-bordered ${errors.name ? 'input-error' : ''}`}
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="请输入薪资组件名称"
-              maxLength={50}
-            />
-            {errors.name && (
-              <label className="label">
-                <span className="label-text-alt text-error">{errors.name}</span>
-              </label>
-            )}
+      <div className="modal-box w-11/12 max-w-2xl h-screen max-h-screen p-0 flex flex-col">
+        {/* Header */}
+        <div className="navbar bg-base-100 border-b">
+          <div className="flex-1">
+            <h3 className="text-lg font-bold">
+              {isEditing ? '编辑薪资组件' : '新增薪资组件'}
+            </h3>
           </div>
+        </div>
 
-          {/* 组件类型和类别 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">组件类型</span>
-              </label>
-              <select
-                className="select select-bordered"
-                value={formData.type}
-                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as ComponentType }))}
-              >
-                {Object.entries(COMPONENT_TYPE_CONFIG).map(([key, config]) => (
-                  <option key={key} value={key}>
-                    {config.icon} {config.label}
-                  </option>
-                ))}
-              </select>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <form id="salary-component-form" onSubmit={handleSubmit} className="space-y-6">
+            {/* 基本信息 */}
+            <div className="card bg-base-200 shadow-sm">
+              <div className="card-body">
+                <h4 className="card-title">基本信息</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">
+                        组件名称 <span className="text-error">*</span>
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`input input-bordered ${errors.name ? 'input-error' : ''}`}
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="请输入薪资组件名称"
+                      maxLength={50}
+                    />
+                    {errors.name && (
+                      <label className="label">
+                        <span className="label-text-alt text-error">{errors.name}</span>
+                      </label>
+                    )}
+                  </div>
+                  
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">组件类型</span>
+                    </label>
+                    <select
+                      className="select select-bordered"
+                      value={formData.type}
+                      onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as ComponentType }))}
+                    >
+                      {Object.entries(COMPONENT_TYPE_CONFIG).map(([key, config]) => (
+                        <option key={key} value={key}>
+                          {config.icon} {config.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">组件类别</span>
+                    </label>
+                    <select
+                      className="select select-bordered"
+                      value={formData.category}
+                      onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as ComponentCategory }))}
+                    >
+                      {Object.entries(COMPONENT_CATEGORY_CONFIG).map(([key, config]) => (
+                        <option key={key} value={key}>
+                          {config.label}
+                        </option>
+                      ))}
+                    </select>
+                    <label className="label">
+                      <span className="label-text-alt">
+                        {COMPONENT_CATEGORY_CONFIG[formData.category]?.description}
+                      </span>
+                    </label>
+                  </div>
+
+                  {isEditing && editingComponent && (
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text">组件ID</span>
+                      </label>
+                      <div className="font-mono text-sm opacity-70">{editingComponent.id}</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 描述说明 */}
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">描述说明</span>
+                  </label>
+                  <textarea
+                    className={`textarea textarea-bordered ${errors.description ? 'textarea-error' : ''}`}
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="请输入组件描述（可选）"
+                    rows={2}
+                    maxLength={200}
+                  />
+                  {errors.description && (
+                    <label className="label">
+                      <span className="label-text-alt text-error">{errors.description}</span>
+                    </label>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">组件类别</span>
-              </label>
-              <select
-                className="select select-bordered"
-                value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as ComponentCategory }))}
-              >
-                {Object.entries(COMPONENT_CATEGORY_CONFIG).map(([key, config]) => (
-                  <option key={key} value={key}>
-                    {config.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+            {/* 属性配置 */}
+            <div className="card bg-base-200 shadow-sm">
+              <div className="card-body">
+                <h4 className="card-title">属性配置</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="stats shadow">
+                    <div className="stat">
+                      <div className="stat-title">税务属性</div>
+                      <div className="stat-desc">是否需要缴纳个人所得税</div>
+                      <div className="stat-actions">
+                        <input
+                          type="checkbox"
+                          className="toggle toggle-primary"
+                          checked={formData.is_taxable}
+                          onChange={(e) => setFormData(prev => ({ ...prev, is_taxable: e.target.checked }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-          {/* 描述 */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">描述说明</span>
-            </label>
-            <textarea
-              className={`textarea textarea-bordered ${errors.description ? 'textarea-error' : ''}`}
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="请输入组件描述（可选）"
-              rows={2}
-              maxLength={200}
-            />
-            {errors.description && (
-              <label className="label">
-                <span className="label-text-alt text-error">{errors.description}</span>
-              </label>
-            )}
-          </div>
+                  <div className="stats shadow">
+                    <div className="stat">
+                      <div className="stat-title">基数依赖</div>
+                      <div className="stat-desc">是否依赖五险一金基数</div>
+                      <div className="stat-actions">
+                        <input
+                          type="checkbox"
+                          className="toggle toggle-secondary"
+                          checked={formData.base_dependency}
+                          onChange={(e) => setFormData(prev => ({ ...prev, base_dependency: e.target.checked }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-          {/* 属性开关 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="form-control">
-              <label className="label cursor-pointer">
-                <span className="label-text font-medium">是否需要缴税</span>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-primary"
-                  checked={formData.is_taxable}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_taxable: e.target.checked }))}
-                />
-              </label>
-              <label className="label">
-                <span className="label-text-alt text-base-content/70">
-                  勾选后该组件将计入应税收入
-                </span>
-              </label>
-            </div>
+                  <div className="stats shadow">
+                    <div className="stat">
+                      <div className="stat-title">复制策略</div>
+                      <div className="stat-desc">{COPY_STRATEGY_CONFIG[formData.copy_strategy].description}</div>
+                      <div className="stat-actions">
+                        <select
+                          className="select select-bordered select-sm"
+                          value={formData.copy_strategy}
+                          onChange={(e) => setFormData(prev => ({ ...prev, copy_strategy: e.target.value as CopyStrategy }))}
+                        >
+                          {Object.entries(COPY_STRATEGY_CONFIG).map(([key, config]) => (
+                            <option key={key} value={key}>
+                              {config.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
 
-            <div className="form-control">
-              <label className="label cursor-pointer">
-                <span className="label-text font-medium">依赖基数设置</span>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-secondary"
-                  checked={formData.base_dependency}
-                  onChange={(e) => setFormData(prev => ({ ...prev, base_dependency: e.target.checked }))}
-                />
-              </label>
-              <label className="label">
-                <span className="label-text-alt text-base-content/70">
-                  勾选后该组件的计算依赖五险一金基数
-                </span>
-              </label>
-            </div>
-          </div>
-
-          {/* 复制策略和稳定性级别 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">复制策略</span>
-              </label>
-              <select
-                className="select select-bordered"
-                value={formData.copy_strategy}
-                onChange={(e) => setFormData(prev => ({ ...prev, copy_strategy: e.target.value as CopyStrategy }))}
-              >
-                {Object.entries(COPY_STRATEGY_CONFIG).map(([key, config]) => (
-                  <option key={key} value={key}>
-                    {config.label}
-                  </option>
-                ))}
-              </select>
-              <label className="label">
-                <span className="label-text-alt text-base-content/70">
-                  {COPY_STRATEGY_CONFIG[formData.copy_strategy].description}
-                </span>
-              </label>
+                  <div className="stats shadow">
+                    <div className="stat">
+                      <div className="stat-title">稳定性级别</div>
+                      <div className="stat-desc">{STABILITY_LEVEL_CONFIG[formData.stability_level].description}</div>
+                      <div className="stat-actions">
+                        <select
+                          className="select select-bordered select-sm"
+                          value={formData.stability_level}
+                          onChange={(e) => setFormData(prev => ({ ...prev, stability_level: e.target.value as StabilityLevel }))}
+                        >
+                          {Object.entries(STABILITY_LEVEL_CONFIG).map(([key, config]) => (
+                            <option key={key} value={key}>
+                              {config.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">稳定性级别</span>
-              </label>
-              <select
-                className="select select-bordered"
-                value={formData.stability_level}
-                onChange={(e) => setFormData(prev => ({ ...prev, stability_level: e.target.value as StabilityLevel }))}
-              >
-                {Object.entries(STABILITY_LEVEL_CONFIG).map(([key, config]) => (
-                  <option key={key} value={key}>
-                    {config.label}
-                  </option>
-                ))}
-              </select>
-              <label className="label">
-                <span className="label-text-alt text-base-content/70">
-                  {STABILITY_LEVEL_CONFIG[formData.stability_level].description}
-                </span>
-              </label>
+            {/* 复制说明 */}
+            <div className="card bg-base-200 shadow-sm">
+              <div className="card-body">
+                <h4 className="card-title">复制说明</h4>
+                <div className="form-control">
+                  <textarea
+                    className={`textarea textarea-bordered ${errors.copy_notes ? 'textarea-error' : ''}`}
+                    value={formData.copy_notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, copy_notes: e.target.value }))}
+                    placeholder="请输入复制相关的说明信息（可选）"
+                    rows={3}
+                    maxLength={500}
+                  />
+                  {errors.copy_notes && (
+                    <label className="label">
+                      <span className="label-text-alt text-error">{errors.copy_notes}</span>
+                    </label>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* 复制说明 */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">复制说明</span>
-            </label>
-            <textarea
-              className={`textarea textarea-bordered ${errors.copy_notes ? 'textarea-error' : ''}`}
-              value={formData.copy_notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, copy_notes: e.target.value }))}
-              placeholder="请输入复制相关的说明信息（可选）"
-              rows={2}
-              maxLength={500}
-            />
-            {errors.copy_notes && (
-              <label className="label">
-                <span className="label-text-alt text-error">{errors.copy_notes}</span>
-              </label>
-            )}
-          </div>
 
           {/* 错误信息显示 */}
           {(createMutation.error || updateMutation.error) && (
@@ -359,26 +380,32 @@ export function SalaryComponentFormModal({
               </span>
             </div>
           )}
+          </form>
+        </div>
 
-          {/* 按钮 */}
-          <div className="modal-action">
-            <button
-              type="button"
-              className="btn"
-              onClick={handleClose}
-              disabled={isLoading}
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              className={`btn btn-primary ${isLoading ? 'loading' : ''}`}
-              disabled={isLoading}
-            >
-              {isLoading ? '处理中...' : (isEditing ? '更新' : '创建')}
-            </button>
+        {/* Fixed Footer */}
+        <div className="navbar bg-base-100 border-t">
+          <div className="navbar-end w-full">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn"
+                onClick={handleClose}
+                disabled={isLoading}
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                form="salary-component-form"
+                className={`btn btn-primary ${isLoading ? 'loading' : ''}`}
+                disabled={isLoading}
+              >
+                {isLoading ? '处理中...' : (isEditing ? '更新' : '创建')}
+              </button>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

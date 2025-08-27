@@ -518,7 +518,7 @@ export function PayrollDetailModal({
   return (
     <>
       <dialog className={cn("modal", { "modal-open": open })}>
-        <div className="modal-box max-w-6xl max-h-[95vh] p-0 overflow-hidden flex flex-col">
+        <div className="modal-box max-w-6xl h-[85vh] max-h-[85vh] p-0 overflow-hidden flex flex-col">
           {/* Enhanced Modal Header */}
           <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6 border-b border-base-300">
             <div className="flex justify-between items-start mb-4">
@@ -546,7 +546,7 @@ export function PayrollDetailModal({
           </div>
 
           {/* Content Area with Sidebar Navigation */}
-          <div className="flex flex-1 min-h-0">
+          <div className="flex flex-1 min-h-0 max-h-[calc(85vh-140px)]">
             {/* Sidebar Navigation */}
             <div className="w-56 bg-base-200/30 border-r border-base-300 p-4">
               <ul className="space-y-1">
@@ -572,7 +572,7 @@ export function PayrollDetailModal({
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 max-h-full">
               {(isLoading || insuranceLoading || basesLoading || payrollDetailsLoading) ? (
                 <div className="flex items-center justify-center h-full">
                   <span className="loading loading-spinner loading-lg"></span>
@@ -616,8 +616,8 @@ export function PayrollDetailModal({
             </div>
           </div>
 
-          {/* Enhanced Modal Footer */}
-          <div className="flex-shrink-0 border-t border-base-300 p-4 bg-base-200/30">
+          {/* Fixed Modal Footer */}
+          <div className="flex-shrink-0 border-t-2 border-base-300 p-4 bg-base-100 shadow-lg">
             <div className="flex justify-between items-center">
               <div className="text-sm text-base-content/60">
                 查看薪资详情信息
@@ -625,7 +625,7 @@ export function PayrollDetailModal({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="btn btn-ghost"
+                  className="btn btn-primary"
                   onClick={onClose}
                 >
                   关闭

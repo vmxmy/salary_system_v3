@@ -6,6 +6,7 @@ import { EXCEL_PARSING_CONSTANTS } from '../constants';
 
 /**
  * 解析Excel文件 - 支持单个数据组和全部数据的多工作表解析
+ * 使用现代的 ArrayBuffer API 替代废弃的 readAsBinaryString
  */
 export const parseExcelFile = async (
   file: File, 
@@ -19,12 +20,24 @@ export const parseExcelFile = async (
       return;
     }
 
+    // 检查文件访问权限
+    if (file.lastModified === 0) {
+      reject(new Error('文件可能被锁定或无法访问，请检查文件权限'));
+      return;
+    }
+
     const reader = new FileReader();
     
     reader.onload = async (e) => {
       try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        if (!arrayBuffer) {
+          throw new Error('文件内容为空或无法读取');
+        }
+        
+        // 使用现代的 ArrayBuffer API
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
         
         // 定义工作表名称映射
         const sheetNameMapping: Record<Exclude<ImportDataGroup, 'all' | 'payroll' | 'deductions'>, string[]> = {
@@ -102,17 +115,51 @@ export const parseExcelFile = async (
         
         resolve(jsonData);
       } catch (error) {
-        reject(error);
+        console.error('📊 Excel解析失败:', error);
+        reject(error instanceof Error ? error : new Error('Excel文件解析失败'));
       }
     };
     
-    reader.onerror = reject;
-    reader.readAsBinaryString(file);
+    // 增强的错误处理
+    reader.onerror = (event) => {
+      const error = event.target?.error;
+      let errorMessage = '文件读取失败';
+      
+      if (error) {
+        switch (error.name) {
+          case 'NotReadableError':
+            errorMessage = '文件无法读取，请检查文件是否被其他程序占用、损坏或权限不足';
+            break;
+          case 'SecurityError':
+            errorMessage = '文件访问被浏览器安全策略阻止，请尝试重新选择文件';
+            break;
+          case 'AbortError':
+            errorMessage = '文件读取被中断';
+            break;
+          default:
+            errorMessage = `文件读取失败: ${error.message || '未知错误'}`;
+        }
+      }
+      
+      console.error('📁 Excel文件读取失败:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        errorName: error?.name,
+        errorMessage: error?.message
+      });
+      
+      reject(new Error(errorMessage));
+    };
+    
+    // 使用现代的 readAsArrayBuffer API
+    reader.readAsArrayBuffer(file);
   });
 };
 
 /**
  * 解析多工作表Excel文件（用于"全部"数据组）
+ * 使用现代的 ArrayBuffer API 替代废弃的 readAsBinaryString
  */
 export const parseMultiSheetExcelFile = async (
   file: File,
@@ -125,12 +172,24 @@ export const parseMultiSheetExcelFile = async (
       return;
     }
 
+    // 检查文件访问权限
+    if (file.lastModified === 0) {
+      reject(new Error('文件可能被锁定或无法访问，请检查文件权限'));
+      return;
+    }
+
     const reader = new FileReader();
     
     reader.onload = async (e) => {
       try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        if (!arrayBuffer) {
+          throw new Error('文件内容为空或无法读取');
+        }
+        
+        // 使用现代的 ArrayBuffer API
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
         
         const result: Record<string, ExcelDataRow[]> = {};
         const totalSheets = workbook.SheetNames.length;
@@ -173,12 +232,45 @@ export const parseMultiSheetExcelFile = async (
         
         resolve(result);
       } catch (error) {
-        reject(error);
+        console.error('📊 多工作表Excel解析失败:', error);
+        reject(error instanceof Error ? error : new Error('多工作表Excel文件解析失败'));
       }
     };
     
-    reader.onerror = reject;
-    reader.readAsBinaryString(file);
+    // 增强的错误处理
+    reader.onerror = (event) => {
+      const error = event.target?.error;
+      let errorMessage = '多工作表文件读取失败';
+      
+      if (error) {
+        switch (error.name) {
+          case 'NotReadableError':
+            errorMessage = '多工作表文件无法读取，请检查文件是否被其他程序占用、损坏或权限不足';
+            break;
+          case 'SecurityError':
+            errorMessage = '多工作表文件访问被浏览器安全策略阻止，请尝试重新选择文件';
+            break;
+          case 'AbortError':
+            errorMessage = '多工作表文件读取被中断';
+            break;
+          default:
+            errorMessage = `多工作表文件读取失败: ${error.message || '未知错误'}`;
+        }
+      }
+      
+      console.error('📁 多工作表Excel文件读取失败:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        errorName: error?.name,
+        errorMessage: error?.message
+      });
+      
+      reject(new Error(errorMessage));
+    };
+    
+    // 使用现代的 readAsArrayBuffer API
+    reader.readAsArrayBuffer(file);
   });
 };
 
@@ -221,22 +313,74 @@ export const validateExcelFile = (file: File): { valid: boolean; error?: string 
 
 /**
  * 获取Excel文件的工作表名称列表
+ * 使用现代的 ArrayBuffer API 替代废弃的 readAsBinaryString
  */
 export const getExcelSheetNames = async (file: File): Promise<string[]> => {
   return new Promise((resolve, reject) => {
+    // 检查文件访问权限
+    if (file.lastModified === 0) {
+      reject(new Error('文件可能被锁定或无法访问，请检查文件权限'));
+      return;
+    }
+
     const reader = new FileReader();
     
     reader.onload = (e) => {
       try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        if (!arrayBuffer) {
+          throw new Error('文件内容为空或无法读取');
+        }
+        
+        // 使用现代的 ArrayBuffer API
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+          throw new Error('Excel文件中没有找到工作表');
+        }
+        
+        console.log(`📋 检测到工作表: ${workbook.SheetNames.join(', ')}`);
         resolve(workbook.SheetNames);
       } catch (error) {
-        reject(error);
+        console.error('📊 获取工作表名称失败:', error);
+        reject(error instanceof Error ? error : new Error('获取工作表名称失败'));
       }
     };
     
-    reader.onerror = reject;
-    reader.readAsBinaryString(file);
+    // 增强的错误处理
+    reader.onerror = (event) => {
+      const error = event.target?.error;
+      let errorMessage = '获取工作表名称时文件读取失败';
+      
+      if (error) {
+        switch (error.name) {
+          case 'NotReadableError':
+            errorMessage = '文件无法读取，请检查文件是否被其他程序占用、损坏或权限不足';
+            break;
+          case 'SecurityError':
+            errorMessage = '文件访问被浏览器安全策略阻止，请尝试重新选择文件';
+            break;
+          case 'AbortError':
+            errorMessage = '文件读取被中断';
+            break;
+          default:
+            errorMessage = `获取工作表名称失败: ${error.message || '未知错误'}`;
+        }
+      }
+      
+      console.error('📁 获取Excel工作表名称时文件读取失败:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        errorName: error?.name,
+        errorMessage: error?.message
+      });
+      
+      reject(new Error(errorMessage));
+    };
+    
+    // 使用现代的 readAsArrayBuffer API
+    reader.readAsArrayBuffer(file);
   });
 };

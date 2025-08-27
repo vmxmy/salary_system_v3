@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { usePayrollDetails } from '@/hooks/payroll';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { DataTable } from '@/components/common/DataTable';
 import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
@@ -89,46 +90,71 @@ interface PivotRowData {
 
 export function PayrollPivotTable({ data, loading, showColumnToggle = false }: PayrollPivotTableProps) {
   
-  // 提取所有薪资记录的ID
-  const payrollIds = useMemo(() => 
-    data.map(item => item.id || item.payroll_id || '').filter(Boolean),
-    [data]
-  );
+  // 提取所有薪资记录的ID，确保ID有效且不为空
+  const payrollIds = useMemo(() => {
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+    return data
+      .map(item => item?.id || item?.payroll_id)
+      .filter((id): id is string => Boolean(id && typeof id === 'string' && id.trim().length > 0));
+  }, [data]);
 
-  // 批量获取所有薪资明细数据
-  const detailQueries = payrollIds.map(id => usePayrollDetails(id));
+  // 使用单个查询获取所有薪资明细数据，避免Hook顺序问题
+  const { data: allRawDetails, isLoading: isDetailsLoading } = useQuery({
+    queryKey: ['payroll-batch-details', payrollIds],
+    queryFn: async () => {
+      if (!payrollIds.length) return [];
+      
+      // 批量查询所有薪资详情
+      const { data: batchDetails, error } = await supabase
+        .from('view_payroll_unified')
+        .select('*')
+        .in('payroll_id', payrollIds)
+        .not('item_id', 'is', null);
+
+      if (error) throw error;
+      return batchDetails || [];
+    },
+    enabled: payrollIds.length > 0,
+    staleTime: 5 * 60 * 1000, // 5分钟
+  });
   
-  // 合并所有明细数据
+  // 转换和处理明细数据
   const allDetails = useMemo(() => {
+    if (!allRawDetails || !Array.isArray(allRawDetails)) {
+      return [];
+    }
+    
     const details: PayrollDetailItem[] = [];
     
-    detailQueries.forEach((query, index) => {
-      if (query.data && Array.isArray(query.data)) {
-        const payrollId = payrollIds[index];
-        const employeeData = data.find(d => (d.id || d.payroll_id) === payrollId);
-        
-        query.data.forEach((item: any) => {
-          details.push({
-            item_id: item.item_id || '',
-            payroll_id: payrollId,
-            employee_id: item.employee_id || '',
-            employee_name: employeeData?.employee_name || item.employee_name || '',
-            component_name: item.component_name || '',
-            component_type: item.component_type || 'earning',
-            category: item.category || '',
-            amount: item.amount || 0,
-            item_notes: item.item_notes || ''
-          });
-        });
-      }
+    allRawDetails.forEach((item: any) => {
+      const employeeData = data?.find(d => (d.id || d.payroll_id) === item.payroll_id);
+      
+      details.push({
+        item_id: item.item_id || '',
+        payroll_id: item.payroll_id || '',
+        employee_id: item.employee_id || '',
+        employee_name: employeeData?.employee_name || item.employee_name || '',
+        component_name: item.component_name || '',
+        component_type: item.component_type || 'earning',
+        category: item.category || '',
+        amount: item.amount || 0,
+        item_notes: item.item_notes || ''
+      });
     });
     
-    return details;
-  }, [detailQueries, payrollIds, data]);
+    // 按类别和组件名排序
+    return details.sort((a, b) => {
+      const categoryOrder = (a.category || '').localeCompare(b.category || '');
+      if (categoryOrder !== 0) return categoryOrder;
+      return (a.component_name || '').localeCompare(b.component_name || '');
+    });
+  }, [allRawDetails, data]);
 
-  // 检查加载状态 - 优化加载体验
-  const isLoading = loading || detailQueries.some(query => query.isLoading);
-  const hasData = detailQueries.some(query => query.data && Array.isArray(query.data) && query.data.length > 0);
+  // 检查加载状态
+  const isLoading = loading || isDetailsLoading;
+  const hasData = allDetails.length > 0;
 
   // 构建透视表数据
   const { pivotData, componentColumns } = useMemo(() => {
@@ -172,14 +198,17 @@ export function PayrollPivotTable({ data, loading, showColumnToggle = false }: P
   // 获取分类信息用于列标题
   const getCategoryInfo = useMemo(() => {
     const categoryMap = new Map<string, { category: string; type: 'earning' | 'deduction' }>();
-    allDetails.forEach(detail => {
-      if (!categoryMap.has(detail.component_name)) {
-        categoryMap.set(detail.component_name, {
-          category: detail.category,
-          type: detail.component_type
-        });
-      }
-    });
+    // 确保 allDetails 是数组
+    if (Array.isArray(allDetails)) {
+      allDetails.forEach(detail => {
+        if (!categoryMap.has(detail.component_name)) {
+          categoryMap.set(detail.component_name, {
+            category: detail.category,
+            type: detail.component_type
+          });
+        }
+      });
+    }
     return categoryMap;
   }, [allDetails]);
 
@@ -229,10 +258,10 @@ export function PayrollPivotTable({ data, loading, showColumnToggle = false }: P
             return <span className="text-base-content/40">-</span>;
           }
           
-          // 统一使用和列表视图相同的文字颜色 - 不区分收入/支出颜色
+          // 直接显示原始数据，保持数据库中的正负号
           return (
             <span className="font-mono text-base-content/90">
-              {!isEarning && '-'}{formatCurrency(Math.abs(value))}
+              {formatCurrency(value)}
             </span>
           );
         },
@@ -260,7 +289,7 @@ export function PayrollPivotTable({ data, loading, showColumnToggle = false }: P
           
           // 默认精确匹配或包含匹配
           return numericValue.toString().includes(filterStr) || 
-                 formatCurrency(Math.abs(numericValue)).includes(value);
+                 formatCurrency(numericValue).includes(value);
         },
         size: 130,
         minSize: 110
@@ -275,7 +304,7 @@ export function PayrollPivotTable({ data, loading, showColumnToggle = false }: P
     return <LoadingScreen />;
   }
 
-  if (!pivotData.length) {
+  if (!pivotData || !Array.isArray(pivotData) || pivotData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <svg className="w-16 h-16 text-base-content/20 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

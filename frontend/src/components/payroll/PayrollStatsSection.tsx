@@ -32,27 +32,76 @@ export function PayrollStatsSection({
   onElementClick
 }: PayrollStatsSectionProps) {
   const statCards = useMemo(() => [
-    { title: '总记录数', value: statistics?.employeeCount?.toString() ?? '0', icon: StatIcons.users },
-    { title: '总应发金额', value: formatCurrency(statistics?.totalGrossPay ?? 0), icon: StatIcons.income },
-    { title: '总扣发金额', value: formatCurrency(statistics?.totalDeductions ?? 0), icon: StatIcons.deduction },
-    { title: '总实发金额', value: formatCurrency(statistics?.totalNetPay ?? 0), icon: StatIcons.net }
+    { 
+      title: '总记录数', 
+      value: statistics?.employeeCount?.toString() ?? '0', 
+      icon: StatIcons.users,
+      desc: (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="badge badge-success badge-sm">正编</span>
+            <span className="text-base-content/80">{statistics?.byEmployeeType?.regular?.employeeCount ?? 0} 人</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="badge badge-info badge-sm">聘用</span>
+            <span className="text-base-content/80">{statistics?.byEmployeeType?.contracted?.employeeCount ?? 0} 人</span>
+          </div>
+        </div>
+      )
+    },
+    { 
+      title: '总应发金额', 
+      value: formatCurrency(statistics?.totalGrossPay ?? 0), 
+      icon: StatIcons.income,
+      desc: (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="badge badge-success badge-sm">正编</span>
+            <span className="text-base-content/80">{formatCurrency(statistics?.byEmployeeType?.regular?.totalGrossPay ?? 0)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="badge badge-info badge-sm">聘用</span>
+            <span className="text-base-content/80">{formatCurrency(statistics?.byEmployeeType?.contracted?.totalGrossPay ?? 0)}</span>
+          </div>
+        </div>
+      )
+    },
+    { 
+      title: '总扣发金额', 
+      value: formatCurrency(statistics?.totalDeductions ?? 0), 
+      icon: StatIcons.deduction,
+      desc: (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="badge badge-success badge-sm">正编</span>
+            <span className="text-base-content/80">{formatCurrency(statistics?.byEmployeeType?.regular?.totalDeductions ?? 0)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="badge badge-info badge-sm">聘用</span>
+            <span className="text-base-content/80">{formatCurrency(statistics?.byEmployeeType?.contracted?.totalDeductions ?? 0)}</span>
+          </div>
+        </div>
+      )
+    },
+    { 
+      title: '总实发金额', 
+      value: formatCurrency(statistics?.totalNetPay ?? 0), 
+      icon: StatIcons.net,
+      desc: (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="badge badge-success badge-sm">正编</span>
+            <span className="text-base-content/80">{formatCurrency(statistics?.byEmployeeType?.regular?.totalNetPay ?? 0)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="badge badge-info badge-sm">聘用</span>
+            <span className="text-base-content/80">{formatCurrency(statistics?.byEmployeeType?.contracted?.totalNetPay ?? 0)}</span>
+          </div>
+        </div>
+      )
+    }
   ], [statistics]);
 
-  // 正编人员统计卡片
-  const regularStatCards = useMemo(() => [
-    { title: '正编人数', value: statistics?.byEmployeeType?.regular?.employeeCount?.toString() ?? '0', icon: StatIcons.users },
-    { title: '正编应发', value: formatCurrency(statistics?.byEmployeeType?.regular?.totalGrossPay ?? 0), icon: StatIcons.income },
-    { title: '正编扣发', value: formatCurrency(statistics?.byEmployeeType?.regular?.totalDeductions ?? 0), icon: StatIcons.deduction },
-    { title: '正编实发', value: formatCurrency(statistics?.byEmployeeType?.regular?.totalNetPay ?? 0), icon: StatIcons.net }
-  ], [statistics]);
-
-  // 聘用人员统计卡片
-  const contractedStatCards = useMemo(() => [
-    { title: '聘用人数', value: statistics?.byEmployeeType?.contracted?.employeeCount?.toString() ?? '0', icon: StatIcons.users },
-    { title: '聘用应发', value: formatCurrency(statistics?.byEmployeeType?.contracted?.totalGrossPay ?? 0), icon: StatIcons.income },
-    { title: '聘用扣发', value: formatCurrency(statistics?.byEmployeeType?.contracted?.totalDeductions ?? 0), icon: StatIcons.deduction },
-    { title: '聘用实发', value: formatCurrency(statistics?.byEmployeeType?.contracted?.totalNetPay ?? 0), icon: StatIcons.net }
-  ], [statistics]);
 
   return (
     <div className="space-y-6">
@@ -64,7 +113,7 @@ export function PayrollStatsSection({
           </svg>
           薪资统计概览
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="stats stats-vertical lg:stats-horizontal shadow-sm bg-base-200/30 w-full">
           {statCards.map((card, index) => (
             <div key={index} className="stat">
               <div className="stat-figure text-primary">
@@ -76,72 +125,26 @@ export function PayrollStatsSection({
               <div className="stat-value text-primary">
                 {statsLoading ? <div className="loading loading-spinner loading-md"></div> : card.value}
               </div>
+              <div className="stat-desc text-sm">
+                {statsLoading ? (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="skeleton h-4 w-8 rounded-full"></div>
+                      <div className="skeleton h-3 w-16"></div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="skeleton h-4 w-8 rounded-full"></div>
+                      <div className="skeleton h-3 w-12"></div>
+                    </div>
+                  </div>
+                ) : (
+                  card.desc
+                )}
+              </div>
             </div>
           ))}
         </div>
 
-        {/* 分类统计 */}
-        <div className="mt-8">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* 正编人员统计 */}
-            <div className="bg-base-100 rounded-lg border border-base-300">
-              <div className="p-4 border-b border-base-300">
-                <h4 className="text-base font-medium text-base-content flex items-center gap-2">
-                  <svg className="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={StatIcons.regular} />
-                  </svg>
-                  正编人员统计
-                  {statistics?.byEmployeeType?.regular?.categories && statistics.byEmployeeType.regular.categories.length > 0 && (
-                    <div className="text-xs text-base-content/60">
-                      ({statistics.byEmployeeType.regular.categories.join('、')})
-                    </div>
-                  )}
-                </h4>
-              </div>
-              <div className="p-4">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {regularStatCards.map((card, index) => (
-                    <div key={index} className="text-center">
-                      <div className="text-sm text-base-content/60 mb-1">{card.title}</div>
-                      <div className="text-lg font-semibold text-success">
-                        {statsLoading ? <div className="loading loading-spinner loading-sm"></div> : card.value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* 聘用人员统计 */}
-            <div className="bg-base-100 rounded-lg border border-base-300">
-              <div className="p-4 border-b border-base-300">
-                <h4 className="text-base font-medium text-base-content flex items-center gap-2">
-                  <svg className="w-4 h-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={StatIcons.contracted} />
-                  </svg>
-                  聘用人员统计
-                  {statistics?.byEmployeeType?.contracted?.categories && statistics.byEmployeeType.contracted.categories.length > 0 && (
-                    <div className="text-xs text-base-content/60">
-                      ({statistics.byEmployeeType.contracted.categories.join('、')})
-                    </div>
-                  )}
-                </h4>
-              </div>
-              <div className="p-4">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {contractedStatCards.map((card, index) => (
-                    <div key={index} className="text-center">
-                      <div className="text-sm text-base-content/60 mb-1">{card.title}</div>
-                      <div className="text-lg font-semibold text-info">
-                        {statsLoading ? <div className="loading loading-spinner loading-sm"></div> : card.value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className={`${cardEffects.standard} p-6`} data-tour="payroll-completeness">

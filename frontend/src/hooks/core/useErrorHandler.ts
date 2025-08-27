@@ -128,7 +128,7 @@ export function useErrorHandler(toastService?: ToastService) {
 
     // 默认错误
     return { message: ERROR_MESSAGES.unknown_error, code: 'unknown_error' };
-  }, []);
+  }, []); // 空依赖数组是正确的，因为这个函数只使用常量
 
   /**
    * 处理错误的主要函数
