@@ -1907,6 +1907,248 @@ export type Database = {
         }
         Relationships: []
       }
+      report_fields: {
+        Row: {
+          created_at: string | null
+          data_source: string
+          default_visible: boolean | null
+          field_key: string
+          field_name: string
+          field_type: string
+          format_config: Json | null
+          id: string
+          is_required: boolean | null
+          is_system_field: boolean | null
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_source: string
+          default_visible?: boolean | null
+          field_key: string
+          field_name: string
+          field_type: string
+          format_config?: Json | null
+          id?: string
+          is_required?: boolean | null
+          is_system_field?: boolean | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_source?: string
+          default_visible?: boolean | null
+          field_key?: string
+          field_name?: string
+          field_type?: string
+          format_config?: Json | null
+          id?: string
+          is_required?: boolean | null
+          is_system_field?: boolean | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      report_history: {
+        Row: {
+          downloaded_count: number | null
+          file_format: string | null
+          file_path: string | null
+          file_size: number | null
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          job_id: string | null
+          last_downloaded_at: string | null
+          period_name: string | null
+          record_count: number | null
+          report_name: string
+          template_id: string | null
+        }
+        Insert: {
+          downloaded_count?: number | null
+          file_format?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          job_id?: string | null
+          last_downloaded_at?: string | null
+          period_name?: string | null
+          record_count?: number | null
+          report_name: string
+          template_id?: string | null
+        }
+        Update: {
+          downloaded_count?: number | null
+          file_format?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          job_id?: string | null
+          last_downloaded_at?: string | null
+          period_name?: string | null
+          record_count?: number | null
+          report_name?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_history_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "report_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_history_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "report_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          data_filters: Json | null
+          error_message: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          job_name: string
+          period_id: string | null
+          progress: number | null
+          result_data: Json | null
+          started_at: string | null
+          status: string | null
+          template_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_filters?: Json | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          job_name: string
+          period_id?: string | null
+          progress?: number | null
+          result_data?: Json | null
+          started_at?: string | null
+          status?: string | null
+          template_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_filters?: Json | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          job_name?: string
+          period_id?: string | null
+          progress?: number | null
+          result_data?: Json | null
+          started_at?: string | null
+          status?: string | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_jobs_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_jobs_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_payroll_period_completeness"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "report_jobs_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "view_payroll_trend_unified"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "report_jobs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "report_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_templates: {
+        Row: {
+          category: string
+          config: Json
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          field_mappings: Json
+          id: string
+          is_active: boolean | null
+          is_scheduled: boolean | null
+          output_formats: string[] | null
+          schedule_config: Json | null
+          template_key: string
+          template_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string
+          config?: Json
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          field_mappings?: Json
+          id?: string
+          is_active?: boolean | null
+          is_scheduled?: boolean | null
+          output_formats?: string[] | null
+          schedule_config?: Json | null
+          template_key: string
+          template_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          config?: Json
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          field_mappings?: Json
+          id?: string
+          is_active?: boolean | null
+          is_scheduled?: boolean | null
+          output_formats?: string[] | null
+          schedule_config?: Json | null
+          template_key?: string
+          template_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       salary_components: {
         Row: {
           base_dependency: boolean | null
@@ -3139,6 +3381,7 @@ export type Database = {
             | Database["public"]["Enums"]["period_status_enum"]
             | null
           position_name: string | null
+          root_category_name: string | null
           scheduled_pay_date: string | null
           total_deductions: number | null
           updated_at: string | null
@@ -3255,6 +3498,7 @@ export type Database = {
           period_end: string | null
           period_name: string | null
           period_start: string | null
+          root_category_name: string | null
           total_deductions: number | null
         }
         Relationships: [

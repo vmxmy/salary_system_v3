@@ -45,6 +45,9 @@ const PayrollImportTestPage = lazy(() => import('@/pages/test/PayrollImportTestP
 const PayrollImportPageV2 = lazy(() => import('@/components/payroll/import/PayrollImportPageV2'));
 const InsuranceConfigPage = lazy(() => import('@/pages/payroll/InsuranceConfigPage'));
 
+// Report management page
+const ReportManagementPageReal = lazy(() => import('@/components/reports/ReportManagementPageReal'));
+
 // Admin pages
 const UserManagementPage = lazy(() => import('@/pages/admin/UserManagementPage'));
 const RoleManagementPage = lazy(() => import('@/pages/admin/RoleManagementPage'));
@@ -236,6 +239,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingScreen />}>
                 <InsuranceConfigPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'reports',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <ReportManagementPageReal />
               </Suspense>
             ),
           },

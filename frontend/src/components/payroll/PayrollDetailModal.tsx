@@ -994,7 +994,7 @@ function PayrollBreakdownSection({
       return itemId;
     });
 
-    setEditingAmount(Math.abs(currentAmount).toString());
+    setEditingAmount(currentAmount.toString());
 
     // 添加状态更新后的验证
     setTimeout(() => {
@@ -1022,13 +1022,13 @@ function PayrollBreakdownSection({
     }
 
     const newAmount = parseFloat(amountToSave);
-    if (isNaN(newAmount) || newAmount < 0) {
+    if (isNaN(newAmount)) {
       showError('请输入有效的金额');
       return;
     }
 
-    // 如果金额没有变化，直接取消编辑
-    if (Math.abs(newAmount - Math.abs(item.amount)) < 0.01) {
+    // 如果金额没有变化，直接取消编辑（修复：正确比较原始金额而非绝对值）
+    if (Math.abs(newAmount - item.amount) < 0.01) {
       handleCancelEdit();
       return;
     }
@@ -1143,7 +1143,6 @@ function PayrollBreakdownSection({
             }}
             className="input input-sm input-bordered w-24 text-right font-mono"
             step="0.01"
-            min="0"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -1177,23 +1176,43 @@ function PayrollBreakdownSection({
       );
     }
 
-    // 非编辑状态的显示
-    const displayContent = isEarning ? (
-      <span className="text-sm font-semibold font-mono text-green-600">
-        +{formatCurrency(absAmount)}
-      </span>
-    ) : amount < 0 ? (
-      <div>
-        <span className="text-sm font-semibold font-mono text-green-600">
-          +{formatCurrency(absAmount)}
-        </span>
-        <div className="text-xs text-green-600/70 mt-0.5">退款</div>
-      </div>
-    ) : (
-      <span className="text-sm font-semibold font-mono text-red-600">
-        -{formatCurrency(absAmount)}
-      </span>
-    );
+    // 非编辑状态的显示 - 修复负数显示问题
+    const displayContent = (() => {
+      if (isEarning) {
+        // 收入项目：正数显示绿色+号，负数显示红色-号（补扣发可能为负）
+        if (amount >= 0) {
+          return (
+            <span className="text-sm font-semibold font-mono text-green-600">
+              +{formatCurrency(amount)}
+            </span>
+          );
+        } else {
+          return (
+            <span className="text-sm font-semibold font-mono text-red-600">
+              {formatCurrency(amount)}
+            </span>
+          );
+        }
+      } else {
+        // 扣除项目：负数为退款（绿色+号），正数为正常扣除（红色-号）
+        if (amount < 0) {
+          return (
+            <div>
+              <span className="text-sm font-semibold font-mono text-green-600">
+                +{formatCurrency(Math.abs(amount))}
+              </span>
+              <div className="text-xs text-green-600/70 mt-0.5">退款</div>
+            </div>
+          );
+        } else {
+          return (
+            <span className="text-sm font-semibold font-mono text-red-600">
+              -{formatCurrency(amount)}
+            </span>
+          );
+        }
+      }
+    })();
 
     return (
       <div
@@ -1419,9 +1438,9 @@ function PayrollBreakdownSection({
     getCoreRowModel: getCoreRowModel(),
   });
 
-  // 计算汇总
+  // 计算汇总 - 修复：使用实际金额而非绝对值
   const incomeTotal = useMemo(() =>
-    incomeItems.reduce((sum, item) => sum + Math.abs(item.amount), 0),
+    incomeItems.reduce((sum, item) => sum + item.amount, 0),
     [incomeItems]
   );
 
@@ -1770,7 +1789,7 @@ function ContributionBaseSection({
     });
 
     setEditingBaseId(baseId);
-    setEditingBaseAmount(Math.abs(currentAmount).toString());
+    setEditingBaseAmount(currentAmount.toString());
   }, []);
 
   // 取消编辑
@@ -1796,7 +1815,7 @@ function ContributionBaseSection({
     }
 
     // 如果金额没有变化，直接取消编辑
-    if (Math.abs(newAmount - Math.abs(base.latest_contribution_base || base.contribution_base)) < 0.01) {
+    if (Math.abs(newAmount - (base.latest_contribution_base || base.contribution_base)) < 0.01) {
       handleCancelEditBase();
       return;
     }
@@ -1869,7 +1888,6 @@ function ContributionBaseSection({
             }}
             className="input input-sm input-bordered w-24 text-right font-mono"
             step="0.01"
-            min="0"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -2160,7 +2178,7 @@ function TaxDetailsSection({ taxItems }: TaxDetailsSectionProps) {
     });
 
     setEditingTaxId(taxId);
-    setEditingTaxAmount(Math.abs(currentAmount).toString());
+    setEditingTaxAmount(currentAmount.toString());
   }, []);
 
   // 取消编辑
@@ -2186,7 +2204,7 @@ function TaxDetailsSection({ taxItems }: TaxDetailsSectionProps) {
     }
 
     // 如果金额没有变化，直接取消编辑
-    if (Math.abs(newAmount - Math.abs(taxItem.amount)) < 0.01) {
+    if (Math.abs(newAmount - taxItem.amount) < 0.01) {
       handleCancelEditTax();
       return;
     }
@@ -2256,7 +2274,6 @@ function TaxDetailsSection({ taxItems }: TaxDetailsSectionProps) {
             }}
             className="input input-sm input-bordered w-24 text-right font-mono"
             step="0.01"
-            min="0"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
