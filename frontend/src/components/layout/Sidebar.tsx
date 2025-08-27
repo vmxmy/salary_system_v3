@@ -168,6 +168,16 @@ const menuItems: MenuItem[] = [
         permissions: ['manage_roles'],
       },
       {
+        key: 'salaryComponentManagement',
+        path: '/admin/salary-components',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+        ),
+        permissions: ['user_management.read'],
+      },
+      {
         key: 'permissionResources',
         path: '/admin/permissions/resources',
         icon: (
@@ -334,6 +344,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       'roleManagement': '角色管理',
       'permissionManagement': '权限管理',
       'systemSettings': '系统设置',
+      'salaryComponentManagement': '薪资字段管理',
       'permissionResources': '权限资源',
       'permissionAssignment': '权限分配',
       'permissionApproval': '权限审批',

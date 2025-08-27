@@ -53,6 +53,7 @@ const UserManagementPage = lazy(() => import('@/pages/admin/UserManagementPage')
 const RoleManagementPage = lazy(() => import('@/pages/admin/RoleManagementPage'));
 const PermissionManagementPage = lazy(() => import('@/pages/admin/PermissionManagementPage'));
 const SystemSettingsPage = lazy(() => import('@/pages/admin/SystemSettingsPage'));
+const SalaryComponentManagementPage = lazy(() => import('@/pages/admin/SalaryComponentManagementPage'));
 const PermissionDebugPage = lazy(() => import('@/pages/admin/PermissionDebugPage'));
 // Permission pages moved to archive
 // const PermissionResourceManagementPage = lazy(() => import('@/pages/admin/PermissionResourceManagementPage'));
@@ -325,6 +326,16 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingScreen />}>
                 <SystemSettingsPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'salary-components',
+            element: (
+              <Suspense fallback={<LoadingScreen />}>
+                <ProtectedRoute requiredPermissions={['user_management.read']}>
+                  <SalaryComponentManagementPage />
+                </ProtectedRoute>
               </Suspense>
             ),
           },
