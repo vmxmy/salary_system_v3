@@ -4335,6 +4335,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_database_objects: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          comment: string
+          name: string
+          schema: string
+          type: string
+        }[]
+      }
       get_department_ancestors: {
         Args: { p_department_id: string }
         Returns: {
@@ -4535,13 +4544,15 @@ export type Database = {
         Returns: Json
       }
       get_table_columns: {
-        Args: { schema_name_param?: string; table_name_param: string }
+        Args:
+          | { schema_name_param?: string; table_name_param: string }
+          | { table_name: string }
         Returns: {
+          character_maximum_length: number
           column_default: string
           column_name: string
           data_type: string
-          is_nullable: string
-          ordinal_position: number
+          is_nullable: boolean
         }[]
       }
       get_upcoming_birthdays: {

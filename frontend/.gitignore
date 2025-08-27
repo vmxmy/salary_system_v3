@@ -58,6 +58,10 @@ playwright-report/
 *_archived*
 archived_*
 
+# Archived directories and files
+archived/
+**/archived/
+
 # Temporary development files
 *.tmp
 *.temp

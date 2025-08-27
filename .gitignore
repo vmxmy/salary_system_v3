@@ -264,3 +264,7 @@ backup_moved/
 **/archived_*/**
 **/backup_*/**
 wizard_archived/
+
+# Archived directories and files
+archived/
+**/archived/
