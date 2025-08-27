@@ -81,11 +81,13 @@ const groupAndSortComponents = (details: PayrollDetailItem[]) => {
   return sortedComponents;
 };
 
-// 透视表行数据接口
+// 透视表行数据接口  
 interface PivotRowData {
   employee_name: string;
   employee_id: string;
-  [key: string]: string | number; // 动态薪资组件字段
+  root_category_name?: string;  // 根分类
+  department_name?: string;     // 部门名称
+  [key: string]: string | number | undefined; // 动态薪资组件字段，允许undefined
 }
 
 export function PayrollPivotTable({ data, loading, showColumnToggle = false }: PayrollPivotTableProps) {
@@ -169,9 +171,14 @@ export function PayrollPivotTable({ data, loading, showColumnToggle = false }: P
     const employeeGroups = allDetails.reduce((acc, detail) => {
       const key = detail.employee_name;
       if (!acc[key]) {
+        // 从原始薪资数据中获取员工的完整信息
+        const employeeData = data?.find(d => (d.id || d.payroll_id) === detail.payroll_id);
+        
         acc[key] = {
           employee_name: detail.employee_name,
           employee_id: detail.employee_id,
+          root_category_name: (employeeData as any)?.root_category_name || '',
+          department_name: employeeData?.department_name || ''
         };
       }
       // 使用组件名作为字段名，存储金额
@@ -229,8 +236,41 @@ export function PayrollPivotTable({ data, loading, showColumnToggle = false }: P
       columnHelper.accessor('employee_name', {
         header: '员工姓名',
         cell: (info) => (
-          <span className="text-base-content/90">
+          <span className="text-base-content/90 font-medium">
             {info.getValue()}
+          </span>
+        ),
+        enableColumnFilter: true,
+        filterFn: 'includesString',
+        size: 120,
+        minSize: 100
+      }),
+      columnHelper.accessor('root_category_name', {
+        header: '根分类',
+        cell: (info) => {
+          const rootCategory = info.getValue();
+          return (
+            <div className="flex items-center gap-1">
+              <span className={`badge badge-sm ${
+                rootCategory === '正编' ? 'badge-success' : 
+                rootCategory === '聘用' ? 'badge-info' : 
+                'badge-neutral'
+              }`}>
+                {rootCategory || '-'}
+              </span>
+            </div>
+          );
+        },
+        enableColumnFilter: true,
+        filterFn: 'includesString',
+        size: 80,
+        minSize: 70
+      }),
+      columnHelper.accessor('department_name', {
+        header: '部门',
+        cell: (info) => (
+          <span className="text-base-content/80 text-sm">
+            {info.getValue() || '-'}
           </span>
         ),
         enableColumnFilter: true,
@@ -338,6 +378,7 @@ export function PayrollPivotTable({ data, loading, showColumnToggle = false }: P
         showColumnToggle={showColumnToggle}
         enableExport={false}
         exportFileName="薪资透视表"
+        initialColumnPinning={{ left: ['employee_name'], right: [] }}
       />
     </div>
   );
