@@ -279,11 +279,12 @@ export function usePermission(options: PermissionOptions = {}): UsePermissionRet
 
   // 清理权限缓存函数移动到 return 语句之前避免重复声明
 
-  // 预加载用户权限到缓存 (仅执行一次) - 修复版本，避免无限循环
+  // 预加载用户权限到缓存 - 修复：移除 initialized 依赖避免无限循环
   useEffect(() => {
-    if (!user || initialized) return;
+    if (!user) return;
 
     const preloadPermissions = async () => {
+      if (initialized) return; // 双重检查避免重复执行
       setInitialized(true); // 立即设置标志，防止重复执行
       console.log('[usePermission] 🚀 Starting permission preload for user:', user.id);
       
@@ -502,17 +503,12 @@ export function usePermission(options: PermissionOptions = {}): UsePermissionRet
     }
   }, [permissionCache, user]);
 
-  // 稳定化权限检查函数
+  // 稳定化权限检查函数 - 移除异步调用避免无限循环
   const hasPermission = useCallback((permission: string, resourceId?: string): boolean => {
     const cachedResult = hasCachedPermission(permission);
     
     // 如果缓存未命中且权限系统已初始化，为关键权限提供回退机制
     if (!cachedResult && initialized && permission === 'payroll.clear') {
-      // 触发异步加载但不等待结果（避免阻塞UI）
-      checkPermission(permission).catch(err => 
-        console.warn('[usePermission] Background permission check failed for', permission, err)
-      );
-      
       // 对于 payroll.clear，基于用户角色提供保守的回退判断
       if (user?.role === 'super_admin' || user?.role === 'admin') {
         console.info('[usePermission] 🔄 Fallback: Allowing payroll.clear for admin user');
@@ -521,7 +517,7 @@ export function usePermission(options: PermissionOptions = {}): UsePermissionRet
     }
     
     return cachedResult;
-  }, [hasCachedPermission, initialized, checkPermission, user?.role]);
+  }, [hasCachedPermission, initialized, user?.role]);
 
   const hasAnyPermission = useCallback((permissions: string[], resourceId?: string): boolean => {
     return permissions.some(p => hasCachedPermission(p));

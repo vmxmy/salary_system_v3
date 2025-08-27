@@ -286,19 +286,34 @@ export const useReportGenerator = () => {
   // 下载报表文件
   const downloadReport = useCallback(async (filePath: string, fileName: string) => {
     try {
-      // 这里应该调用实际的文件下载API
-      // 目前先显示提示信息
-      const link = document.createElement('a');
-      link.href = filePath;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      return true;
+      // 首先检查文件是否为真实的存储路径
+      if (filePath.startsWith('/reports/')) {
+        // 模拟文件路径，生成示例文件内容
+        const mockFileContent = generateMockReportContent(fileName);
+        const blob = new Blob([mockFileContent], { 
+          type: getMimeType(fileName) 
+        });
+        
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        // 更新下载统计
+        await updateDownloadStats(filePath);
+        
+        return true;
+      } else {
+        // 对于真实文件路径，可以调用 Supabase Storage API
+        throw new Error('真实文件下载功能需要配置 Supabase Storage');
+      }
     } catch (error) {
       console.error('下载失败:', error);
-      throw new Error('下载文件失败');
+      throw new Error(`下载文件失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   }, []);
 
@@ -353,3 +368,75 @@ export const useReportGenerator = () => {
     pollJobStatus,
   };
 };
+
+// 工具函数：生成模拟报表内容
+function generateMockReportContent(fileName: string): string {
+  const format = fileName.split('.').pop()?.toLowerCase();
+  const currentDate = new Date().toLocaleDateString('zh-CN');
+  
+  if (format === 'xlsx' || format === 'csv') {
+    // 生成 CSV 格式的示例数据
+    return `"员工姓名","部门名称","职位名称","应发工资","实发工资","薪资月份"
+"张三","技术部","高级工程师","15000","12500","2025年1月"
+"李四","人事部","人事专员","8000","7200","2025年1月"
+"王五","财务部","财务经理","12000","10800","2025年1月"
+"生成时间","${currentDate}","","","",""
+"报表说明","这是一个示例报表文件","","","",""`;
+  } else if (format === 'pdf') {
+    return `报表文档
+
+薪资汇总报表
+生成时间: ${currentDate}
+
+员工信息:
+1. 张三 - 技术部 - 高级工程师 - 应发: ¥15,000 - 实发: ¥12,500
+2. 李四 - 人事部 - 人事专员 - 应发: ¥8,000 - 实发: ¥7,200  
+3. 王五 - 财务部 - 财务经理 - 应发: ¥12,000 - 实发: ¥10,800
+
+总计:
+应发工资总额: ¥35,000
+实发工资总额: ¥30,500
+
+注意: 这是系统生成的示例报表文件。`;
+  }
+  
+  return `报表文件 - ${fileName}
+生成时间: ${currentDate}
+这是一个示例报表文件。`;
+}
+
+// 工具函数：获取文件 MIME 类型
+function getMimeType(fileName: string): string {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  
+  switch (extension) {
+    case 'xlsx':
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    case 'csv':
+      return 'text/csv;charset=utf-8';
+    case 'pdf':
+      return 'application/pdf';
+    case 'txt':
+      return 'text/plain;charset=utf-8';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+// 工具函数：更新下载统计
+async function updateDownloadStats(filePath: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('report_history')
+      .update({
+        last_downloaded_at: new Date().toISOString()
+      })
+      .eq('file_path', filePath);
+      
+    if (error) {
+      console.warn('更新下载统计失败:', error.message);
+    }
+  } catch (error) {
+    console.warn('更新下载统计失败:', error);
+  }
+}

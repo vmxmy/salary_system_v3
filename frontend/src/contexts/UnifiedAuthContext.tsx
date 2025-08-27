@@ -8,7 +8,7 @@
  * 4. 错误处理简化 - 让Supabase处理大部分逻辑
  */
 
-import { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -177,8 +177,8 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // 认证操作
-  const signIn = async (email: string, password: string): Promise<AuthUser> => {
+  // 认证操作 - 修复：使用 useCallback 稳定化函数引用
+  const signIn = useCallback(async (email: string, password: string): Promise<AuthUser> => {
     console.log('[UnifiedAuth] signIn called');
     const authUser = await auth.signIn(email, password);
     
@@ -187,9 +187,9 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
     console.log('[UnifiedAuth] User state updated after signIn');
     
     return authUser;
-  };
+  }, []);
 
-  const signInWithMagicLink = async (email: string): Promise<void> => {
+  const signInWithMagicLink = useCallback(async (email: string): Promise<void> => {
     const redirectTo = `${import.meta.env.VITE_APP_URL || window.location.origin}/auth/callback`;
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -198,36 +198,36 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
       },
     });
     if (error) throw error;
-  };
+  }, []);
 
-  const signUp = async (email: string, password: string): Promise<void> => {
+  const signUp = useCallback(async (email: string, password: string): Promise<void> => {
     await auth.signUp(email, password);
-  };
+  }, []);
 
-  const signOut = async (): Promise<void> => {
+  const signOut = useCallback(async (): Promise<void> => {
     await auth.signOut();
     // 状态会在onAuthStateChange中更新
-  };
+  }, []);
 
-  const resetPassword = async (email: string): Promise<void> => {
+  const resetPassword = useCallback(async (email: string): Promise<void> => {
     await auth.resetPassword(email);
-  };
+  }, []);
 
-  const updatePassword = async (newPassword: string): Promise<void> => {
+  const updatePassword = useCallback(async (newPassword: string): Promise<void> => {
     await auth.updatePassword(newPassword);
-  };
+  }, []);
 
-  // 重新验证相关
-  const validateSession = async (): Promise<boolean> => {
+  // 重新验证相关 - 修复：使用 useCallback 稳定化函数引用
+  const validateSession = useCallback(async (): Promise<boolean> => {
     try {
       return await auth.validateSession();
     } catch (error) {
       console.error('[UnifiedAuth] Session validation error:', error);
       return false;
     }
-  };
+  }, []);
 
-  const requireReAuthentication = (reason?: string): void => {
+  const requireReAuthentication = useCallback((reason?: string): void => {
     console.log('[UnifiedAuth] Re-authentication required:', reason);
     
     // 触发全局重新验证事件
@@ -250,22 +250,22 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     window.location.href = `/auth/login?${searchParams.toString()}`;
-  };
+  }, []);
 
-  // 权限检查 - 集成增强权限系统
-  const hasPermission = (permission: string): boolean => {
+  // 权限检查 - 集成增强权限系统 - 修复：使用 useCallback 稳定化函数引用
+  const hasPermission = useCallback((permission: string): boolean => {
     return auth.hasPermission(user, permission);
-  };
+  }, [user]);
 
-  const hasAnyPermission = (permissions: string[]): boolean => {
+  const hasAnyPermission = useCallback((permissions: string[]): boolean => {
     return auth.hasAnyPermission(user, permissions);
-  };
+  }, [user]);
 
-  const hasAllPermissions = (permissions: string[]): boolean => {
+  const hasAllPermissions = useCallback((permissions: string[]): boolean => {
     return auth.hasAllPermissions(user, permissions);
-  };
+  }, [user]);
 
-  // 扩展用户信息以包含部门和管理权限
+  // 扩展用户信息以包含部门和管理权限 - 修复：添加到依赖中避免无限重渲染
   const enhancedUser = useMemo(() => {
     if (!user) return null;
     
@@ -276,7 +276,8 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user]);
 
-  const value: AuthContextType = {
+  // 修复：使用 useMemo 稳定化 context value 对象引用
+  const value: AuthContextType = useMemo(() => ({
     // 状态
     session,
     user: enhancedUser,
@@ -299,7 +300,7 @@ export const UnifiedAuthProvider = ({ children }: { children: ReactNode }) => {
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
-  };
+  }), [session, enhancedUser, loading, isAuthenticated, signIn, signInWithMagicLink, signUp, signOut, resetPassword, updatePassword, validateSession, requireReAuthentication, hasPermission, hasAnyPermission, hasAllPermissions]);
 
   return <UnifiedAuthContext.Provider value={value}>{children}</UnifiedAuthContext.Provider>;
 };

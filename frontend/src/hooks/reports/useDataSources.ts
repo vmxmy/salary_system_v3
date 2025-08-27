@@ -248,72 +248,62 @@ async function getRealDataSources(options?: {
   schema?: string;
   type?: 'table' | 'view' | 'all';
 }): Promise<DataSourceEnhanced[]> {
-  let whereClause = "schemaname IN ('public', 'hr')";
-  if (options?.schema) {
-    whereClause = `schemaname = '${options.schema}'`;
+  try {
+    // 注意：Supabase 不允许直接查询 information_schema
+    // 我们改用预定义数据源列表并验证其有效性
+    
+    // 改用 rpc 调用或直接查询的方式
+    // 由于 Supabase 限制直接访问 information_schema，我们使用预定义的数据源列表
+    // 但增加真实性检验：查询实际存在的表
+    const realSources: DataSourceEnhanced[] = [];
+    
+    // 首先获取我们已知的重要数据源
+    const candidateSources = getEnhancedDefaultDataSources();
+    
+    // 验证这些数据源是否真实存在（通过尝试查询少量数据）
+    for (const source of candidateSources) {
+      try {
+        const { data, error } = await supabase
+          .from(source.table_name as any)
+          .select('*')
+          .limit(1);
+        
+        if (!error) {
+          // 数据源存在，获取记录数量
+          const { count } = await supabase
+            .from(source.table_name as any)
+            .select('*', { count: 'exact', head: true });
+          
+          realSources.push({
+            ...source,
+            record_count: count || 0
+          });
+        }
+      } catch (sourceError) {
+        console.warn(`数据源 ${source.table_name} 不可访问:`, sourceError);
+        // 仍然包含在列表中，但标记为无记录
+        realSources.push({
+          ...source,
+          record_count: 0,
+          description: `${source.description} (可能无访问权限)`
+        });
+      }
+    }
+    
+    // 根据选项进行过滤
+    let filtered = realSources;
+    if (options?.type && options.type !== 'all') {
+      filtered = filtered.filter(ds => ds.table_type === options.type);
+    }
+    if (options?.schema) {
+      filtered = filtered.filter(ds => ds.schema_name === options.schema);
+    }
+    
+    return filtered;
+  } catch (error) {
+    console.error('查询真实数据源失败:', error);
+    return getEnhancedDefaultDataSources();
   }
-
-  let query = '';
-  if (!options?.type || options.type === 'all') {
-    query = `
-      SELECT 
-        schemaname as schema_name,
-        tablename as table_name,
-        'table' as table_type,
-        'Data table' as description
-      FROM pg_tables 
-      WHERE ${whereClause}
-      UNION ALL
-      SELECT 
-        schemaname as schema_name,
-        viewname as table_name,
-        'view' as table_type,
-        'Data view' as description
-      FROM pg_views 
-      WHERE ${whereClause}
-      ORDER BY schema_name, table_type, table_name
-    `;
-  } else if (options.type === 'table') {
-    query = `
-      SELECT 
-        schemaname as schema_name,
-        tablename as table_name,
-        'table' as table_type,
-        'Data table' as description
-      FROM pg_tables 
-      WHERE ${whereClause}
-      ORDER BY schema_name, table_name
-    `;
-  } else if (options.type === 'view') {
-    query = `
-      SELECT 
-        schemaname as schema_name,
-        viewname as table_name,
-        'view' as table_type,
-        'Data view' as description
-      FROM pg_views 
-      WHERE ${whereClause}
-      ORDER BY schema_name, table_name
-    `;
-  }
-
-  // 注意：实际环境中需要创建对应的数据库函数或使用适当的查询方法
-  // 这里暂时使用降级方案，返回增强的默认数据源
-  console.log('使用增强的默认数据源，因为直接SQL查询需要特殊的数据库函数支持');
-  
-  // 未来可以通过创建专门的数据库函数来实现真实查询
-  const enhancedDefault = getEnhancedDefaultDataSources();
-  
-  // 根据选项进行过滤
-  let filtered = enhancedDefault;
-  if (options?.type && options.type !== 'all') {
-    filtered = filtered.filter(ds => ds.table_type === options.type);
-  }
-  if (options?.schema) {
-    filtered = filtered.filter(ds => ds.schema_name === options.schema);
-  }
-  
-  return filtered;
 }
 
 // 增强的字段查询hook
@@ -324,22 +314,54 @@ export const useTableColumnsEnhanced = (tableName?: string, enabled: boolean = t
       if (!tableName) return [];
 
       try {
-        const query = `
-          SELECT 
-            column_name,
-            data_type,
-            is_nullable,
-            column_default,
-            ordinal_position
-          FROM information_schema.columns 
-          WHERE table_name = '${tableName}' 
-          AND table_schema = 'public'
-          ORDER BY ordinal_position
-        `;
+        // 尝试通过查询表数据来推断字段结构
+        const { data: sampleData, error } = await supabase
+          .from(tableName as any)
+          .select('*')
+          .limit(1);
 
-        // 注意：实际环境中需要创建对应的数据库函数来执行信息架构查询
-        // 这里暂时降级到增强的模拟数据
-        console.log(`获取 ${tableName} 的字段信息：使用增强的模拟数据`);
+        if (error) {
+          console.warn(`无法访问表 ${tableName}:`, error.message);
+          return getMockColumnsEnhanced(tableName);
+        }
+
+        // 从样本数据推断字段信息
+        if (sampleData && sampleData.length > 0) {
+          const sampleRow = sampleData[0] as Record<string, any>;
+          const realColumns: ColumnInfoEnhanced[] = Object.keys(sampleRow).map((columnName, index) => {
+            const value = sampleRow[columnName];
+            let dataType = 'text';
+            
+            // 根据值类型推断数据类型
+            if (value === null) {
+              dataType = 'text'; // 默认
+            } else if (typeof value === 'number') {
+              dataType = Number.isInteger(value) ? 'integer' : 'numeric';
+            } else if (typeof value === 'boolean') {
+              dataType = 'boolean';
+            } else if (value instanceof Date || (typeof value === 'string' && isValidDate(value))) {
+              dataType = 'timestamp';
+            } else if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              dataType = 'date';
+            } else {
+              dataType = 'text';
+            }
+
+            return {
+              column_name: columnName,
+              data_type: dataType,
+              is_nullable: value === null,
+              display_name: getFieldDisplayName(columnName),
+              category: getFieldCategory(columnName, dataType),
+              description: getFieldDescription(columnName),
+              is_key: isKeyField(columnName)
+            };
+          });
+
+          return realColumns;
+        }
+
+        // 如果没有数据，返回预设的列信息
         return getMockColumnsEnhanced(tableName);
       } catch (error) {
         console.error(`获取字段信息失败:`, error);
@@ -354,6 +376,7 @@ export const useTableColumnsEnhanced = (tableName?: string, enabled: boolean = t
 // 增强的默认数据源
 function getEnhancedDefaultDataSources(): DataSourceEnhanced[] {
   return [
+    // 核心薪资视图
     {
       schema_name: 'public',
       table_name: 'view_payroll_summary',
@@ -372,10 +395,28 @@ function getEnhancedDefaultDataSources(): DataSourceEnhanced[] {
     },
     {
       schema_name: 'public',
+      table_name: 'view_payroll_trend_unified',
+      table_type: 'view',
+      description: '薪资趋势视图 - 用于统计分析和趋势报表',
+      display_name: '薪资趋势视图',
+      category: '薪资管理'
+    },
+    
+    // 核心数据表
+    {
+      schema_name: 'public',
       table_name: 'employees',
       table_type: 'table',
       description: '员工基本信息表',
       display_name: '员工基础信息',
+      category: '员工管理'
+    },
+    {
+      schema_name: 'public',
+      table_name: 'employee_assignments',
+      table_type: 'table',
+      description: '员工岗位分配历史记录',
+      display_name: '员工岗位分配',
       category: '员工管理'
     },
     {
@@ -393,6 +434,66 @@ function getEnhancedDefaultDataSources(): DataSourceEnhanced[] {
       description: '职位信息表',
       display_name: '职位信息',
       category: '职位管理'
+    },
+    {
+      schema_name: 'public',
+      table_name: 'personnel_categories',
+      table_type: 'table',
+      description: '人员类别表',
+      display_name: '人员类别',
+      category: '员工管理'
+    },
+    
+    // 薪资相关表
+    {
+      schema_name: 'public',
+      table_name: 'payroll_results',
+      table_type: 'table',
+      description: '薪资核算结果表',
+      display_name: '薪资核算结果',
+      category: '薪资管理'
+    },
+    {
+      schema_name: 'public',
+      table_name: 'payroll_items',
+      table_type: 'table',
+      description: '薪资明细项目表',
+      display_name: '薪资明细项目',
+      category: '薪资管理'
+    },
+    {
+      schema_name: 'public',
+      table_name: 'payroll_components',
+      table_type: 'table',
+      description: '薪资组件配置表',
+      display_name: '薪资组件配置',
+      category: '薪资管理'
+    },
+    {
+      schema_name: 'public',
+      table_name: 'payroll_periods',
+      table_type: 'table',
+      description: '薪资期间管理表',
+      display_name: '薪资期间管理',
+      category: '薪资管理'
+    },
+    
+    // 查找表
+    {
+      schema_name: 'public',
+      table_name: 'lookup_types',
+      table_type: 'table',
+      description: '查找类型配置表',
+      display_name: '查找类型配置',
+      category: '系统配置'
+    },
+    {
+      schema_name: 'public',
+      table_name: 'lookup_values',
+      table_type: 'table',
+      description: '查找值配置表',
+      display_name: '查找值配置',
+      category: '系统配置'
     }
   ];
 }
@@ -464,6 +565,20 @@ function getFieldDescription(fieldName: string): string {
 function isKeyField(fieldName: string): boolean {
   const keyFields = ['employee_name', 'full_name', 'gross_pay', 'net_pay', 'department_name'];
   return keyFields.includes(fieldName);
+}
+
+// 工具函数：验证日期格式
+function isValidDate(value: string): boolean {
+  if (!value || typeof value !== 'string') return false;
+  
+  // 检查常见的日期时间格式
+  const datePatterns = [
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, // ISO 8601
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/, // PostgreSQL timestamp
+    /^\d{4}-\d{2}-\d{2}$/ // Date only
+  ];
+  
+  return datePatterns.some(pattern => pattern.test(value)) && !isNaN(Date.parse(value));
 }
 
 // 增强的模拟字段数据

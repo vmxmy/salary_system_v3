@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 export interface Toast {
   id: string;
@@ -43,7 +43,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
     // Auto-remove toast after duration
     const duration = toast.duration || 4000;
     setTimeout(() => {
-      removeToast(id);
+      setToasts(prev => prev.filter(t => t.id !== id));
     }, duration);
   }, []);
 
@@ -67,7 +67,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
     addToast({ type: 'info', message, duration });
   }, [addToast]);
 
-  const value = {
+  const value = useMemo(() => ({
     toasts,
     addToast,
     removeToast,
@@ -75,7 +75,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
     showError,
     showWarning,
     showInfo,
-  };
+  }), [toasts, addToast, removeToast, showSuccess, showError, showWarning, showInfo]);
 
   return (
     <ToastContext.Provider value={value}>

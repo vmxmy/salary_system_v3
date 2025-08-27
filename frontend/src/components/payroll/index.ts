@@ -20,3 +20,6 @@ export * from './PayrollPeriodSelector';
 export * from './PayrollStatusSelector';
 export * from './PayrollListToolbar';
 export * from './PayrollStatsSection';
+export * from './PayrollViewSwitcher';
+export * from './PayrollDetailContainer';
+export * from './PayrollPivotTable';

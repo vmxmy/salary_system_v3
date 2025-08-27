@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useReportManagement } from '@/hooks/reports';
+import { supabase } from '@/lib/supabase';
 import ReportTemplateModal from './ReportTemplateModal';
 
 export default function ReportManagementPageReal() {
@@ -24,7 +25,8 @@ export default function ReportManagementPageReal() {
   const {
     data: { templates, jobs, history, statistics },
     loading,
-    actions: { generateReport, createTemplate, downloadReport }
+    actions: { generateReport, createTemplate, downloadReport },
+    generation: { isGenerating, progress, currentStep }
   } = reportManagement;
 
   // Handle new template creation
@@ -51,11 +53,18 @@ export default function ReportManagementPageReal() {
       if (modalState.mode === 'create') {
         await createTemplate(templateConfig);
         alert(`✅ 模板创建成功：${templateConfig.template_name}`);
-      } else {
-        // TODO: 实现模板更新功能
+      } else if (modalState.editingTemplate?.id) {
+        // 实现模板更新功能
+        const { updateTemplate } = reportManagement.actions;
+        await updateTemplate({
+          id: modalState.editingTemplate.id,
+          ...templateConfig
+        });
         alert(`✅ 模板更新成功：${templateConfig.template_name}`);
       }
       setModalState({ isOpen: false, mode: 'create', editingTemplate: undefined });
+      // 刷新数据
+      reportManagement.refetch.templates();
     } catch (error) {
       console.error('保存模板失败:', error);
       alert(`❌ 保存模板失败: ${error instanceof Error ? error.message : '未知错误'}`);
@@ -70,16 +79,28 @@ export default function ReportManagementPageReal() {
   // Handle report generation with real data
   const handleGenerateReport = async (template: { id: string; template_name: string }) => {
     try {
-      await generateReport({
+      const result = await generateReport({
         templateId: template.id,
         format: 'xlsx',
         periodName: '当前周期',
         filters: {},
       });
-      alert(`报表生成已开始：${template.template_name}`);
+      
+      // 显示生成成功信息，并提供下载选项
+      const downloadNow = confirm(`✅ 报表生成成功：${template.template_name}\n\n是否立即下载？`);
+      if (downloadNow && result.filePath && result.filePath.includes('report_')) {
+        const fileName = result.filePath.split('/').pop() || 'report.xlsx';
+        await downloadReport(result.filePath, fileName);
+      }
+      
+      // 刷新数据
+      reportManagement.refetch.jobs();
+      reportManagement.refetch.history();
+      reportManagement.refetch.statistics();
+      
     } catch (error) {
       console.error('生成报表失败:', error);
-      alert(`生成报表失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      alert(`❌ 生成报表失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   };
 
@@ -118,6 +139,22 @@ export default function ReportManagementPageReal() {
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">报表管理</h1>
+      
+      {/* 生成进度提示 */}
+      {isGenerating && (
+        <div className="alert alert-info mb-6">
+          <svg className="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <div className="flex-1">
+            <h3 className="font-bold">正在生成报表</h3>
+            <div className="text-sm opacity-75">{currentStep}</div>
+            <progress className="progress progress-info w-full mt-2" value={progress} max="100"></progress>
+            <div className="text-xs mt-1 opacity-60">{progress}% 完成</div>
+          </div>
+        </div>
+      )}
       
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -232,16 +269,24 @@ export default function ReportManagementPageReal() {
                       编辑
                     </button>
                     <button 
-                      className="btn btn-primary btn-sm"
+                      className={`btn btn-primary btn-sm ${isGenerating ? 'loading' : ''}`}
                       onClick={() => handleGenerateReport(template)}
+                      disabled={isGenerating}
                     >
-                      生成报表
+                      {isGenerating ? '生成中...' : '生成报表'}
                     </button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+
+          {loading.templates && (
+            <div className="text-center py-12">
+              <span className="loading loading-spinner loading-lg"></span>
+              <p className="mt-2 text-base-content/70">正在加载模板...</p>
+            </div>
+          )}
 
           {templates.length === 0 && !loading.templates && (
             <div className="text-center py-12">
@@ -250,9 +295,13 @@ export default function ReportManagementPageReal() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p>暂无报表模板</p>
+                <p className="text-lg font-medium">暂无报表模板</p>
+                <p className="text-sm text-base-content/60 mt-1">创建您的第一个报表模板来开始使用</p>
               </div>
               <button className="btn btn-primary" onClick={handleCreateTemplate}>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
                 创建第一个模板
               </button>
             </div>
@@ -264,6 +313,13 @@ export default function ReportManagementPageReal() {
       {activeTab === 'jobs' && (
         <div className="space-y-4">
           <h2 className="text-xl font-bold mb-4">执行任务</h2>
+          
+          {loading.jobs && (
+            <div className="text-center py-8">
+              <span className="loading loading-spinner loading-lg"></span>
+              <p className="mt-2 text-base-content/70">正在加载任务...</p>
+            </div>
+          )}
           
           {jobs.map((job: any) => (
             <div key={job.id} className="card bg-base-100 shadow-xl">
@@ -312,7 +368,22 @@ export default function ReportManagementPageReal() {
                   {job.status === 'running' && (
                     <button 
                       className="btn btn-outline btn-sm"
-                      onClick={() => alert(`取消任务：${job.job_name}`)}
+                      onClick={async () => {
+                        if (confirm(`确定要取消任务"${job.job_name}"吗？`)) {
+                          try {
+                            await reportManagement.actions.updateJobStatus({
+                              id: job.id,
+                              status: 'failed',
+                              error_message: '用户主动取消'
+                            });
+                            alert('任务已取消');
+                            reportManagement.refetch.jobs();
+                          } catch (error) {
+                            console.error('取消任务失败:', error);
+                            alert('取消任务失败');
+                          }
+                        }
+                      }}
                     >
                       取消
                     </button>
@@ -328,7 +399,23 @@ export default function ReportManagementPageReal() {
                   {job.status === 'failed' && (
                     <button 
                       className="btn btn-warning btn-sm"
-                      onClick={() => alert(`重新执行：${job.job_name}`)}
+                      onClick={async () => {
+                        try {
+                          // 基于原任务配置重新创建任务
+                          const newJobName = `${job.job_name} (重试) - ${new Date().toLocaleString('zh-CN')}`;
+                          await reportManagement.actions.createJob({
+                            template_id: job.template_id || '',
+                            job_name: newJobName,
+                            period_id: job.period_id,
+                            data_filters: job.data_filters || {}
+                          });
+                          alert('任务已重新创建');
+                          reportManagement.refetch.jobs();
+                        } catch (error) {
+                          console.error('重新执行失败:', error);
+                          alert('重新执行失败');
+                        }
+                      }}
                     >
                       重新执行
                     </button>
@@ -345,7 +432,8 @@ export default function ReportManagementPageReal() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p>暂无执行任务</p>
+                <p className="text-lg font-medium">暂无执行任务</p>
+                <p className="text-sm text-base-content/60 mt-1">生成报表时会在这里显示执行进度</p>
               </div>
             </div>
           )}
@@ -359,13 +447,57 @@ export default function ReportManagementPageReal() {
             <h2 className="text-xl font-bold mb-4">历史记录</h2>
             <button 
               className="btn btn-outline btn-sm"
-              onClick={() => alert('清理过期文件功能开发中')}
+              onClick={async () => {
+                if (confirm('确定要清理30天前的过期文件吗？此操作不可撤销。')) {
+                  try {
+                    // 计算30天前的日期
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    
+                    const { data: expiredFiles, error: queryError } = await supabase
+                      .from('report_history')
+                      .select('id, report_name')
+                      .lt('generated_at', thirtyDaysAgo.toISOString());
+                    
+                    if (queryError) {
+                      throw queryError;
+                    }
+                    
+                    if (expiredFiles && expiredFiles.length > 0) {
+                      const { error: deleteError } = await supabase
+                        .from('report_history')
+                        .delete()
+                        .lt('generated_at', thirtyDaysAgo.toISOString());
+                      
+                      if (deleteError) {
+                        throw deleteError;
+                      }
+                      
+                      alert(`✅ 已清理 ${expiredFiles.length} 个过期文件`);
+                      reportManagement.refetch.history();
+                      reportManagement.refetch.statistics();
+                    } else {
+                      alert('没有找到需要清理的过期文件');
+                    }
+                  } catch (error) {
+                    console.error('清理过期文件失败:', error);
+                    alert(`❌ 清理失败: ${error instanceof Error ? error.message : '未知错误'}`);
+                  }
+                }
+              }}
             >
               清理过期文件
             </button>
           </div>
 
-          {history.length > 0 ? (
+          {loading.history && (
+            <div className="text-center py-8">
+              <span className="loading loading-spinner loading-lg"></span>
+              <p className="mt-2 text-base-content/70">正在加载历史记录...</p>
+            </div>
+          )}
+
+          {history.length > 0 && !loading.history ? (
             <div className="overflow-x-auto">
               <table className="table table-zebra">
                 <thead>
@@ -408,9 +540,26 @@ export default function ReportManagementPageReal() {
                           </button>
                           <button 
                             className="btn btn-ghost btn-xs text-error"
-                            onClick={() => {
+                            onClick={async () => {
                               if (confirm(`确定要删除文件 "${item.report_name}" 吗？`)) {
-                                alert('删除文件功能开发中');
+                                try {
+                                  // 调用删除历史记录的 API
+                                  const { error } = await supabase
+                                    .from('report_history')
+                                    .delete()
+                                    .eq('id', item.id);
+                                  
+                                  if (error) {
+                                    throw error;
+                                  }
+                                  
+                                  alert('文件删除成功');
+                                  reportManagement.refetch.history();
+                                  reportManagement.refetch.statistics();
+                                } catch (error) {
+                                  console.error('删除文件失败:', error);
+                                  alert(`删除失败: ${error instanceof Error ? error.message : '未知错误'}`);
+                                }
                               }
                             }}
                             title="删除文件"
@@ -427,17 +576,18 @@ export default function ReportManagementPageReal() {
                 </tbody>
               </table>
             </div>
-          ) : (
+          ) : !loading.history ? (
             <div className="text-center py-12">
               <div className="text-base-content/50 mb-4">
                 <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                     d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                 </svg>
-                <p>暂无历史记录</p>
+                <p className="text-lg font-medium">暂无历史记录</p>
+                <p className="text-sm text-base-content/60 mt-1">生成的报表文件会在这里显示</p>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       )}
 

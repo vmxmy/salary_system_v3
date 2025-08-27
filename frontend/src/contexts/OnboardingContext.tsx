@@ -570,7 +570,7 @@ export const OnboardingProvider = ({
 
   const context = buildContext();
 
-  const value: OnboardingContextType = {
+  const value: OnboardingContextType = useMemo(() => ({
     // 状态
     currentFlow,
     currentStep,
@@ -598,7 +598,30 @@ export const OnboardingProvider = ({
     getTotalProgress,
     addEventListener,
     getAvailableFlows
-  };
+  }), [
+    currentFlow,
+    currentStep,
+    progress,
+    isActive,
+    isLoading,
+    error,
+    config,
+    context,
+    startFlow,
+    nextStep,
+    previousStep,
+    skipStep,
+    completeFlow,
+    pauseFlow,
+    resumeFlow,
+    resetFlow,
+    canSkip,
+    canGoBack,
+    getStepProgress,
+    getTotalProgress,
+    addEventListener,
+    getAvailableFlows
+  ]);
 
   return (
     <OnboardingContext.Provider value={value}>

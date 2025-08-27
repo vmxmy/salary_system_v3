@@ -118,12 +118,64 @@ const fetchComprehensiveData = async (config: PayrollExportConfig) => {
     if (config.includeDetails && payrollData && payrollData.length > 0 && 
         (config.selectedDataGroups?.includes('earnings') || config.selectedDataGroups?.includes('bases'))) {
       const payrollIds = payrollData.map(p => p.payroll_id);
-      const { data: details, error: detailError } = await supabase
-        .from('view_payroll_unified')
-        .select('*')
-        .in('payroll_id', payrollIds);
+      console.log('🔍 查询薪资明细 - payrollIds数量:', payrollIds.length);
+      console.log('🔍 陈敏的payroll_id:', payrollData.find(p => p.employee_name === '陈敏')?.payroll_id);
+      
+      console.log('🔍 执行查询 - payrollIds:', payrollIds.slice(0, 3), '...(共', payrollIds.length, '个)');
+      
+      // 分批查询以避免批量查询限制
+      console.log('🔄 使用分批查询避免批量查询限制');
+      const batchSize = 10; // 每批查询10个payroll_id
+      const allDetails: any[] = [];
+      
+      for (let i = 0; i < payrollIds.length; i += batchSize) {
+        const batch = payrollIds.slice(i, i + batchSize);
+        console.log(`📦 查询批次 ${Math.floor(i/batchSize) + 1}/${Math.ceil(payrollIds.length/batchSize)}: ${batch.length}个ID`);
+        
+        const { data: batchDetails, error: batchError } = await supabase
+          .from('view_payroll_unified')
+          .select('*')
+          .in('payroll_id', batch);
+          
+        if (batchError) {
+          console.error('❌ 批次查询失败:', batchError);
+          throw batchError;
+        }
+        
+        if (batchDetails) {
+          allDetails.push(...batchDetails);
+          console.log(`✅ 批次结果: ${batchDetails.length}条记录`);
+        }
+      }
+      
+      const details = allDetails;
+      const detailError = null;
+
+      // 专门查询陈敏的完整数据对比
+      if (payrollIds.includes('61184327-adc4-434d-9861-d18e07251f3a')) {
+        console.log('🔍 专门查询陈敏完整数据对比');
+        const { data: chenMinFull, error: chenMinError } = await supabase
+          .from('view_payroll_unified')
+          .select('*')
+          .eq('payroll_id', '61184327-adc4-434d-9861-d18e07251f3a');
+        
+        if (!chenMinError) {
+          console.log('💯 陈敏完整查询结果:', chenMinFull?.length || 0, '条');
+          console.log('🧾 陈敏完整薪资项目:', chenMinFull?.map(item => item.component_name) || []);
+        }
+      }
 
       if (detailError) throw detailError;
+      
+      console.log('✅ 薪资明细查询结果:', details?.length || 0, '条记录');
+      
+      // 检查陈敏的原始查询结果
+      const chenMinRawData = details?.filter(item => item.employee_name === '陈敏') || [];
+      console.log('🔍 陈敏原始查询结果:', chenMinRawData.length, '条');
+      if (chenMinRawData.length > 0) {
+        console.log('📋 陈敏原始数据样本:', chenMinRawData[0]);
+        console.log('📊 陈敏原始薪资项目:', chenMinRawData.map(item => item.component_name));
+      }
       
       // 创建一个映射，用于快速查找部门和职位信息
       const payrollInfoMap = new Map(
@@ -673,6 +725,25 @@ export const exportPayrollToExcelWithTemplate = async (config: ExportConfig): Pr
   if (comprehensiveData.payrollDetails && comprehensiveData.payrollDetails.length > 0) {
     console.log('📊 薪资明细数据样本:', comprehensiveData.payrollDetails[0]);
     console.log('📊 薪资明细字段:', Object.keys(comprehensiveData.payrollDetails[0]));
+    
+    // 专门检查陈敏的住房公积金数据
+    const chenMinData = comprehensiveData.payrollDetails.filter((item: any) => 
+      item.employee_name === '陈敏' && item.component_name && item.component_name.includes('住房公积金')
+    );
+    console.log('🔍 陈敏住房公积金原始数据:', chenMinData);
+    
+    if (chenMinData.length === 0) {
+      console.error('❌ 在payrollDetails中找不到陈敏的住房公积金数据！');
+      // 检查陈敏是否存在任何数据
+      const chenMinAnyData = comprehensiveData.payrollDetails.filter((item: any) => 
+        item.employee_name === '陈敏'
+      );
+      console.log('🔍 陈敏的所有薪资明细数据:', chenMinAnyData.length, '条');
+      if (chenMinAnyData.length > 0) {
+        console.log('📋 陈敏的所有数据:', chenMinAnyData);
+        console.log('📊 陈敏的薪资项目列表:', chenMinAnyData.map((item: any) => item.component_name));
+      }
+    }
   }
 
   // 准备数据格式，映射到模板中的工作表

@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { PayrollPeriodSelector } from './PayrollPeriodSelector';
 import { CompactPayrollStatusSelector } from './PayrollStatusSelector';
 import { cardEffects, inputEffects } from '@/styles/design-effects';
@@ -61,6 +61,7 @@ export function PayrollListToolbar({
 }: PayrollListToolbarProps) {
   const { hasPermission, initialized } = usePermission();
   const { showSuccess, showError } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
 
   // 专用的薪资导出处理函数
   const handleExportPayroll = async () => {
@@ -151,9 +152,13 @@ export function PayrollListToolbar({
         <div className="flex items-center gap-2" data-tour="payroll-export-options">
           {/* 导出按钮 - 直接执行完整导出 */}
           <button 
-            className="btn btn-outline btn-sm"
+            className={`btn btn-outline btn-sm ${isExporting ? 'btn-disabled' : ''}`}
             onClick={async () => {
+              if (isExporting) return; // 防止重复点击
+              
               try {
+                setIsExporting(true);
+                console.log('🎯 开始导出 - selectedMonth:', selectedMonth);
                 await exportPayrollToExcel({
                   template: 'payroll_complete',
                   filters: { periodId: selectedMonth },
@@ -163,15 +168,27 @@ export function PayrollListToolbar({
               } catch (error) {
                 console.error('Export failed:', error);
                 showError(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`);
+              } finally {
+                setIsExporting(false);
               }
             }}
-            title="导出完整薪资数据（包含四个工作表：薪资收入、缴费基数、职务分配、人员类别）"
+            disabled={isExporting}
+            title={isExporting ? "正在导出数据，请稍候..." : "导出完整薪资数据（包含四个工作表：薪资收入、缴费基数、职务分配、人员类别）"}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            导出全部
+            {isExporting ? (
+              <>
+                <span className="loading loading-spinner loading-sm"></span>
+                导出中...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                导出全部
+              </>
+            )}
           </button>
 
           {/* 清空按钮 - 只在权限初始化后检查 */}

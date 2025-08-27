@@ -215,8 +215,20 @@ async function createStyledPivotWorksheet(
       if (item.component_type) {
         componentTypesMap.set(item.component_name, item.component_type);
       }
-      if (item.component_category) {
-        componentCategoriesMap.set(item.component_name, item.component_category);
+      if (item.category) {
+        componentCategoriesMap.set(item.component_name, item.category);
+      }
+      
+      // 调试输出：检查住房公积金相关数据
+      if (item.component_name.includes('住房公积金') && item.employee_name === '陈敏') {
+        console.log(`🔍 发现陈敏住房公积金数据项:`, {
+          component_name: item.component_name,
+          amount: item.amount,
+          employee_id: item.employee_id,
+          payroll_id: item.payroll_id,
+          category: item.category,
+          component_type: item.component_type
+        });
       }
     }
   });
@@ -232,7 +244,10 @@ async function createStyledPivotWorksheet(
   
   data.forEach(item => {
     const employeeKey = item.employee_id || item.payroll_id;
-    if (!employeeKey) return;
+    if (!employeeKey) {
+      console.warn('⚠️ 跳过无员工ID的记录:', item);
+      return;
+    }
     
     if (!employeeMap.has(employeeKey)) {
       employeeMap.set(employeeKey, {
@@ -242,10 +257,33 @@ async function createStyledPivotWorksheet(
     }
     
     const employee = employeeMap.get(employeeKey)!;
-    let componentValue = item.component_value || item.item_amount || item.amount || 0;
     
-    if (item.component_name && componentValue !== undefined) {
+    // 优先使用amount字段，确保正确提取数值
+    let componentValue = item.amount;
+    if (componentValue === null || componentValue === undefined) {
+      componentValue = item.component_value || item.item_amount || 0;
+    }
+    
+    // 确保数值类型正确转换
+    if (typeof componentValue === 'string') {
+      componentValue = parseFloat(componentValue) || 0;
+    } else if (typeof componentValue !== 'number') {
+      componentValue = 0;
+    }
+    
+    if (item.component_name) {
+      // 检查是否有重复数据覆盖问题
+      const existingValue = employee.salaryComponents[item.component_name];
+      if (existingValue !== undefined && existingValue !== componentValue) {
+        console.warn(`⚠️ 数据覆盖警告: ${item.employee_name} ${item.component_name} 从 ${existingValue} 覆盖为 ${componentValue}`);
+      }
+      
       employee.salaryComponents[item.component_name] = componentValue;
+      
+      // 调试输出：记录住房公积金相关数据
+      if (item.component_name.includes('住房公积金') && item.employee_name === '陈敏') {
+        console.log(`🏠 陈敏住房公积金数据: ${item.component_name} = ${componentValue} (原始值: ${item.amount}, 员工ID: ${employeeKey})`);
+      }
     }
   });
   

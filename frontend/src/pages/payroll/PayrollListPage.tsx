@@ -21,6 +21,8 @@ import {
   PayrollListToolbar,
   PayrollStatsSection
 } from '@/components/payroll';
+import { PayrollViewSwitcher, type ViewType } from '@/components/payroll/PayrollViewSwitcher';
+import { PayrollDetailContainer } from '@/components/payroll/PayrollDetailContainer';
 import { OnboardingButton } from '@/components/onboarding';
 import { PayrollModalManager, createBatchModalsConfig } from '@/components/payroll/PayrollModalManager';
 import { PayrollElement, PAYROLL_ELEMENTS_CONFIG } from '@/types/payroll-completeness';
@@ -65,6 +67,9 @@ export default function PayrollListPage() {
   // 状态管理
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   
+  // 视图切换状态
+  const [currentView, setCurrentView] = useState<ViewType>('list');
+  
   // 调试：追踪选中ID变化
   const handleSelectedIdsChange = useCallback((newIds: string[]) => {
     console.log('🎯 [PayrollListPage] Selection changed:', {
@@ -103,6 +108,19 @@ export default function PayrollListPage() {
     });
     setStatusFilter(status);
   }, [statusFilter]);
+  
+  // 视图切换处理
+  const handleViewChange = useCallback((view: ViewType) => {
+    console.log('👁️ [PayrollListPage] View changed:', {
+      previousView: currentView,
+      newView: view
+    });
+    setCurrentView(view);
+    // 切换视图时清空选择
+    if (view === 'detail') {
+      setSelectedIds([]);
+    }
+  }, [currentView]);
   
   // 模态框状态管理
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
@@ -590,8 +608,8 @@ export default function PayrollListPage() {
             </div>
           )}
 
-          {/* 批量操作区域 */}
-          {selectedIds.length > 0 && (
+          {/* 批量操作区域 - 仅在列表视图且有选中项时显示 */}
+          {currentView === 'list' && selectedIds.length > 0 && (
             <div className={`${cardEffects.standard} p-4`} data-tour="batch-payroll-operations">
               <PayrollBatchActions
                 selectedCount={selectedIds.length}
@@ -680,29 +698,62 @@ export default function PayrollListPage() {
             </div>
           )}
 
-          {/* 表格容器 */}
-          <div data-tour="payroll-table">
-            {(() => {
-              console.log('🎯 [PayrollListPage] Rendering table with data:', {
-                processedDataCount: processedData.length,
-                selectedIdsCount: selectedIds.length,
-                isLoading,
-                dataPreview: processedData.slice(0, 3).map(item => ({
-                  id: item.id || item.payroll_id,
-                  name: item.employee_name
-                }))
-              });
-              return null;
-            })()}
-            <PayrollTableContainer
-              data={processedData}
-              columns={columns}
-              loading={isLoading}
-              selectedIds={selectedIds}
-              onSelectedIdsChange={handleSelectedIdsChange}
-              onViewDetail={modalManager.handlers.handleViewDetail}
-              enableRowSelection={true}
-            />
+          {/* 表格工具栏：视图切换器 */}
+          <div className={`${cardEffects.standard} p-4 mb-4`}>
+            <div className="flex justify-end">
+              <PayrollViewSwitcher
+                currentView={currentView}
+                onViewChange={handleViewChange}
+                className="shrink-0"
+              />
+            </div>
+          </div>
+
+          {/* 内容区域 - 根据视图类型显示不同内容 */}
+          <div data-tour="payroll-content">
+            {currentView === 'list' ? (
+              // 列表视图：显示薪资汇总表格
+              <div>
+                {(() => {
+                  console.log('🎯 [PayrollListPage] Rendering list view with data:', {
+                    processedDataCount: processedData.length,
+                    selectedIdsCount: selectedIds.length,
+                    isLoading,
+                    dataPreview: processedData.slice(0, 3).map(item => ({
+                      id: item.id || item.payroll_id,
+                      name: item.employee_name
+                    }))
+                  });
+                  return null;
+                })()}
+                
+                <PayrollTableContainer
+                  data={processedData}
+                  columns={columns}
+                  loading={isLoading}
+                  selectedIds={selectedIds}
+                  onSelectedIdsChange={handleSelectedIdsChange}
+                  onViewDetail={modalManager.handlers.handleViewDetail}
+                  enableRowSelection={true}
+                  showColumnToggle={false}
+                />
+              </div>
+            ) : (
+              // 详情视图：显示薪资明细
+              <div>
+                {(() => {
+                  console.log('🎯 [PayrollListPage] Rendering detail view with data:', {
+                    processedDataCount: processedData.length,
+                    isLoading
+                  });
+                  return null;
+                })()}
+                <PayrollDetailContainer
+                  data={processedData}
+                  loading={isLoading}
+                />
+              </div>
+            )}
           </div>
         </div>
       }
