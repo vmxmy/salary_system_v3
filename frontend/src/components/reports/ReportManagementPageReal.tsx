@@ -15,6 +15,9 @@ export default function ReportManagementPageReal() {
     editingTemplate: undefined
   });
   
+  // 删除状态管理
+  const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set());
+  
   // 使用真实的 Supabase hooks
   const reportManagement = useReportManagement({
     templateFilters: { isActive: true },
@@ -48,6 +51,40 @@ export default function ReportManagementPageReal() {
   };
 
   // Handle template save
+  
+  // Handle delete report history item
+  const handleDeleteHistoryItem = async (item: any) => {
+    if (!confirm(`确定要删除文件 "${item.report_name}" 吗？`)) {
+      return;
+    }
+    
+    const itemId = item.id;
+    setDeletingItems(prev => new Set(prev).add(itemId));
+    
+    try {
+      const { error } = await supabase
+        .from('report_history')
+        .delete()
+        .eq('id', itemId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      alert('文件删除成功');
+      reportManagement.refetch.history();
+      reportManagement.refetch.statistics();
+    } catch (error) {
+      console.error('删除文件失败:', error);
+      alert(`删除失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setDeletingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
+    }
+  };
   const handleTemplateSave = async (templateConfig: any) => {
     try {
       if (modalState.mode === 'create') {
@@ -539,35 +576,19 @@ export default function ReportManagementPageReal() {
                             </svg>
                           </button>
                           <button 
-                            className="btn btn-ghost btn-xs text-error"
-                            onClick={async () => {
-                              if (confirm(`确定要删除文件 "${item.report_name}" 吗？`)) {
-                                try {
-                                  // 调用删除历史记录的 API
-                                  const { error } = await supabase
-                                    .from('report_history')
-                                    .delete()
-                                    .eq('id', item.id);
-                                  
-                                  if (error) {
-                                    throw error;
-                                  }
-                                  
-                                  alert('文件删除成功');
-                                  reportManagement.refetch.history();
-                                  reportManagement.refetch.statistics();
-                                } catch (error) {
-                                  console.error('删除文件失败:', error);
-                                  alert(`删除失败: ${error instanceof Error ? error.message : '未知错误'}`);
-                                }
-                              }
-                            }}
+                            className={`btn btn-ghost btn-xs text-error ${deletingItems.has(item.id) ? 'loading' : ''}`}
+                            onClick={() => handleDeleteHistoryItem(item)}
+                            disabled={deletingItems.has(item.id)}
                             title="删除文件"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            {deletingItems.has(item.id) ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </td>

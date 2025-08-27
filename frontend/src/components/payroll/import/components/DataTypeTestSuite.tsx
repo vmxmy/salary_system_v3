@@ -67,6 +67,7 @@ export const DataTypeTestSuite: React.FC = () => {
   const [importMode, setImportMode] = useState<ImportMode>('upsert');
   const [testResults, setTestResults] = useState<Record<string, 'pending' | 'running' | 'success' | 'failed'>>({});
   const [selectedMonth, setSelectedMonth] = useState<string>('2025-01');
+  const [isEncodingTesting, setIsEncodingTesting] = useState(false);
   
   // 直接使用已验证的生产Hook
   const importHook = usePayrollImportExport();
@@ -371,8 +372,9 @@ export const DataTypeTestSuite: React.FC = () => {
             <div>
               <strong>编码测试:</strong>
               <button 
-                className="btn btn-xs btn-outline ml-2"
+                className={`btn btn-xs btn-outline ml-2 ${isEncodingTesting ? 'loading' : ''}`}
                 onClick={async () => {
+                  setIsEncodingTesting(true);
                   try {
                     const content = await uploadedFile.text();
                     console.log('🔍 文件编码测试:', {
@@ -386,10 +388,20 @@ export const DataTypeTestSuite: React.FC = () => {
                   } catch (error) {
                     console.error('编码测试失败:', error);
                     alert('编码测试失败，可能是二进制Excel文件');
+                  } finally {
+                    setIsEncodingTesting(false);
                   }
                 }}
+                disabled={isEncodingTesting}
               >
-                测试编码
+                {isEncodingTesting ? (
+                  <>
+                    <span className="loading loading-spinner loading-xs"></span>
+                    测试中...
+                  </>
+                ) : (
+                  '测试编码'
+                )}
               </button>
             </div>
           </div>

@@ -46,6 +46,7 @@ interface ReportTemplateModalProps {
   onSave: (template: TemplateConfig) => void;
   editingTemplate?: any; // 编辑模式时的现有模板数据
   mode: 'create' | 'edit';
+  isSaving?: boolean; // 保存状态
 }
 
 export default function ReportTemplateModal({ 
@@ -53,7 +54,8 @@ export default function ReportTemplateModal({
   onClose, 
   onSave, 
   editingTemplate, 
-  mode 
+  mode,
+  isSaving = false
 }: ReportTemplateModalProps) {
   const [currentStep, setCurrentStep] = useState<ModalStep>('data-source');
   const [templateConfig, setTemplateConfig] = useState<TemplateConfig>({
@@ -317,11 +319,18 @@ export default function ReportTemplateModal({
             
             {currentStep === 'preview' ? (
               <button
-                className="btn btn-primary"
+                className={`btn btn-primary ${isSaving ? 'loading' : ''}`}
                 onClick={handleSave}
-                disabled={!templateConfig.template_name || templateConfig.field_mappings.length === 0}
+                disabled={!templateConfig.template_name || templateConfig.field_mappings.length === 0 || isSaving}
               >
-                {mode === 'create' ? '创建模板' : '更新模板'}
+                {isSaving ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    {mode === 'create' ? '创建中...' : '更新中...'}
+                  </>
+                ) : (
+                  mode === 'create' ? '创建模板' : '更新模板'
+                )}
               </button>
             ) : (
               <button

@@ -116,7 +116,7 @@ export default function PayrollListPage() {
       newView: view
     });
     setCurrentView(view);
-    // 切换视图时清空选择
+    // 切换到详情视图时清空选择，因为详情视图不支持选择
     if (view === 'detail') {
       setSelectedIds([]);
     }

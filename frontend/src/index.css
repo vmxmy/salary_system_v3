@@ -729,6 +729,7 @@
   .table tbody tr[data-state="selected"]:hover {
     @apply !bg-primary/15;
   }
+  
 
   /* 紧凑化手风琴样式 */
   .compact-accordion {

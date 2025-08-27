@@ -172,11 +172,21 @@ export default function PayrollDetailPage() {
                   action.variant === 'success' ? buttonEffects.secondary + ' text-success border-success/20' :
                   action.variant === 'error' ? buttonEffects.ghost + ' text-error' :
                   buttonEffects.secondary,
-                  'btn btn-sm gap-2'
+                  'btn btn-sm gap-2',
+                  isUpdating ? 'loading' : ''
                 )}
               >
-                {action.icon}
-                {action.label}
+                {isUpdating ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    处理中...
+                  </>
+                ) : (
+                  <>
+                    {action.icon}
+                    {action.label}
+                  </>
+                )}
               </button>
             ))}
           </div>

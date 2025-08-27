@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { cardEffects } from '@/styles/design-effects';
 import type { ReportHistory } from '@/hooks/reports/useReportManagementMock';
 import { formatFileSize } from '@/hooks/reports/useReportManagementMock';
@@ -8,6 +9,7 @@ interface ReportHistoryPanelProps {
 }
 
 export function ReportHistoryPanel({ history, loading }: ReportHistoryPanelProps) {
+  const [downloadingItems, setDownloadingItems] = useState<Set<string>>(new Set());
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -63,6 +65,9 @@ export function ReportHistoryPanel({ history, loading }: ReportHistoryPanelProps
       return;
     }
 
+    const recordId = record.id;
+    setDownloadingItems(prev => new Set(prev).add(recordId));
+
     try {
       // 创建隐藏的链接进行下载
       const link = document.createElement('a');
@@ -75,6 +80,15 @@ export function ReportHistoryPanel({ history, loading }: ReportHistoryPanelProps
       document.body.removeChild(link);
     } catch (error) {
       console.error('Download failed:', error);
+    } finally {
+      // 延迟移除loading状态，给用户一些视觉反馈
+      setTimeout(() => {
+        setDownloadingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(recordId);
+          return newSet;
+        });
+      }, 1000);
     }
   };
 
@@ -116,14 +130,19 @@ export function ReportHistoryPanel({ history, loading }: ReportHistoryPanelProps
                 {/* 下载按钮 */}
                 {record.file_url && (
                   <button 
-                    className="btn btn-ghost btn-xs"
+                    className={`btn btn-ghost btn-xs ${downloadingItems.has(record.id) ? 'loading' : ''}`}
                     onClick={() => handleDownload(record)}
+                    disabled={downloadingItems.has(record.id)}
                     title="下载文件"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
+                    {downloadingItems.has(record.id) ? (
+                      <span className="loading loading-spinner loading-xs"></span>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    )}
                   </button>
                 )}
               </div>

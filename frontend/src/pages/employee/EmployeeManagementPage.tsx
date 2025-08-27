@@ -85,6 +85,9 @@ export default function EmployeeManagementPage() {
     statusFilter: statusFilter === 'all' ? undefined : statusFilter as any,
   });
 
+  // 批量操作loading状态
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+
   // 客户端搜索和筛选处理
   const data = useMemo(() => {
     let filteredData = [...(allData || [])];
@@ -307,12 +310,15 @@ export default function EmployeeManagementPage() {
     if (selectedIds.length === 0) return;
     
     await confirmDelete(`${selectedIds.length} 名员工`, async () => {
+      setIsBatchDeleting(true);
       try {
         await batchDelete(selectedIds);
         setSelectedIds([]);
       } catch (error) {
         console.error('批量删除失败:', error);
         throw error;
+      } finally {
+        setIsBatchDeleting(false);
       }
     });
   }, [selectedIds, batchDelete, confirmDelete]);
@@ -748,15 +754,25 @@ export default function EmployeeManagementPage() {
                       停职
                     </button>
                     <button
-                      className="btn btn-outline btn-sm btn-error"
+                      className={`btn btn-outline btn-sm btn-error ${isBatchDeleting ? 'loading' : ''}`}
                       onClick={handleBatchDelete}
+                      disabled={isBatchDeleting}
                       title="批量删除"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      删除
+                      {isBatchDeleting ? (
+                        <>
+                          <span className="loading loading-spinner loading-sm"></span>
+                          删除中...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          删除
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

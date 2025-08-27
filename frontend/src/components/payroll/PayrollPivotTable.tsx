@@ -378,7 +378,7 @@ export function PayrollPivotTable({ data, loading, showColumnToggle = false }: P
         showColumnToggle={showColumnToggle}
         enableExport={false}
         exportFileName="薪资透视表"
-        initialColumnPinning={{ left: ['employee_name'], right: [] }}
+        initialColumnPinning={{ left: ['employee_name'], right: [] } as any}
       />
     </div>
   );
