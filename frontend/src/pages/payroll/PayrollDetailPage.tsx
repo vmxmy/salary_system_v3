@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { 
   usePayrolls, 
-  usePayrollDetails, 
+  useBatchPayrollDetails, 
   useUpdatePayrollStatus,
   PayrollStatus,
   type PayrollStatusType
@@ -28,8 +28,11 @@ export default function PayrollDetailPage() {
     pageSize: 1
   });
 
-  // 获取薪资明细
-  const { data: details, isLoading: detailsLoading } = usePayrollDetails(id || '');
+  // 获取薪资明细 - 使用批量查询优化性能
+  const payrollIds = id ? [id] : [];
+  const { data: batchDetails, isLoading: detailsLoading } = useBatchPayrollDetails(payrollIds);
+  const details = (id && batchDetails && typeof batchDetails === 'object' && !Array.isArray(batchDetails)) 
+    ? (batchDetails as Record<string, any[]>)[id] || [] : [];
 
   // 更新状态 mutation
   const updateStatus = useUpdatePayrollStatus();

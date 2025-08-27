@@ -510,7 +510,12 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
         try {
           // 执行当前批次的薪资汇总计算
           console.log(`执行薪资汇总批次${currentBatch}计算，记录IDs:`, batch);
+          console.log('=== 批量计算开始 ===');
           const result = await payrollCalculation.calculateBatch(batch, true);
+          console.log('=== 批量计算结果 ===', result);
+          console.log('成功数量:', result.summary.successCount);
+          console.log('失败数量:', result.summary.failureCount);
+          console.log('总扣除额:', result.summary.totalDeductions);
 
           // 处理批次结果
           const batchSuccessCount = result.summary.successCount;

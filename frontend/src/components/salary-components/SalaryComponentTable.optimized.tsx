@@ -1,6 +1,6 @@
 /**
- * 薪资组件数据表格
- * 支持搜索、筛选、排序和批量操作
+ * 优化版薪资组件数据表格
+ * 修复筛选器死机问题，支持稳定的搜索、筛选、排序和批量操作
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -39,7 +39,7 @@ interface SalaryComponentTableProps {
   onView?: (component: SalaryComponent) => void;
 }
 
-export function SalaryComponentTable({ onEdit, onView }: SalaryComponentTableProps) {
+export function SalaryComponentTableOptimized({ onEdit, onView }: SalaryComponentTableProps) {
   const [query, setQuery] = useState<SalaryComponentQuery>({});
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -60,7 +60,7 @@ export function SalaryComponentTable({ onEdit, onView }: SalaryComponentTablePro
   // 防抖更新函数
   const createDebounceUpdate = useDebounceFilterUpdate();
 
-  // 表格列定义
+  // 表格列定义 - 使用 useMemo 避免重复创建
   const columns = useMemo<ColumnDef<SalaryComponent>[]>(() => [
     {
       id: 'select',
@@ -314,7 +314,7 @@ export function SalaryComponentTable({ onEdit, onView }: SalaryComponentTablePro
 
   return (
     <div className="space-y-4">
-      {/* 搜索和筛选工具栏 - 优化布局，全部左对齐 */}
+      {/* 搜索和筛选工具栏 - 优化版 */}
       <div className="flex flex-col gap-4">
         {/* 搜索框和筛选器同行 */}
         <div className="flex flex-col sm:flex-row gap-3 items-start">
@@ -336,7 +336,7 @@ export function SalaryComponentTable({ onEdit, onView }: SalaryComponentTablePro
             </div>
           </div>
 
-          {/* 两级联动筛选器 */}
+          {/* 优化版两级联动筛选器 */}
           <div className="flex flex-wrap gap-2 items-center">
             {/* 类型筛选器 */}
             <select

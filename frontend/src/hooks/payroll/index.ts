@@ -149,6 +149,18 @@ export {
   type BatchLogParams
 } from './usePayrollLogger';
 
+// 批量查询优化 - 性能提升
+export {
+  useBatchPayrollDetails,
+  useBatchPayrollSummary,
+  useBatchEmployeeInsurance,
+  useBatchEmployeeInfo,
+  useBatchPayrollComplete,
+  useSmartBatchPayroll,
+  batchPayrollQueryKeys,
+  BATCH_QUERY_CONFIGS
+} from './useBatchPayrollQueries';
+
 // 批量操作管理
 export { useBatchOperationsManager } from './useBatchOperationsManager';
 

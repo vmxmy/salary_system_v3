@@ -42,14 +42,14 @@ export interface BatchSummaryResult {
  *    - category='benefits'的项目（津贴、补贴、绩效奖金等）
  *    - category='allowances'的项目（其他津贴）
  * 
- * 2. 扣除总额（total_deductions）= 
+ * 2. 扣发合计（total_deductions）= 
  *    - category='personal_insurance'的项目（个人缴纳的五险一金）
  *    - category='personal_tax'的项目（个人所得税）
- *    - category='other_deductions'的项目（补扣款等）
+ *    - category='other_deductions'的项目（其他扣除）
  * 
- * 3. 实发工资（net_pay）= 应发工资 - 扣除总额
+ * 3. 实发工资（net_pay）= 应发工资 - 扣发合计
  * 
- * ✅ 修复：category='employer_insurance'（单位缴纳部分）不再计入个人扣除项
+ * ✅ 修复：category='employer_insurance'（单位缴纳部分）不计入个人扣除项
  */
 export const usePayrollSummary = () => {
   const payrollCalculation = usePayrollCalculation();

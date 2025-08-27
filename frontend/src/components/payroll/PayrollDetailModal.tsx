@@ -6,7 +6,7 @@ import { AccordionSection, AccordionContent } from '@/components/common/Accordio
 import { DetailField } from '@/components/common/DetailField';
 import { ModernButton } from '@/components/common/ModernButton';
 import { PayrollStatusBadge } from './PayrollStatusBadge';
-import { PayrollStatus, type PayrollStatusType, useEmployeeInsuranceDetails, usePayrollDetails } from '@/hooks/payroll';
+import { PayrollStatus, type PayrollStatusType, useBatchPayrollDetails, useBatchEmployeeInsurance } from '@/hooks/payroll';
 import { useEmployeeCategoryByPeriod } from '@/hooks/payroll/useEmployeeCategory';
 import { useEmployeePositionByPeriod, useEmployeePositionHistory, useAssignEmployeePosition } from '@/hooks/payroll/useEmployeePosition';
 import { useDepartmentList } from '@/hooks/department/useDepartments';
@@ -244,11 +244,16 @@ export function PayrollDetailModal({
   const { showSuccess, showError, showInfo } = useToast();
 
 
-  // 使用hook获取五险一金数据
-  const { data: insuranceDetails = [], isLoading: insuranceLoading } = useEmployeeInsuranceDetails(payrollId || '');
-
-  // 使用hook获取薪资明细数据 - 替换手动获取
-  const { data: payrollDetailsData, isLoading: payrollDetailsLoading } = usePayrollDetails(payrollId || '');
+  // 使用批量查询优化性能 - 单个ID的批量查询仍比个别查询更一致
+  const payrollIds = payrollId ? [payrollId] : [];
+  const { data: batchDetailsData, isLoading: payrollDetailsLoading } = useBatchPayrollDetails(payrollIds);
+  const { data: batchInsuranceData, isLoading: insuranceLoading } = useBatchEmployeeInsurance(payrollIds);
+  
+  // 从批量查询结果中提取单个薪资记录的数据
+  const payrollDetailsData = (payrollId && batchDetailsData && typeof batchDetailsData === 'object' && !Array.isArray(batchDetailsData)) 
+    ? (batchDetailsData as Record<string, any[]>)[payrollId] || [] : [];
+  const insuranceDetails = (payrollId && batchInsuranceData && typeof batchInsuranceData === 'object' && !Array.isArray(batchInsuranceData)) 
+    ? (batchInsuranceData as Record<string, any[]>)[payrollId] || [] : [];
 
   // 使用hook获取缴费基数数据
   const [employeeId, setEmployeeId] = useState<string>('');
@@ -343,13 +348,13 @@ export function PayrollDetailModal({
 
   // 从薪资明细中筛选个税项目
   const taxItems = useMemo(() => {
-    const taxRelatedItems = payrollItems.filter(item =>
+    const taxRelatedItems = payrollItems.filter((item: any) =>
       item.category === 'personal_tax' ||
       item.component_name.includes('个人所得税') ||
       item.component_name.includes('个税')
     );
 
-    return taxRelatedItems.map(item => ({
+    return taxRelatedItems.map((item: any) => ({
       item_id: item.item_id,
       component_name: item.component_name,
       amount: item.amount,
@@ -427,18 +432,9 @@ export function PayrollDetailModal({
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-error/80 font-medium">{String(t('payroll:totalDeductions'))}</p>
-                  {payrollData.total_deductions < 0 ? (
-                    <div>
-                      <p className="text-xl font-bold text-green-600 font-mono">
-                        +{formatCurrency(Math.abs(payrollData.total_deductions))}
-                      </p>
-                      <p className="text-xs text-green-600/70 mt-0.5">净退款</p>
-                    </div>
-                  ) : (
-                    <p className="text-xl font-bold text-error font-mono">
-                      -{formatCurrency(payrollData.total_deductions)}
-                    </p>
-                  )}
+                  <p className="text-xl font-bold font-mono">
+                    {formatCurrency(payrollData.total_deductions)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1176,43 +1172,12 @@ function PayrollBreakdownSection({
       );
     }
 
-    // 非编辑状态的显示 - 修复负数显示问题
-    const displayContent = (() => {
-      if (isEarning) {
-        // 收入项目：正数显示绿色+号，负数显示红色-号（补扣发可能为负）
-        if (amount >= 0) {
-          return (
-            <span className="text-sm font-semibold font-mono text-green-600">
-              +{formatCurrency(amount)}
-            </span>
-          );
-        } else {
-          return (
-            <span className="text-sm font-semibold font-mono text-red-600">
-              {formatCurrency(amount)}
-            </span>
-          );
-        }
-      } else {
-        // 扣除项目：负数为退款（绿色+号），正数为正常扣除（红色-号）
-        if (amount < 0) {
-          return (
-            <div>
-              <span className="text-sm font-semibold font-mono text-green-600">
-                +{formatCurrency(Math.abs(amount))}
-              </span>
-              <div className="text-xs text-green-600/70 mt-0.5">退款</div>
-            </div>
-          );
-        } else {
-          return (
-            <span className="text-sm font-semibold font-mono text-red-600">
-              -{formatCurrency(amount)}
-            </span>
-          );
-        }
-      }
-    })();
+    // 非编辑状态的显示 - 直接显示原始数据值
+    const displayContent = (
+      <span className="text-sm font-semibold font-mono">
+        {formatCurrency(amount)}
+      </span>
+    );
 
     return (
       <div
@@ -1534,10 +1499,8 @@ function PayrollBreakdownSection({
               </div>
               <h3 className="text-sm font-semibold text-red-700">扣除项目</h3>
             </div>
-            <div className={`text-sm font-semibold ${deductionTotal < 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-              合计: {deductionTotal < 0 ? '+' : '-'}{formatCurrency(Math.abs(deductionTotal))}
-              {deductionTotal < 0 && <span className="ml-1 text-xs">(净退款)</span>}
+            <div className="text-sm font-semibold">
+              合计: {formatCurrency(deductionTotal)}
             </div>
           </div>
 

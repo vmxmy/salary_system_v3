@@ -27,7 +27,7 @@ export interface PayrollCalculationResult {
   
   // 计算结果
   grossPay: number;        // 应发合计
-  totalDeductions: number; // 扣发合计（不包含其他扣除）
+  totalDeductions: number; // 扣发合计（包含所有扣除项）
   netPay: number;          // 实发合计
   
   // 明细分解
@@ -65,7 +65,7 @@ export interface BatchPayrollCalculationResult {
     successCount: number;
     failureCount: number;
     totalGrossPay: number;
-    totalDeductions: number;        // 扣发合计总额（不包含其他扣除）
+    totalDeductions: number;        // 扣发合计总额（包含所有扣除项）
     totalNetPay: number;
     totalEmployerInsurance: number; // 单位承担总额
   };
@@ -77,12 +77,12 @@ export interface BatchPayrollCalculationResult {
  * 
  * 计算规则：
  * 1. 应发合计 = basic_salary + benefits
- * 2. 扣发合计 = personal_insurance + personal_tax （不包含 other_deductions）
- * 3. 实发合计 = 应发合计 - 扣发合计 - other_deductions
+ * 2. 扣发合计 = personal_insurance + personal_tax + other_deductions
+ * 3. 实发合计 = 应发合计 - 扣发合计
  * 
  * 注意：
  * - employer_insurance（单位保险）不从员工工资中扣除
- * - 扣发合计与其他扣除分开统计，便于财务分析
+ * - 扣发合计包含所有从员工工资中扣除的项目
  */
 export const usePayrollCalculation = () => {
   const [loading, setLoading] = useState(false);
@@ -145,6 +145,13 @@ export const usePayrollCalculation = () => {
 
       // 2. 获取薪资项目明细
       const items = await fetchPayrollItems(payrollId);
+      
+      // 调试日志：显示所有原始数据
+      console.log('=== 薪资计算调试 ===');
+      console.log('薪资记录ID:', payrollId);
+      console.log('员工:', payroll.employees?.employee_name);
+      console.log('所有薪资项目原始数据:', items);
+      console.log('其他扣除项目:', items.filter(item => item.category === 'other_deductions'));
 
       // 3. 按类别分组计算
       const breakdown = {
@@ -163,6 +170,9 @@ export const usePayrollCalculation = () => {
 
       items.forEach(item => {
         const amount = item.amount;
+        
+        // 调试日志：显示每个项目的处理过程
+        console.log(`处理项目: ${item.componentName}, 类别: ${item.category}, 金额: ${amount}`);
         
         // 验证金额
         if (isNaN(amount)) {
@@ -194,7 +204,9 @@ export const usePayrollCalculation = () => {
             break;
             
           case 'other_deductions':
+            console.log(`其他扣除累加前: ${breakdown.otherDeductions}, 当前金额: ${amount}`);
             breakdown.otherDeductions += amount;
+            console.log(`其他扣除累加后: ${breakdown.otherDeductions}`);
             if (amount > 0) deductionCount++;
             break;
             
@@ -210,10 +222,25 @@ export const usePayrollCalculation = () => {
 
       // 4. 计算汇总金额
       const grossPay = breakdown.basicSalary + breakdown.benefits;
-      // 扣发合计：仅包含个人保险和个人所得税
-      const totalDeductions = breakdown.personalInsurance + breakdown.personalTax;
-      // 实发工资 = 应发合计 - 扣发合计 - 其他扣除
-      const netPay = grossPay - totalDeductions - breakdown.otherDeductions;
+      
+      // 调试日志：显示各项分解金额
+      console.log('=== 计算分解 ===');
+      console.log('基本工资:', breakdown.basicSalary);
+      console.log('津贴补贴:', breakdown.benefits);
+      console.log('个人保险:', breakdown.personalInsurance);
+      console.log('个人所得税:', breakdown.personalTax);
+      console.log('其他扣除:', breakdown.otherDeductions);
+      console.log('单位保险:', breakdown.employerInsurance);
+      console.log('应发合计:', grossPay);
+      
+      // 扣发合计：包含个人保险、个人所得税和其他扣除（允许负值）
+      const totalDeductions = breakdown.personalInsurance + breakdown.personalTax + breakdown.otherDeductions;
+      console.log('扣发合计计算:', `${breakdown.personalInsurance} + ${breakdown.personalTax} + ${breakdown.otherDeductions} = ${totalDeductions}`);
+      
+      // 实发工资 = 应发合计 - 扣发合计
+      const netPay = grossPay - totalDeductions;
+      console.log('实发工资计算:', `${grossPay} - ${totalDeductions} = ${netPay}`);
+      console.log('=== 计算完成 ===');
 
       // 5. 构建结果
       const result: PayrollCalculationResult = {
