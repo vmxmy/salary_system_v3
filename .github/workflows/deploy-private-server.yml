@@ -82,7 +82,7 @@ jobs:
     name: Deploy to ${{ github.event.inputs.environment || 'production' }}
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: false  # 暂时禁用，需要配置SSH凭据：SSH_PRIVATE_KEY, SSH_USER, SSH_HOST, SERVER_WEB_ROOT
+    if: true   # ✅ 已配置SSH凭据，启用静态文件部署
     
     environment: 
       name: ${{ github.event.inputs.environment || 'production' }}
