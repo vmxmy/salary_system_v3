@@ -350,11 +350,11 @@ export const importPayrollItems = async (
         const component = componentMap.get(columnName);
         if (component && value !== null && value !== undefined && value !== '') {
           const amount = parseFloat(value as string);
-          if (!isNaN(amount) && amount !== 0) {
+          if (!isNaN(amount)) {  // 移除 amount !== 0 条件，允许导入金额为0的记录
             allPayrollItems.push({
               payroll_id: payrollId, // 临时ID，批量插入后会替换
               component_id: component.id,
-              amount: amount,
+              amount: amount,  // 包括金额为0的记录
               period_id: periodId, // payroll_items 表需要 period_id
               employee_id: employee.id // 添加员工ID，用于后续匹配
             });
