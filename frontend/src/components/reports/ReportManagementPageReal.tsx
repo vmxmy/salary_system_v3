@@ -870,6 +870,21 @@ export default function ReportManagementPageReal() {
         onClose={handleModalClose}
         onSave={handleTemplateSave}
       />
+      
+      {/* 确认对话框 */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        confirmText={confirmDialog.confirmText}
+        confirmVariant={confirmDialog.confirmVariant}
+        loading={confirmDialog.loading}
+      />
+      
+      {/* 提示模态框 */}
+      {AlertModalComponent}
     </div>
   );
 }
