@@ -103,8 +103,9 @@ export default defineConfig({
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
         manualChunks: {
-          // Separate Excel libraries into their own chunks for lazy loading
-          'excel-libs': ['xlsx', 'exceljs'],
+          // 分离 Excel 库到独立 chunks 以支持真正的懒加载
+          'excel-core': ['xlsx'], // 轻量级 Excel 库 (~400KB)
+          'excel-advanced': ['exceljs'], // 高级 Excel 功能 (~800KB)
           // Charts in separate chunk
           'charts': ['recharts'],
           // React ecosystem
