@@ -1,0 +1,479 @@
+name: Deploy Docker Container to Private Server
+
+on:
+  push:
+    branches: [ main, production ]
+  workflow_dispatch:
+    inputs:
+      deploy_type:
+        description: '部署类型'
+        required: true
+        default: 'rolling'
+        type: choice
+        options:
+        - rolling    # 滚动部署
+        - blue_green # 蓝绿部署
+      registry_type:
+        description: 'Docker 镜像仓库'
+        required: true
+        default: 'aliyun'
+        type: choice
+        options:
+        - aliyun     # 阿里云容器镜像
+        - dockerhub  # Docker Hub
+
+env:
+  NODE_VERSION: '20'
+  APP_NAME: 'salary-system-v3'
+  CONTAINER_PORT: '3000'
+  HOST_PORT: '80'
+
+jobs:
+  # 构建和测试
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+      
+    - name: Run tests
+      working-directory: ./frontend
+      run: |
+        npm run lint
+        npx tsc --noEmit
+        
+    - name: Build application for production
+      working-directory: ./frontend
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        NODE_ENV: production
+      run: |
+        echo "🏗️  开始构建生产版本..."
+        npm run build
+        
+        # 显示构建结果信息
+        echo "📦 构建完成，文件统计:"
+        ls -la dist/
+        du -sh dist/
+        find dist/ -name "*.js" -o -name "*.css" -o -name "*.html" | head -10
+          
+    - name: Archive build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: frontend/dist/
+        retention-days: 7
+
+  # 构建和推送 Docker 镜像
+  build-and-push-image:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    # ✅ 使用 github-pages Environment secrets
+    environment: 
+      name: github-pages
+      
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+        path: ./frontend/dist
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    # 动态选择镜像仓库
+    - name: Login to Docker Registry
+      run: |
+        REGISTRY_TYPE="${{ github.event.inputs.registry_type || 'aliyun' }}"
+        
+        if [ "$REGISTRY_TYPE" = "aliyun" ] && [ -n "${{ secrets.ALIYUN_REGISTRY_USERNAME }}" ]; then
+          echo "🔐 登录阿里云容器镜像服务..."
+          REGISTRY="${{ vars.ALIYUN_REGISTRY || 'registry.cn-beijing.aliyuncs.com' }}"
+          echo "REGISTRY=$REGISTRY" >> $GITHUB_ENV
+          echo "NAMESPACE=salary-system" >> $GITHUB_ENV
+          
+          echo "${{ secrets.ALIYUN_REGISTRY_PASSWORD }}" | docker login --username "${{ secrets.ALIYUN_REGISTRY_USERNAME }}" --password-stdin "$REGISTRY"
+        else
+          echo "🔐 登录 Docker Hub..."
+          REGISTRY="docker.io"
+          echo "REGISTRY=$REGISTRY" >> $GITHUB_ENV  
+          echo "NAMESPACE=${{ secrets.DOCKERHUB_USERNAME || 'salaryapp' }}" >> $GITHUB_ENV
+          
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        fi
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.APP_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+          
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+        build-args: |
+          NODE_VERSION=${{ env.NODE_VERSION }}
+          
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
+      with:
+        image: ${{ steps.meta.outputs.tags }}
+        format: spdx-json
+        output-file: /tmp/sbom.spdx.json
+        
+    - name: Upload SBOM
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom
+        path: /tmp/sbom.spdx.json
+
+  # 部署到私有服务器
+  deploy-to-server:
+    name: Deploy to Private Server
+    runs-on: ubuntu-latest
+    needs: build-and-push-image
+    if: true   # ✅ 已配置SSH凭据，启用容器部署
+    
+    # ✅ 使用 github-pages Environment secrets
+    environment: 
+      name: github-pages
+      
+    steps:
+    - name: Setup SSH Agent
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+    - name: Add server to known hosts
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+        
+    - name: Validate deployment configuration
+      run: |
+        echo "🔍 验证部署配置..."
+        
+        # 检查必要的 Secrets
+        if [ -z "${{ secrets.SSH_USER }}" ]; then
+          echo "❌ SSH_USER secret 未配置"
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.SSH_HOST }}" ]; then
+          echo "❌ SSH_HOST secret 未配置"  
+          exit 1
+        fi
+        
+        echo "✅ SSH 配置验证通过"
+        echo "用户: ${{ secrets.SSH_USER }}"
+        echo "主机: ${{ secrets.SSH_HOST }}"
+        echo "镜像: ${{ needs.build-and-push-image.outputs.image-tag }}"
+        
+    # 健康检查 - 部署前
+    - name: Pre-deployment health check
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "🔍 执行部署前健康检查..."
+          
+          # 检查 Docker 是否安装
+          if ! command -v docker &> /dev/null; then
+            echo "❌ Docker 未安装"
+            exit 1
+          fi
+          echo "✅ Docker 版本: $(docker --version)"
+          
+          # 检查 Docker 服务状态
+          if ! systemctl is-active --quiet docker; then
+            echo "❌ Docker 服务未运行"
+            exit 1
+          fi
+          echo "✅ Docker 服务运行正常"
+          
+          # 检查磁盘空间
+          disk_usage=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+          if [ "$disk_usage" -gt 85 ]; then
+            echo "❌ 磁盘空间不足：${disk_usage}%"
+            exit 1
+          fi
+          echo "💾 磁盘使用率：${disk_usage}%"
+          
+          # 检查内存
+          memory_free=$(free | awk '/^Mem:/ {printf "%.1f", (($2-$3)/$2)*100}')
+          echo "💾 可用内存：${memory_free}%"
+          
+          echo "✅ 服务器状态正常，可以开始部署"
+        EOF
+        
+    # 登录镜像仓库（服务器端）
+    - name: Login to Docker Registry on Server
+      run: |
+        REGISTRY_TYPE="${{ github.event.inputs.registry_type || 'aliyun' }}"
+        
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+          if [ "$REGISTRY_TYPE" = "aliyun" ]; then
+            echo "🔐 服务器登录阿里云容器镜像服务..."
+            echo "${{ secrets.ALIYUN_REGISTRY_PASSWORD }}" | docker login --username "${{ secrets.ALIYUN_REGISTRY_USERNAME }}" --password-stdin "${{ vars.ALIYUN_REGISTRY || 'registry.cn-beijing.aliyuncs.com' }}"
+          else
+            echo "🔐 服务器登录 Docker Hub..."
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          fi
+        EOF
+        
+    # 容器部署
+    - name: Deploy container
+      env:
+        DEPLOY_TYPE: ${{ github.event.inputs.deploy_type || 'rolling' }}
+        IMAGE_TAG: ${{ needs.build-and-push-image.outputs.image-tag }}
+        CONTAINER_NAME: ${{ env.APP_NAME }}
+        HOST_PORT: ${{ env.HOST_PORT }}
+        CONTAINER_PORT: ${{ env.CONTAINER_PORT }}
+      run: |
+        echo "🚀 开始容器部署..."
+        echo "部署类型: $DEPLOY_TYPE"
+        echo "镜像标签: $IMAGE_TAG"
+        echo "容器名称: $CONTAINER_NAME"
+        echo "端口映射: $HOST_PORT:$CONTAINER_PORT"
+        
+        if [ "$DEPLOY_TYPE" = "blue_green" ]; then
+          # 蓝绿部署
+          echo "💙💚 使用蓝绿部署策略"
+          
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+            set -e
+            
+            # 定义容器名称
+            BLUE_CONTAINER="${{ env.APP_NAME }}-blue"
+            GREEN_CONTAINER="${{ env.APP_NAME }}-green" 
+            CURRENT_CONTAINER="${{ env.APP_NAME }}"
+            
+            # 检查当前运行的容器
+            if docker ps -q -f name=\$CURRENT_CONTAINER | grep -q .; then
+              echo "发现当前运行的容器，标记为蓝色环境"
+              docker rename \$CURRENT_CONTAINER \$BLUE_CONTAINER 2>/dev/null || echo "容器已重命名"
+            fi
+            
+            # 启动绿色环境
+            echo "启动绿色环境: \$GREEN_CONTAINER"
+            docker run -d \
+              --name \$GREEN_CONTAINER \
+              --restart unless-stopped \
+              -p ${{ env.HOST_PORT }}:${{ env.CONTAINER_PORT }} \
+              --health-cmd="curl -f http://localhost:${{ env.CONTAINER_PORT }}/ || exit 1" \
+              --health-interval=30s \
+              --health-timeout=10s \
+              --health-retries=3 \
+              ${{ needs.build-and-push-image.outputs.image-tag }}
+              
+            # 等待绿色环境健康检查通过
+            echo "等待绿色环境启动..."
+            for i in {1..30}; do
+              if docker ps -q -f name=\$GREEN_CONTAINER -f health=healthy | grep -q .; then
+                echo "✅ 绿色环境健康检查通过"
+                break
+              fi
+              if [ \$i -eq 30 ]; then
+                echo "❌ 绿色环境健康检查超时"
+                exit 1
+              fi
+              sleep 2
+            done
+            
+            # 切换流量到绿色环境
+            echo "切换容器名称，启用绿色环境"
+            docker stop \$BLUE_CONTAINER 2>/dev/null || echo "蓝色环境已停止"
+            docker rename \$GREEN_CONTAINER \$CURRENT_CONTAINER
+            
+            # 清理蓝色环境
+            echo "清理蓝色环境"
+            docker rm \$BLUE_CONTAINER 2>/dev/null || echo "蓝色环境已清理"
+            
+            echo "✅ 蓝绿部署完成"
+          EOF
+          
+        else
+          # 滚动部署
+          echo "🔄 使用滚动部署策略"
+          
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+            set -e
+            
+            CONTAINER_NAME="${{ env.APP_NAME }}"
+            
+            # 停止并删除旧容器
+            if docker ps -q -f name=\$CONTAINER_NAME | grep -q .; then
+              echo "停止现有容器: \$CONTAINER_NAME"
+              docker stop \$CONTAINER_NAME
+              docker rm \$CONTAINER_NAME
+            fi
+            
+            # 清理未使用的镜像
+            docker image prune -f
+            
+            # 启动新容器
+            echo "启动新容器: \$CONTAINER_NAME"
+            docker run -d \
+              --name \$CONTAINER_NAME \
+              --restart unless-stopped \
+              -p ${{ env.HOST_PORT }}:${{ env.CONTAINER_PORT }} \
+              --health-cmd="curl -f http://localhost:${{ env.CONTAINER_PORT }}/ || exit 1" \
+              --health-interval=30s \
+              --health-timeout=10s \
+              --health-retries=3 \
+              -e NODE_ENV=production \
+              ${{ needs.build-and-push-image.outputs.image-tag }}
+              
+            echo "✅ 滚动部署完成"
+          EOF
+        fi
+        
+    # 部署后健康检查
+    - name: Post-deployment health check
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "🔍 执行部署后健康检查..."
+          
+          CONTAINER_NAME="${{ env.APP_NAME }}"
+          
+          # 检查容器是否运行
+          if ! docker ps -q -f name=$CONTAINER_NAME | grep -q .; then
+            echo "❌ 容器未运行"
+            exit 1
+          fi
+          echo "✅ 容器运行状态正常"
+          
+          # 检查容器健康状态
+          for i in {1..30}; do
+            HEALTH=$(docker inspect --format='{{.State.Health.Status}}' $CONTAINER_NAME 2>/dev/null || echo "none")
+            if [ "$HEALTH" = "healthy" ]; then
+              echo "✅ 容器健康检查通过"
+              break
+            elif [ "$HEALTH" = "unhealthy" ]; then
+              echo "❌ 容器健康检查失败"
+              docker logs $CONTAINER_NAME --tail 50
+              exit 1
+            fi
+            
+            if [ $i -eq 30 ]; then
+              echo "❌ 健康检查超时"
+              docker logs $CONTAINER_NAME --tail 50
+              exit 1
+            fi
+            
+            echo "等待容器健康检查... ($i/30)"
+            sleep 5
+          done
+          
+          # 显示容器信息
+          echo "📊 容器状态信息:"
+          docker ps -f name=$CONTAINER_NAME
+          echo ""
+          echo "📋 容器详细信息:"
+          docker inspect $CONTAINER_NAME | jq '.[] | {Name, State, Config: {Image, Env}, NetworkSettings: {Ports}}'
+        EOF
+        
+        # HTTP 健康检查
+        max_attempts=10
+        attempt=1
+        
+        while [ $attempt -le $max_attempts ]; do
+          echo "尝试第 $attempt 次 HTTP 检查..."
+          
+          if curl -f -s -I "http://${{ secrets.SSH_HOST }}:${{ env.HOST_PORT }}" | head -1 | grep -q "200\|301\|302"; then
+            echo "✅ HTTP 健康检查通过"
+            curl -I "http://${{ secrets.SSH_HOST }}:${{ env.HOST_PORT }}"
+            break
+          fi
+          
+          if [ $attempt -eq $max_attempts ]; then
+            echo "⚠️  HTTP 检查未通过，但容器正在运行"
+            echo "请手动检查应用：http://${{ secrets.SSH_HOST }}:${{ env.HOST_PORT }}"
+          fi
+          
+          sleep 10
+          attempt=$((attempt + 1))
+        done
+        
+        echo "🎉 部署健康检查完成！"
+        
+    # 清理旧容器镜像
+    - name: Cleanup old images
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "🧹 清理旧容器镜像..."
+          
+          # 清理未使用的镜像（保留最近3个）
+          docker image prune -a -f --filter "until=72h"
+          
+          # 显示当前镜像使用情况
+          echo "📊 Docker 镜像使用情况:"
+          docker images | grep salary-system || echo "没有找到相关镜像"
+          
+          echo "💾 Docker 磁盘使用情况:"
+          docker system df
+        EOF
+        
+    - name: Deployment notification
+      if: always()
+      run: |
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "🚀 Docker 容器部署成功！"
+          echo ""
+          echo "📋 部署信息："
+          echo "镜像: ${{ needs.build-and-push-image.outputs.image-tag }}"
+          echo "版本: ${{ github.sha }}"
+          echo "部署类型: ${{ github.event.inputs.deploy_type || 'rolling' }}"
+          echo "访问地址: http://${{ secrets.SSH_HOST }}:${{ env.HOST_PORT }}"
+          echo "部署时间: $(date)"
+          echo ""
+          echo "🔍 监控命令："
+          echo "docker logs ${{ env.APP_NAME }} -f"
+          echo "docker stats ${{ env.APP_NAME }}"
+        else
+          echo "❌ Docker 容器部署失败！"
+          echo ""
+          echo "🔧 故障排除建议："
+          echo "1. 检查 SSH 连接是否正常"
+          echo "2. 验证 Docker 服务状态"
+          echo "3. 确认镜像是否成功推送"
+          echo "4. 检查端口 ${{ env.HOST_PORT }} 是否被占用"
+          echo "5. 查看容器日志：docker logs ${{ env.APP_NAME }}"
+          echo "6. 检查服务器资源使用情况"
+        fi

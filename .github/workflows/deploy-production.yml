@@ -8,19 +8,19 @@ on:
       environment:
         description: '部署环境'
         required: true
-        default: 'production'
+        default: 'github-pages'
         type: choice
         options:
-        - production
+        - github-pages
         - staging
 
 jobs:
   deploy:
-    name: Deploy to ${{ github.event.inputs.environment || 'production' }}
+    name: Deploy to ${{ github.event.inputs.environment || 'github-pages' }}
     runs-on: ubuntu-latest
     
     environment: 
-      name: ${{ github.event.inputs.environment || 'production' }}
+      name: ${{ github.event.inputs.environment || 'github-pages' }}
       
     steps:
     - name: Checkout code
@@ -77,7 +77,7 @@ jobs:
       if: success()
       run: |
         echo "🚀 部署成功！"
-        echo "环境: ${{ github.event.inputs.environment || 'production' }}"
+        echo "环境: ${{ github.event.inputs.environment || 'github-pages' }}"
         echo "版本: ${{ github.ref }}"
         
     - name: Notify deployment failure

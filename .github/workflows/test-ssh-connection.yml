@@ -8,9 +8,9 @@ jobs:
     name: Test SSH Connection and Secrets
     runs-on: ubuntu-latest
     
-    # 暂时移除 environment 以测试 Repository secrets
-    # environment: 
-    #   name: production
+    # ✅ 使用 github-pages Environment secrets
+    environment: 
+      name: github-pages
       
     steps:
     - name: Test Environment Secrets
