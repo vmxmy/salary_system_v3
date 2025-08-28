@@ -56,17 +56,26 @@ check_system_requirements() {
     
     # 检查内存（推荐至少 2GB，最低 1GB）
     local memory_mb=$(free -m | awk '/^Mem:/ {print $2}')
-    local memory_gb=$((memory_mb / 1024))
+    local memory_gb_float
+    
+    # 尝试使用 bc 进行精确计算，否则使用 awk
+    if command -v bc &>/dev/null; then
+        memory_gb_float=$(echo "scale=1; $memory_mb / 1024" | bc)
+    else
+        memory_gb_float=$(echo "$memory_mb" | awk '{printf "%.1f", $1/1024}')
+    fi
+    
+    log_info "检测到内存: ${memory_mb}MB (${memory_gb_float}GB)"
     
     if [[ $memory_mb -lt 1024 ]]; then
-        log_error "内存严重不足：${memory_gb}GB < 1GB (最低要求)"
+        log_error "内存严重不足：${memory_gb_float}GB < 1GB (最低要求)"
         requirements_met=false
     elif [[ $memory_mb -lt 2048 ]]; then
-        log_warning "内存不足：${memory_gb}GB < 2GB (推荐)，但可以继续"
+        log_warning "内存不足：${memory_gb_float}GB < 2GB (推荐)，但可以继续"
         log_info "建议为轻量级部署优化内存使用"
         ((warnings++))
     else
-        log_success "内存充足：${memory_gb}GB"
+        log_success "内存充足：${memory_gb_float}GB"
     fi
     
     # 检查磁盘空间（至少 10GB 可用）
@@ -122,14 +131,15 @@ check_system_requirements() {
     
     # 显示总结
     if [[ "$requirements_met" != "true" ]]; then
-        log_error "系统要求检查失败"
+        log_error "系统要求检查失败，无法继续"
         return 1
     elif [[ $warnings -gt 0 ]]; then
         log_warning "系统要求检查通过，但有 $warnings 个警告"
         log_info "建议使用轻量级配置继续"
+        log_success "✅ 可以继续进行安装"
         return 0
     else
-        log_success "系统要求检查通过"
+        log_success "系统要求检查完全通过"
         return 0
     fi
 }
@@ -756,6 +766,13 @@ main() {
     log_info "开始私有服务器环境准备"
     log_info "准备时间: $(date)"
     
+    if [[ "$low_memory_mode" == "true" ]]; then
+        log_info "🔧 低内存模式已启用"
+        log_info "   - 将跳过 Nginx 安装"
+        log_info "   - 将跳过监控工具安装"
+        log_info "   - 使用优化的系统配置"
+    fi
+    
     # 确认操作
     if [[ "$auto_yes" != "true" ]]; then
         read -p "是否继续进行服务器环境准备？ (y/N): " -n 1 -r
@@ -768,7 +785,14 @@ main() {
     
     # 执行准备步骤
     check_system_info
-    check_system_requirements
+    
+    log_info "开始系统要求检查..."
+    if check_system_requirements; then
+        log_success "系统要求检查阶段完成"
+    else
+        log_error "系统要求检查失败，终止安装"
+        exit 1
+    fi
     update_system_packages
     install_basic_tools
     
