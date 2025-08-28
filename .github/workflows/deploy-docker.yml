@@ -41,6 +41,7 @@ jobs:
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_BASE_PATH: '/'
         NODE_ENV: production
       run: |
         echo "🏗️  开始构建生产版本..."

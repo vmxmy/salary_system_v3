@@ -8,11 +8,7 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   // 根据部署平台设置 base path
-  base: process.env.VERCEL_ENV || process.env.VITE_BASE_PATH
-    ? '/' // Vercel 使用根路径
-    : process.env.NODE_ENV === 'production' 
-      ? '/salary_system_v3/' // GitHub Pages 仓库名
-      : '/', // 开发环境
+  base: process.env.VITE_BASE_PATH || '/', // 默认根路径，适用于 Docker 容器和大多数部署方式
   plugins: [
     tailwindcss(), 
     react(),
