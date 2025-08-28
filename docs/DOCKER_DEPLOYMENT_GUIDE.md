@@ -71,16 +71,16 @@ SSH_KNOWN_HOSTS    = SSH 服务器指纹
 
 #### 镜像仓库配置 (二选一)
 
-**阿里云容器镜像服务 (推荐):**
-```
-ALIYUN_REGISTRY_USERNAME = 阿里云用户名
-ALIYUN_REGISTRY_PASSWORD = 阿里云密码/访问令牌
-```
-
-**Docker Hub:**
+**Docker Hub (默认推荐):**
 ```
 DOCKERHUB_USERNAME = Docker Hub 用户名
 DOCKERHUB_TOKEN   = Docker Hub 访问令牌
+```
+
+**阿里云容器镜像服务 (可选):**
+```
+ALIYUN_REGISTRY_USERNAME = 阿里云用户名
+ALIYUN_REGISTRY_PASSWORD = 阿里云密码/访问令牌
 ```
 
 #### 应用配置
@@ -134,7 +134,7 @@ ENABLE_DOCKER_DEPLOY = true                        # 启用 Docker 部署
 3. 点击 "Run workflow"
 4. 选择部署参数：
    - **部署类型**: rolling (滚动) / blue_green (蓝绿)
-   - **镜像仓库**: aliyun (阿里云) / dockerhub (Docker Hub)
+   - **镜像仓库**: dockerhub (Docker Hub) / aliyun (阿里云)
 
 ### 监控和管理
 
