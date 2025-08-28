@@ -61,18 +61,18 @@ export async function generateReportExcel(
       workbook = new (ExcelJS.default as any)();
     }
     
-    // 如果仍然失败，尝试从调试工具获取
-    if (!workbook) {
-      try {
-        const debugModule = await import('@/utils/debug-exceljs');
-        const result = await debugModule.getExcelJSWorkbook();
-        if (result) {
-          workbook = result.workbook;
-        }
-      } catch (error) {
-        // 忽略调试工具加载错误
-      }
-    }
+    // 调试工具已归档 - archived/test-pages-20250828/debug-exceljs.ts
+    // if (!workbook) {
+    //   try {
+    //     const debugModule = await import('@/utils/debug-exceljs');
+    //     const result = await debugModule.getExcelJSWorkbook();
+    //     if (result) {
+    //       workbook = result.workbook;
+    //     }
+    //   } catch (error) {
+    //     // 忽略调试工具加载错误
+    //   }
+    // }
     
     // 如果所有方法都失败，抛出错误
     if (!workbook) {

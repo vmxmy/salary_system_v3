@@ -250,89 +250,53 @@ const menuItems: MenuItem[] = [
       },
     ],
   },
-  {
-    key: 'testFeatures',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-    permissions: [],
-    children: [
-      {
-        key: 'insuranceCalculation',
-        path: '/test/insurance-calculation',
-        icon: (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-        ),
-        permissions: [],
-      },
-      {
-        key: 'payrollCalculation',
-        path: '/test/payroll-calculation',
-        icon: (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m2 3v1a1 1 0 001 1h2a1 1 0 001-1v-1m-4 5h.01M15 14h.01M12 14h.01M9 14h.01M12 11h.01M15 11h.01M12 17h.01M9 17h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-        ),
-        permissions: [],
-      },
-      {
-        key: 'fontTest',
-        path: '/font-test',
-        icon: (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        ),
-        permissions: [],
-      },
-      {
-        key: 'permissionHooksTest',
-        path: '/test/permission-hooks',
-        icon: (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-          </svg>
-        ),
-        permissions: [],
-      },
-      {
-        key: 'payrollImportTest',
-        path: '/test/payroll-import',
-        icon: (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-        ),
-        permissions: [],
-      },
-      {
-        key: 'payrollImportV2',
-        path: '/test/payroll-import-v2',
-        icon: (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            <circle cx="18" cy="6" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
-            <text x="18" y="8" textAnchor="middle" fontSize="8" fill="currentColor">V2</text>
-          </svg>
-        ),
-        permissions: [],
-      },
-      {
-        key: 'reportManagementTest',
-        path: '/test/report-management',
-        icon: (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        ),
-        permissions: [],
-      },
-    ],
-  },
+  // Test menu archived to reduce production build size - moved to archived/test-pages-20250828
+  // {
+  //   key: 'testFeatures',
+  //   icon: (
+  //     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+  //     </svg>
+  //   ),
+  //   permissions: [],
+  //   children: [
+  //     {
+  //       key: 'insuranceCalculation',
+  //       path: '/test/insurance-calculation',
+  //       ...
+  //     },
+  //     {
+  //       key: 'payrollCalculation', 
+  //       path: '/test/payroll-calculation',
+  //       ...
+  //     },
+  //     {
+  //       key: 'fontTest',
+  //       path: '/font-test',
+  //       ...
+  //     },
+  //     {
+  //       key: 'permissionHooksTest',
+  //       path: '/test/permission-hooks',
+  //       ...
+  //     },
+  //     {
+  //       key: 'payrollImportTest',
+  //       path: '/test/payroll-import',
+  //       ...
+  //     },
+  //     {
+  //       key: 'payrollImportV2',
+  //       path: '/test/payroll-import-v2',
+  //       ...
+  //     },
+  //     {
+  //       key: 'reportManagementTest',
+  //       path: '/test/report-management',
+  //       ...
+  //     },
+  //   ],
+  // },
 ];
 
 interface SidebarProps {

@@ -23,6 +23,9 @@ export interface BatchValidationResults {
   submit: ValidationResult;
   cancel: ValidationResult;
   
+  // 删除相关
+  delete: ValidationResult;
+  
   // 通用
   hasSelection: boolean;
   selectedCount: number;
@@ -38,6 +41,7 @@ export interface SingleValidationResults {
   canRollback: boolean;
   canCancel: boolean;
   canSubmit: boolean;
+  canDelete: boolean;
   nextAction: string;
 }
 
@@ -93,6 +97,7 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
         rollback: noSelectionResult,
         submit: noSelectionResult,
         cancel: noSelectionResult,
+        delete: noSelectionResult,
         hasSelection: false,
         selectedCount: 0,
         selectedStatuses: [],
@@ -124,6 +129,14 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
           : ''
       },
       
+      // 删除相关验证 - 只有草稿状态的记录可以删除
+      delete: { 
+        canOperate: statuses.every(status => status === 'draft'),
+        reason: statuses.some(status => status !== 'draft') 
+          ? '选中记录中包含非草稿状态的记录，只能删除草稿状态的薪资记录' 
+          : ''
+      },
+      
       // 基础信息
       hasSelection: true,
       selectedCount: count,
@@ -144,6 +157,7 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
         canRollback: approvalUtils.canRollback(status),
         canCancel: approvalUtils.canCancel(status),
         canSubmit: status === 'calculated', // 只有已计算状态可以提交审批
+        canDelete: status === 'draft', // 只有草稿状态可以删除
         nextAction: approvalUtils.getNextAction(status),
       };
     };
@@ -162,6 +176,9 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
     rollback: () => batchValidation.rollback.canOperate,
     submit: () => batchValidation.submit.canOperate,
     cancel: () => batchValidation.cancel.canOperate,
+    
+    // 删除操作
+    delete: () => batchValidation.delete.canOperate,
   }), [batchValidation]);
 
   // 获取操作失败原因
@@ -174,6 +191,7 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
     rollback: () => batchValidation.rollback.reason,
     submit: () => batchValidation.submit.reason,
     cancel: () => batchValidation.cancel.reason,
+    delete: () => batchValidation.delete.reason,
   }), [batchValidation]);
 
   // 状态统计
@@ -242,6 +260,9 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
         }
         if (operation === 'cancel') {
           return selectedRecordsInfo.statuses.filter(s => s !== 'paid' && s !== 'cancelled').length;
+        }
+        if (operation === 'delete') {
+          return selectedRecordsInfo.statuses.filter(s => s === 'draft').length;
         }
         return 0;
       },

@@ -11,16 +11,16 @@ import './index.css'
 // 设置全局错误处理，过滤浏览器扩展错误
 setupGlobalErrorHandler();
 
-// 开发环境下加载调试工具
-if (import.meta.env.DEV) {
-  import('./utils/realtime-debug').then(({ debugRealtimeCache }) => {
-    (window as any).debugRealtimeCache = debugRealtimeCache;
-    (window as any).queryClient = queryClient;
-    console.log('🔧 开发调试工具已加载:');
-    console.log('- debugRealtimeCache(): 测试Realtime缓存失效');
-    console.log('- queryClient: TanStack Query客户端实例');
-  });
-}
+// 调试工具已归档到 archived/test-pages-20250828/
+// if (import.meta.env.DEV) {
+//   import('./utils/realtime-debug').then(({ debugRealtimeCache }) => {
+//     (window as any).debugRealtimeCache = debugRealtimeCache;
+//     (window as any).queryClient = queryClient;
+//     console.log('🔧 开发调试工具已加载:');
+//     console.log('- debugRealtimeCache(): 测试Realtime缓存失效');
+//     console.log('- queryClient: TanStack Query客户端实例');
+//   });
+// }
 
 // Clean startup with unified auth module
 ReactDOM.createRoot(document.getElementById('root')!).render(
