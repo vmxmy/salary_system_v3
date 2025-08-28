@@ -24,7 +24,7 @@ const PayrollDetailPage = lazy(() => import('@/pages/payroll/PayrollDetailPage')
 // Removed CreateBatchPayrollPage and PayrollCycleWizardPage - moved to archive
 const PayrollApprovalPage = lazy(() => import('@/pages/payroll/PayrollApprovalPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
-const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
+const NetworkSettingsPage = lazy(() => import('@/pages/settings/NetworkSettingsPage'));
 const StatisticsPage = lazy(() => import('@/pages/statistics/StatisticsPage'));
 const ThemeShowcasePage = lazy(() => import('@/pages/ThemeShowcasePage'));
 const DesignTokensPage = lazy(() => import('@/pages/DesignTokensPage'));
@@ -274,7 +274,7 @@ export const router = createBrowserRouter([
         path: 'settings',
         element: (
           <Suspense fallback={<LoadingScreen />}>
-            <SettingsPage />
+            <NetworkSettingsPage />
           </Suspense>
         ),
       },

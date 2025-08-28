@@ -4,6 +4,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ThemeSelector } from '@/components/common/ThemeSelector';
 import { LogoutConfirmModal } from '@/components/common/LogoutConfirmModal';
+import { ProxyStatusIndicator } from '@/components/common/ProxyStatusIndicator';
 import { Link } from 'react-router-dom';
 import { useModal } from '@/components/common/Modal';
 
@@ -80,6 +81,7 @@ export function Header() {
       
       <div className="navbar-end gap-1">
         <div className="flex items-center gap-1">
+          <ProxyStatusIndicator />
           <LanguageSwitcher />
           <ThemeSelector showLabels={false} />
         </div>

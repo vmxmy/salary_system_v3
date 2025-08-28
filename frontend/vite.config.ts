@@ -10,22 +10,33 @@ export default defineConfig({
   plugins: [
     tailwindcss(), 
     react(),
-    // Gzip compression for smaller files
-    compression({
-      algorithm: 'gzip',
-      ext: '.gz',
-      threshold: 1024, // Only compress files larger than 1KB
-      deleteOriginFile: false,
-      verbose: process.env.NODE_ENV === 'development'
-    }),
-    // Brotli compression for even better compression
-    compression({
-      algorithm: 'brotliCompress',
-      ext: '.br',
-      threshold: 1024,
-      deleteOriginFile: false,
-      verbose: process.env.NODE_ENV === 'development'
-    }),
+    // Conditional compression based on memory constraints
+    ...(process.env.VITE_MINIMAL_BUILD ? [
+      // Only Gzip for minimal builds to reduce memory usage
+      compression({
+        algorithm: 'gzip',
+        ext: '.gz',
+        threshold: 2048, // Higher threshold for minimal builds
+        deleteOriginFile: false,
+        verbose: false // Disable verbose to reduce memory
+      })
+    ] : [
+      // Full compression for normal builds
+      compression({
+        algorithm: 'gzip',
+        ext: '.gz',
+        threshold: 1024,
+        deleteOriginFile: false,
+        verbose: process.env.NODE_ENV === 'development'
+      }),
+      compression({
+        algorithm: 'brotliCompress',
+        ext: '.br',
+        threshold: 1024,
+        deleteOriginFile: false,
+        verbose: process.env.NODE_ENV === 'development'
+      })
+    ]),
     // Bundle analyzer for development
     ...(process.env.ANALYZE ? [
       visualizer({
@@ -53,11 +64,28 @@ export default defineConfig({
     // Enable source maps for better debugging (disabled in production for size)
     sourcemap: process.env.NODE_ENV === 'development',
     // Increase chunk size warning limit
-    chunkSizeWarningLimit: 600,
-    // CSS code splitting
-    cssCodeSplit: true,
+    chunkSizeWarningLimit: process.env.VITE_MINIMAL_BUILD ? 400 : 600,
+    // CSS code splitting (disable for minimal builds to reduce memory usage)
+    cssCodeSplit: !process.env.VITE_MINIMAL_BUILD,
     // Minification settings
-    minify: 'terser',
+    minify: process.env.VITE_MINIMAL_BUILD ? 'esbuild' : 'terser', // esbuild is faster and uses less memory
+    // Reduce memory usage in low-memory environments
+    ...(process.env.VITE_MINIMAL_BUILD && {
+      // Limit parallel builds to reduce memory pressure
+      rollupOptions: {
+        // Reduce memory usage with smaller chunks
+        output: {
+          maxParallelFileOps: 2, // Limit parallel file operations
+          // Smaller manual chunks for minimal builds
+          manualChunks: {
+            'vendor-core': ['react', 'react-dom'],
+            'vendor-router': ['react-router-dom'],
+            'vendor-data': ['@tanstack/react-query', '@supabase/supabase-js'],
+            'vendor-ui': ['framer-motion'],
+          }
+        }
+      }
+    }),
     rollupOptions: {
       // External dependencies that should be loaded from CDN in production
       ...(process.env.VITE_USE_CDN === 'true' && {

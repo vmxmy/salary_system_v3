@@ -243,8 +243,9 @@ export const useReportGenerator = () => {
       } else {
         // 对于其他格式，暂时生成CSV
         const csvContent = generateCSVContent(filteredData, Array.isArray(template.field_mappings) ? template.field_mappings : []);
-        const encoder = new TextEncoder();
-        fileBuffer = encoder.encode(csvContent);
+        // 为CSV添加UTF-8 BOM头以支持中文
+        const csvWithBOM = addUTF8BOM(csvContent);
+        fileBuffer = csvWithBOM;
         fileSize = fileBuffer.byteLength;
         fileName = `报表_${template.template_name}_${Date.now()}.${config.format}`;
       }
@@ -378,13 +379,28 @@ export const useReportGenerator = () => {
   }, [queryClient]);
 
   // 下载报表文件
-  const downloadReport = useCallback(async (filePath: string, fileName: string) => {
+  const downloadReport = useCallback(async (filePathOrUrl: string, fileName: string) => {
     try {
+      // 处理不同的路径格式
+      let actualFilePath: string;
+      
+      if (filePathOrUrl.startsWith('/api/reports/download/')) {
+        // 从API下载URL中提取文件名，转换为文件路径
+        const urlFileName = filePathOrUrl.split('/').pop();
+        actualFilePath = `/reports/${urlFileName}`;
+      } else if (filePathOrUrl.startsWith('/reports/')) {
+        // 直接使用文件路径
+        actualFilePath = filePathOrUrl;
+      } else {
+        // 其他格式，尝试作为文件路径使用
+        actualFilePath = filePathOrUrl;
+      }
+      
       // 检查是否为生成的报表文件
-      if (filePath.startsWith('/reports/')) {
+      if (actualFilePath.startsWith('/reports/')) {
         // 从内存缓存中获取文件
         if (typeof window !== 'undefined' && (window as any).__reportFileCache) {
-          const fileBuffer = (window as any).__reportFileCache.get(filePath);
+          const fileBuffer = (window as any).__reportFileCache.get(actualFilePath);
           if (fileBuffer) {
             // 使用真实的文件缓冲区创建下载
             const blob = new Blob([fileBuffer], { 
@@ -401,7 +417,7 @@ export const useReportGenerator = () => {
             window.URL.revokeObjectURL(url);
             
             // 更新下载统计
-            await updateDownloadStats(filePath);
+            await updateDownloadStats(actualFilePath);
             
             return true;
           }
@@ -410,7 +426,11 @@ export const useReportGenerator = () => {
         // 如果缓存中没有找到文件，生成备用内容
         console.warn('文件缓存中未找到，生成备用内容');
         const backupContent = generateBackupReportContent(fileName);
-        const blob = new Blob([backupContent], { 
+        // 如果是CSV文件，添加UTF-8 BOM
+        const finalContent = fileName.toLowerCase().endsWith('.csv') ? 
+          addUTF8BOM(backupContent) : 
+          new TextEncoder().encode(backupContent);
+        const blob = new Blob([finalContent], { 
           type: getMimeType(fileName) 
         });
         
@@ -424,7 +444,7 @@ export const useReportGenerator = () => {
         window.URL.revokeObjectURL(url);
         
         // 更新下载统计
-        await updateDownloadStats(filePath);
+        await updateDownloadStats(actualFilePath);
         
         return true;
       } else {
@@ -505,6 +525,21 @@ function generateCSVContent(data: any[], fieldMappings: any[]): string {
   });
   
   return [headers, ...rows].join('\n');
+}
+
+// 工具函数：为CSV内容添加UTF-8 BOM头
+function addUTF8BOM(csvContent: string): ArrayBuffer {
+  // UTF-8 BOM (Byte Order Mark): 0xEF, 0xBB, 0xBF
+  const BOM = new Uint8Array([0xEF, 0xBB, 0xBF]);
+  const encoder = new TextEncoder();
+  const csvBytes = encoder.encode(csvContent);
+  
+  // 创建包含BOM的新数组
+  const result = new Uint8Array(BOM.length + csvBytes.length);
+  result.set(BOM, 0);
+  result.set(csvBytes, BOM.length);
+  
+  return result.buffer;
 }
 
 // 工具函数：生成备用报表内容（当缓存丢失时使用）

@@ -207,6 +207,16 @@ const menuItems: MenuItem[] = [
         ),
         permissions: ['permission_request:manage'],
       },
+      {
+        key: 'settings',
+        path: '/settings',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+          </svg>
+        ),
+        permissions: [],
+      },
     ],
   },
   {
@@ -369,6 +379,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       'payrollImportTest': '薪资导入测试',
       'payrollImportV2': '薪资导入V2 🚀',
       'reportManagementTest': '报表管理Hook测试',
+      'settings': '网络设置',
     };
     return translations[key] || String(t(`common:nav.${key}`));
   };

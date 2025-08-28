@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import { getOptimizedConfig } from './performanceConfig';
+import { networkAwareTimeout, createTimeoutSignal } from '../utils/network-aware-timeout';
+import { executeWithRetry } from '../utils/network-retry';
+import { createProxyFetch } from './proxyFetch';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -28,47 +31,75 @@ export const supabase = createClient<Database>(
         'x-application-name': 'salary-system-v3',
         'apikey': supabaseAnonKey,
       },
-      // 改进连接处理 - 使用优化后的超时配置
-      fetch: (url, options = {}) => {
-        const config = getOptimizedConfig();
+      // 网络感知的连接处理 - 根据网络质量动态调整超时，支持智能重试和代理配置
+      fetch: async (url, options = {}) => {
         const urlString = typeof url === 'string' ? url : url.toString();
+        const networkInfo = networkAwareTimeout.getNetworkInfo();
         
-        // 根据请求类型使用不同的超时时间
-        let timeoutMs: number;
+        // 确定操作类型，用于选择合适的超时和重试策略
+        let operationType: 'api' | 'database' | 'upload' | 'download' = 'api';
         if (urlString.includes('/rest/v1/rpc/') || 
             urlString.includes('import') || 
             urlString.includes('batch')) {
-          timeoutMs = config.loading.complexTimeout * 3; // 复杂操作：9秒
-        } else {
-          timeoutMs = config.loading.quickTimeout * 2; // 普通查询：2秒
+          operationType = 'database';
+        } else if (urlString.includes('/storage/v1/object/')) {
+          operationType = options.method === 'POST' || options.method === 'PUT' 
+            ? 'upload' : 'download';
         }
         
-        const controller = new AbortController();
-        const timeout = setTimeout(() => {
-          controller.abort();
-        }, timeoutMs);
+        // 对于慢网络环境，给出提示
+        if (networkInfo.quality === 'poor' || networkInfo.quality === 'fair') {
+          console.log(`[Supabase] Slow network detected (${networkInfo.quality}), using enhanced timeout and retry logic`);
+        }
         
-        return fetch(url, {
-          ...options,
-          signal: controller.signal,
-        }).then(response => {
-          clearTimeout(timeout);
-          return response;
-        }).catch(error => {
-          clearTimeout(timeout);
-          console.error('[Supabase] Network error:', error);
+        // 创建代理感知的 fetch 实例
+        const proxyFetch = createProxyFetch();
+        
+        // 使用重试机制执行请求
+        const result = await executeWithRetry(
+          async (signal, attempt) => {
+            const timeoutMs = networkInfo.timeouts[operationType];
+            console.log(`[Supabase] Request attempt ${attempt} to ${urlString} (timeout: ${timeoutMs}ms)`);
+            
+            return proxyFetch(url, {
+              ...options,
+              signal,
+            });
+          },
+          operationType,
+          // 对于某些关键操作，增加重试次数
+          urlString.includes('/auth/') ? { maxRetries: 2 } : undefined
+        );
+
+        if (result.success && result.data) {
+          if (result.attempts > 1) {
+            console.log(`[Supabase] Request succeeded after ${result.attempts} attempts (${result.totalTime.toFixed(0)}ms total)`);
+          }
+          return result.data;
+        } else {
+          // 增强错误信息，包含重试信息
+          const baseError = result.error?.message || 'Unknown error';
+          const quality = networkInfo.quality;
           
-          if (error.name === 'AbortError' || error.message.includes('timed out')) {
-            throw new Error(`连接超时（${timeoutMs/1000}秒），请检查网络连接或项目状态`);
+          let enhancedMessage = `请求失败（${result.attempts}次尝试，${result.totalTime.toFixed(0)}ms）: ${baseError}`;
+          
+          if (baseError.includes('timeout') || baseError.includes('AbortError')) {
+            const suggestion = quality === 'poor' || quality === 'fair' 
+              ? '网络较慢，建议稍后重试或检查网络连接' 
+              : '请检查网络连接或Supabase项目状态';
+            enhancedMessage = `连接超时 - ${suggestion}`;
+          } else if (baseError.includes('ERR_CONNECTION_CLOSED') || baseError.includes('ERR_NETWORK')) {
+            enhancedMessage = '网络连接失败，可能是Supabase项目已暂停或网络不稳定';
+          } else if (baseError.includes('Failed to fetch')) {
+            enhancedMessage = quality === 'offline' 
+              ? '网络连接已断开，请检查网络设置'
+              : 'Supabase服务连接失败，请检查网络连接';
           }
-          if (error.message.includes('ERR_CONNECTION_CLOSED') || error.message.includes('ERR_NETWORK')) {
-            throw new Error('网络连接失败，可能项目已暂停或网络不稳定');
-          }
-          if (error.message.includes('Failed to fetch')) {
-            throw new Error('无法连接到Supabase服务，请检查网络连接');
-          }
+          
+          const error = new Error(enhancedMessage);
+          console.error('[Supabase] Enhanced network error:', error);
           throw error;
-        });
+        }
       },
     },
     db: {
