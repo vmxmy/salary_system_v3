@@ -22,6 +22,22 @@ export default defineConfig({
         },
       }),
     }),
+    // 低内存模式下的内存监控插件
+    ...(isLowMemoryBuild ? [{
+      name: 'memory-monitor',
+      buildStart() {
+        if (process.env.NODE_ENV === 'production') {
+          console.log('🔧 Low memory build mode activated');
+          console.log(`📊 Node.js memory limit: ${process.env.NODE_OPTIONS}`);
+        }
+      },
+      generateBundle() {
+        if (global.gc) {
+          global.gc();
+          console.log('🧹 Forced garbage collection');
+        }
+      }
+    }] : []),
     // Conditional compression based on memory constraints
     ...((isMinimalBuild || isLowMemoryBuild) ? [
       // Only Gzip for minimal builds to reduce memory usage
@@ -75,8 +91,8 @@ export default defineConfig({
   build: {
     // Enable source maps for better debugging (disabled in production for size)
     sourcemap: process.env.NODE_ENV === 'development' && !isLowMemoryBuild,
-    // Increase chunk size warning limit - 低内存模式使用更小的chunk
-    chunkSizeWarningLimit: isLowMemoryBuild ? 300 : (isMinimalBuild ? 400 : 600),
+    // Increase chunk size warning limit - 低内存模式接受稍大的chunk以保持稳定性
+    chunkSizeWarningLimit: isLowMemoryBuild ? 500 : (isMinimalBuild ? 400 : 600),
     // CSS code splitting (disable for minimal/low-memory builds to reduce memory usage)
     cssCodeSplit: !(isMinimalBuild || isLowMemoryBuild),
     // Minification settings - 低内存模式优先使用 esbuild
@@ -116,51 +132,71 @@ export default defineConfig({
           tryCatchDeoptimization: false,
         },
         preserveEntrySignatures: 'strict',
+        // 优化内存使用
+        experimentalCacheExpiry: 10,
       }),
       output: {
-        // Better chunk naming for caching
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
+        // Better chunk naming for caching - 确保正确的文件扩展名
+        entryFileNames: (chunkInfo) => {
+          return `assets/${chunkInfo.name}-[hash].js`;
+        },
+        chunkFileNames: (chunkInfo) => {
+          return `assets/${chunkInfo.name}-[hash].js`;
+        },
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // 限制并行文件操作数量 (需求 1.4)
-        maxParallelFileOps: isLowMemoryBuild ? 1 : (isMinimalBuild ? 2 : 5),
-        // 手动代码分割策略 (需求 1.5)
+        // 注意: maxParallelFileOps 在新版本 Rollup 中已移除，使用其他方式限制并发
+        // 手动代码分割策略 (需求 1.5) - 平衡的分割策略，保持模块完整性
         manualChunks: isLowMemoryBuild ? 
-          // 低内存模式：更激进的分割，更小的chunk
+          // 低内存模式：保守但有效的分割，确保模块完整性
           (id) => {
             if (id.includes('node_modules')) {
-              // React 核心 - 最小化
+              // React 生态系统 - 保持核心模块完整
               if (id.includes('react-dom')) return 'react-dom';
               if (id.includes('react/') || id.includes('react\\')) return 'react';
               if (id.includes('react-router')) return 'react-router';
+              if (id.includes('@tanstack/react-query')) return 'react-query';
               
-              // 大型库单独分离
-              if (id.includes('xlsx')) return 'excel-xlsx';
+              // 大型库单独分离但保持完整性
               if (id.includes('exceljs')) return 'excel-advanced';
+              if (id.includes('xlsx')) return 'excel-xlsx';
               if (id.includes('recharts')) return 'charts';
               if (id.includes('framer-motion')) return 'framer';
               
               // Supabase 相关
               if (id.includes('@supabase') || id.includes('supabase')) return 'supabase';
-              if (id.includes('@tanstack/react-query')) return 'react-query';
               
-              // UI 库分离
+              // UI 库
               if (id.includes('@heroicons') || id.includes('lucide-react')) return 'icons';
               
               // i18n 相关
               if (id.includes('i18next') || id.includes('react-i18next')) return 'i18n';
               
               // 工具库
-              if (id.includes('date-fns') || id.includes('clsx') || id.includes('zod')) return 'utils';
+              if (id.includes('date-fns') || id.includes('clsx') || id.includes('tailwind-merge') || id.includes('zod')) return 'utils';
               
               // 其他第三方库
               return 'vendor';
             }
             
-            // 应用代码按功能分离
-            if (id.includes('/pages/')) return 'pages';
-            if (id.includes('/components/')) return 'components';
+            // 应用代码按功能模块分离
+            if (id.includes('/pages/')) {
+              if (id.includes('/pages/admin/')) return 'pages-admin';
+              if (id.includes('/pages/payroll/')) return 'pages-payroll';
+              if (id.includes('/pages/reports/')) return 'pages-reports';
+              return 'pages';
+            }
+            
+            if (id.includes('/components/')) {
+              if (id.includes('/components/payroll/')) return 'components-payroll';
+              if (id.includes('/components/admin/')) return 'components-admin';
+              if (id.includes('/components/ui/')) return 'components-ui';
+              return 'components';
+            }
+            
             if (id.includes('/hooks/')) return 'hooks';
+            if (id.includes('/services/')) return 'services';
+            if (id.includes('/utils/')) return 'app-utils';
+            
             return 'app';
           } :
           // 标准模式：平衡的分割策略

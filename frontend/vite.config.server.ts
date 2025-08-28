@@ -41,8 +41,7 @@ export default defineConfig({
     rollupOptions: {
       // 合理控制并行操作
       output: {
-        // 严格限制并行操作以节省内存 (需求 1.4)
-        maxParallelFileOps: 1, // 1.2G 内存环境下最保守的设置
+        // 注意: maxParallelFileOps 在新版本 Rollup 中已移除
         
         // 优化的代码分割策略
         manualChunks: (id) => {

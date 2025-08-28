@@ -183,6 +183,21 @@ export const importPayrollItems = async (
     
     console.log('✅ 匹配到的薪资组件列:', matchedColumns);
     console.log('⚠️ 未匹配的数据列:', unmatchedColumns);
+    
+    // 🔍 调试日志：分析所有行中个税字段的值分布
+    const personalTaxValues = data.map(row => ({
+      employee: row['员工姓名'] || row['employee_name'],
+      value: row['个人所得税'],
+      valueType: typeof row['个人所得税']
+    })).filter(item => item.value !== undefined);
+    
+    console.log('🔍 [DEBUG] 个人所得税字段值分布:', personalTaxValues);
+    
+    // 统计0值的情况
+    const zeroValues = personalTaxValues.filter(item => 
+      item.value === 0 || item.value === '0' || item.value === ''
+    );
+    console.log('🔍 [DEBUG] 个税为0或空的记录:', zeroValues);
   }
   
   // 批量查询优化：预先获取所有需要的员工数据
@@ -346,20 +361,118 @@ export const importPayrollItems = async (
       }
       
       // 处理薪资项目
+      let processedItemsInRow = 0;
+      let skippedItemsInRow = 0;
+      
       for (const [columnName, value] of Object.entries(row)) {
         const component = componentMap.get(columnName);
-        if (component && value !== null && value !== undefined && value !== '') {
+        // 修复过滤逻辑：允许数字0通过，但过滤掉真正的空值
+        const shouldProcessValue = component && value !== null && value !== undefined && 
+          (value !== '' || value === 0 || value === '0');
+        
+        // 🔍 调试日志：详细记录每个字段的处理情况
+        if (component) {
+          const valueDetails = {
+            columnName,
+            value,
+            valueType: typeof value,
+            hasComponent: !!component,
+            shouldProcess: shouldProcessValue,
+            checks: {
+              isNull: value === null,
+              isUndefined: value === undefined,
+              isEmpty: value === '',
+              isZero: value === 0,
+              isZeroString: value === '0'
+            }
+          };
+          
+          // 重点关注个人所得税字段
+          if (columnName === '个人所得税' || employeeName === '张磊') {
+            console.log(`🔍 [DEBUG] 字段处理详情 - ${employeeName}.${columnName}:`, valueDetails);
+          }
+          
+          if (!shouldProcessValue) {
+            skippedItemsInRow++;
+            if (columnName === '个人所得税' && value === 0) {
+              console.log(`⚠️ [DEBUG] 个税0值被跳过:`, valueDetails);
+            }
+          }
+        }
+        
+        if (shouldProcessValue) {
           const amount = parseFloat(value as string);
+          
+          // 🔍 调试日志：特别关注张磊的个税记录
+          if (employeeName === '张磊' && columnName === '个人所得税') {
+            console.log(`🔍 [DEBUG] 处理张磊个税记录:`, {
+              employeeName,
+              columnName,
+              originalValue: value,
+              parsedAmount: amount,
+              isValidNumber: !isNaN(amount),
+              componentId: component.id,
+              componentName: component.name,
+              payrollId,
+              rowIndex: rowIndex + 1
+            });
+          }
+          
           if (!isNaN(amount)) {  // 移除 amount !== 0 条件，允许导入金额为0的记录
-            allPayrollItems.push({
+            const payrollItemData = {
               payroll_id: payrollId, // 临时ID，批量插入后会替换
               component_id: component.id,
               amount: amount,  // 包括金额为0的记录
               period_id: periodId, // payroll_items 表需要 period_id
               employee_id: employee.id // 添加员工ID，用于后续匹配
+            };
+            
+            allPayrollItems.push(payrollItemData);
+            processedItemsInRow++;
+            
+            // 🔍 调试日志：记录添加到批量数据中
+            if (employeeName === '张磊' && columnName === '个人所得税') {
+              console.log(`✅ [DEBUG] 张磊个税记录已添加到批量数据:`, payrollItemData);
+            }
+          } else {
+            // 🔍 调试日志：记录无效数字的情况
+            if (employeeName === '张磊' && columnName === '个人所得税') {
+              console.log(`❌ [DEBUG] 张磊个税记录数值无效:`, {
+                employeeName,
+                columnName,
+                originalValue: value,
+                parsedAmount: amount,
+                reason: 'isNaN(amount) = true'
+              });
+            }
+          }
+        } else {
+          // 🔍 调试日志：记录未处理的情况
+          if (employeeName === '张磊' && columnName === '个人所得税') {
+            console.log(`⚠️ [DEBUG] 张磊个税记录未处理:`, {
+              employeeName,
+              columnName,
+              value,
+              hasComponent: !!component,
+              componentDetails: component,
+              valueCheck: {
+                isNull: value === null,
+                isUndefined: value === undefined,
+                isEmpty: value === ''
+              }
             });
           }
         }
+      }
+      
+      // 🔍 调试日志：行级汇总统计
+      if (processedItemsInRow > 0 || skippedItemsInRow > 0) {
+        console.log(`🔍 [DEBUG] 行 ${rowIndex + 1} (${employeeName}) 处理汇总:`, {
+          processedItems: processedItemsInRow,
+          skippedItems: skippedItemsInRow,
+          totalColumns: Object.keys(row).length,
+          componentColumns: Object.keys(row).filter(col => componentMap.has(col)).length
+        });
       }
       
     } catch (error) {
@@ -414,19 +527,96 @@ export const importPayrollItems = async (
   // Step 5: 更新薪资项目中的payroll_id
   console.log(`\n🚀 处理 ${allPayrollItems.length} 个薪资项目...`);
   
+  // 🔍 调试日志：查找张磊的记录
+  const zhangLeiItems = allPayrollItems.filter(item => {
+    const employee = [...employeeMap.values()].find(e => e.id === item.employee_id);
+    return employee?.employee_name === '张磊';
+  });
+  
+  if (zhangLeiItems.length > 0) {
+    console.log(`🔍 [DEBUG] 找到张磊的薪资项目 ${zhangLeiItems.length} 条:`, zhangLeiItems.map(item => ({
+      component_id: item.component_id,
+      amount: item.amount,
+      payroll_id: item.payroll_id,
+      employee_id: item.employee_id
+    })));
+  }
+  
+  // 🔍 调试日志：分析过滤前的薪资项目分布
+  console.log(`🔍 [DEBUG] 过滤前薪资项目分析:`, {
+    totalItems: allPayrollItems.length,
+    employeeDistribution: [...new Set(allPayrollItems.map(item => {
+      const emp = [...employeeMap.values()].find(e => e.id === item.employee_id);
+      return emp?.employee_name || 'Unknown';
+    }))],
+    componentDistribution: [...new Set(allPayrollItems.map(item => item.component_id))].length,
+    amountDistribution: {
+      zeroAmounts: allPayrollItems.filter(item => item.amount === 0).length,
+      nonZeroAmounts: allPayrollItems.filter(item => item.amount !== 0).length
+    }
+  });
+
+  let filteredCount = 0;
+  let validCount = 0;
+
   const validPayrollItems = allPayrollItems
     .filter(item => {
       const realPayrollId = existingPayrollMap.get(item.employee_id);
-      if (realPayrollId && !realPayrollId.startsWith('temp_')) {
+      const employee = [...employeeMap.values()].find(e => e.id === item.employee_id);
+      const isValid = realPayrollId && !realPayrollId.startsWith('temp_');
+      
+      // 🔍 调试日志：详细记录每个项目的过滤过程
+      const filterDetails = {
+        employeeName: employee?.employee_name || 'Unknown',
+        employee_id: item.employee_id,
+        component_id: item.component_id,
+        amount: item.amount,
+        tempPayrollId: item.payroll_id,
+        realPayrollId: realPayrollId,
+        isValid,
+        filterReason: !realPayrollId ? 'NO_REAL_PAYROLL_ID' : 
+                     realPayrollId.startsWith('temp_') ? 'TEMP_PAYROLL_ID' : 'VALID'
+      };
+      
+      // 重点关注张磊和个税记录
+      if (employee?.employee_name === '张磊' || item.component_id === '7a425704-eb54-406a-80e6-eb74ad3929f0') {
+        console.log(`🔍 [DEBUG] 重要记录过滤详情:`, filterDetails);
+      }
+      
+      if (isValid) {
+        validCount++;
         item.payroll_id = realPayrollId;
         // 保留 period_id，删除临时的 employee_id
         delete (item as any).employee_id;
         return true;
+      } else {
+        filteredCount++;
+        // 记录被过滤的个税为0的记录
+        if (item.amount === 0) {
+          console.log(`⚠️ [DEBUG] 金额为0的记录被过滤:`, filterDetails);
+        }
+        return false;
       }
-      return false;
     });
   
+  console.log(`🔍 [DEBUG] 过滤结果统计:`, {
+    原始项目数: allPayrollItems.length,
+    有效项目数: validCount,
+    被过滤项目数: filteredCount,
+    过滤率: `${(filteredCount / allPayrollItems.length * 100).toFixed(1)}%`
+  });
+  
   console.log(`✅ 有效薪资项目数量: ${validPayrollItems.length}`);
+  
+  // 🔍 调试日志：检查张磊的有效记录
+  const validZhangLeiItems = validPayrollItems.filter(item => {
+    // 通过component_id匹配个税组件
+    return item.component_id === '7a425704-eb54-406a-80e6-eb74ad3929f0'; // 个人所得税组件ID
+  });
+  
+  if (validZhangLeiItems.length > 0) {
+    console.log(`🔍 [DEBUG] 张磊的有效个税记录:`, validZhangLeiItems);
+  }
   
   // Step 6: 根据导入模式处理薪资项目
   if (validPayrollItems.length > 0) {
@@ -463,12 +653,40 @@ export const importPayrollItems = async (
       if (mode === 'upsert') {
         // UPSERT模式：使用upsert方法，遇到冲突时更新
         console.log(`🔄 UPSERT批次 ${i / batchSize + 1}: 更新或插入 ${batch.length} 条记录`);
+        
+        // 🔍 调试日志：检查当前批次中是否包含张磊的个税记录
+        const zhangLeiPersonalTaxInBatch = batch.filter(item => 
+          item.component_id === '7a425704-eb54-406a-80e6-eb74ad3929f0'
+        );
+        
+        if (zhangLeiPersonalTaxInBatch.length > 0) {
+          console.log(`🔍 [DEBUG] UPSERT批次 ${i / batchSize + 1} 包含张磊个税记录:`, zhangLeiPersonalTaxInBatch);
+          console.log(`🔍 [DEBUG] UPSERT操作详情:`, {
+            tableName: 'payroll_items',
+            onConflict: 'payroll_id,component_id',
+            batchSize: batch.length,
+            zhangLeiItemCount: zhangLeiPersonalTaxInBatch.length
+          });
+        }
+        
         const { error } = await supabase
           .from('payroll_items')
           .upsert(batch, {
             onConflict: 'payroll_id,component_id'
           });
         itemsError = error;
+        
+        // 🔍 调试日志：记录UPSERT操作结果
+        if (zhangLeiPersonalTaxInBatch.length > 0) {
+          if (itemsError) {
+            console.log(`❌ [DEBUG] 张磊个税记录UPSERT失败:`, {
+              error: itemsError,
+              batchData: zhangLeiPersonalTaxInBatch
+            });
+          } else {
+            console.log(`✅ [DEBUG] 张磊个税记录UPSERT成功`, zhangLeiPersonalTaxInBatch);
+          }
+        }
       } else {
         // REPLACE模式：纯插入（因为已经删除了冲突数据）
         console.log(`➕ INSERT批次 ${i / batchSize + 1}: 插入 ${batch.length} 条记录`);
