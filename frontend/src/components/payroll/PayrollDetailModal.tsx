@@ -12,7 +12,7 @@ import { useEmployeePositionByPeriod, useEmployeePositionHistory, useAssignEmplo
 import { useDepartmentList } from '@/hooks/department/useDepartments';
 import { useEmployeePositions } from '@/hooks/payroll/useEmployeePosition';
 import { useEmployeeContributionBasesByPeriod } from '@/hooks/payroll/useContributionBase';
-import { useUpdateEarning } from '@/hooks/payroll/usePayrollEarnings';
+import { useUpdateEarning, useCreateEarning, useEarningComponents } from '@/hooks/payroll/usePayrollEarnings';
 import { useSetContributionBase } from '@/hooks/payroll/useContributionBase';
 import { useCurrentYearProvidentFundTrend } from '@/hooks/payroll/useContributionBaseTrend';
 import { ContributionBaseTrendChart } from '@/components/common/ContributionBaseTrendChart';
@@ -382,6 +382,26 @@ export function PayrollDetailModal({
 
   // 单个薪资记录五险一金计算
 
+  // 薪资周期格式化函数
+  const formatPeriodRange = (startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return '薪资详情';
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    const startYear = start.getFullYear();
+    const startMonth = start.getMonth() + 1;
+    const endYear = end.getFullYear();
+    const endMonth = end.getMonth() + 1;
+    
+    // 如果是同一年同一月，显示：2025年1月薪资
+    if (startYear === endYear && startMonth === endMonth) {
+      return `${startYear}年${startMonth}月薪资`;
+    }
+    
+    // 如果跨年或跨月，显示完整范围：2024年12月 - 2025年1月
+    return `${startYear}年${startMonth}月 - ${endYear}年${endMonth}月`;
+  };
 
   // Tab配置
   const tabs = [
@@ -529,7 +549,7 @@ export function PayrollDetailModal({
                 </h3>
                 {payrollData && (
                   <p className="text-sm text-base-content/60 mt-1 ml-13">
-                    {payrollData.employee?.employee_name || String(t('payroll:payrollDetails'))} · {formatDate(payrollData.pay_date)}
+                    {payrollData.employee?.employee_name || String(t('payroll:payrollDetails'))} · {formatPeriodRange(payrollData.pay_period_start, payrollData.pay_period_end)}
                   </p>
                 )}
               </div>
@@ -961,13 +981,30 @@ function PayrollBreakdownSection({
   const { t } = useTranslation(['payroll', 'common']);
   const { showSuccess, showError } = useToast();
 
-  // 使用薪资项目更新 hook
+  // 使用薪资项目相关 hooks
   const updateEarningMutation = useUpdateEarning();
+  const createEarningMutation = useCreateEarning();
+  const { data: earningComponents = [], isLoading: isLoadingComponents } = useEarningComponents();
 
   // 内联编辑状态管理
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingAmount, setEditingAmount] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // 添加薪资明细表单状态管理
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [addForm, setAddForm] = useState<{
+    componentId: string;
+    amount: string;
+    notes: string;
+    componentType: 'earning' | 'deduction';
+  }>({
+    componentId: '',
+    amount: '',
+    notes: '',
+    componentType: 'earning'
+  });
+  const [isCreating, setIsCreating] = useState(false);
 
   // 组件渲染追踪
   console.log('[PayrollBreakdownSection] 🎨 组件渲染:', {
@@ -1064,6 +1101,103 @@ function PayrollBreakdownSection({
       setIsSaving(false);
     }
   }, [showError, showSuccess, handleCancelEdit, updateEarningMutation]);
+
+  // 添加薪资明细相关函数
+  const handleStartAddingItem = useCallback(() => {
+    console.log('[添加薪资明细] 开始添加新项目');
+    setIsAddingItem(true);
+    setAddForm({
+      componentId: '',
+      amount: '',
+      notes: '',
+      componentType: 'earning'
+    });
+  }, []);
+
+  const handleCancelAddingItem = useCallback(() => {
+    console.log('[添加薪资明细] 取消添加');
+    setIsAddingItem(false);
+    setAddForm({
+      componentId: '',
+      amount: '',
+      notes: '',
+      componentType: 'earning'
+    });
+  }, []);
+
+  const handleSaveNewItem = useCallback(async () => {
+    if (!addForm.componentId) {
+      showError('请选择薪资组件');
+      return;
+    }
+    
+    const amount = parseFloat(addForm.amount);
+    if (isNaN(amount) || amount === 0) {
+      showError('请输入有效的金额');
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      console.log('[添加薪资明细] 保存新项目:', {
+        componentId: addForm.componentId,
+        amount: amount,
+        notes: addForm.notes,
+        componentType: addForm.componentType
+      });
+
+      // 使用 useCreateEarning hook 创建新的薪资项目
+      await createEarningMutation.mutateAsync({
+        payroll_id: categoryTotals.length > 0 ? 
+          // 从现有数据中获取 payroll_id
+          Object.values(groupedItems).flat()[0]?.payroll_id || '' : '',
+        component_id: addForm.componentId,
+        amount: amount,
+        notes: addForm.notes || undefined
+        // period_id is optional and can be omitted
+      });
+
+      console.log('[添加薪资明细] 新项目创建成功');
+      showSuccess('薪资明细添加成功');
+      
+      // 成功后取消添加状态
+      handleCancelAddingItem();
+      
+    } catch (error) {
+      console.error('添加薪资明细失败:', error);
+      showError('添加失败，请重试');
+    } finally {
+      setIsCreating(false);
+    }
+  }, [addForm, showError, showSuccess, createEarningMutation, handleCancelAddingItem, categoryTotals, groupedItems]);
+
+  // 计算可用的薪资组件（去除重复）
+  const getAvailableComponents = useCallback((componentType: 'earning' | 'deduction') => {
+    return earningComponents.filter(component => {
+      // 按类型过滤
+      const matchesType = component.type === componentType;
+      
+      // 对于扣除类型，只允许"other_deductions"类别，排除保险和税务类别
+      let categoryFilter = true;
+      if (componentType === 'deduction') {
+        categoryFilter = component.category === 'other_deductions' ||
+                        // 排除个人保险、单位保险和个人税务类别，这些由系统自动计算
+                        (component.category !== 'personal_insurance' &&
+                         component.category !== 'employer_insurance' &&
+                         component.category !== 'personal_tax');
+      }
+      
+      // 去重：检查当前员工是否已经有这个组件
+      const existingComponentIds = Object.values(groupedItems)
+        .flat()
+        .filter(item => item.component_type === componentType)
+        .map(item => item.component_id);
+      
+      const isNotDuplicate = !existingComponentIds.includes(component.id);
+      
+      return matchesType && categoryFilter && isNotDuplicate;
+    });
+  }, [earningComponents, groupedItems]);
 
   // 可编辑金额单元格组件
   const EditableAmountCell = ({
@@ -1437,6 +1571,181 @@ function PayrollBreakdownSection({
 
   return (
     <div className="space-y-6">
+      {/* 添加薪资明细按钮和表单 */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-base-content">薪资明细</h3>
+          <span className="badge badge-ghost badge-sm">
+            {Object.values(groupedItems).flat().length} 项
+          </span>
+        </div>
+        <button
+          onClick={handleStartAddingItem}
+          disabled={isAddingItem || isCreating}
+          className="btn btn-primary btn-sm gap-2"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          添加薪资明细
+        </button>
+      </div>
+
+      {/* 添加表单 */}
+      {isAddingItem && (
+        <div className="bg-base-200/50 rounded-lg p-4 border-2 border-primary/20 space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-primary flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              添加新的薪资项目
+            </h4>
+            <button
+              onClick={handleCancelAddingItem}
+              disabled={isCreating}
+              className="btn btn-ghost btn-xs"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* 类型选择 */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text text-xs font-medium">类型</span>
+              </label>
+              <div className="flex gap-2">
+                <label className="label cursor-pointer flex items-center gap-1">
+                  <input
+                    type="radio"
+                    name="componentType"
+                    value="earning"
+                    checked={addForm.componentType === 'earning'}
+                    onChange={(e) => setAddForm(prev => ({ ...prev, componentType: e.target.value as 'earning' | 'deduction', componentId: '' }))}
+                    className="radio radio-sm radio-success"
+                    disabled={isCreating}
+                  />
+                  <span className="text-xs text-success">收入</span>
+                </label>
+                <label className="label cursor-pointer flex items-center gap-1">
+                  <input
+                    type="radio"
+                    name="componentType"
+                    value="deduction"
+                    checked={addForm.componentType === 'deduction'}
+                    onChange={(e) => setAddForm(prev => ({ ...prev, componentType: e.target.value as 'earning' | 'deduction', componentId: '' }))}
+                    className="radio radio-sm radio-error"
+                    disabled={isCreating}
+                  />
+                  <span className="text-xs text-error">扣除</span>
+                </label>
+              </div>
+            </div>
+
+            {/* 组件选择 */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text text-xs font-medium">薪资组件</span>
+                {getAvailableComponents(addForm.componentType).length === 0 && (
+                  <span className="label-text-alt text-warning text-xs">
+                    {addForm.componentType === 'earning' ? '无可选收入项目' : '仅限其他扣除项目'}
+                  </span>
+                )}
+              </label>
+              <select
+                value={addForm.componentId}
+                onChange={(e) => setAddForm(prev => ({ ...prev, componentId: e.target.value }))}
+                className="select select-sm select-bordered w-full"
+                disabled={isLoadingComponents || isCreating}
+              >
+                <option value="">选择薪资组件</option>
+                {(() => {
+                  const availableComponents = getAvailableComponents(addForm.componentType);
+
+                  if (availableComponents.length === 0) {
+                    const message = addForm.componentType === 'earning' 
+                      ? '没有可添加的收入组件（已存在的组件不会重复显示）'
+                      : '没有可添加的其他扣除组件（个人扣除和单位扣除由系统自动计算）';
+                    return (
+                      <option value="" disabled>
+                        {message}
+                      </option>
+                    );
+                  }
+
+                  return availableComponents.map(component => (
+                    <option key={component.id} value={component.id}>
+                      {component.name}
+                    </option>
+                  ));
+                })()}
+              </select>
+            </div>
+
+            {/* 金额输入 */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text text-xs font-medium">金额</span>
+              </label>
+              <input
+                type="number"
+                value={addForm.amount}
+                onChange={(e) => setAddForm(prev => ({ ...prev, amount: e.target.value }))}
+                className="input input-sm input-bordered w-full"
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                disabled={isCreating}
+              />
+            </div>
+
+            {/* 备注输入 */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text text-xs font-medium">备注</span>
+              </label>
+              <input
+                type="text"
+                value={addForm.notes}
+                onChange={(e) => setAddForm(prev => ({ ...prev, notes: e.target.value }))}
+                className="input input-sm input-bordered w-full"
+                placeholder="可选"
+                disabled={isCreating}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={handleCancelAddingItem}
+              disabled={isCreating}
+              className="btn btn-ghost btn-sm"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleSaveNewItem}
+              disabled={
+                isCreating || 
+                !addForm.componentId || 
+                !addForm.amount ||
+                getAvailableComponents(addForm.componentType).length === 0
+              }
+              className="btn btn-primary btn-sm gap-2"
+            >
+              {isCreating && (
+                <span className="loading loading-spinner loading-xs"></span>
+              )}
+              添加
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 收入项目表格 */}
       {incomeItems.length > 0 && (
         <div className="space-y-3">

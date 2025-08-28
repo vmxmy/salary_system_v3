@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
+import { useCacheInvalidationManager, CacheInvalidationUtils } from '@/hooks/core/useCacheInvalidationManager';
 import type { Database } from '@/types/supabase';
 
 // 类型定义
@@ -14,7 +15,7 @@ type PayrollComponent = Database['public']['Tables']['salary_components']['Row']
 export const payrollEarningsQueryKeys = {
   all: ['payroll-earnings'] as const,
   components: () => [...payrollEarningsQueryKeys.all, 'components'] as const,
-  earningComponents: () => [...payrollEarningsQueryKeys.components(), 'earnings'] as const,
+  allComponents: () => [...payrollEarningsQueryKeys.components(), 'all-types'] as const,
   payrollEarnings: (payrollId: string) => 
     [...payrollEarningsQueryKeys.all, 'payroll', payrollId] as const,
   periodEarnings: (periodId: string) => 
@@ -77,22 +78,23 @@ export interface EarningTemplate {
   }>;
 }
 
-// 获取所有收入组件定义
+// 获取所有薪资组件定义（包括收入和扣除）
 export const useEarningComponents = () => {
   const { handleError } = useErrorHandler();
   
   return useQuery({
-    queryKey: payrollEarningsQueryKeys.earningComponents(),
+    queryKey: payrollEarningsQueryKeys.allComponents(),
     queryFn: async (): Promise<PayrollComponent[]> => {
       const { data, error } = await supabase
         .from('salary_components')
         .select('*')
-        .eq('type', 'earning')
+        .in('type', ['earning', 'deduction'])  // 获取收入和扣除两种类型
+        .order('type', { ascending: true })    // 先按类型排序
         .order('category', { ascending: true })
         .order('name', { ascending: true });
 
       if (error) {
-        handleError(error, { customMessage: '获取收入组件失败' });
+        handleError(error, { customMessage: '获取薪资组件失败' });
         throw error;
       }
       
@@ -225,6 +227,7 @@ export const useEmployeeEarningHistory = (employeeId: string, periodId?: string)
 export const useCreateEarning = () => {
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (data: PayrollItemInsert) => {
@@ -240,11 +243,12 @@ export const useCreateEarning = () => {
       }
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.payroll_id) {
-        queryClient.invalidateQueries({ 
-          queryKey: payrollEarningsQueryKeys.payrollEarnings(data.payroll_id) 
-        });
+        // 使用统一缓存管理器，自动处理所有相关缓存失效
+        await cacheManager.invalidateByEvent('payroll:item:created', 
+          CacheInvalidationUtils.createPayrollContext(data.payroll_id, data.employee_id, data.period_id)
+        );
       }
     },
   });
@@ -284,6 +288,7 @@ export const useBatchCreateEarnings = () => {
 export const useUpdateEarning = () => {
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async ({ earningId, data }: {
@@ -303,18 +308,12 @@ export const useUpdateEarning = () => {
       }
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.payroll_id) {
-        queryClient.invalidateQueries({ 
-          queryKey: payrollEarningsQueryKeys.payrollEarnings(data.payroll_id) 
-        });
-        // 同时失效薪资详情查询，确保 PayrollDetailModal 中的数据自动更新
-        queryClient.invalidateQueries({ 
-          queryKey: ['payrolls', 'detail', data.payroll_id] 
-        });
-        // 失效薪资列表和统计查询，确保统计数据自动更新
-        queryClient.invalidateQueries({ queryKey: ['payrolls', 'list'] });
-        queryClient.invalidateQueries({ queryKey: ['payrolls', 'statistics'] });
+        // 使用统一缓存管理器，自动处理所有相关缓存失效
+        await cacheManager.invalidateByEvent('payroll:item:updated', 
+          CacheInvalidationUtils.createPayrollContext(data.payroll_id, data.employee_id, data.period_id)
+        );
       }
     },
   });
