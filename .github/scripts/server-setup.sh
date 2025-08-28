@@ -52,12 +52,19 @@ check_system_requirements() {
     log_info "检查系统要求..."
     
     local requirements_met=true
+    local warnings=0
     
-    # 检查内存（至少 2GB）
-    local memory_gb=$(free -g | awk '/^Mem:/ {print $2}')
-    if [[ $memory_gb -lt 2 ]]; then
-        log_error "内存不足：${memory_gb}GB < 2GB (推荐)"
+    # 检查内存（推荐至少 2GB，最低 1GB）
+    local memory_mb=$(free -m | awk '/^Mem:/ {print $2}')
+    local memory_gb=$((memory_mb / 1024))
+    
+    if [[ $memory_mb -lt 1024 ]]; then
+        log_error "内存严重不足：${memory_gb}GB < 1GB (最低要求)"
         requirements_met=false
+    elif [[ $memory_mb -lt 2048 ]]; then
+        log_warning "内存不足：${memory_gb}GB < 2GB (推荐)，但可以继续"
+        log_info "建议为轻量级部署优化内存使用"
+        ((warnings++))
     else
         log_success "内存充足：${memory_gb}GB"
     fi
@@ -71,21 +78,60 @@ check_system_requirements() {
         log_success "磁盘空间充足：${disk_gb}GB"
     fi
     
-    # 检查网络连接
-    if ping -c 1 google.com > /dev/null 2>&1; then
-        log_success "网络连接正常"
-    else
-        log_error "网络连接异常"
-        requirements_met=false
+    # 检查网络连接（尝试多个地址，适配国内环境）
+    log_info "检查网络连接..."
+    local network_ok=false
+    
+    # 尝试连接国内外常见地址
+    local test_hosts=(
+        "baidu.com"
+        "aliyun.com" 
+        "163.com"
+        "google.com"
+        "github.com"
+    )
+    
+    for host in "${test_hosts[@]}"; do
+        if ping -c 1 -W 3 "$host" > /dev/null 2>&1; then
+            log_success "网络连接正常 (测试主机: $host)"
+            network_ok=true
+            break
+        fi
+    done
+    
+    if [[ "$network_ok" != "true" ]]; then
+        log_warning "网络连接测试失败，但可能是防火墙限制"
+        log_info "尝试检查DNS解析..."
+        if nslookup aliyun.com > /dev/null 2>&1; then
+            log_success "DNS解析正常"
+        else
+            log_error "DNS解析失败"
+            requirements_met=false
+        fi
+        ((warnings++))
     fi
     
+    # 检查基本命令可用性
+    local required_commands=("curl" "systemctl" "which")
+    for cmd in "${required_commands[@]}"; do
+        if ! command -v "$cmd" &> /dev/null; then
+            log_error "必需命令不可用: $cmd"
+            requirements_met=false
+        fi
+    done
+    
+    # 显示总结
     if [[ "$requirements_met" != "true" ]]; then
         log_error "系统要求检查失败"
         return 1
+    elif [[ $warnings -gt 0 ]]; then
+        log_warning "系统要求检查通过，但有 $warnings 个警告"
+        log_info "建议使用轻量级配置继续"
+        return 0
+    else
+        log_success "系统要求检查通过"
+        return 0
     fi
-    
-    log_success "系统要求检查通过"
-    return 0
 }
 
 # 更新系统包
@@ -160,19 +206,43 @@ install_docker() {
     log_info "安装 Docker..."
     
     if command -v docker &> /dev/null; then
-        log_info "Docker 已安装，版本: $(docker --version)"
+        local docker_version=$(docker --version 2>/dev/null || echo "未知版本")
+        log_info "Docker 已安装，版本: $docker_version"
+        
+        # 检查 Docker 服务状态
+        if systemctl is-active docker &>/dev/null; then
+            log_success "Docker 服务运行正常"
+        else
+            log_info "启动 Docker 服务..."
+            sudo systemctl start docker
+            sudo systemctl enable docker
+        fi
         return 0
     fi
     
-    # 安装 Docker 官方仓库密钥
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    # 检测操作系统类型
+    if [[ -f /etc/os-release ]]; then
+        source /etc/os-release
+        local os_id=$ID
+        local os_version=$VERSION_ID
+        log_info "检测到操作系统: $PRETTY_NAME"
+    else
+        log_error "无法检测操作系统类型"
+        return 1
+    fi
     
-    # 添加 Docker 仓库
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    
-    # 更新包列表并安装 Docker
-    sudo apt-get update
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+    case "$os_id" in
+        "ubuntu"|"debian")
+            install_docker_ubuntu_debian
+            ;;
+        "centos"|"rhel"|"fedora"|"anolis")
+            install_docker_centos_rhel
+            ;;
+        *)
+            log_warning "未识别的操作系统，尝试通用安装方法"
+            install_docker_generic
+            ;;
+    esac
     
     # 启动并启用 Docker 服务
     sudo systemctl start docker
@@ -181,8 +251,64 @@ install_docker() {
     # 将当前用户添加到 docker 组
     sudo usermod -aG docker $USER
     
-    log_success "Docker 安装完成"
-    log_warning "请注销并重新登录以使用 Docker 命令"
+    # 验证安装
+    if command -v docker &> /dev/null; then
+        log_success "Docker 安装完成，版本: $(docker --version)"
+        log_warning "请注销并重新登录以使用 Docker 命令"
+    else
+        log_error "Docker 安装失败"
+        return 1
+    fi
+}
+
+# Ubuntu/Debian Docker 安装
+install_docker_ubuntu_debian() {
+    log_info "使用 Ubuntu/Debian 方式安装 Docker..."
+    
+    # 安装必需的包
+    sudo apt-get update
+    sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
+    
+    # 添加 Docker 官方 GPG 密钥
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    
+    # 添加 Docker 仓库
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    
+    # 安装 Docker
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+}
+
+# CentOS/RHEL/阿里云Linux Docker 安装
+install_docker_centos_rhel() {
+    log_info "使用 CentOS/RHEL 方式安装 Docker..."
+    
+    # 安装必需的包
+    sudo yum install -y yum-utils
+    
+    # 添加 Docker 仓库
+    sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    
+    # 对于阿里云 Linux，可能需要使用兼容模式
+    if grep -qi "anolis\|alibaba" /etc/os-release 2>/dev/null; then
+        log_info "检测到阿里云 Linux，使用兼容模式..."
+        # 使用 CentOS 8 兼容源
+        sudo sed -i 's/\$releasever/8/g' /etc/yum.repos.d/docker-ce.repo
+    fi
+    
+    # 安装 Docker
+    sudo yum install -y docker-ce docker-ce-cli containerd.io
+}
+
+# 通用 Docker 安装
+install_docker_generic() {
+    log_info "使用通用方式安装 Docker..."
+    
+    # 使用 Docker 官方安装脚本
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh get-docker.sh
+    rm -f get-docker.sh
 }
 
 # 安装 Docker Compose
@@ -283,8 +409,65 @@ create_app_directories() {
 configure_system_limits() {
     log_info "配置系统限制..."
     
-    # 配置文件描述符限制
-    sudo tee -a /etc/security/limits.conf > /dev/null << EOF
+    # 检查内存大小，为低内存系统优化配置
+    local memory_mb=$(free -m | awk '/^Mem:/ {print $2}')
+    local is_low_memory=false
+    
+    if [[ $memory_mb -lt 2048 ]]; then
+        is_low_memory=true
+        log_info "检测到低内存系统 (${memory_mb}MB)，使用优化配置"
+    fi
+    
+    # 创建系统配置目录
+    sudo mkdir -p /etc/systemd/system.conf.d
+    
+    if [[ "$is_low_memory" == "true" ]]; then
+        # 低内存系统配置
+        sudo tee -a /etc/security/limits.conf > /dev/null << EOF
+
+# Salary System limits (Low Memory Optimized)
+$USER soft nofile 16384
+$USER hard nofile 32768
+$USER soft nproc 8192
+$USER hard nproc 16384
+EOF
+        
+        sudo tee /etc/systemd/system.conf.d/salary-system.conf > /dev/null << EOF
+[Manager]
+DefaultLimitNOFILE=16384
+DefaultLimitNPROC=8192
+EOF
+        
+        # Docker 低内存配置
+        if command -v docker &> /dev/null; then
+            sudo mkdir -p /etc/docker
+            sudo tee /etc/docker/daemon.json > /dev/null << EOF
+{
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "10m",
+        "max-file": "3"
+    },
+    "storage-driver": "overlay2",
+    "default-ulimits": {
+        "nofile": {
+            "Name": "nofile",
+            "Hard": 16384,
+            "Soft": 8192
+        },
+        "nproc": {
+            "Name": "nproc",
+            "Hard": 4096,
+            "Soft": 2048
+        }
+    }
+}
+EOF
+            log_info "已配置 Docker 低内存优化"
+        fi
+    else
+        # 标准配置
+        sudo tee -a /etc/security/limits.conf > /dev/null << EOF
 
 # Salary System limits
 $USER soft nofile 65535
@@ -292,13 +475,13 @@ $USER hard nofile 65535
 $USER soft nproc 32768
 $USER hard nproc 32768
 EOF
-
-    # 配置系统级别的限制
-    sudo tee /etc/systemd/system.conf.d/salary-system.conf > /dev/null << EOF
+        
+        sudo tee /etc/systemd/system.conf.d/salary-system.conf > /dev/null << EOF
 [Manager]
 DefaultLimitNOFILE=65535
 DefaultLimitNPROC=32768
 EOF
+    fi
 
     log_success "系统限制配置完成"
 }
@@ -498,12 +681,14 @@ show_help() {
     --skip-nginx            跳过 Nginx 安装
     --skip-firewall         跳过防火墙配置
     --skip-monitoring       跳过监控工具安装
+    --low-memory            低内存模式 (适用于 <2GB 内存的服务器)
     -y, --yes               自动确认所有操作
 
 示例:
     $0                      # 完整安装
     $0 -u deploy            # 创建 deploy 用户并完整安装
     $0 --skip-nginx -y      # 跳过 Nginx 安装并自动确认
+    $0 --low-memory -y      # 低内存模式自动配置
     
 注意:
     - 此脚本需要 sudo 权限
@@ -519,6 +704,7 @@ main() {
     local skip_nginx=false
     local skip_firewall=false
     local skip_monitoring=false
+    local low_memory_mode=false
     local auto_yes=false
     
     # 解析命令行参数
@@ -546,6 +732,13 @@ main() {
                 ;;
             --skip-monitoring)
                 skip_monitoring=true
+                shift
+                ;;
+            --low-memory)
+                low_memory_mode=true
+                skip_nginx=true
+                skip_monitoring=true
+                log_info "启用低内存模式，自动跳过 Nginx 和监控工具"
                 shift
                 ;;
             -y|--yes)
