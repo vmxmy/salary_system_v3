@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useCacheInvalidationManager } from '@/hooks/core/useCacheInvalidationManager';
 
 // 类型定义 - 与数据库结构匹配
 export interface ReportTemplate {
@@ -269,6 +270,7 @@ export const useReportStatistics = () => {
 // 创建报表模板
 export const useCreateReportTemplate = () => {
   const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (template: Omit<ReportTemplate, 'id' | 'created_at' | 'updated_at'>) => {
@@ -296,9 +298,18 @@ export const useCreateReportTemplate = () => {
       
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: reportQueryKeys.templates() });
-      queryClient.invalidateQueries({ queryKey: reportQueryKeys.statistics() });
+    onSuccess: async (newTemplate) => {
+      // 使用统一的缓存失效管理器
+      await cacheManager.invalidateByEvent('report:template:created', {
+        category: newTemplate.category,
+        filters: { is_active: true } // 通常新模板是激活状态
+      });
+      
+      // 预填充新创建模板的缓存
+      queryClient.setQueryData(
+        reportQueryKeys.template(newTemplate.id),
+        newTemplate
+      );
     },
   });
 };
@@ -306,6 +317,7 @@ export const useCreateReportTemplate = () => {
 // 更新报表模板
 export const useUpdateReportTemplate = () => {
   const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async ({ 
@@ -338,9 +350,19 @@ export const useUpdateReportTemplate = () => {
       
       return data;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: reportQueryKeys.templates() });
-      queryClient.invalidateQueries({ queryKey: reportQueryKeys.template(data.id) });
+    onSuccess: async (updatedTemplate) => {
+      // 使用统一的缓存失效管理器
+      await cacheManager.invalidateByEvent('report:template:updated', {
+        templateId: updatedTemplate.id,
+        category: updatedTemplate.category,
+        filters: { is_active: updatedTemplate.is_active }
+      });
+      
+      // 更新特定模板的缓存
+      queryClient.setQueryData(
+        reportQueryKeys.template(updatedTemplate.id),
+        updatedTemplate
+      );
     },
   });
 };
@@ -348,6 +370,7 @@ export const useUpdateReportTemplate = () => {
 // 删除报表模板
 export const useDeleteReportTemplate = () => {
   const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -362,9 +385,16 @@ export const useDeleteReportTemplate = () => {
       
       return { id };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: reportQueryKeys.templates() });
-      queryClient.invalidateQueries({ queryKey: reportQueryKeys.statistics() });
+    onSuccess: async (result, deletedId) => {
+      // 使用统一的缓存失效管理器
+      await cacheManager.invalidateByEvent('report:template:deleted', {
+        templateId: deletedId
+      });
+      
+      // 删除特定模板的缓存
+      queryClient.removeQueries({
+        queryKey: reportQueryKeys.template(deletedId)
+      });
     },
   });
 };
@@ -372,6 +402,7 @@ export const useDeleteReportTemplate = () => {
 // 创建报表任务
 export const useCreateReportJob = () => {
   const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (job: {
@@ -398,9 +429,13 @@ export const useCreateReportJob = () => {
       
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: reportQueryKeys.jobs() });
-      queryClient.invalidateQueries({ queryKey: reportQueryKeys.statistics() });
+    onSuccess: async (newJob) => {
+      // 使用统一的缓存失效管理器
+      await cacheManager.invalidateByEvent('report:job:created', {
+        templateId: newJob.template_id,
+        status: newJob.status,
+        filters: newJob.data_filters
+      });
     },
   });
 };
@@ -408,6 +443,7 @@ export const useCreateReportJob = () => {
 // 更新报表任务状态
 export const useUpdateReportJobStatus = () => {
   const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async ({
@@ -457,8 +493,23 @@ export const useUpdateReportJobStatus = () => {
       
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: reportQueryKeys.jobs() });
+    onSuccess: async (updatedJob) => {
+      // 根据任务状态选择合适的失效事件
+      if (updatedJob.status === 'completed') {
+        // 任务完成时触发报表生成事件
+        await cacheManager.invalidateByEvent('report:generated', {
+          jobId: updatedJob.id,
+          templateId: updatedJob.template_id,
+          filters: updatedJob.result_data
+        });
+      } else {
+        // 其他状态更新
+        await cacheManager.invalidateByEvent('report:job:updated', {
+          jobId: updatedJob.id,
+          templateId: updatedJob.template_id,
+          filters: { status: updatedJob.status }
+        });
+      }
     },
   });
 };

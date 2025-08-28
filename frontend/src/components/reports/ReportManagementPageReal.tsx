@@ -3,8 +3,10 @@ import { useReportManagement, useUpdateReportTemplate } from '@/hooks/reports';
 import { supabase } from '@/lib/supabase';
 import ReportTemplateModal from './ReportTemplateModal';
 import { ReportTemplateCard } from './ReportTemplateCard';
+import { ReportGenerationModal } from './ReportGenerationModal';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { AlertModal, useAlertModal } from '@/components/common/Modal/AlertModal';
+import type { ReportGenerationConfig } from '@/hooks/reports';
 
 export default function ReportManagementPageReal() {
   const [activeTab, setActiveTab] = useState<'templates' | 'jobs' | 'history'>('templates');
@@ -20,6 +22,21 @@ export default function ReportManagementPageReal() {
   
   // 删除状态管理
   const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set());
+  
+  // 报表生成模态框状态
+  const [generationModalState, setGenerationModalState] = useState<{
+    isOpen: boolean;
+    templateId: string | null;
+    availableMonths: Array<{
+      month: string;
+      periodId?: string;
+      hasData: boolean;
+    }>;
+  }>({
+    isOpen: false,
+    templateId: null,
+    availableMonths: []
+  });
   
   // 确认对话框状态
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -315,7 +332,121 @@ export default function ReportManagementPageReal() {
     setModalState({ isOpen: false, mode: 'create', editingTemplate: undefined });
   };
 
-  // Handle report generation with real data
+  // 获取可用薪资周期
+  const getAvailableMonths = async () => {
+    try {
+      // 查询最近12个月的薪资周期数据
+      const { data: periods, error } = await supabase
+        .from('view_payroll_summary')
+        .select('period_code')
+        .order('period_code', { ascending: false })
+        .limit(12);
+
+      if (error) throw error;
+
+      // 处理数据，生成月份选项
+      const uniqueMonths = Array.from(new Set(periods?.map(p => p.period_code) || []));
+      
+      return uniqueMonths.map(month => ({
+        month: `${month}月`,
+        periodId: month || undefined,
+        hasData: true
+      }));
+    } catch (error) {
+      console.error('获取薪资周期失败:', error);
+      return [];
+    }
+  };
+
+  // 打开高级报表生成配置对话框
+  const handleOpenGenerationModal = async (template: { id: string; template_name: string }) => {
+    try {
+      const availableMonths = await getAvailableMonths();
+      
+      setGenerationModalState({
+        isOpen: true,
+        templateId: template.id,
+        availableMonths
+      });
+    } catch (error) {
+      console.error('打开生成配置失败:', error);
+      showError('打开配置对话框失败', '操作失败');
+    }
+  };
+
+  // 关闭报表生成模态框
+  const handleCloseGenerationModal = () => {
+    setGenerationModalState({
+      isOpen: false,
+      templateId: null,
+      availableMonths: []
+    });
+  };
+
+  // 高级报表生成（使用自定义配置）
+  const handleAdvancedGenerateReport = async (config: ReportGenerationConfig) => {
+    try {
+      const template = templates.find(t => t.id === config.templateId);
+      if (!template) {
+        throw new Error('模板不存在');
+      }
+
+      const result = await generateReport({
+        templateId: config.templateId,
+        format: config.format,
+        periodName: config.periodName || '当前周期',
+        filters: config.filters || {},
+        periodId: config.periodId
+      });
+      
+      // 显示生成成功信息，并提供下载选项
+      const handleDownloadConfirm = async () => {
+        try {
+          setConfirmDialog(prev => ({ ...prev, loading: true }));
+          
+          if (result.filePath && result.filePath.includes('report_')) {
+            const fileName = result.filePath.split('/').pop() || `report.${config.format}`;
+            await downloadReport(result.filePath, fileName);
+            showSuccess('文件下载完成', '下载成功');
+          }
+        } catch (downloadError) {
+          console.error('下载失败:', downloadError);
+          showError(
+            `下载失败: ${downloadError instanceof Error ? downloadError.message : '未知错误'}`,
+            '下载失败'
+          );
+        } finally {
+          setConfirmDialog(prev => ({ ...prev, open: false, loading: false }));
+          handleCloseGenerationModal(); // 关闭配置对话框
+        }
+      };
+      
+      setConfirmDialog({
+        open: true,
+        title: '报表生成成功',
+        message: `报表生成成功：${template.template_name}\n格式：${config.format.toUpperCase()}\n周期：${config.periodName}\n\n是否立即下载？`,
+        onConfirm: handleDownloadConfirm,
+        confirmText: '立即下载',
+        confirmVariant: 'success',
+        loading: false
+      });
+      
+      // 刷新数据
+      reportManagement.refetch.jobs();
+      reportManagement.refetch.history();
+      reportManagement.refetch.statistics();
+      
+    } catch (error) {
+      console.error('生成报表失败:', error);
+      showError(
+        `生成报表失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        '生成失败'
+      );
+      // 发生错误时不关闭配置对话框，让用户可以重试
+    }
+  };
+
+  // Handle report generation with real data (快速生成)
   const handleGenerateReport = async (template: { id: string; template_name: string }) => {
     try {
       const result = await generateReport({
@@ -387,7 +518,18 @@ export default function ReportManagementPageReal() {
     }
   };
 
-  if (loading.templates && loading.jobs && loading.history && loading.statistics) {
+  // 统计数据处理，避免 undefined
+  const stats = statistics || {
+    templateCount: 0,
+    runningJobs: 0,
+    completedToday: 0,
+    historyCount: 0
+  };
+
+  // 集中处理所有加载状态的条件渲染
+  const isAllDataLoading = loading.templates && loading.jobs && loading.history && loading.statistics;
+
+  if (isAllDataLoading) {
     return (
       <div className="p-6">
         <h1 className="text-3xl font-bold mb-6">报表管理</h1>
@@ -398,13 +540,6 @@ export default function ReportManagementPageReal() {
       </div>
     );
   }
-
-  const stats = statistics || {
-    templateCount: 0,
-    runningJobs: 0,
-    completedToday: 0,
-    historyCount: 0
-  };
 
   return (
     <div className="p-6">
@@ -525,7 +660,7 @@ export default function ReportManagementPageReal() {
                 key={template.id}
                 template={template}
                 onQuickGenerate={() => handleGenerateReport(template)}
-                onGenerate={() => handleGenerateReport(template)}
+                onGenerate={() => handleOpenGenerationModal(template)}
                 onEdit={() => handleEditTemplate(template)}
                 onDelete={() => handleDeleteTemplate(template)}
                 isGenerating={isGenerating}
@@ -870,6 +1005,23 @@ export default function ReportManagementPageReal() {
         onClose={handleModalClose}
         onSave={handleTemplateSave}
       />
+
+      {/* 报表生成配置模态框 */}
+      {generationModalState.templateId && (
+        <ReportGenerationModal
+          isOpen={generationModalState.isOpen}
+          templateId={generationModalState.templateId}
+          availableMonths={generationModalState.availableMonths}
+          onClose={handleCloseGenerationModal}
+          onGenerate={handleAdvancedGenerateReport}
+          generationState={{
+            isGenerating,
+            progress,
+            currentStep,
+            error: undefined // 错误状态可以从 useReportManagement hook 中获取
+          }}
+        />
+      )}
       
       {/* 确认对话框 */}
       <ConfirmDialog

@@ -259,21 +259,63 @@ const CACHE_INVALIDATION_MAP: Record<CacheInvalidationEvent, CacheInvalidationCo
   'report:template:created': {
     event: 'report:template:created',
     queries: [
+      ['reports'],  // 失效所有报表相关查询
       ['reports', 'templates'],
       ['reports', 'statistics'],
       ['dashboard', 'overview']
+    ],
+    dynamicQueries: (context: { category?: string; filters?: any }) => [
+      // 失效不同筛选条件的模板查询
+      ...(context.filters ? [
+        ['reports', 'templates', context.filters]
+      ] : []),
+      // 失效特定分类的查询
+      ...(context.category ? [
+        ['reports', 'templates', { category: context.category }]
+      ] : [])
     ]
   },
 
   'report:template:updated': {
     event: 'report:template:updated',
     queries: [
+      ['reports'],  // 失效所有报表相关查询
       ['reports', 'templates'],
       ['reports', 'statistics']
     ],
-    dynamicQueries: (context: { templateId?: string }) => [
+    dynamicQueries: (context: { templateId?: string; category?: string; filters?: any }) => [
       ...(context.templateId ? [
         ['reports', 'template', context.templateId]
+      ] : []),
+      // 失效不同筛选条件的模板查询
+      ...(context.filters ? [
+        ['reports', 'templates', context.filters]
+      ] : []),
+      // 失效特定分类的查询
+      ...(context.category ? [
+        ['reports', 'templates', { category: context.category }]
+      ] : [])
+    ]
+  },
+
+  'report:template:deleted': {
+    event: 'report:template:deleted',
+    queries: [
+      ['reports'],  // 失效所有报表相关查询
+      ['reports', 'templates'],
+      ['reports', 'statistics']
+    ],
+    dynamicQueries: (context: { templateId?: string; category?: string; filters?: any }) => [
+      ...(context.templateId ? [
+        ['reports', 'template', context.templateId]
+      ] : []),
+      // 失效不同筛选条件的模板查询
+      ...(context.filters ? [
+        ['reports', 'templates', context.filters]
+      ] : []),
+      // 失效特定分类的查询
+      ...(context.category ? [
+        ['reports', 'templates', { category: context.category }]
       ] : [])
     ]
   },
@@ -281,18 +323,63 @@ const CACHE_INVALIDATION_MAP: Record<CacheInvalidationEvent, CacheInvalidationCo
   'report:job:created': {
     event: 'report:job:created',
     queries: [
+      ['reports'],
       ['reports', 'jobs'],
       ['reports', 'statistics'],
       ['dashboard', 'recent-activities']
+    ],
+    dynamicQueries: (context: { templateId?: string; status?: string; filters?: any }) => [
+      ...(context.templateId ? [
+        ['reports', 'jobs', { templateId: context.templateId }]
+      ] : []),
+      ...(context.status ? [
+        ['reports', 'jobs', { status: context.status }]
+      ] : []),
+      ...(context.filters ? [
+        ['reports', 'jobs', context.filters]
+      ] : [])
+    ]
+  },
+
+  'report:job:updated': {
+    event: 'report:job:updated',
+    queries: [
+      ['reports'],
+      ['reports', 'jobs'],
+      ['reports', 'statistics']
+    ],
+    dynamicQueries: (context: { jobId?: string; templateId?: string; filters?: any }) => [
+      ...(context.jobId ? [
+        ['reports', 'job', context.jobId]
+      ] : []),
+      ...(context.templateId ? [
+        ['reports', 'jobs', { templateId: context.templateId }]
+      ] : []),
+      ...(context.filters ? [
+        ['reports', 'jobs', context.filters]
+      ] : [])
     ]
   },
 
   'report:generated': {
     event: 'report:generated',
     queries: [
+      ['reports'],
       ['reports', 'jobs'],
       ['reports', 'history'],
+      ['reports', 'statistics'],
       ['dashboard', 'overview']
+    ],
+    dynamicQueries: (context: { jobId?: string; templateId?: string; filters?: any }) => [
+      ...(context.jobId ? [
+        ['reports', 'job', context.jobId]
+      ] : []),
+      ...(context.templateId ? [
+        ['reports', 'history', { templateId: context.templateId }]
+      ] : []),
+      ...(context.filters ? [
+        ['reports', 'history', context.filters]
+      ] : [])
     ]
   },
 
@@ -367,8 +454,6 @@ const CACHE_INVALIDATION_MAP: Record<CacheInvalidationEvent, CacheInvalidationCo
   'payroll-period:completed': { event: 'payroll-period:completed', queries: [['payroll-periods', 'list']] },
   'payroll-period:cleared': { event: 'payroll-period:cleared', queries: [['payroll-periods', 'list']] },
   'payroll-period:finalized': { event: 'payroll-period:finalized', queries: [['payroll-periods', 'list']] },
-  'report:template:deleted': { event: 'report:template:deleted', queries: [['report-templates', 'list']] },
-  'report:job:updated': { event: 'report:job:updated', queries: [['report-jobs', 'list']] },
   'payroll:batch:updated': { 
     event: 'payroll:batch:updated', 
     queries: [['payrolls', 'list'], ['batch-payroll']] 

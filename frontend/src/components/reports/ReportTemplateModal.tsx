@@ -189,13 +189,22 @@ export default function ReportTemplateModal({
 
   // 保存模板
   const handleSave = () => {
-    // 生成模板key（如果为空）
+    // 生成模板key（如果为空）- 使用UUID确保唯一性
     let finalConfig = templateConfig;
     if (!templateConfig.template_key) {
-      const key = templateConfig.template_name
-        .toLowerCase()
-        .replace(/\s+/g, '_')
-        .replace(/[^a-z0-9_]/g, '');
+      // 使用crypto.randomUUID()生成标准UUID（如果支持），否则回退到简单随机字符串
+      let key: string;
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        key = crypto.randomUUID();
+      } else {
+        // 回退方案：生成类似UUID格式的随机字符串
+        key = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+      
       finalConfig = { ...templateConfig, template_key: key };
     }
 
@@ -899,10 +908,18 @@ function PreviewStep({
   // 生成模板key（如果未设置）
   useEffect(() => {
     if (!templateConfig.template_key && templateConfig.template_name) {
-      const key = templateConfig.template_name
+      let key = templateConfig.template_name
         .toLowerCase()
         .replace(/\s+/g, '_')
         .replace(/[^a-z0-9_]/g, '');
+      
+      // 如果生成的key为空（如纯中文名称），使用时间戳作为后缀
+      if (!key) {
+        const timestamp = Date.now();
+        key = `template_${timestamp}`;
+      }
+      
+      // 为预览阶段生成临时key（不添加随机后缀，在保存时再添加）
       onTemplateUpdate({
         ...templateConfig,
         template_key: key

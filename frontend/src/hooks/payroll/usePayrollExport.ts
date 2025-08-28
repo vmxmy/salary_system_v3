@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
 import { useLoadingState } from '@/hooks/core/useLoadingState';
-import * as XLSX from 'xlsx';
+import { excelLoader } from '@/lib/excel-lazy-loader';
 import type { Database } from '@/types/supabase';
 
 // 导出配置
@@ -593,7 +593,14 @@ export function usePayrollExport() {
       try {
         setExportProgress({ phase: 'preparing', total: 0, processed: 0, message: '准备导出...' });
 
-        // 1. 获取综合数据
+        // 1. 动态加载 Excel 库
+        const libraries = await excelLoader.load();
+        if (!libraries.available) {
+          throw new Error('Excel 库加载失败：' + (libraries.error?.message || 'Unknown error'));
+        }
+        const { XLSX } = libraries;
+
+        // 2. 获取综合数据
         const comprehensiveData = await fetchComprehensiveData(config);
 
         // 检查是否有数据
@@ -605,7 +612,7 @@ export function usePayrollExport() {
           throw new Error('没有可导出的数据');
         }
 
-        // 2. 生成 Excel 文件
+        // 3. 生成 Excel 文件
         setExportProgress({ 
           phase: 'generating', 
           total: 100, 
@@ -971,6 +978,13 @@ export function usePayrollExport() {
   const downloadTemplate = useCallback(async () => {
     return withLoading('isDownloading', async () => {
       try {
+        // 动态加载 Excel 库
+        const libraries = await excelLoader.load();
+        if (!libraries.available) {
+          throw new Error('Excel 库加载失败：' + (libraries.error?.message || 'Unknown error'));
+        }
+        const { XLSX } = libraries;
+
         // 创建模板数据
         const templateData = [
           {

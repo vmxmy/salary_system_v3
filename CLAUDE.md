@@ -483,3 +483,5 @@ npm run dev
 4. **性能优化**：避免频繁切换主题，使用防抖
 5. **用户体验**：保存用户选择的主题到 localStorage
 - 归档文件夹: /Users/xumingyang/app/高新区工资信息管理/salary_system/webapp/v3/archived
+- 使用缓存失效统一配置管理器,配置所需的缓存失效策略
+- 缓存失效统一配置管理器:src/hooks/core/useCacheInvalidationManager.ts
