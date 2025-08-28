@@ -874,21 +874,25 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
     confirmModal,
     submitProgressModal,
     calculationProgressModal,
+    deleteProgressModal,
     
     // 模态框操作
     setConfirmModal,
     setSubmitProgressModal,
     setCalculationProgressModal,
+    setDeleteProgressModal,
     
     // 批量操作函数
     handleBatchSubmit,
     handleBatchCalculateInsurance,
     handleBatchCalculatePayroll,
+    handleBatchDelete,
     
     // 进度操作函数
     cancelSubmitOperation,
     closeSubmitProgressModal,
     closeCalculationProgressModal,
+    closeDeleteProgressModal,
     
     // 加载状态
     isAnyOperationLoading
