@@ -18,7 +18,7 @@ env:
   NODE_VERSION: '20'
   APP_NAME: 'salary-system-v3'
   CONTAINER_PORT: '3000'
-  HOST_PORT: '80'
+  HOST_PORT: '3001'
 
 jobs:
   # 构建和测试
@@ -231,12 +231,77 @@ jobs:
           echo "✅ 服务器状态正常，可以开始部署"
         EOF
         
-    # 登录 Docker Hub（服务器端）
-    - name: Login to Docker Hub on Server
+    # 配置 Docker 镜像源和登录
+    - name: Configure Docker Registry and Login
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-          echo "🔐 服务器登录 Docker Hub..."
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          echo "🔧 配置 Docker 镜像源..."
+          
+          # 备份原始 daemon.json（如果存在）
+          if [ -f /etc/docker/daemon.json ]; then
+            cp /etc/docker/daemon.json /etc/docker/daemon.json.backup
+          fi
+          
+          # 配置 Docker 镜像加速器和超时设置
+          cat > /etc/docker/daemon.json << 'DOCKER_CONFIG'
+{
+  "registry-mirrors": [
+    "https://jlum3wgo.mirror.aliyuncs.com",
+    "https://docker.1panel.live",
+    "https://registry.docker-cn.com",
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com",
+    "https://mirror.baidubce.com"
+  ],
+  "max-concurrent-downloads": 10,
+  "max-download-attempts": 5,
+  "live-restore": true,
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+DOCKER_CONFIG
+          
+          echo "🔄 重启 Docker 服务以应用配置..."
+          systemctl restart docker
+          sleep 5
+          
+          echo "✅ 验证 Docker 服务状态..."
+          systemctl is-active docker || {
+            echo "❌ Docker 服务启动失败"
+            exit 1
+          }
+          
+          echo "🔐 登录 Docker Hub..."
+          
+          # 尝试多次登录，使用不同的超时设置
+          for attempt in 1 2 3; do
+            echo "尝试第 $attempt 次登录 Docker Hub..."
+            
+            if timeout 60 docker login --username "${{ secrets.DOCKER_USERNAME }}" --password-stdin << LOGIN_EOF
+${{ secrets.DOCKERHUB_TOKEN }}
+LOGIN_EOF
+            then
+              echo "✅ Docker Hub 登录成功"
+              break
+            else
+              echo "⚠️  第 $attempt 次登录失败"
+              if [ $attempt -eq 3 ]; then
+                echo "❌ Docker Hub 登录失败，尝试使用镜像加速器..."
+                # 如果 Docker Hub 登录失败，检查是否可以拉取镜像
+                if timeout 120 docker pull hello-world; then
+                  echo "✅ 镜像拉取正常，继续部署..."
+                  break
+                else
+                  echo "❌ 网络连接问题，无法访问 Docker 仓库"
+                  exit 1
+                fi
+              fi
+              sleep 10
+            fi
+          done
         EOF
         
     # 容器部署
@@ -271,6 +336,23 @@ jobs:
               echo "发现当前运行的容器，标记为蓝色环境"
               docker rename \$CURRENT_CONTAINER \$BLUE_CONTAINER 2>/dev/null || echo "容器已重命名"
             fi
+            
+            # 拉取镜像（带重试机制）
+            echo "📦 拉取镜像: ${{ needs.build-and-push-image.outputs.image-tag }}"
+            for pull_attempt in 1 2 3; do
+              echo "尝试第 \$pull_attempt 次拉取镜像..."
+              if timeout 300 docker pull ${{ needs.build-and-push-image.outputs.image-tag }}; then
+                echo "✅ 镜像拉取成功"
+                break
+              else
+                echo "⚠️  第 \$pull_attempt 次拉取失败"
+                if [ \$pull_attempt -eq 3 ]; then
+                  echo "❌ 镜像拉取失败，部署终止"
+                  exit 1
+                fi
+                sleep 15
+              fi
+            done
             
             # 启动绿色环境
             echo "启动绿色环境: \$GREEN_CONTAINER"
@@ -328,6 +410,23 @@ jobs:
             
             # 清理未使用的镜像
             docker image prune -f
+            
+            # 拉取镜像（带重试机制）
+            echo "📦 拉取镜像: ${{ needs.build-and-push-image.outputs.image-tag }}"
+            for pull_attempt in 1 2 3; do
+              echo "尝试第 \$pull_attempt 次拉取镜像..."
+              if timeout 300 docker pull ${{ needs.build-and-push-image.outputs.image-tag }}; then
+                echo "✅ 镜像拉取成功"
+                break
+              else
+                echo "⚠️  第 \$pull_attempt 次拉取失败"
+                if [ \$pull_attempt -eq 3 ]; then
+                  echo "❌ 镜像拉取失败，部署终止"
+                  exit 1
+                fi
+                sleep 15
+              fi
+            done
             
             # 启动新容器
             echo "启动新容器: \$CONTAINER_NAME"

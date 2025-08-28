@@ -165,7 +165,7 @@ docker --version
 systemctl status docker
 
 # 测试网络连接
-curl -I http://localhost:80
+curl -I http://localhost:3001
 
 # 查看容器状态
 docker ps | grep salary-system
@@ -234,8 +234,8 @@ docker exec -it salary-system-v3 sh
 docker inspect salary-system-v3
 
 # 网络调试
-curl -I http://your-server:80
-telnet your-server 80
+curl -I http://your-server:3001
+telnet your-server 3001
 ```
 
 ## 📚 相关文档
