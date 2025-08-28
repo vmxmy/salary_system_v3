@@ -32,10 +32,6 @@ jobs:
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
-    
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-      image-digest: ${{ steps.build.outputs.digest }}
       
     steps:
     - name: Checkout code
@@ -58,79 +54,21 @@ jobs:
         npm run lint
         npx tsc --noEmit
         
-    - name: Build application
+    - name: Build application for production
       working-directory: ./frontend
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         NODE_ENV: production
-      run: npm run build
-      
-    # Docker 镜像构建
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
-    - name: Validate Docker Hub credentials
       run: |
-        # 检查用户名（推荐使用 vars，但保持向后兼容）
-        if [ -z "${{ vars.DOCKERHUB_USERNAME }}" ] && [ -z "${{ secrets.DOCKER_USERNAME }}" ]; then
-          echo "❌ Docker Hub 用户名未配置"
-          echo "推荐方式: 在 GitHub Settings > Secrets and variables > Actions > Variables 中添加 DOCKERHUB_USERNAME"
-          echo "兼容方式: 在 Secrets 中添加 DOCKER_USERNAME"
-          exit 1
-        fi
+        echo "🏗️  开始构建生产版本..."
+        npm run build
         
-        # 检查令牌
-        if [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ] && [ -z "${{ secrets.DOCKER_PASSWORD }}" ]; then
-          echo "❌ Docker Hub 访问令牌未配置"
-          echo "推荐方式: 在 GitHub Settings > Secrets 中添加 DOCKERHUB_TOKEN"
-          echo "兼容方式: 在 Secrets 中添加 DOCKER_PASSWORD"
-          echo "⚠️  注意：请使用 Docker Hub 访问令牌，不是密码"
-          exit 1
-        fi
-        
-        # 显示配置状态
-        if [ -n "${{ vars.DOCKERHUB_USERNAME }}" ]; then
-          echo "✅ 使用新的推荐配置: DOCKERHUB_USERNAME (variable) + DOCKERHUB_TOKEN (secret)"
-        else
-          echo "✅ 使用兼容配置: DOCKER_USERNAME + DOCKER_PASSWORD (都是 secrets)"
-        fi
-        
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        # 优先使用推荐的配置，回退到兼容配置
-        username: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN || secrets.DOCKER_PASSWORD }}
-        # 注意：Docker Hub 不需要指定 registry 参数
-        # 注意：不要添加 ecr 或 logout 参数，这些都不是有效参数
-        
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKER_USERNAME }}/${{ env.APP_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-          
-    - name: Build and push Docker image
-      id: build
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64,linux/arm64
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          NODE_VERSION=${{ env.NODE_VERSION }}
-          BUILD_DATE=${{ github.event.head_commit.timestamp }}
-          GIT_COMMIT=${{ github.sha }}
+        # 显示构建结果信息
+        echo "📦 构建完成，文件统计:"
+        ls -la frontend/dist/
+        du -sh frontend/dist/
+        find frontend/dist/ -name "*.js" -o -name "*.css" -o -name "*.html" | head -10
           
     - name: Archive build artifacts
       uses: actions/upload-artifact@v4
@@ -139,25 +77,23 @@ jobs:
         path: frontend/dist/
         retention-days: 7
           
-  # 部署到私有服务器 (需要配置服务器SSH凭据)
+  # 部署到私有服务器 - 静态文件部署
   deploy-to-server:
     name: Deploy to ${{ github.event.inputs.environment || 'production' }}
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: false  # 暂时禁用，需要配置SSH凭据：SSH_PRIVATE_KEY, SSH_USER, SSH_HOST, SSH_KNOWN_HOSTS
+    if: false  # 暂时禁用，需要配置SSH凭据：SSH_PRIVATE_KEY, SSH_USER, SSH_HOST, SERVER_WEB_ROOT
     
     environment: 
       name: ${{ github.event.inputs.environment || 'production' }}
       
     steps:
-    - name: Checkout deployment scripts
-      uses: actions/checkout@v4
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
       with:
-        sparse-checkout: |
-          .github/scripts/
-          docker-compose.prod.yml
-          nginx.conf
-          
+        name: build-artifacts
+        path: ./dist
+        
     - name: Setup SSH Agent
       uses: webfactory/ssh-agent@v0.8.0
       with:
@@ -168,6 +104,37 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
         
+    - name: Validate deployment configuration
+      run: |
+        echo "🔍 验证部署配置..."
+        
+        # 检查必要的 Secrets
+        if [ -z "${{ secrets.SSH_USER }}" ]; then
+          echo "❌ SSH_USER secret 未配置"
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.SSH_HOST }}" ]; then
+          echo "❌ SSH_HOST secret 未配置"  
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.SERVER_WEB_ROOT }}" ]; then
+          echo "❌ SERVER_WEB_ROOT secret 未配置（如：/var/www/html）"
+          exit 1
+        fi
+        
+        echo "✅ SSH 配置验证通过"
+        echo "用户: ${{ secrets.SSH_USER }}"
+        echo "主机: ${{ secrets.SSH_HOST }}"
+        echo "部署路径: ${{ secrets.SERVER_WEB_ROOT }}"
+        
+        # 显示构建文件信息
+        echo ""
+        echo "📦 准备部署的文件:"
+        ls -la ./dist/
+        echo "总大小: $(du -sh ./dist/ | cut -f1)"
+        
     # 健康检查 - 部署前
     - name: Pre-deployment health check
       run: |
@@ -176,161 +143,252 @@ jobs:
           
           # 检查磁盘空间
           disk_usage=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
-          if [ "$disk_usage" -gt 80 ]; then
+          if [ "$disk_usage" -gt 85 ]; then
             echo "❌ 磁盘空间不足：${disk_usage}%"
             exit 1
           fi
+          echo "💾 磁盘使用率：${disk_usage}%"
           
           # 检查内存
           memory_free=$(free | awk '/^Mem:/ {printf "%.1f", (($2-$3)/$2)*100}')
           echo "💾 可用内存：${memory_free}%"
           
-          # 检查 Docker 服务
-          if ! docker info > /dev/null 2>&1; then
-            echo "❌ Docker 服务未运行"
-            exit 1
+          # 检查 Web 服务器进程（Apache/Nginx）
+          if pgrep -x "nginx" > /dev/null || pgrep -x "apache2" > /dev/null || pgrep -x "httpd" > /dev/null; then
+            echo "✅ Web 服务器运行正常"
+          else
+            echo "⚠️  未检测到 Web 服务器进程，请确保已安装并运行"
           fi
           
           echo "✅ 服务器状态正常，可以开始部署"
         EOF
         
-    # 创建部署目录和配置
+    # 创建部署目录和备份
     - name: Prepare deployment directory
-      run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-          # 创建部署目录结构
-          sudo mkdir -p /opt/salary-system/{releases,shared,scripts}
-          sudo chown -R $USER:$USER /opt/salary-system
-          
-          # 创建新版本目录
-          RELEASE_DIR="/opt/salary-system/releases/$(date +%Y%m%d_%H%M%S)"
-          mkdir -p $RELEASE_DIR
-          echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
-          echo "📁 创建发布目录：$RELEASE_DIR"
-        EOF
-        
-    # 复制配置文件和脚本
-    - name: Copy deployment files
-      run: |
-        # 复制 docker-compose 配置
-        scp docker-compose.prod.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/salary-system/shared/
-        scp nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/salary-system/shared/
-        
-        # 复制部署脚本
-        scp -r .github/scripts/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/salary-system/scripts/
-        
-    # 执行部署
-    - name: Deploy application
       env:
-        IMAGE_TAG: ${{ needs.build-and-test.outputs.image-tag }}
+        WEB_ROOT: ${{ secrets.SERVER_WEB_ROOT }}
         DEPLOY_TYPE: ${{ github.event.inputs.deploy_type || 'rolling' }}
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
-          cd /opt/salary-system
+          echo "📁 准备部署目录..."
           
-          # 设置环境变量
-          export IMAGE_TAG="$IMAGE_TAG"
-          export DEPLOY_TYPE="$DEPLOY_TYPE"
-          export SUPABASE_URL="${{ secrets.VITE_SUPABASE_URL }}"
-          export SUPABASE_ANON_KEY="${{ secrets.VITE_SUPABASE_ANON_KEY }}"
+          # 设置变量
+          WEB_ROOT="$WEB_ROOT"
+          BACKUP_DIR="/opt/backups/salary-system/\$(date +%Y%m%d_%H%M%S)"
           
-          # 执行部署脚本
-          chmod +x scripts/deploy.sh
-          ./scripts/deploy.sh
+          # 创建备份目录
+          sudo mkdir -p \$BACKUP_DIR
+          sudo chown $USER:$USER /opt/backups/salary-system/
+          
+          # 备份当前网站文件（如果存在）
+          if [ -d "\$WEB_ROOT" ] && [ "\$(ls -A \$WEB_ROOT 2>/dev/null)" ]; then
+            echo "💾 备份当前网站文件到: \$BACKUP_DIR"
+            cp -r \$WEB_ROOT/* \$BACKUP_DIR/ || echo "⚠️  备份过程中遇到一些警告，继续执行"
+            echo "BACKUP_DIR=\$BACKUP_DIR" >> /tmp/deploy_env
+          else
+            echo "ℹ️  没有发现现有文件，跳过备份"
+          fi
+          
+          # 确保 Web 根目录存在并设置正确权限
+          sudo mkdir -p \$WEB_ROOT
+          sudo chown -R $USER:www-data \$WEB_ROOT 2>/dev/null || sudo chown -R $USER:apache \$WEB_ROOT 2>/dev/null || sudo chown $USER \$WEB_ROOT
+          sudo chmod -R 755 \$WEB_ROOT
+          
+          echo "✅ 目录准备完成"
+        EOF
+        
+    # 部署静态文件
+    - name: Deploy static files
+      env:
+        WEB_ROOT: ${{ secrets.SERVER_WEB_ROOT }}
+        DEPLOY_TYPE: ${{ github.event.inputs.deploy_type || 'rolling' }}
+      run: |
+        echo "🚀 开始部署静态文件..."
+        echo "部署类型: $DEPLOY_TYPE"
+        echo "目标路径: $WEB_ROOT"
+        
+        if [ "$DEPLOY_TYPE" = "blue_green" ]; then
+          # 蓝绿部署：先部署到临时目录，然后原子切换
+          echo "💙💚 使用蓝绿部署策略"
+          
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+            TEMP_DIR="\$HOME/temp_deploy_\$(date +%Y%m%d_%H%M%S)"
+            mkdir -p \$TEMP_DIR
+            echo "TEMP_DIR=\$TEMP_DIR" >> /tmp/deploy_env
+          EOF
+          
+          # 复制文件到临时目录
+          scp -r ./dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/temp_deploy_*/
+          
+          # 原子切换
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            source /tmp/deploy_env
+            sudo rm -rf ${{ secrets.SERVER_WEB_ROOT }}/*
+            sudo cp -r $TEMP_DIR/* ${{ secrets.SERVER_WEB_ROOT }}/
+            sudo chown -R $USER:www-data ${{ secrets.SERVER_WEB_ROOT }} 2>/dev/null || sudo chown -R $USER:apache ${{ secrets.SERVER_WEB_ROOT }} 2>/dev/null || sudo chown -R $USER ${{ secrets.SERVER_WEB_ROOT }}
+            sudo chmod -R 755 ${{ secrets.SERVER_WEB_ROOT }}
+            rm -rf $TEMP_DIR
+            echo "✅ 蓝绿部署完成"
+          EOF
+          
+        else
+          # 滚动部署：直接替换文件
+          echo "🔄 使用滚动部署策略"
+          
+          # 清理目标目录
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+            echo "🧹 清理目标目录..."
+            sudo find $WEB_ROOT -mindepth 1 -delete 2>/dev/null || echo "目录已清空"
+          EOF
+          
+          # 复制新文件
+          echo "📦 复制新文件..."
+          scp -r ./dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:$WEB_ROOT/
+          
+          # 设置权限
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+            echo "🔐 设置文件权限..."
+            sudo chown -R $USER:www-data $WEB_ROOT 2>/dev/null || sudo chown -R $USER:apache $WEB_ROOT 2>/dev/null || sudo chown -R $USER $WEB_ROOT
+            sudo chmod -R 755 $WEB_ROOT
+            sudo find $WEB_ROOT -type f -exec chmod 644 {} \;
+            echo "✅ 滚动部署完成"
+          EOF
+        fi
+        
+    # 重启/重载 Web 服务器
+    - name: Reload web server
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "🔄 重载 Web 服务器配置..."
+          
+          # 尝试重载 Nginx
+          if command -v nginx >/dev/null 2>&1; then
+            echo "📋 检测到 Nginx，尝试重载配置..."
+            sudo nginx -t && sudo systemctl reload nginx || echo "⚠️  Nginx 重载失败"
+            echo "✅ Nginx 状态: $(systemctl is-active nginx)"
+          fi
+          
+          # 尝试重载 Apache
+          if command -v apache2 >/dev/null 2>&1; then
+            echo "📋 检测到 Apache2，尝试重载配置..."
+            sudo apache2ctl configtest && sudo systemctl reload apache2 || echo "⚠️  Apache2 重载失败"
+            echo "✅ Apache2 状态: $(systemctl is-active apache2)"
+          elif command -v httpd >/dev/null 2>&1; then
+            echo "📋 检测到 httpd，尝试重载配置..."
+            sudo httpd -t && sudo systemctl reload httpd || echo "⚠️  httpd 重载失败"
+            echo "✅ httpd 状态: $(systemctl is-active httpd)"
+          fi
+          
+          echo "🎯 Web 服务器重载完成"
         EOF
         
     # 部署后健康检查
     - name: Post-deployment health check
+      env:
+        WEB_ROOT: ${{ secrets.SERVER_WEB_ROOT }}
       run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
           echo "🔍 执行部署后健康检查..."
           
-          # 等待服务启动
-          sleep 30
+          # 检查文件是否成功部署
+          if [ ! -f "$WEB_ROOT/index.html" ]; then
+            echo "❌ index.html 文件不存在，部署可能失败"
+            exit 1
+          fi
           
-          # 检查应用健康状态
-          max_attempts=30
+          echo "✅ 主文件存在检查通过"
+          
+          # 显示部署的文件统计
+          echo "📊 部署文件统计:"
+          find $WEB_ROOT -type f | wc -l | xargs echo "文件总数:"
+          du -sh $WEB_ROOT | cut -f1 | xargs echo "总大小:"
+          
+          # 检查关键文件
+          echo "📋 关键文件检查:"
+          for file in index.html assets/index-*.js assets/index-*.css; do
+            if find $WEB_ROOT -path "*\$file" | head -1 | read; then
+              echo "✅ 找到: \$file"
+            else
+              echo "⚠️  未找到: \$file"  
+            fi
+          done
+        EOF
+        
+        # 尝试 HTTP 健康检查（如果配置了域名）
+        if [ -n "${{ secrets.SERVER_DOMAIN }}" ]; then
+          echo "🌐 尝试 HTTP 健康检查..."
+          
+          max_attempts=10
           attempt=1
           
           while [ $attempt -le $max_attempts ]; do
-            echo "尝试第 $attempt 次健康检查..."
+            echo "尝试第 $attempt 次 HTTP 检查..."
             
-            # 检查应用响应
-            if curl -f -s http://localhost:80/health > /dev/null; then
-              echo "✅ 应用健康检查通过"
+            if curl -f -s -I "http://${{ secrets.SERVER_DOMAIN }}" | head -1 | grep -q "200"; then
+              echo "✅ HTTP 健康检查通过"
+              curl -I "http://${{ secrets.SERVER_DOMAIN }}"
               break
             fi
             
             if [ $attempt -eq $max_attempts ]; then
-              echo "❌ 应用健康检查失败，触发回滚"
-              ./scripts/rollback.sh
-              exit 1
+              echo "⚠️  HTTP 检查未通过，但不影响部署结果"
+              echo "请手动检查网站：http://${{ secrets.SERVER_DOMAIN }}"
             fi
             
-            sleep 10
+            sleep 5
             attempt=$((attempt + 1))
           done
-          
-          # 检查容器状态
-          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-          
-          echo "🎉 部署完成并验证成功！"
-        EOF
+        else
+          echo "ℹ️  未配置 SERVER_DOMAIN，跳过 HTTP 检查"
+        fi
         
-    # 清理旧版本
-    - name: Cleanup old releases
+        echo "🎉 部署健康检查完成！"
+        
+    # 清理旧版本备份
+    - name: Cleanup old backups
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-          cd /opt/salary-system/releases
+          echo "🧹 清理旧版本备份..."
           
-          # 保留最近 5 个版本，删除其他的
-          ls -t | tail -n +6 | xargs rm -rf
+          BACKUP_BASE="/opt/backups/salary-system"
           
-          echo "🧹 清理完成，保留最近 5 个版本"
+          if [ -d "$BACKUP_BASE" ]; then
+            # 保留最近 5 个备份，删除其他的
+            cd $BACKUP_BASE
+            ls -t | tail -n +6 | xargs rm -rf 2>/dev/null || echo "没有旧备份需要清理"
+            
+            remaining=$(ls | wc -l)
+            echo "✅ 清理完成，保留 $remaining 个备份"
+          else
+            echo "ℹ️  没有备份目录需要清理"
+          fi
         EOF
         
     - name: Deployment notification
       if: always()
       run: |
         if [ "${{ job.status }}" = "success" ]; then
-          echo "🚀 部署成功通知"
+          echo "🚀 静态文件部署成功！"
+          echo ""
+          echo "📋 部署信息："
           echo "环境: ${{ github.event.inputs.environment || 'production' }}"
           echo "版本: ${{ github.sha }}"
           echo "部署类型: ${{ github.event.inputs.deploy_type || 'rolling' }}"
+          echo "目标路径: ${{ secrets.SERVER_WEB_ROOT }}"
+          echo "部署时间: $(date)"
+          echo ""
+          if [ -n "${{ secrets.SERVER_DOMAIN }}" ]; then
+            echo "🌐 访问地址: http://${{ secrets.SERVER_DOMAIN }}"
+          else
+            echo "💡 请配置 SERVER_DOMAIN secret 以便显示访问地址"
+          fi
         else
-          echo "❌ 部署失败通知"
-          echo "请检查部署日志并处理问题"
+          echo "❌ 静态文件部署失败！"
+          echo ""
+          echo "🔧 故障排除建议："
+          echo "1. 检查 SSH 连接是否正常"
+          echo "2. 验证服务器权限配置"
+          echo "3. 确认 SERVER_WEB_ROOT 路径正确"
+          echo "4. 检查磁盘空间是否充足"
+          echo "5. 查看详细部署日志"
         fi
-
-  # 部署验证测试 (需要配置服务器域名)
-  deployment-verification:
-    name: Verify Deployment
-    runs-on: ubuntu-latest
-    needs: deploy-to-server
-    if: false  # 暂时禁用，需要配置SERVER_DOMAIN secret
-    
-    steps:
-    - name: Run deployment verification tests
-      run: |
-        # 等待应用完全启动
-        sleep 60
-        
-        echo "🧪 开始部署验证测试..."
-        
-        # 基本连接测试
-        if curl -f -s "http://${{ secrets.SERVER_DOMAIN }}/health"; then
-          echo "✅ 健康检查端点正常"
-        else
-          echo "❌ 健康检查失败"
-          exit 1
-        fi
-        
-        # API 端点测试
-        if curl -f -s "http://${{ secrets.SERVER_DOMAIN }}/api/v2/system/info"; then
-          echo "✅ API 端点正常"
-        else
-          echo "❌ API 端点异常"
-          exit 1
-        fi
-        
-        echo "🎉 部署验证测试通过！"

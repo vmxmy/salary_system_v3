@@ -1,40 +1,112 @@
-name: Simple Docker Login Test
+name: CORRECT Docker Login Test
 
 on:
   workflow_dispatch:
+    inputs:
+      test_type:
+        description: '测试类型'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+        - legacy    # 使用 DOCKER_USERNAME + DOCKER_PASSWORD
+        - recommended  # 使用 DOCKERHUB_USERNAME + DOCKERHUB_TOKEN  
+        - both      # 两种都测试
 
 jobs:
-  simple-docker-test:
-    name: Simple Docker Hub Login Test
+  correct-docker-test:
+    name: 正确的 Docker Hub 登录测试
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    # 最简单的 Docker Hub 登录配置
-    - name: Login to Docker Hub (Simple)
+    - name: 显示正确的配置格式
+      run: |
+        echo "📋 docker/login-action@v3 的正确用法:"
+        echo ""
+        echo "✅ 正确格式:"
+        echo "uses: docker/login-action@v3"
+        echo "with:"
+        echo "  username: \${{ secrets.DOCKER_USERNAME }}"
+        echo "  password: \${{ secrets.DOCKER_PASSWORD }}"
+        echo ""
+        echo "❌ 错误格式（你遇到的问题）:"
+        echo "uses: docker/login-action@v3"
+        echo "with:"
+        echo "  ecr: auto      # ❌ 这不是有效参数！"
+        echo "  logout: true   # ❌ 这不是有效参数！"
+        echo ""
+        
+    # 测试传统配置
+    - name: 测试传统配置 (DOCKER_USERNAME + DOCKER_PASSWORD)
+      if: github.event.inputs.test_type == 'legacy' || github.event.inputs.test_type == 'both'
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+      continue-on-error: true
+      id: legacy-login
         
-    - name: Test login success
-      run: |
-        echo "✅ Docker Hub 登录成功!"
-        docker info
-        
-    - name: Test with recommended configuration
+    # 测试推荐配置  
+    - name: 测试推荐配置 (DOCKERHUB_USERNAME + DOCKERHUB_TOKEN)
+      if: github.event.inputs.test_type == 'recommended' || github.event.inputs.test_type == 'both'
       uses: docker/login-action@v3
       with:
         username: ${{ vars.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
       continue-on-error: true
-      
-    - name: Show available configurations
+      id: recommended-login
+        
+    - name: 验证登录结果
       run: |
-        echo "🔧 可用配置检查:"
-        echo "DOCKER_USERNAME secret: $(if [ -n '${{ secrets.DOCKER_USERNAME }}' ]; then echo '已设置'; else echo '未设置'; fi)"
-        echo "DOCKER_PASSWORD secret: $(if [ -n '${{ secrets.DOCKER_PASSWORD }}' ]; then echo '已设置'; else echo '未设置'; fi)"
-        echo "DOCKERHUB_USERNAME variable: $(if [ -n '${{ vars.DOCKERHUB_USERNAME }}' ]; then echo '已设置'; else echo '未设置'; fi)"
-        echo "DOCKERHUB_TOKEN secret: $(if [ -n '${{ secrets.DOCKERHUB_TOKEN }}' ]; then echo '已设置'; else echo '未设置'; fi)"
+        echo "🔧 配置检查结果:"
+        
+        # 检查 secrets 和 variables 是否存在
+        if [ -n "${{ secrets.DOCKER_USERNAME }}" ]; then
+          echo "✅ DOCKER_USERNAME secret 已设置"
+        else
+          echo "❌ DOCKER_USERNAME secret 未设置"
+        fi
+        
+        if [ -n "${{ secrets.DOCKER_PASSWORD }}" ]; then
+          echo "✅ DOCKER_PASSWORD secret 已设置" 
+        else
+          echo "❌ DOCKER_PASSWORD secret 未设置"
+        fi
+        
+        if [ -n "${{ vars.DOCKERHUB_USERNAME }}" ]; then
+          echo "✅ DOCKERHUB_USERNAME variable 已设置"
+        else
+          echo "❌ DOCKERHUB_USERNAME variable 未设置"
+        fi
+        
+        if [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+          echo "✅ DOCKERHUB_TOKEN secret 已设置"
+        else
+          echo "❌ DOCKERHUB_TOKEN secret 未设置"
+        fi
+        
+        echo ""
+        echo "📊 登录测试结果:"
+        
+        if [ "${{ steps.legacy-login.outcome }}" = "success" ]; then
+          echo "✅ 传统配置登录成功"
+        elif [ "${{ steps.legacy-login.outcome }}" = "failure" ]; then
+          echo "❌ 传统配置登录失败"
+        fi
+        
+        if [ "${{ steps.recommended-login.outcome }}" = "success" ]; then
+          echo "✅ 推荐配置登录成功"  
+        elif [ "${{ steps.recommended-login.outcome }}" = "failure" ]; then
+          echo "❌ 推荐配置登录失败"
+        fi
+        
+    - name: 简单测试 Docker 操作
+      if: steps.legacy-login.outcome == 'success' || steps.recommended-login.outcome == 'success'
+      run: |
+        echo "🧪 测试 Docker 基本操作..."
+        docker --version
+        docker info | grep "Registry:"
+        echo "✅ Docker 登录验证成功!"
