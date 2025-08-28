@@ -81,7 +81,7 @@ jobs:
       name: github-pages
       
     outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
+      image-tag: ${{ secrets.DOCKER_USERNAME }}/${{ env.APP_NAME }}:latest
       image-digest: ${{ steps.build.outputs.digest }}
       
     steps:
@@ -131,13 +131,16 @@ jobs:
           
     - name: Generate SBOM
       uses: anchore/sbom-action@v0
+      continue-on-error: true
       with:
-        image: ${{ steps.meta.outputs.tags }}
+        image: ${{ secrets.DOCKER_USERNAME }}/${{ env.APP_NAME }}:latest
         format: spdx-json
         output-file: /tmp/sbom.spdx.json
         
     - name: Upload SBOM
       uses: actions/upload-artifact@v4
+      if: success() || failure()
+      continue-on-error: true
       with:
         name: sbom
         path: /tmp/sbom.spdx.json
