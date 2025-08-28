@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { usePayrollApproval } from '@/hooks/payroll/usePayrollApproval';
 import { useBatchInsuranceCalculation } from '@/hooks/insurance';
 import { usePayrollCalculation } from '@/hooks/payroll/usePayrollCalculation';
+import { useDeletePayroll } from '@/hooks/payroll/usePayroll';
 import { useToast } from '@/contexts/ToastContext';
 import { contributionBaseQueryKeys } from '@/hooks/payroll/useContributionBase';
 import { 
@@ -28,6 +29,11 @@ interface CalculationProgressModal extends BatchProgressModal {
   type: 'insurance' | 'payroll';
 }
 
+// 删除进度模态框状态
+interface DeleteProgressModal extends BatchProgressModal {
+  type: 'delete';
+}
+
 // 确认模态框状态
 interface ConfirmModalState {
   open: boolean;
@@ -41,21 +47,25 @@ interface BatchOperationsManager {
   confirmModal: ConfirmModalState;
   submitProgressModal: SubmitProgressModal;
   calculationProgressModal: CalculationProgressModal;
+  deleteProgressModal: DeleteProgressModal;
   
   // 模态框操作
   setConfirmModal: React.Dispatch<React.SetStateAction<ConfirmModalState>>;
   setSubmitProgressModal: React.Dispatch<React.SetStateAction<SubmitProgressModal>>;
   setCalculationProgressModal: React.Dispatch<React.SetStateAction<CalculationProgressModal>>;
+  setDeleteProgressModal: React.Dispatch<React.SetStateAction<DeleteProgressModal>>;
   
   // 批量操作函数
   handleBatchSubmit: (selectedIds: string[], allData: any[]) => Promise<void>;
   handleBatchCalculateInsurance: (selectedIds: string[], processedData: any[], selectedPeriodId: string, isCompletenessReady: boolean) => Promise<void>;
   handleBatchCalculatePayroll: (selectedIds: string[], processedData: any[], isCompletenessReady: boolean) => Promise<void>;
+  handleBatchDelete: (selectedIds: string[], processedData: any[]) => Promise<void>;
   
   // 进度操作函数
   cancelSubmitOperation: () => void;
   closeSubmitProgressModal: () => void;
   closeCalculationProgressModal: () => void;
+  closeDeleteProgressModal: () => void;
   
   // 加载状态
   isAnyOperationLoading: boolean;
@@ -76,6 +86,7 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
   const approval = usePayrollApproval();
   const { calculateBatchInsurance, loading: batchInsuranceLoading } = useBatchInsuranceCalculation();
   const payrollCalculation = usePayrollCalculation();
+  const deletePayrollMutation = useDeletePayroll();
   
   // 取消控制器引用
   const submitAbortControllerRef = useRef<AbortController | null>(null);
@@ -100,6 +111,16 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
   const [calculationProgressModal, setCalculationProgressModal] = useState<CalculationProgressModal>({
     open: false,
     type: 'insurance',
+    items: [],
+    currentItemId: '',
+    totalProgress: 0,
+    allowCancel: true
+  });
+
+  // 删除进度模态框状态
+  const [deleteProgressModal, setDeleteProgressModal] = useState<DeleteProgressModal>({
+    open: false,
+    type: 'delete',
     items: [],
     currentItemId: '',
     totalProgress: 0,
