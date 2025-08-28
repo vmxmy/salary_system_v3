@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
-// 内存优化的服务器构建配置 - 保持合理功能
+// 内存优化的服务器构建配置 - 1.2G 内存环境专用
+// 这个配置专门为生产服务器的低内存环境设计
 export default defineConfig({
   plugins: [
     tailwindcss(), 
@@ -40,8 +41,8 @@ export default defineConfig({
     rollupOptions: {
       // 合理控制并行操作
       output: {
-        // 适度限制并行操作以节省内存
-        maxParallelFileOps: 3, // 平衡性能和内存使用
+        // 严格限制并行操作以节省内存 (需求 1.4)
+        maxParallelFileOps: 1, // 1.2G 内存环境下最保守的设置
         
         // 优化的代码分割策略
         manualChunks: (id) => {

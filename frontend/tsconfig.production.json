@@ -1,0 +1,93 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    // Memory optimization settings for 1.2G environment
+    "incremental": true,
+    "composite": false,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.production.tsbuildinfo",
+    
+    // Skip expensive type checking operations
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    
+    // Optimize dependency processing
+    "assumeChangesOnlyAffectDirectDependencies": true,
+    "disableReferencedProjectLoad": true,
+    "maxNodeModuleJsDepth": 0,
+    
+    // Disable expensive compiler features for production builds
+    "exactOptionalPropertyTypes": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false,
+    
+    // Production-specific optimizations
+    "removeComments": true,
+    "sourceMap": false,
+    
+    // Reduce memory usage during emit
+    "noEmit": true,
+    
+    // Optimize module resolution for production
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": false,
+    
+    // Strict mode optimizations (keep essential checks only)
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": false,
+    
+    // Target and library optimizations
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    
+    // JSX optimization
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    
+    // Path mapping (inherited from base config)
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  
+  // Include only production-relevant files
+  "include": [
+    "src/**/*"
+  ],
+  
+  // Exclude development and test files to reduce memory usage
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx", 
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/test/**/*",
+    "src/tests/**/*",
+    "src/**/__tests__/**/*",
+    "src/debug/**/*",
+    "src/archived/**/*",
+    "src/backup-auth/**/*",
+    "archived/**/*",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
+    "src/hooks/payroll/useSalaryComponentFields.ts",
+    "node_modules",
+    "dist",
+    ".archive"
+  ],
+  
+  // No project references for production builds to reduce complexity
+  
+  // ts-node configuration for production environment
+  "ts-node": {
+    "compilerOptions": {
+      "incremental": false,
+      "skipLibCheck": true,
+      "transpileOnly": true
+    }
+  }
+}
