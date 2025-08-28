@@ -1,0 +1,302 @@
+name: Deploy to Private Server
+
+on:
+  push:
+    branches: [ main, production ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '部署环境'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+      deploy_type:
+        description: '部署类型'
+        required: true
+        default: 'rolling'
+        type: choice
+        options:
+        - rolling    # 滚动部署
+        - blue_green # 蓝绿部署
+        - canary     # 金丝雀部署
+
+env:
+  NODE_VERSION: '20'
+  DOCKER_REGISTRY: 'your-registry.com'  # 替换为您的镜像仓库
+  APP_NAME: 'salary-system-v3'
+
+jobs:
+  # 构建和测试
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+      
+    - name: Run tests
+      working-directory: ./frontend
+      run: |
+        npm run lint
+        npx tsc --noEmit
+        
+    - name: Build application
+      working-directory: ./frontend
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        NODE_ENV: production
+      run: npm run build
+      
+    # Docker 镜像构建
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Login to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.DOCKER_REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.DOCKER_REGISTRY }}/${{ env.APP_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+          
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          NODE_VERSION=${{ env.NODE_VERSION }}
+          BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          GIT_COMMIT=${{ github.sha }}
+          
+  # 部署到私有服务器
+  deploy-to-server:
+    name: Deploy to ${{ github.event.inputs.environment || 'production' }}
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: success()
+    
+    environment: 
+      name: ${{ github.event.inputs.environment || 'production' }}
+      
+    steps:
+    - name: Checkout deployment scripts
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: |
+          .github/scripts/
+          docker-compose.prod.yml
+          nginx.conf
+          
+    - name: Setup SSH Agent
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+    - name: Add server to known hosts
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+        
+    # 健康检查 - 部署前
+    - name: Pre-deployment health check
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "🔍 执行部署前健康检查..."
+          
+          # 检查磁盘空间
+          disk_usage=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+          if [ "$disk_usage" -gt 80 ]; then
+            echo "❌ 磁盘空间不足：${disk_usage}%"
+            exit 1
+          fi
+          
+          # 检查内存
+          memory_free=$(free | awk '/^Mem:/ {printf "%.1f", (($2-$3)/$2)*100}')
+          echo "💾 可用内存：${memory_free}%"
+          
+          # 检查 Docker 服务
+          if ! docker info > /dev/null 2>&1; then
+            echo "❌ Docker 服务未运行"
+            exit 1
+          fi
+          
+          echo "✅ 服务器状态正常，可以开始部署"
+        EOF
+        
+    # 创建部署目录和配置
+    - name: Prepare deployment directory
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          # 创建部署目录结构
+          sudo mkdir -p /opt/salary-system/{releases,shared,scripts}
+          sudo chown -R $USER:$USER /opt/salary-system
+          
+          # 创建新版本目录
+          RELEASE_DIR="/opt/salary-system/releases/$(date +%Y%m%d_%H%M%S)"
+          mkdir -p $RELEASE_DIR
+          echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
+          echo "📁 创建发布目录：$RELEASE_DIR"
+        EOF
+        
+    # 复制配置文件和脚本
+    - name: Copy deployment files
+      run: |
+        # 复制 docker-compose 配置
+        scp docker-compose.prod.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/salary-system/shared/
+        scp nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/salary-system/shared/
+        
+        # 复制部署脚本
+        scp -r .github/scripts/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/salary-system/scripts/
+        
+    # 执行部署
+    - name: Deploy application
+      env:
+        IMAGE_TAG: ${{ needs.build-and-test.outputs.image-tag }}
+        DEPLOY_TYPE: ${{ github.event.inputs.deploy_type || 'rolling' }}
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+          cd /opt/salary-system
+          
+          # 设置环境变量
+          export IMAGE_TAG="$IMAGE_TAG"
+          export DEPLOY_TYPE="$DEPLOY_TYPE"
+          export SUPABASE_URL="${{ secrets.VITE_SUPABASE_URL }}"
+          export SUPABASE_ANON_KEY="${{ secrets.VITE_SUPABASE_ANON_KEY }}"
+          
+          # 执行部署脚本
+          chmod +x scripts/deploy.sh
+          ./scripts/deploy.sh
+        EOF
+        
+    # 部署后健康检查
+    - name: Post-deployment health check
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "🔍 执行部署后健康检查..."
+          
+          # 等待服务启动
+          sleep 30
+          
+          # 检查应用健康状态
+          max_attempts=30
+          attempt=1
+          
+          while [ $attempt -le $max_attempts ]; do
+            echo "尝试第 $attempt 次健康检查..."
+            
+            # 检查应用响应
+            if curl -f -s http://localhost:80/health > /dev/null; then
+              echo "✅ 应用健康检查通过"
+              break
+            fi
+            
+            if [ $attempt -eq $max_attempts ]; then
+              echo "❌ 应用健康检查失败，触发回滚"
+              ./scripts/rollback.sh
+              exit 1
+            fi
+            
+            sleep 10
+            attempt=$((attempt + 1))
+          done
+          
+          # 检查容器状态
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          
+          echo "🎉 部署完成并验证成功！"
+        EOF
+        
+    # 清理旧版本
+    - name: Cleanup old releases
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          cd /opt/salary-system/releases
+          
+          # 保留最近 5 个版本，删除其他的
+          ls -t | tail -n +6 | xargs rm -rf
+          
+          echo "🧹 清理完成，保留最近 5 个版本"
+        EOF
+        
+    - name: Deployment notification
+      if: always()
+      run: |
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "🚀 部署成功通知"
+          echo "环境: ${{ github.event.inputs.environment || 'production' }}"
+          echo "版本: ${{ github.sha }}"
+          echo "部署类型: ${{ github.event.inputs.deploy_type || 'rolling' }}"
+        else
+          echo "❌ 部署失败通知"
+          echo "请检查部署日志并处理问题"
+        fi
+
+  # 部署验证测试
+  deployment-verification:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: deploy-to-server
+    if: success()
+    
+    steps:
+    - name: Run deployment verification tests
+      run: |
+        # 等待应用完全启动
+        sleep 60
+        
+        echo "🧪 开始部署验证测试..."
+        
+        # 基本连接测试
+        if curl -f -s "http://${{ secrets.SERVER_DOMAIN }}/health"; then
+          echo "✅ 健康检查端点正常"
+        else
+          echo "❌ 健康检查失败"
+          exit 1
+        fi
+        
+        # API 端点测试
+        if curl -f -s "http://${{ secrets.SERVER_DOMAIN }}/api/v2/system/info"; then
+          echo "✅ API 端点正常"
+        else
+          echo "❌ API 端点异常"
+          exit 1
+        fi
+        
+        echo "🎉 部署验证测试通过！"
