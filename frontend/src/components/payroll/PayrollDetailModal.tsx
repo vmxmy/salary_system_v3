@@ -14,6 +14,8 @@ import { useEmployeePositions } from '@/hooks/payroll/useEmployeePosition';
 import { useEmployeeContributionBasesByPeriod } from '@/hooks/payroll/useContributionBase';
 import { useUpdateEarning } from '@/hooks/payroll/usePayrollEarnings';
 import { useSetContributionBase } from '@/hooks/payroll/useContributionBase';
+import { useCurrentYearProvidentFundTrend } from '@/hooks/payroll/useContributionBaseTrend';
+import { ContributionBaseTrendChart } from '@/components/common/ContributionBaseTrendChart';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -596,7 +598,7 @@ export function PayrollDetailModal({
                     <InsuranceTab insuranceDetails={insuranceDetails} />
                   )}
                   {activeTab === 'contribution' && (
-                    <ContributionTab contributionBases={contributionBasesData} />
+                    <ContributionTab contributionBases={contributionBasesData} employeeId={employeeId} />
                   )}
                   {activeTab === 'tax' && (
                     <TaxTab taxItems={taxItems} />
@@ -745,12 +747,13 @@ function InsuranceTab({ insuranceDetails }: InsuranceTabProps) {
 // 缴费基数Tab组件
 interface ContributionTabProps {
   contributionBases: ContributionBase[];
+  employeeId: string;
 }
 
-function ContributionTab({ contributionBases }: ContributionTabProps) {
+function ContributionTab({ contributionBases, employeeId }: ContributionTabProps) {
   return (
     <div className="space-y-6">
-      <ContributionBaseSection contributionBases={contributionBases} />
+      <ContributionBaseSection contributionBases={contributionBases} employeeId={employeeId} />
     </div>
   );
 }
@@ -1591,7 +1594,7 @@ function InsuranceDetailsSection({
       cell: info => (
         <div className="text-right">
           <span className="text-sm font-semibold font-mono text-red-600">
-            -{formatCurrency((info.getValue() as number) || 0)}
+            {formatCurrency((info.getValue() as number) || 0)}
           </span>
         </div>
       )
@@ -1601,7 +1604,7 @@ function InsuranceDetailsSection({
       cell: info => (
         <div className="text-right">
           <span className="text-sm font-semibold font-mono text-blue-600">
-            -{formatCurrency((info.getValue() as number) || 0)}
+            {formatCurrency((info.getValue() as number) || 0)}
           </span>
         </div>
       )
@@ -1657,13 +1660,13 @@ function InsuranceDetailsSection({
           <div className="text-center">
             <p className="text-xs text-base-content/60 mb-1">个人缴费合计</p>
             <p className="text-lg font-bold text-red-600 font-mono">
-              -{formatCurrency(totalEmployeeContribution)}
+              {formatCurrency(totalEmployeeContribution)}
             </p>
           </div>
           <div className="text-center">
             <p className="text-xs text-base-content/60 mb-1">企业缴费合计</p>
             <p className="text-lg font-bold text-blue-600 font-mono">
-              -{formatCurrency(totalEmployerContribution)}
+              {formatCurrency(totalEmployerContribution)}
             </p>
           </div>
           <div className="text-center">
@@ -1728,16 +1731,21 @@ const contributionColumnHelper = createColumnHelper<ContributionBase>();
 // 缴费基数详情组件
 interface ContributionBaseSectionProps {
   contributionBases: ContributionBase[];
+  employeeId: string;
 }
 
 function ContributionBaseSection({
-  contributionBases
+  contributionBases,
+  employeeId
 }: ContributionBaseSectionProps) {
   const { t } = useTranslation(['payroll', 'common']);
   const { showSuccess, showError } = useToast();
 
   // 使用缴费基数更新 hook
   const setContributionBaseMutation = useSetContributionBase();
+
+  // 获取公积金缴费基数年度趋势数据
+  const { data: trendData = [], isLoading: trendLoading } = useCurrentYearProvidentFundTrend(employeeId);
 
   // 内联编辑状态管理
   const [editingBaseId, setEditingBaseId] = useState<string | null>(null);
@@ -2037,6 +2045,13 @@ function ContributionBaseSection({
 
   return (
     <div className="space-y-6">
+      {/* 公积金缴费基数年度趋势图 - 迷你版本 */}
+      <ContributionBaseTrendChart 
+        data={trendData}
+        loading={trendLoading}
+        className="mb-4"
+      />
+
       {/* 基数概览卡片 - 紧凑样式 */}
       <div className="bg-gradient-to-r from-info/5 via-info/3 to-transparent rounded-lg p-4 border border-info/10">
         <h3 className="text-sm font-semibold text-base-content mb-3 flex items-center gap-2">
@@ -2045,13 +2060,7 @@ function ContributionBaseSection({
           </svg>
           基数概览
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-xs text-base-content/60 mb-1">平均缴费基数</p>
-            <p className="text-lg font-bold text-info font-mono">
-              {formatCurrency(baseStatistics.average)}
-            </p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="text-center">
             <p className="text-xs text-base-content/60 mb-1">当前基数</p>
             <p className="text-lg font-bold text-success font-mono">

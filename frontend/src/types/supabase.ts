@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_logs: {
+        Row: {
+          created_at: string | null
+          data_size_bytes: number | null
+          event_type: string
+          execution_time_ms: number | null
+          id: string
+          ip_address: unknown | null
+          operation: string
+          query_details: Json | null
+          record_id: string | null
+          request_path: string | null
+          response_status: string | null
+          risk_level: string | null
+          sensitive_data_accessed: boolean | null
+          session_id: string | null
+          table_name: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_size_bytes?: number | null
+          event_type: string
+          execution_time_ms?: number | null
+          id?: string
+          ip_address?: unknown | null
+          operation: string
+          query_details?: Json | null
+          record_id?: string | null
+          request_path?: string | null
+          response_status?: string | null
+          risk_level?: string | null
+          sensitive_data_accessed?: boolean | null
+          session_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_size_bytes?: number | null
+          event_type?: string
+          execution_time_ms?: number | null
+          id?: string
+          ip_address?: unknown | null
+          operation?: string
+          query_details?: Json | null
+          record_id?: string | null
+          request_path?: string | null
+          response_status?: string | null
+          risk_level?: string | null
+          sensitive_data_accessed?: boolean | null
+          session_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       audit_deletion_log: {
         Row: {
           deleted_at: string | null
@@ -1198,6 +1258,39 @@ export type Database = {
         }
         Relationships: []
       }
+      monitoring_rules: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          enabled: boolean | null
+          id: string
+          rule_config: Json
+          rule_name: string
+          rule_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          rule_config: Json
+          rule_name: string
+          rule_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          rule_config?: Json
+          rule_name?: string
+          rule_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notification_settings: {
         Row: {
           approval_deadline: boolean
@@ -2191,6 +2284,110 @@ export type Database = {
         }
         Relationships: []
       }
+      security_alerts: {
+        Row: {
+          acknowledged: boolean | null
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          resolved: boolean | null
+          resolved_at: string | null
+          rule_id: string | null
+          severity: string
+          title: string
+          triggered_by_event: string | null
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          rule_id?: string | null
+          severity: string
+          title: string
+          triggered_by_event?: string | null
+        }
+        Update: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          rule_id?: string | null
+          severity?: string
+          title?: string
+          triggered_by_event?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_alerts_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_events: {
+        Row: {
+          auto_detected: boolean | null
+          created_at: string | null
+          event_category: string
+          event_details: Json
+          event_severity: string
+          id: string
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_ip: unknown | null
+          threat_indicators: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          auto_detected?: boolean | null
+          created_at?: string | null
+          event_category: string
+          event_details: Json
+          event_severity: string
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_ip?: unknown | null
+          threat_indicators?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          auto_detected?: boolean | null
+          created_at?: string | null
+          event_category?: string
+          event_details?: Json
+          event_severity?: string
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_ip?: unknown | null
+          threat_indicators?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       security_logs: {
         Row: {
           details: Json | null
@@ -2657,6 +2854,23 @@ export type Database = {
       }
     }
     Views: {
+      monitoring_dashboard: {
+        Row: {
+          accessed_tables: number | null
+          active_users: number | null
+          critical_alerts: number | null
+          critical_events: number | null
+          generated_at: string | null
+          high_risk_accesses: number | null
+          security_events: number | null
+          sensitive_accesses: number | null
+          total_accesses: number | null
+          total_alerts: number | null
+          unacknowledged_alerts: number | null
+          unresolved_events: number | null
+        }
+        Relationships: []
+      }
       permission_matrix_mv: {
         Row: {
           effective_data_scope: string | null
@@ -3781,6 +3995,10 @@ export type Database = {
       }
     }
     Functions: {
+      acknowledge_security_alert: {
+        Args: { p_alert_id: string; p_notes?: string }
+        Returns: boolean
+      }
       analyze_function_performance: {
         Args: {
           p_end_date?: string
@@ -3865,6 +4083,14 @@ export type Database = {
           total_deductions: number
         }[]
       }
+      calculate_risk_level: {
+        Args: {
+          p_operation: string
+          p_query_details: Json
+          p_table_name: string
+        }
+        Returns: string
+      }
       can_access_all_data: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -3880,6 +4106,15 @@ export type Database = {
       check_assignment_overlap: {
         Args: { p_employee_id: string; p_period_id: string }
         Returns: boolean
+      }
+      check_monitoring_system_health: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          component: string
+          details: Json
+          last_check: string
+          status: string
+        }[]
       }
       check_multiple_permissions: {
         Args: { p_permission_codes: string[]; p_user_id: string }
@@ -3905,6 +4140,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      check_suspicious_activity: {
+        Args: {
+          p_log_id: string
+          p_operation: string
+          p_table_name: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       cleanup_change_log: {
         Args: { p_days_to_keep?: number }
         Returns: Json
@@ -3912,6 +4156,10 @@ export type Database = {
       cleanup_expired_cache_v2: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      cleanup_monitoring_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       cleanup_old_logs: {
         Args: { p_days_to_keep?: number }
@@ -3941,6 +4189,18 @@ export type Database = {
       create_next_month_bases: {
         Args: { p_created_by?: string; p_current_month: string }
         Returns: number
+      }
+      create_security_alert: {
+        Args: {
+          p_alert_type: string
+          p_description?: string
+          p_metadata?: Json
+          p_rule_id?: string
+          p_severity: string
+          p_title: string
+          p_triggered_by_event?: string
+        }
+        Returns: string
       }
       dblink: {
         Args: { "": string }
@@ -4020,8 +4280,24 @@ export type Database = {
         Args: { data: string }
         Returns: string
       }
+      evaluate_anomaly_rule: {
+        Args: { p_rule_config: Json }
+        Returns: boolean
+      }
+      evaluate_monitoring_rules: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      evaluate_pattern_rule: {
+        Args: { p_rule_config: Json }
+        Returns: boolean
+      }
       evaluate_rule_condition: {
         Args: { p_condition_id: string; p_employee_id: string }
+        Returns: boolean
+      }
+      evaluate_threshold_rule: {
+        Args: { p_rule_config: Json }
         Returns: boolean
       }
       expire_permissions: {
@@ -4260,6 +4536,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: Json
       }
+      generate_monitoring_test_data: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_monthly_periods: {
         Args: { end_date?: string; start_date: string }
         Returns: {
@@ -4271,6 +4551,39 @@ export type Database = {
       generate_performance_report: {
         Args: { p_period?: unknown }
         Returns: Json
+      }
+      generate_security_report: {
+        Args: { p_end_date?: string; p_start_date?: string }
+        Returns: {
+          metric_name: string
+          metric_value: string
+          recommendations: string
+          report_section: string
+          risk_level: string
+        }[]
+      }
+      get_access_logs: {
+        Args: {
+          p_end_time?: string
+          p_page?: number
+          p_page_size?: number
+          p_risk_level?: string
+          p_start_time?: string
+          p_table_name?: string
+          p_user_id?: string
+        }
+        Returns: {
+          created_at: string
+          event_type: string
+          execution_time_ms: number
+          id: string
+          operation: string
+          risk_level: string
+          sensitive_data_accessed: boolean
+          table_name: string
+          total_count: number
+          user_id: string
+        }[]
       }
       get_accessible_employee_ids: {
         Args: { p_user_id: string }
@@ -4490,6 +4803,23 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_monitoring_dashboard: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          accessed_tables: number
+          active_users: number
+          critical_alerts: number
+          critical_events: number
+          generated_at: string
+          high_risk_accesses: number
+          security_events: number
+          sensitive_accesses: number
+          total_accesses: number
+          total_alerts: number
+          unacknowledged_alerts: number
+          unresolved_events: number
+        }[]
+      }
       get_new_user_default_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -4531,6 +4861,41 @@ export type Database = {
       get_personnel_category_display: {
         Args: { category_key: string; lang?: string }
         Returns: string
+      }
+      get_salary_component_category_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          category: string
+          count: number
+          type: string
+        }[]
+      }
+      get_salary_component_type_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          count: number
+          type: string
+        }[]
+      }
+      get_security_events: {
+        Args: {
+          p_event_category?: string
+          p_event_severity?: string
+          p_page?: number
+          p_page_size?: number
+          p_resolved?: boolean
+        }
+        Returns: {
+          created_at: string
+          event_category: string
+          event_details: Json
+          event_severity: string
+          id: string
+          resolved: boolean
+          source_ip: unknown
+          total_count: number
+          user_id: string
+        }[]
       }
       get_standard_insurance_component_id: {
         Args: {
@@ -4605,6 +4970,10 @@ export type Database = {
         Args: { p_data: Json; p_user_id: string }
         Returns: Json
       }
+      initialize_monitoring_system: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       insert_department: {
         Args: {
           p_code: string
@@ -4639,9 +5008,25 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_sensitive_table: {
+        Args: { p_table_name: string }
+        Returns: boolean
+      }
       is_super_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      log_access_event: {
+        Args: {
+          p_data_size_bytes?: number
+          p_event_type: string
+          p_execution_time_ms?: number
+          p_operation?: string
+          p_query_details?: Json
+          p_record_id?: string
+          p_table_name: string
+        }
+        Returns: string
       }
       log_function_performance: {
         Args: {
@@ -4693,6 +5078,10 @@ export type Database = {
           period_name: string
           updated: boolean
         }[]
+      }
+      resolve_security_event: {
+        Args: { p_event_id: string; p_resolution_notes?: string }
+        Returns: boolean
       }
       schedule_mapping_refresh: {
         Args: { p_interval_seconds?: number }
