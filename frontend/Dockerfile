@@ -96,17 +96,8 @@ server {
         add_header X-XSS-Protection "1; mode=block";
     }
 
-    # API 代理（如果需要）
-    location /api/ {
-        proxy_pass http://backend:8080/api/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_connect_timeout 30s;
-        proxy_send_timeout 30s;
-        proxy_read_timeout 30s;
-    }
+    # API 请求直接由前端处理（连接到 Supabase）
+    # 如果需要后端 API 代理，请配置相应的上游服务器
 
     # 健康检查端点
     location /health {
