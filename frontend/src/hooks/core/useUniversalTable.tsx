@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useSmartTableColumns, type TableOptions } from './useSmartTableColumns';
 import { getTableConfig, type TableConfiguration } from '@/lib/tableConfig';
+import { getOptimizedConfig } from '@/lib/performanceConfig';
 
 // 通用表格选项接口
 export interface UniversalTableOptions extends TableOptions {
@@ -168,9 +169,10 @@ function useTableData(tableName: string, options?: UniversalTableOptions) {
         });
       }
 
-      // 应用分页
+      // 应用分页 - 使用优化后的默认页面大小
       if (options?.pagination) {
-        const { pageSize = 20, pageIndex = 0 } = options.pagination;
+        const config = getOptimizedConfig();
+        const { pageSize = config.pagination.defaultPageSize, pageIndex = 0 } = options.pagination;
         const start = pageIndex * pageSize;
         const end = start + pageSize - 1;
         query = query.range(start, end);
@@ -185,7 +187,23 @@ function useTableData(tableName: string, options?: UniversalTableOptions) {
 
       return data || [];
     },
-    staleTime: 1 * 60 * 1000, // 1分钟缓存
+    // 使用优化后的缓存配置
+    staleTime: getOptimizedConfig().cache.staleTime,
+    gcTime: getOptimizedConfig().cache.cacheTime, // React Query v5 使用 gcTime 而不是 cacheTime
+    
+    // 优化后的重试配置
+    retry: getOptimizedConfig().retry.maxRetries,
+    retryDelay: (attemptIndex) => {
+      const config = getOptimizedConfig().retry;
+      return Math.min(
+        config.retryDelay * Math.pow(config.backoffMultiplier, attemptIndex),
+        config.maxRetryDelay
+      );
+    },
+    
+    // 网络错误快速重试
+    retryOnMount: true,
+    refetchOnWindowFocus: false, // 减少不必要的请求
   });
 }
 

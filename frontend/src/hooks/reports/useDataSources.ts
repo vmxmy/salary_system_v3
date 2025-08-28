@@ -95,10 +95,10 @@ function getDefaultDataSources(): DatabaseObject[] {
       comment: '职位信息表'
     },
     {
-      name: 'payroll_results',
+      name: 'payrolls',
       type: 'table',
       schema: 'public',
-      comment: '薪资结果表'
+      comment: '薪资记录表'
     },
     {
       name: 'payroll_items',
@@ -107,7 +107,7 @@ function getDefaultDataSources(): DatabaseObject[] {
       comment: '薪资明细项目表'
     },
     {
-      name: 'payroll_components',
+      name: 'salary_components',
       type: 'table',
       schema: 'public',
       comment: '薪资组件配置表'
@@ -138,7 +138,7 @@ export const getRecommendedFields = (dataSourceName: string): string[] => {
       'department_name', 'parent_department_name', 
       'department_level', 'is_active'
     ],
-    'payroll_results': [
+    'payrolls': [
       'employee_name', 'pay_month', 'gross_pay', 
       'total_deductions', 'net_pay', 'status'
     ]
@@ -414,10 +414,10 @@ function getEnhancedDefaultDataSources(): DataSourceEnhanced[] {
     },
     {
       schema_name: 'public',
-      table_name: 'employee_assignments',
+      table_name: 'employee_job_history',
       table_type: 'table',
-      description: '员工岗位分配历史记录',
-      display_name: '员工岗位分配',
+      description: '员工职务历史记录',
+      display_name: '员工职务历史',
       category: '员工管理'
     },
     {
@@ -438,20 +438,20 @@ function getEnhancedDefaultDataSources(): DataSourceEnhanced[] {
     },
     {
       schema_name: 'public',
-      table_name: 'personnel_categories',
+      table_name: 'employee_categories',
       table_type: 'table',
-      description: '人员类别表',
-      display_name: '人员类别',
+      description: '员工类别表',
+      display_name: '员工类别',
       category: '员工管理'
     },
     
     // 薪资相关表
     {
       schema_name: 'public',
-      table_name: 'payroll_results',
+      table_name: 'payrolls',
       table_type: 'table',
-      description: '薪资核算结果表',
-      display_name: '薪资核算结果',
+      description: '薪资记录表',
+      display_name: '薪资记录',
       category: '薪资管理'
     },
     {
@@ -464,7 +464,7 @@ function getEnhancedDefaultDataSources(): DataSourceEnhanced[] {
     },
     {
       schema_name: 'public',
-      table_name: 'payroll_components',
+      table_name: 'salary_components',
       table_type: 'table',
       description: '薪资组件配置表',
       display_name: '薪资组件配置',
@@ -477,24 +477,6 @@ function getEnhancedDefaultDataSources(): DataSourceEnhanced[] {
       description: '薪资期间管理表',
       display_name: '薪资期间管理',
       category: '薪资管理'
-    },
-    
-    // 查找表
-    {
-      schema_name: 'public',
-      table_name: 'lookup_types',
-      table_type: 'table',
-      description: '查找类型配置表',
-      display_name: '查找类型配置',
-      category: '系统配置'
-    },
-    {
-      schema_name: 'public',
-      table_name: 'lookup_values',
-      table_type: 'table',
-      description: '查找值配置表',
-      display_name: '查找值配置',
-      category: '系统配置'
     }
   ];
 }

@@ -11,6 +11,8 @@
 import { useState, useEffect } from 'react';
 import { useDataSourcesEnhanced, useTableColumnsEnhanced, type DataSourceEnhanced, type ColumnInfoEnhanced } from '@/hooks/reports/useDataSources';
 import { getRecommendedFields } from '@/hooks/reports/useDataSources';
+import type { FieldFilterConfig } from '@/types/report-config';
+import { FieldFilterConfig as FieldFilterConfigComponent } from './FieldFilterConfig';
 
 // 字段映射配置接口
 interface FieldMappingConfig {
@@ -20,6 +22,7 @@ interface FieldMappingConfig {
   visible: boolean;          // 是否在报表中显示
   sortable: boolean;         // 是否可排序
   format?: string;           // 数据格式化规则（可选）
+  field_filters?: FieldFilterConfig[]; // 字段筛选条件
 }
 
 // 模板配置接口
@@ -187,15 +190,26 @@ export default function ReportTemplateModal({
   // 保存模板
   const handleSave = () => {
     // 生成模板key（如果为空）
+    let finalConfig = templateConfig;
     if (!templateConfig.template_key) {
       const key = templateConfig.template_name
         .toLowerCase()
         .replace(/\s+/g, '_')
         .replace(/[^a-z0-9_]/g, '');
-      setTemplateConfig(prev => ({ ...prev, template_key: key }));
+      finalConfig = { ...templateConfig, template_key: key };
     }
 
-    onSave(templateConfig);
+    // 确保field_filters数据被正确包含在最终配置中
+    const configWithFilters = {
+      ...finalConfig,
+      field_mappings: finalConfig.field_mappings.map(mapping => ({
+        ...mapping,
+        // 确保field_filters属性存在（如果有筛选条件）
+        ...(mapping.field_filters && mapping.field_filters.length > 0 ? { field_filters: mapping.field_filters } : {})
+      }))
+    };
+
+    onSave(configWithFilters);
     resetModal();
     onClose();
   };
@@ -236,7 +250,7 @@ export default function ReportTemplateModal({
               选择字段
             </li>
             <li className={`step ${getStepNumber(currentStep) > 2 ? 'step-primary' : ''}`}>
-              字段映射
+              字段映射与筛选
             </li>
             <li className={`step ${getStepNumber(currentStep) > 3 ? 'step-primary' : ''}`}>
               预览确认
@@ -268,7 +282,7 @@ export default function ReportTemplateModal({
             />
           )}
 
-          {/* 步骤3: 字段映射配置 */}
+          {/* 步骤3: 字段映射和筛选配置 */}
           {currentStep === 'field-mapping' && (
             <FieldMappingStep
               fieldMappings={templateConfig.field_mappings}
@@ -655,147 +669,221 @@ function FieldMappingStep({
   templateConfig: TemplateConfig;
   onTemplateUpdate: (config: TemplateConfig) => void;
 }) {
+  const [activeTab, setActiveTab] = useState<'basic' | 'filters'>('basic');
+
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-4">字段映射配置</h3>
+        <h3 className="text-lg font-semibold mb-4">字段映射和筛选配置</h3>
         <p className="text-base-content/70 mb-6">
-          为每个字段设置显示名称、宽度和其他配置选项。这些设置将影响最终报表的外观。
+          配置字段的显示属性和筛选条件。筛选条件将在生成报表时应用，支持固定值、动态值和用户输入三种模式。
         </p>
       </div>
 
-      {/* 模板基本信息 */}
-      <div className="card bg-base-200">
-        <div className="card-body">
-          <h4 className="card-title text-base">模板基本信息</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label">
-                <span className="label-text">模板名称 *</span>
-              </label>
-              <input
-                type="text"
-                placeholder="例如：月度薪资汇总表"
-                className="input input-bordered w-full"
-                value={templateConfig.template_name}
-                onChange={(e) => onTemplateUpdate({
-                  ...templateConfig,
-                  template_name: e.target.value
-                })}
-              />
-            </div>
-            <div>
-              <label className="label">
-                <span className="label-text">模板分类</span>
-              </label>
-              <select
-                className="select select-bordered w-full"
-                value={templateConfig.category}
-                onChange={(e) => onTemplateUpdate({
-                  ...templateConfig,
-                  category: e.target.value
-                })}
-              >
-                <option value="payroll">薪资管理</option>
-                <option value="employee">员工管理</option>
-                <option value="department">部门管理</option>
-                <option value="statistics">统计分析</option>
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="label">
-                <span className="label-text">描述信息</span>
-              </label>
-              <textarea
-                className="textarea textarea-bordered w-full"
-                placeholder="简要描述这个报表模板的用途..."
-                value={templateConfig.description}
-                onChange={(e) => onTemplateUpdate({
-                  ...templateConfig,
-                  description: e.target.value
-                })}
-              />
-            </div>
-          </div>
-        </div>
+      {/* 配置标签页 */}
+      <div className="tabs tabs-boxed w-fit">
+        <button 
+          className={`tab ${activeTab === 'basic' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('basic')}
+        >
+          📝 基本配置
+        </button>
+        <button 
+          className={`tab ${activeTab === 'filters' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('filters')}
+        >
+          🔍 筛选条件
+        </button>
       </div>
 
-      {/* 字段配置 */}
-      <div className="card bg-base-200">
-        <div className="card-body">
-          <h4 className="card-title text-base">字段配置</h4>
-          <div className="overflow-x-auto">
-            <table className="table table-sm">
-              <thead>
-                <tr>
-                  <th>原字段名</th>
-                  <th>显示名称</th>
-                  <th>宽度</th>
-                  <th>显示</th>
-                  <th>排序</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fieldMappings.map((mapping, index) => (
-                  <tr key={mapping.original_field}>
-                    <td>
-                      <code className="text-xs">{mapping.original_field}</code>
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        className="input input-xs input-bordered w-full max-w-xs"
-                        value={mapping.display_name}
-                        onChange={(e) => onUpdate(index, { display_name: e.target.value })}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        className="input input-xs input-bordered w-20"
-                        value={mapping.width}
-                        onChange={(e) => onUpdate(index, { width: parseInt(e.target.value) || 100 })}
-                        min="50"
-                        max="300"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-xs"
-                        checked={mapping.visible}
-                        onChange={(e) => onUpdate(index, { visible: e.target.checked })}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-xs"
-                        checked={mapping.sortable}
-                        onChange={(e) => onUpdate(index, { sortable: e.target.checked })}
-                      />
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn-xs btn-error btn-outline"
-                        onClick={() => {
-                          onTemplateUpdate({
-                            ...templateConfig,
-                            field_mappings: fieldMappings.filter((_, i) => i !== index)
-                          });
-                        }}
-                      >
-                        删除
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* 基本配置标签页 */}
+      {activeTab === 'basic' && (
+        <>
+          {/* 模板基本信息 */}
+          <div className="card bg-base-200">
+            <div className="card-body">
+              <h4 className="card-title text-base">模板基本信息</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">
+                    <span className="label-text">模板名称 *</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="例如：月度薪资汇总表"
+                    className="input input-bordered w-full"
+                    value={templateConfig.template_name}
+                    onChange={(e) => onTemplateUpdate({
+                      ...templateConfig,
+                      template_name: e.target.value
+                    })}
+                  />
+                </div>
+                <div>
+                  <label className="label">
+                    <span className="label-text">模板分类</span>
+                  </label>
+                  <select
+                    className="select select-bordered w-full"
+                    value={templateConfig.category}
+                    onChange={(e) => onTemplateUpdate({
+                      ...templateConfig,
+                      category: e.target.value
+                    })}
+                  >
+                    <option value="payroll">薪资管理</option>
+                    <option value="employee">员工管理</option>
+                    <option value="department">部门管理</option>
+                    <option value="statistics">统计分析</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="label">
+                    <span className="label-text">描述信息</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered w-full"
+                    placeholder="简要描述这个报表模板的用途..."
+                    value={templateConfig.description}
+                    onChange={(e) => onTemplateUpdate({
+                      ...templateConfig,
+                      description: e.target.value
+                    })}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* 字段配置 */}
+          <div className="card bg-base-200">
+            <div className="card-body">
+              <h4 className="card-title text-base">字段配置</h4>
+              <div className="overflow-x-auto">
+                <table className="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>原字段名</th>
+                      <th>显示名称</th>
+                      <th>宽度</th>
+                      <th>显示</th>
+                      <th>排序</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fieldMappings.map((mapping, index) => (
+                      <tr key={mapping.original_field}>
+                        <td>
+                          <code className="text-xs">{mapping.original_field}</code>
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="input input-xs input-bordered w-full max-w-xs"
+                            value={mapping.display_name}
+                            onChange={(e) => onUpdate(index, { display_name: e.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            className="input input-xs input-bordered w-20"
+                            value={mapping.width}
+                            onChange={(e) => onUpdate(index, { width: parseInt(e.target.value) || 100 })}
+                            min="50"
+                            max="300"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-xs"
+                            checked={mapping.visible}
+                            onChange={(e) => onUpdate(index, { visible: e.target.checked })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-xs"
+                            checked={mapping.sortable}
+                            onChange={(e) => onUpdate(index, { sortable: e.target.checked })}
+                          />
+                        </td>
+                        <td>
+                          <button
+                            className="btn btn-xs btn-error btn-outline"
+                            onClick={() => {
+                              onTemplateUpdate({
+                                ...templateConfig,
+                                field_mappings: fieldMappings.filter((_, i) => i !== index)
+                              });
+                            }}
+                          >
+                            删除
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 筛选条件配置标签页 */}
+      {activeTab === 'filters' && (
+        <div className="space-y-4">
+          <div className="alert alert-info">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h4 className="font-semibold">🔍 字段筛选条件配置</h4>
+              <p className="text-sm mt-1">
+                为报表字段配置智能筛选条件，支持以下三种模式：
+              </p>
+              <ul className="text-sm mt-2 space-y-1">
+                <li>• <strong>固定值</strong> - 使用预设的固定筛选值</li>
+                <li>• <strong>动态值</strong> - 自动计算当前日期、最近N天等动态值</li>
+                <li>• <strong>用户输入</strong> - 生成报表时让用户输入筛选条件</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* 为每个字段显示筛选配置 */}
+          {fieldMappings.map((mapping, index) => (
+            <div key={mapping.original_field} className="card bg-base-200">
+              <div className="card-body">
+                <FieldFilterConfigComponent
+                  field={{
+                    field_key: mapping.original_field,
+                    display_name: mapping.display_name,
+                    field_type: inferFieldType(mapping.original_field),
+                    visible: mapping.visible,
+                    sort_order: index + 1
+                  }}
+                  filters={mapping.field_filters || []}
+                  onChange={(filters) => onUpdate(index, { field_filters: filters })}
+                  readonly={false}
+                />
+              </div>
+            </div>
+          ))}
+
+          {fieldMappings.length === 0 && (
+            <div className="text-center py-8 text-base-content/60">
+              <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p>请先选择字段，然后回到此处配置筛选条件</p>
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -852,6 +940,20 @@ function PreviewStep({
               <span className="text-sm font-medium text-base-content/70">字段数量：</span>
               <span className="ml-2">{templateConfig.field_mappings.length} 个字段</span>
             </div>
+            <div>
+              <span className="text-sm font-medium text-base-content/70">筛选条件：</span>
+              <span className="ml-2">
+                {(() => {
+                  const totalFilters = templateConfig.field_mappings.reduce((sum, mapping) => 
+                    sum + (mapping.field_filters?.length || 0), 0
+                  );
+                  const fieldsWithFilters = templateConfig.field_mappings.filter(mapping => 
+                    mapping.field_filters && mapping.field_filters.length > 0
+                  ).length;
+                  return totalFilters > 0 ? `${fieldsWithFilters} 个字段配置了 ${totalFilters} 个筛选条件` : '无筛选条件';
+                })()}
+              </span>
+            </div>
           </div>
           {templateConfig.description && (
             <div className="mt-4">
@@ -861,6 +963,40 @@ function PreviewStep({
           )}
         </div>
       </div>
+
+      {/* 筛选条件预览 */}
+      {templateConfig.field_mappings.some(mapping => mapping.field_filters && mapping.field_filters.length > 0) && (
+        <div className="card bg-base-200">
+          <div className="card-body">
+            <h4 className="card-title text-base">筛选条件预览</h4>
+            <div className="space-y-3">
+              {templateConfig.field_mappings
+                .filter(mapping => mapping.field_filters && mapping.field_filters.length > 0)
+                .map((mapping) => (
+                  <div key={mapping.original_field} className="bg-base-100 rounded p-3">
+                    <div className="font-medium text-sm mb-2">
+                      {mapping.display_name} ({mapping.original_field})
+                    </div>
+                    <div className="space-y-1">
+                      {mapping.field_filters!.map((filter, index) => (
+                        <div key={filter.id} className="flex items-center gap-2 text-xs">
+                          <span className={`badge badge-xs ${filter.enabled ? 'badge-primary' : 'badge-ghost'}`}>
+                            {filter.enabled ? '启用' : '禁用'}
+                          </span>
+                          <span className="text-base-content/70">{filter.name}</span>
+                          <span className="badge badge-outline badge-xs">{filter.condition_type}</span>
+                          {index > 0 && filter.logical && (
+                            <span className="badge badge-accent badge-xs">{filter.logical}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 字段配置预览 */}
       <div className="card bg-base-200">
@@ -913,7 +1049,7 @@ function getStepDescription(step: ModalStep): string {
   const descriptions = {
     'data-source': '选择报表数据来源',
     'field-selection': '选择需要显示的字段',
-    'field-mapping': '配置字段显示属性',
+    'field-mapping': '配置字段显示属性和筛选条件',
     'preview': '预览和确认模板配置'
   };
   return descriptions[step];
@@ -945,9 +1081,43 @@ function getDefaultFieldWidth(dataType: string): number {
   return 100;
 }
 
+
 function getDefaultFieldFormat(dataType: string): string | undefined {
   if (dataType.includes('numeric') || dataType.includes('decimal')) return 'number';
   if (dataType.includes('date') || dataType.includes('timestamp')) return 'date';
   if (dataType.includes('boolean')) return 'boolean';
   return undefined;
+}
+
+// 根据字段名推断字段类型的工具函数
+function inferFieldType(fieldName: string): 'string' | 'number' | 'boolean' | 'date' | 'currency' | 'datetime' {
+  const lowercaseName = fieldName.toLowerCase();
+  
+  // 时间相关字段
+  if (lowercaseName.includes('date') || lowercaseName.includes('time') || lowercaseName.includes('_at')) {
+    return lowercaseName.includes('time') || lowercaseName.includes('_at') ? 'datetime' : 'date';
+  }
+  
+  // 数值相关字段
+  if (lowercaseName.includes('amount') || lowercaseName.includes('salary') || 
+      lowercaseName.includes('pay') || lowercaseName.includes('price') ||
+      lowercaseName.includes('cost') || lowercaseName.includes('fee')) {
+    return 'currency';
+  }
+  
+  // 数字相关字段
+  if (lowercaseName.includes('count') || lowercaseName.includes('num') ||
+      lowercaseName.includes('age') || lowercaseName.includes('year') ||
+      lowercaseName.includes('month')) {
+    return 'number';
+  }
+  
+  // 布尔值相关字段
+  if (lowercaseName.includes('is_') || lowercaseName.includes('has_') ||
+      lowercaseName.includes('enabled') || lowercaseName.includes('active')) {
+    return 'boolean';
+  }
+  
+  // 默认为字符串
+  return 'string';
 }

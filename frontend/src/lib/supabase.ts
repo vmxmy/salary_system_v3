@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
+import { getOptimizedConfig } from './performanceConfig';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -27,12 +28,20 @@ export const supabase = createClient<Database>(
         'x-application-name': 'salary-system-v3',
         'apikey': supabaseAnonKey,
       },
-      // 改进连接处理
+      // 改进连接处理 - 使用优化后的超时配置
       fetch: (url, options = {}) => {
+        const config = getOptimizedConfig();
         const urlString = typeof url === 'string' ? url : url.toString();
-        const timeoutMs = urlString.includes('/rest/v1/rpc/') || 
-                         urlString.includes('import') || 
-                         urlString.includes('batch') ? 120000 : 60000; // 对RPC和批量操作使用2分钟超时，其他使用1分钟
+        
+        // 根据请求类型使用不同的超时时间
+        let timeoutMs: number;
+        if (urlString.includes('/rest/v1/rpc/') || 
+            urlString.includes('import') || 
+            urlString.includes('batch')) {
+          timeoutMs = config.loading.complexTimeout * 3; // 复杂操作：9秒
+        } else {
+          timeoutMs = config.loading.quickTimeout * 2; // 普通查询：2秒
+        }
         
         const controller = new AbortController();
         const timeout = setTimeout(() => {

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
+import { useCacheInvalidationManager } from '@/hooks/core/useCacheInvalidationManager';
 import type { Database } from '@/types/supabase';
 
 // 类型定义
@@ -278,6 +279,7 @@ const getCategoryRules = async (categoryId: string): Promise<EmployeeCategory['s
 export const useAssignEmployeeCategory = () => {
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (params: {
@@ -333,13 +335,8 @@ export const useAssignEmployeeCategory = () => {
         return data;
       }
     },
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: employeeCategoryQueryKeys.employeeCategory(variables.employeeId) 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: employeeCategoryQueryKeys.employeeHistory(variables.employeeId) 
-      });
+    onSuccess: async (data, variables) => {
+      await cacheManager.invalidateByEvent('employee:category:changed');
     },
   });
 };
@@ -351,6 +348,7 @@ export const useUpdateEmployeeCategory = useAssignEmployeeCategory;
 export const useBatchAssignEmployeeCategories = () => {
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (params: {
@@ -385,17 +383,9 @@ export const useBatchAssignEmployeeCategories = () => {
       
       return data || [];
     },
-    onSuccess: (data, variables) => {
-      // 使所有相关查询失效
-      const employeeIds = [...new Set(variables.assignments.map(a => a.employeeId))];
-      employeeIds.forEach(employeeId => {
-        queryClient.invalidateQueries({ 
-          queryKey: employeeCategoryQueryKeys.employeeCategory(employeeId) 
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: employeeCategoryQueryKeys.employeeHistory(employeeId) 
-        });
-      });
+    onSuccess: async (data, variables) => {
+      // 为批量操作触发缓存失效事件
+      await cacheManager.invalidateByEvent('employee:category:changed');
     },
   });
 };

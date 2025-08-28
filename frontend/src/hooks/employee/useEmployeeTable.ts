@@ -3,6 +3,7 @@ import { useUniversalTable, type UniversalTableOptions } from '@/hooks/core/useU
 import { useEmployeeActions } from './useEmployeeActions';
 import { formatCurrency } from '@/lib/format';
 import { EyeIcon, PencilIcon, TrashIcon, UserPlusIcon } from '@heroicons/react/24/outline';
+import { getOptimizedConfig } from '@/lib/performanceConfig';
 
 // 员工表格选项接口
 export interface EmployeeTableOptions extends Omit<UniversalTableOptions, 'columnOverrides'> {
@@ -122,7 +123,9 @@ export function useEmployeeTable(options?: EmployeeTableOptions) {
     return overrides;
   }, [options?.showSensitiveData]);
 
-  // 通用表格配置
+  // 通用表格配置 - 使用优化后的性能参数
+  const performanceConfig = getOptimizedConfig();
+  
   const universalTableOptions: UniversalTableOptions = {
     // 默认使用员工详情视图
     enableRowSelection: options?.enableRowSelection ?? true,
@@ -130,6 +133,13 @@ export function useEmployeeTable(options?: EmployeeTableOptions) {
     permissions: options?.permissions ?? ['view', 'edit', 'delete'],
     filters,
     columnOverrides,
+    
+    // 优化后的分页配置
+    pagination: {
+      pageSize: performanceConfig.pagination.employeePageSize,
+      pageIndex: 0,
+      ...options?.pagination,
+    },
     
     // 操作回调 - 连接到员工页面的处理函数
     actionCallbacks: {
@@ -150,8 +160,12 @@ export function useEmployeeTable(options?: EmployeeTableOptions) {
       'employee_name', 'id_number', 'phone', 'email', 'department_name'
     ],
     
-    // 其他选项
-    ...options,
+    // 其他选项（排除已经处理的 pagination 和 columnOverrides）
+    ...Object.fromEntries(
+      Object.entries(options || {}).filter(([key]) => 
+        !['pagination', 'columnOverrides'].includes(key)
+      )
+    ),
   };
 
   // 使用通用表格 Hook
@@ -213,13 +227,13 @@ export function useEmployeeTable(options?: EmployeeTableOptions) {
 
   // 统计信息
   const statistics = useMemo(() => {
-    const data = universalTable.data || [];
+    const tableData = universalTable.data || [];
     
     return {
-      total: data.length,
-      active: data.filter((emp: any) => emp.is_active).length,
-      inactive: data.filter((emp: any) => !emp.is_active).length,
-      departments: new Set(data.map((emp: any) => emp.department_name)).size,
+      total: tableData.length,
+      active: tableData.filter((emp: any) => emp.is_active).length,
+      inactive: tableData.filter((emp: any) => !emp.is_active).length,
+      departments: new Set(tableData.map((emp: any) => emp.department_name)).size,
     };
   }, [universalTable.data]);
 

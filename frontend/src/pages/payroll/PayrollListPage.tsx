@@ -8,11 +8,12 @@ import {
   PayrollStatus,
   type PayrollStatusType 
 } from '@/hooks/payroll';
-import { usePayrollRealtime } from '@/hooks/core/useSupabaseRealtime';
+import { usePayrollRealtime } from '@/hooks/core/useOptimizedRealtime';
 import { usePayrollApproval } from '@/hooks/payroll/usePayrollApproval';
 import { useClearPayrollPeriod } from '@/hooks/payroll/useClearPayrollPeriod';
 import { type PayrollPeriod } from '@/hooks/payroll/usePayrollPeriod';
 import { usePayrollStatistics } from '@/hooks/payroll/usePayrollStatistics';
+import { useStableCallback } from '@/hooks/core/useStableCallback';
 import { 
   PayrollBatchActions, 
   PayrollTableContainer,
@@ -70,15 +71,15 @@ export default function PayrollListPage() {
   // 视图切换状态
   const [currentView, setCurrentView] = useState<ViewType>('list');
   
-  // 调试：追踪选中ID变化
-  const handleSelectedIdsChange = useCallback((newIds: string[]) => {
-    console.log('🎯 [PayrollListPage] Selection changed:', {
-      previousCount: selectedIds.length,
-      newCount: newIds.length,
-      added: newIds.filter(id => !selectedIds.includes(id)),
-      removed: selectedIds.filter(id => !newIds.includes(id)),
-      newIds: newIds.slice(0, 5) // 只显示前5个ID避免日志过长
-    });
+  // 使用稳定的回调避免不必要的重渲染
+  const handleSelectedIdsChange = useStableCallback((newIds: string[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🎯 [PayrollListPage] Selection changed:', {
+        previousCount: selectedIds.length,
+        newCount: newIds.length,
+        changed: selectedIds.length !== newIds.length
+      });
+    }
     setSelectedIds(newIds);
   }, [selectedIds]);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
@@ -91,30 +92,26 @@ export default function PayrollListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<PayrollStatusType | 'all'>('all');
   
-  // 调试：追踪筛选条件变化
-  const handleSearchQueryChange = useCallback((query: string) => {
-    console.log('🔍 [PayrollListPage] Search query changed:', {
-      previousQuery: searchQuery,
-      newQuery: query,
-      queryLength: query.length
-    });
+  // 使用稳定的回调避免不必要的重渲染
+  const handleSearchQueryChange = useStableCallback((query: string) => {
+    if (process.env.NODE_ENV === 'development' && searchQuery !== query) {
+      console.log('🔍 [PayrollListPage] Search query changed:', query.length);
+    }
     setSearchQuery(query);
   }, [searchQuery]);
   
-  const handleStatusFilterChange = useCallback((status: PayrollStatusType | 'all') => {
-    console.log('📊 [PayrollListPage] Status filter changed:', {
-      previousStatus: statusFilter,
-      newStatus: status
-    });
+  const handleStatusFilterChange = useStableCallback((status: PayrollStatusType | 'all') => {
+    if (process.env.NODE_ENV === 'development' && statusFilter !== status) {
+      console.log('📊 [PayrollListPage] Status filter changed:', status);
+    }
     setStatusFilter(status);
   }, [statusFilter]);
   
   // 视图切换处理
-  const handleViewChange = useCallback((view: ViewType) => {
-    console.log('👁️ [PayrollListPage] View changed:', {
-      previousView: currentView,
-      newView: view
-    });
+  const handleViewChange = useStableCallback((view: ViewType) => {
+    if (process.env.NODE_ENV === 'development' && currentView !== view) {
+      console.log('👁️ [PayrollListPage] View changed:', view);
+    }
     setCurrentView(view);
     // 切换到详情视图时清空选择，因为详情视图不支持选择
     if (view === 'detail') {
@@ -173,7 +170,7 @@ export default function PayrollListPage() {
   });
 
   // 创建统一的刷新函数，同时刷新薪资列表和统计数据
-  const handleRefreshAll = useCallback(() => {
+  const handleRefreshAll = useStableCallback(() => {
     refetch(); // 刷新薪资列表
     // 统计数据会通过 React Query 的缓存失效机制自动刷新
   }, [refetch]);
@@ -181,55 +178,35 @@ export default function PayrollListPage() {
   // 使用批量操作管理Hook
   const batchOperationsManager = useBatchOperationsManager(handleRefreshAll);
   
-  // 设置 Realtime 订阅以自动刷新数据（临时禁用，待服务器配置修复）
-  usePayrollRealtime({
-    enabled: false, // 临时禁用 Realtime 订阅，等待服务器配置修复
-    showNotifications: false, // 禁用通知
-    onSuccess: (event, payload) => {
-      console.log(`[PayrollList] Realtime event: ${event}`, payload);
-      // 数据已通过 queryClient.invalidateQueries 自动刷新
-    },
-    onError: (error) => {
-      console.error('[PayrollList] Realtime error:', error);
-    }
-  });
+  // 使用优化的Realtime订阅
+  usePayrollRealtime(true); // 启用优化的Realtime连接池
 
   // 使用数据处理Hook - 提取实际的数据数组
   const { processedData: allData } = usePayrollDataProcessor<PayrollData>((rawData as any)?.data || []);
   
-  // 应用搜索和筛选
+  // 优化的数据筛选，减少无效的重新计算
   const processedData = useMemo(() => {
     const originalCount = allData?.length || 0;
     let filteredData = [...(allData || [])];
     
-    console.log('🔄 [PayrollListPage] Starting data processing:', {
-      originalDataCount: originalCount,
-      statusFilter,
-      searchQuery: searchQuery.trim(),
-      hasSearchQuery: !!searchQuery.trim()
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 [PayrollListPage] Starting data processing:', originalCount, 'records');
+    }
     
     // 状态筛选
     if (statusFilter !== 'all') {
-      const beforeStatusFilter = filteredData.length;
       filteredData = filteredData.filter(item => {
         const itemStatus = item.payroll_status || item.status;
         return itemStatus === statusFilter;
       });
-      console.log('📊 [PayrollListPage] Status filter applied:', {
-        statusFilter,
-        beforeCount: beforeStatusFilter,
-        afterCount: filteredData.length,
-        filtered: beforeStatusFilter - filteredData.length
-      });
     }
     
     // 搜索筛选
-    if (searchQuery.trim()) {
-      const beforeSearchFilter = filteredData.length;
-      const query = searchQuery.toLowerCase().trim();
+    const trimmedQuery = searchQuery.trim();
+    if (trimmedQuery) {
+      const query = trimmedQuery.toLowerCase();
       filteredData = filteredData.filter(item => {
-        const matches = (
+        return (
           item.employee_name?.toLowerCase().includes(query) ||
           item.department_name?.toLowerCase().includes(query) ||
           item.position_name?.toLowerCase().includes(query) ||
@@ -237,21 +214,12 @@ export default function PayrollListPage() {
           (item as any).root_category_name?.toLowerCase().includes(query) ||
           item.payroll_status?.toLowerCase().includes(query)
         );
-        return matches;
-      });
-      console.log('🔍 [PayrollListPage] Search filter applied:', {
-        query,
-        beforeCount: beforeSearchFilter,
-        afterCount: filteredData.length,
-        filtered: beforeSearchFilter - filteredData.length
       });
     }
     
-    console.log('✅ [PayrollListPage] Final processed data:', {
-      originalCount: originalCount,
-      finalCount: filteredData.length,
-      reductionRate: originalCount > 0 ? ((originalCount - filteredData.length) / originalCount * 100).toFixed(1) + '%' : '0%'
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ [PayrollListPage] Filtered to', filteredData.length, 'records');
+    }
     
     return filteredData;
   }, [allData, statusFilter, searchQuery]);
@@ -490,8 +458,8 @@ export default function PayrollListPage() {
 
 
 
-  // 周期变更处理
-  const handleMonthChange = useCallback((month: string) => {
+  // 周期变更处理 - 使用稳定回调
+  const handleMonthChange = useStableCallback((month: string) => {
     const [year, monthNum] = month.split('-').map(Number);
     
     // 查找对应的薪资周期
@@ -507,7 +475,9 @@ export default function PayrollListPage() {
       setSelectedIds([]); // 清空选择
     } else {
       // 如果没有找到对应的周期，可能需要创建或提示用户
-      console.warn(`No period found for ${month}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`No period found for ${month}`);
+      }
       setSelectedMonth(month);
       setPeriodYear(year);
       setPeriodMonth(monthNum);
@@ -516,8 +486,8 @@ export default function PayrollListPage() {
     }
   }, [availableMonths]);
 
-  // 清空当月数据处理
-  const handleClearCurrentMonth = useCallback(async (onProgress?: (step: string, completed: number, total: number) => void) => {
+  // 清空当月数据处理 - 使用稳定回调
+  const handleClearCurrentMonth = useStableCallback(async (onProgress?: (step: string, completed: number, total: number) => void) => {
     if (!selectedPeriodId) {
       showError('请先选择有效的薪资周期');
       return;
@@ -536,7 +506,7 @@ export default function PayrollListPage() {
       console.error('Clear period error:', error);
       showError('清空失败');
     }
-  }, [selectedPeriodId, selectedMonth, clearPeriod, showSuccess, showError, refetch]);
+  }, [selectedPeriodId, selectedMonth, clearPeriod, showError, refetch]);
 
 
 
@@ -714,15 +684,11 @@ export default function PayrollListPage() {
             {currentView === 'list' ? (
               // 列表视图：显示薪资汇总表格
               <div>
-                {(() => {
-                  console.log('🎯 [PayrollListPage] Rendering list view with data:', {
-                    processedDataCount: processedData.length,
-                    selectedIdsCount: selectedIds.length,
-                    isLoading,
-                    dataPreview: processedData.slice(0, 3).map(item => ({
-                      id: item.id || item.payroll_id,
-                      name: item.employee_name
-                    }))
+                {process.env.NODE_ENV === 'development' && (() => {
+                  console.log('🎯 [PayrollListPage] Rendering list view:', {
+                    dataCount: processedData.length,
+                    selectedCount: selectedIds.length,
+                    isLoading
                   });
                   return null;
                 })()}
@@ -741,9 +707,9 @@ export default function PayrollListPage() {
             ) : (
               // 详情视图：显示薪资明细
               <div>
-                {(() => {
-                  console.log('🎯 [PayrollListPage] Rendering detail view with data:', {
-                    processedDataCount: processedData.length,
+                {process.env.NODE_ENV === 'development' && (() => {
+                  console.log('🎯 [PayrollListPage] Rendering detail view:', {
+                    dataCount: processedData.length,
                     isLoading
                   });
                   return null;

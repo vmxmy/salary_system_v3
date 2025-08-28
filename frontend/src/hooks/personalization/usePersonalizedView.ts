@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCacheInvalidationManager } from '@/hooks/core/useCacheInvalidationManager';
 
 // 个性化配置类型定义
 export interface PersonalizedViewConfig {
@@ -89,6 +90,7 @@ export interface UserPreferenceAnalytics {
  */
 export const usePersonalizedView = () => {
   const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
   
   // 本地状态管理
   const [viewState, setViewState] = useState<ViewState>({
@@ -120,16 +122,16 @@ export const usePersonalizedView = () => {
   // 保存个性化配置
   const saveConfigMutation = useMutation({
     mutationFn: savePersonalizedConfig,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['personalized-config'] });
+    onSuccess: async () => {
+      await cacheManager.invalidateByEvent('view:personalization:updated');
     }
   });
 
   // 重置配置到默认值
   const resetConfigMutation = useMutation({
     mutationFn: resetToDefaultConfig,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['personalized-config'] });
+    onSuccess: async () => {
+      await cacheManager.invalidateByEvent('view:personalization:updated');
       setViewState(getDefaultViewState());
     }
   });

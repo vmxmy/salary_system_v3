@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { PaintBrushIcon } from '@heroicons/react/24/outline';
+import { useStableCallback, useStableDebouncedCallback } from '@/hooks/core/useStableCallback';
 
 // DaisyUI 官方所有主题列表及配色预览
 const DAISYUI_THEMES = [
@@ -227,34 +228,35 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
     }
   }, []);
 
-  // 应用主题到 DOM
-  const applyTheme = (theme: string) => {
-    console.log('Applying theme:', theme);
+  // 优化的主题应用函数 - 减少DOM操作和CSS查询
+  const applyTheme = useStableCallback((theme: string) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Applying theme:', theme);
+    }
     
-    // 强制重新加载主题
-    document.documentElement.removeAttribute('data-theme');
+    // 直接设置主题，避免不必要的移除操作
+    document.documentElement.setAttribute('data-theme', theme);
     
-    // 使用 requestAnimationFrame 确保重新渲染
-    requestAnimationFrame(() => {
-      document.documentElement.setAttribute('data-theme', theme);
-      console.log('Current data-theme:', document.documentElement.getAttribute('data-theme'));
-      
-      // 验证是否生效，检查 CSS 变量
-      const computedStyle = getComputedStyle(document.documentElement);
-      const primaryColor = computedStyle.getPropertyValue('--p') || computedStyle.getPropertyValue('--color-primary');
-      console.log('Primary color (--p):', primaryColor);
-      console.log('All theme vars:', {
-        primary: computedStyle.getPropertyValue('--p'),
-        secondary: computedStyle.getPropertyValue('--s'),
-        accent: computedStyle.getPropertyValue('--a'),
-        base100: computedStyle.getPropertyValue('--b1')
-      });
-    });
-  };
+    // 只在开发环境进行CSS变量验证，避免生产环境的性能开销
+    if (process.env.NODE_ENV === 'development') {
+      // 使用防抖延迟验证，避免频繁查询
+      setTimeout(() => {
+        const computedStyle = getComputedStyle(document.documentElement);
+        const primaryColor = computedStyle.getPropertyValue('--p');
+        if (primaryColor) {
+          console.log('Theme applied successfully:', theme);
+        } else {
+          console.warn('Theme CSS variables not loaded:', theme);
+        }
+      }, 100);
+    }
+  }, []);
 
-  // 切换主题
-  const handleThemeChange = (newTheme: string) => {
-    console.log('Theme change requested:', newTheme);
+  // 优化的主题切换函数 - 使用防抖避免频繁切换
+  const handleThemeChange = useStableDebouncedCallback((newTheme: string) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Theme change requested:', newTheme);
+    }
     setCurrentTheme(newTheme);
     localStorage.setItem('daisyui-theme', newTheme);
     applyTheme(newTheme);
@@ -263,7 +265,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
     window.dispatchEvent(new CustomEvent('daisyui-theme-change', {
       detail: { theme: newTheme }
     }));
-  };
+  }, 100, []); // 100ms防抖
 
   // 图标尺寸映射
   const iconSizeMap = {
@@ -379,7 +381,7 @@ export const useTheme = () => {
     };
   }, []);
 
-  const setTheme = (newTheme: string) => {
+  const setTheme = useStableCallback((newTheme: string) => {
     if (DAISYUI_THEMES.some(theme => theme.name === newTheme)) {
       setCurrentTheme(newTheme);
       localStorage.setItem('daisyui-theme', newTheme);
@@ -390,7 +392,7 @@ export const useTheme = () => {
         detail: { theme: newTheme }
       }));
     }
-  };
+  }, []);
 
   return {
     currentTheme,

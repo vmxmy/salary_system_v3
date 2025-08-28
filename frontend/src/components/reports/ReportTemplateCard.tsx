@@ -10,6 +10,7 @@ interface ReportTemplateCardProps {
   onDelete?: () => void;
   isGenerating?: boolean;
   isQuickGenerating?: boolean;
+  isDeleting?: boolean;
 }
 
 export function ReportTemplateCard({
@@ -19,9 +20,10 @@ export function ReportTemplateCard({
   onEdit,
   onDelete,
   isGenerating = false,
-  isQuickGenerating = false
+  isQuickGenerating = false,
+  isDeleting = false
 }: ReportTemplateCardProps) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  // 移除手动状态管理，使用 DaisyUI 的原生下拉菜单
 
   // 获取分类显示名称
   const getCategoryDisplay = (category: string) => {
@@ -77,37 +79,47 @@ export function ReportTemplateCard({
               tabIndex={0} 
               role="button" 
               className="btn btn-ghost btn-xs"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                   d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
               </svg>
             </div>
-            {isDropdownOpen && (
-              <ul className="dropdown-content menu bg-base-100 rounded-box z-10 w-32 p-2 shadow">
+            <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-[1] w-32 p-2 shadow">
+              <li>
+                <button onClick={onEdit} className="text-sm">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  编辑
+                </button>
+              </li>
+              {onDelete && (
                 <li>
-                  <button onClick={onEdit} className="text-sm">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    编辑
+                  <button 
+                    onClick={onDelete} 
+                    disabled={isDeleting}
+                    className={`text-sm text-error ${isDeleting ? 'loading' : ''}`}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <span className="loading loading-spinner loading-xs"></span>
+                        删除中...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        删除
+                      </>
+                    )}
                   </button>
                 </li>
-                {onDelete && (
-                  <li>
-                    <button onClick={onDelete} className="text-sm text-error">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      删除
-                    </button>
-                  </li>
-                )}
-              </ul>
-            )}
+              )}
+            </ul>
           </div>
         </div>
 
@@ -162,7 +174,7 @@ export function ReportTemplateCard({
           <button 
             className={`btn btn-outline btn-sm ${isGenerating ? 'loading' : ''}`}
             onClick={onGenerate}
-            disabled={isGenerating || isQuickGenerating}
+            disabled={isGenerating || isQuickGenerating || isDeleting}
           >
             {isGenerating ? (
               <>
@@ -183,7 +195,7 @@ export function ReportTemplateCard({
           <button 
             className={`btn btn-primary btn-sm ${isQuickGenerating ? 'loading' : ''}`}
             onClick={onQuickGenerate}
-            disabled={isGenerating || isQuickGenerating}
+            disabled={isGenerating || isQuickGenerating || isDeleting}
           >
             {isQuickGenerating ? (
               <>

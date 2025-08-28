@@ -2883,6 +2883,14 @@ export type Database = {
         }
         Relationships: []
       }
+      rls_performance_summary: {
+        Row: {
+          metric: string | null
+          unit: string | null
+          value: string | null
+        }
+        Relationships: []
+      }
       v_standard_insurance_components: {
         Row: {
           category: Database["public"]["Enums"]["salary_category"] | null
@@ -4095,8 +4103,20 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      can_access_all_data_cached: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       can_access_employee: {
         Args: { p_employee_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      can_access_employee_data_cached: {
+        Args: { target_employee_id: string }
+        Returns: boolean
+      }
+      can_access_payroll_data_cached: {
+        Args: { target_employee_id: string }
         Returns: boolean
       }
       can_view_sensitive_data: {
@@ -4132,6 +4152,15 @@ export type Database = {
         Args: { p_period_id: string }
         Returns: boolean
       }
+      check_permission_cache_health: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          metric: string
+          recommendation: string
+          status: string
+          value: string
+        }[]
+      }
       check_permission_version: {
         Args: { p_client_version?: number }
         Returns: boolean
@@ -4139,6 +4168,16 @@ export type Database = {
       check_rls_coverage: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      check_rls_optimization_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          cached_policies: number
+          optimization_rate: number
+          status: string
+          table_name: string
+          total_policies: number
+        }[]
       }
       check_suspicious_activity: {
         Args: {
@@ -4164,6 +4203,14 @@ export type Database = {
       cleanup_old_logs: {
         Args: { p_days_to_keep?: number }
         Returns: number
+      }
+      clear_user_permission_cache: {
+        Args: { target_user_id?: string }
+        Returns: undefined
+      }
+      clear_user_permission_cache_enhanced: {
+        Args: { notify_other_sessions?: boolean; target_user_id?: string }
+        Returns: undefined
       }
       create_admin_user: {
         Args: { p_role?: string; p_user_id: string }
@@ -4745,6 +4792,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_employee_id_cached: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_employee_id_number: {
         Args: { p_employee_id: string; p_mask_output?: boolean }
         Returns: string
@@ -4846,6 +4897,16 @@ export type Database = {
           total_executions: number
         }[]
       }
+      get_permission_cache_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avg_time: number
+          cache_hit_info: string
+          function_name: string
+          total_calls: number
+          total_time: number
+        }[]
+      }
       get_personnel_categories_config: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4937,6 +4998,10 @@ export type Database = {
         Args: { p_user_id?: string }
         Returns: string[]
       }
+      get_user_permission_context: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_user_roles: {
         Args: { p_user_id?: string }
         Returns: string[]
@@ -5000,11 +5065,19 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_admin_cached: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_dev_environment: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
       is_hr_manager: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_hr_manager_cached: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
@@ -5078,6 +5151,10 @@ export type Database = {
           period_name: string
           updated: boolean
         }[]
+      }
+      refresh_all_permission_caches: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       resolve_security_event: {
         Args: { p_event_id: string; p_resolution_notes?: string }

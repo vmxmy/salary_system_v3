@@ -76,6 +76,58 @@ export interface AggregationConfig {
   alias?: string;
 }
 
+/** 字段级筛选条件配置 */
+export interface FieldFilterConfig {
+  /** 筛选条件ID */
+  id: string;
+  
+  /** 筛选条件名称 */
+  name: string;
+  
+  /** 操作符 */
+  operator: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'not_in' | 'like' | 'not_like' | 'between' | 'not_between' | 'is_null' | 'is_not_null';
+  
+  /** 筛选值 */
+  value?: any;
+  
+  /** 范围筛选的结束值 (用于 between/not_between) */
+  value_end?: any;
+  
+  /** 多选值 (用于 in/not_in) */
+  values?: any[];
+  
+  /** 是否启用此筛选条件 */
+  enabled: boolean;
+  
+  /** 筛选条件类型 */
+  condition_type: 'fixed' | 'dynamic' | 'user_input';
+  
+  /** 动态筛选配置 */
+  dynamic_config?: {
+    /** 动态值类型 */
+    type: 'current_date' | 'current_month' | 'current_year' | 'last_n_days' | 'last_n_months';
+    /** 偏移量 (例如: last_n_days 需要指定天数) */
+    offset?: number;
+  };
+  
+  /** 用户输入配置 */
+  input_config?: {
+    /** 输入组件类型 */
+    input_type: 'text' | 'number' | 'date' | 'select' | 'multi_select' | 'date_range';
+    /** 选项列表 (用于 select/multi_select) */
+    options?: { label: string; value: any }[];
+    /** 是否必填 */
+    required?: boolean;
+    /** 默认值 */
+    default_value?: any;
+    /** 输入提示 */
+    placeholder?: string;
+  };
+  
+  /** 逻辑连接符 (与其他筛选条件的关系) */
+  logical?: 'AND' | 'OR';
+}
+
 /** 增强的报表模板接口 */
 export interface EnhancedReportTemplate {
   id: string;
@@ -107,6 +159,9 @@ export interface FieldMapping {
   /** 数据源字段映射 - 新增 */
   source_field?: string;
   source_table?: string;
+  
+  /** 字段级筛选条件 - 新增 */
+  field_filters?: FieldFilterConfig[];
   
   /** 格式化配置 */
   format_config?: {

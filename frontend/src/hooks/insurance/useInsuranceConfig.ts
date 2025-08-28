@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { InsuranceDataService } from './core/insuranceDataService';
 import { supabase } from '@/lib/supabase';
+import { useCacheInvalidationManager } from '@/hooks/core/useCacheInvalidationManager';
 import type { 
   InsuranceTypeInfo, 
   EmployeeCategory, 
@@ -13,6 +14,7 @@ import type {
  * 提供保险类型配置的完整管理功能
  */
 export const useInsuranceRuleConfig = () => {
+  const cacheManager = useCacheInvalidationManager();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [insuranceTypes, setInsuranceTypes] = useState<InsuranceTypeInfo[]>([]);
@@ -218,6 +220,9 @@ export const useInsuranceRuleConfig = () => {
 
       if (result.error) throw result.error;
 
+      // 使用统一缓存失效管理器
+      await cacheManager.invalidateByEvent('insurance:config:updated');
+
       // 更新本地状态
       const updatedRule = { ...rule, ...result.data };
       setRules(prev => {
@@ -294,6 +299,9 @@ export const useInsuranceRuleConfig = () => {
 
       if (error) throw error;
 
+      // 使用统一缓存失效管理器
+      await cacheManager.invalidateByEvent('insurance:config:updated');
+
       // 重新加载规则以更新本地状态
       await loadInsuranceRules();
 
@@ -321,6 +329,9 @@ export const useInsuranceRuleConfig = () => {
         .eq('employee_category_id', employeeCategoryId);
 
       if (error) throw error;
+
+      // 使用统一缓存失效管理器
+      await cacheManager.invalidateByEvent('insurance:config:updated');
 
       // 更新本地状态
       setRules(prev => {

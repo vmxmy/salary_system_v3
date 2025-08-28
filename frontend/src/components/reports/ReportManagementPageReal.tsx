@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useReportManagement, useUpdateReportTemplate } from '@/hooks/reports';
 import { supabase } from '@/lib/supabase';
 import ReportTemplateModal from './ReportTemplateModal';
+import { ReportTemplateCard } from './ReportTemplateCard';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { AlertModal, useAlertModal } from '@/components/common/Modal/AlertModal';
 
 export default function ReportManagementPageReal() {
   const [activeTab, setActiveTab] = useState<'templates' | 'jobs' | 'history'>('templates');
@@ -17,6 +20,33 @@ export default function ReportManagementPageReal() {
   
   // 删除状态管理
   const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set());
+  
+  // 确认对话框状态
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+    confirmText: string;
+    confirmVariant: 'primary' | 'secondary' | 'success' | 'warning' | 'error';
+    loading: boolean;
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    confirmText: '确认',
+    confirmVariant: 'error',
+    loading: false
+  });
+  
+  // AlertModal hook for success/error messages
+  const {
+    showSuccess,
+    showError,
+    showInfo,
+    AlertModal: AlertModalComponent
+  } = useAlertModal();
   
   // 使用真实的 Supabase hooks
   const reportManagement = useReportManagement({
@@ -53,60 +83,230 @@ export default function ReportManagementPageReal() {
     });
   };
 
+  // Handle template delete with cascade strategy
+  const handleDeleteTemplate = async (template: any) => {
+    const templateId = template.id;
+    
+    try {
+      // 1. 全面评估删除影响
+      const [jobsResult, historyResult] = await Promise.all([
+        supabase
+          .from('report_jobs')
+          .select('id, status, job_name, created_at')
+          .eq('template_id', templateId),
+        supabase
+          .from('report_history')
+          .select('id, report_name, generated_at, file_size')
+          .eq('template_id', templateId)
+      ]);
+      
+      if (jobsResult.error) throw jobsResult.error;
+      if (historyResult.error) throw historyResult.error;
+      
+      const jobs = jobsResult.data || [];
+      const history = historyResult.data || [];
+      
+      // 2. 分类统计影响数据
+      const activeJobs = jobs.filter(job => job.status && ['pending', 'running'].includes(job.status));
+      const completedJobs = jobs.filter(job => job.status === 'completed');
+      const failedJobs = jobs.filter(job => job.status === 'failed');
+      
+      // 3. 构建详细的确认信息
+      let confirmMessage = `删除模板 "${template.template_name}" 的影响评估：\n\n`;
+      
+      if (activeJobs.length > 0) {
+        confirmMessage += `⚠️ ${activeJobs.length} 个正在执行的任务将被取消\n`;
+      }
+      
+      if (completedJobs.length > 0) {
+        confirmMessage += `📋 ${completedJobs.length} 个已完成任务将保留记录\n`;
+      }
+      
+      if (failedJobs.length > 0) {
+        confirmMessage += `❌ ${failedJobs.length} 个失败任务记录将保留\n`;
+      }
+      
+      if (history.length > 0) {
+        const totalSize = history.reduce((sum, h) => sum + (h.file_size || 0), 0);
+        const sizeInMB = (totalSize / 1024 / 1024).toFixed(1);
+        confirmMessage += `📁 ${history.length} 条历史记录将保留 (约${sizeInMB}MB文件)\n`;
+      }
+      
+      confirmMessage += `\n模板将被标记为已删除，不会影响现有的历史数据。`;
+      
+      if (activeJobs.length > 0) {
+        confirmMessage += `\n\n⚠️ 注意：正在执行的任务将被立即取消！`;
+      }
+      
+      // 4. 显示确认对话框
+      const executeDelete = async () => {
+        try {
+          setConfirmDialog(prev => ({ ...prev, loading: true }));
+          setDeletingItems(prev => new Set(prev).add(templateId));
+          
+          // 5. 获取当前用户信息
+          const { data: { user }, error: authError } = await supabase.auth.getUser();
+          if (authError) throw authError;
+          
+          // 6. 执行级联删除策略
+          
+          // 6.1 取消正在执行的任务
+          if (activeJobs.length > 0) {
+            const { error: cancelError } = await supabase
+              .from('report_jobs')
+              .update({ 
+                status: 'failed',
+                error_message: '模板已删除，任务被取消',
+                completed_at: new Date().toISOString()
+              })
+              .in('id', activeJobs.map(j => j.id));
+              
+            if (cancelError) {
+              console.warn('取消执行中任务失败:', cancelError);
+            }
+          }
+          
+          // 6.2 软删除模板（核心操作）
+          const { error: deleteError } = await supabase
+            .from('report_templates')
+            .update({
+              is_active: false,
+              deleted_at: new Date().toISOString(),
+              deleted_by: user?.id || null,
+              deleted_reason: 'user_deleted'
+            })
+            .eq('id', templateId);
+          
+          if (deleteError) throw deleteError;
+          
+          // 7. 成功反馈
+          let successMessage = `模板 "${template.template_name}" 已删除`;
+          if (activeJobs.length > 0) {
+            successMessage += `\n已取消 ${activeJobs.length} 个执行中的任务`;
+          }
+          if (history.length > 0) {
+            successMessage += `\n已保留 ${history.length} 条历史记录`;
+          }
+          
+          showSuccess(successMessage, '删除成功');
+          
+          // 8. 刷新数据
+          reportManagement.refetch.templates();
+          reportManagement.refetch.statistics();
+          reportManagement.refetch.jobs(); // 刷新任务列表以显示取消的任务
+          
+        } catch (error) {
+          console.error('删除模板失败:', error);
+          showError(
+            `删除失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请重试或联系管理员。`,
+            '删除失败'
+          );
+        } finally {
+          setDeletingItems(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(templateId);
+            return newSet;
+          });
+          setConfirmDialog(prev => ({ ...prev, open: false, loading: false }));
+        }
+      };
+      
+      setConfirmDialog({
+        open: true,
+        title: '确认删除模板',
+        message: confirmMessage,
+        onConfirm: executeDelete,
+        confirmText: activeJobs.length > 0 ? '确认删除并取消任务' : '确认删除',
+        confirmVariant: 'error',
+        loading: false
+      });
+      
+    } catch (error) {
+      console.error('评估删除影响失败:', error);
+      showError(
+        `评估删除影响失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        '操作失败'
+      );
+    }
+  };
+
   // Handle template save
   
   // Handle delete report history item
-  const handleDeleteHistoryItem = async (item: any) => {
-    if (!confirm(`确定要删除文件 "${item.report_name}" 吗？`)) {
-      return;
-    }
-    
+  const handleDeleteHistoryItem = (item: any) => {
     const itemId = item.id;
-    setDeletingItems(prev => new Set(prev).add(itemId));
     
-    try {
-      const { error } = await supabase
-        .from('report_history')
-        .delete()
-        .eq('id', itemId);
-      
-      if (error) {
-        throw error;
+    const executeDelete = async () => {
+      try {
+        setConfirmDialog(prev => ({ ...prev, loading: true }));
+        setDeletingItems(prev => new Set(prev).add(itemId));
+        
+        const { error } = await supabase
+          .from('report_history')
+          .delete()
+          .eq('id', itemId);
+        
+        if (error) {
+          throw error;
+        }
+        
+        showSuccess('文件删除成功', '删除成功');
+        reportManagement.refetch.history();
+        reportManagement.refetch.statistics();
+      } catch (error) {
+        console.error('删除文件失败:', error);
+        showError(
+          `删除失败: ${error instanceof Error ? error.message : '未知错误'}`,
+          '删除失败'
+        );
+      } finally {
+        setDeletingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemId);
+          return newSet;
+        });
+        setConfirmDialog(prev => ({ ...prev, open: false, loading: false }));
       }
-      
-      alert('文件删除成功');
-      reportManagement.refetch.history();
-      reportManagement.refetch.statistics();
-    } catch (error) {
-      console.error('删除文件失败:', error);
-      alert(`删除失败: ${error instanceof Error ? error.message : '未知错误'}`);
-    } finally {
-      setDeletingItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(itemId);
-        return newSet;
-      });
-    }
+    };
+    
+    setConfirmDialog({
+      open: true,
+      title: '确认删除文件',
+      message: `确定要删除文件 "${item.report_name}" 吗？\n\n此操作不可撤销。`,
+      onConfirm: executeDelete,
+      confirmText: '确认删除',
+      confirmVariant: 'error',
+      loading: false
+    });
   };
   const handleTemplateSave = async (templateConfig: any) => {
     try {
       if (modalState.mode === 'create') {
         await createTemplate(templateConfig);
-        alert(`✅ 模板创建成功：${templateConfig.template_name}`);
+        showSuccess(
+          `模板创建成功：${templateConfig.template_name}`,
+          '创建成功'
+        );
       } else if (modalState.editingTemplate?.id) {
         // 使用专用的更新 hook
         await updateTemplateMutation.mutateAsync({
           id: modalState.editingTemplate.id,
           ...templateConfig
         });
-        alert(`✅ 模板更新成功：${templateConfig.template_name}`);
+        showSuccess(
+          `模板更新成功：${templateConfig.template_name}`,
+          '更新成功'
+        );
       }
       setModalState({ isOpen: false, mode: 'create', editingTemplate: undefined });
       // 刷新数据
       reportManagement.refetch.templates();
     } catch (error) {
       console.error('保存模板失败:', error);
-      alert(`❌ 保存模板失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      showError(
+        `保存模板失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        '保存失败'
+      );
     }
   };
 
@@ -126,11 +326,35 @@ export default function ReportManagementPageReal() {
       });
       
       // 显示生成成功信息，并提供下载选项
-      const downloadNow = confirm(`✅ 报表生成成功：${template.template_name}\n\n是否立即下载？`);
-      if (downloadNow && result.filePath && result.filePath.includes('report_')) {
-        const fileName = result.filePath.split('/').pop() || 'report.xlsx';
-        await downloadReport(result.filePath, fileName);
-      }
+      const handleDownloadConfirm = async () => {
+        try {
+          setConfirmDialog(prev => ({ ...prev, loading: true }));
+          
+          if (result.filePath && result.filePath.includes('report_')) {
+            const fileName = result.filePath.split('/').pop() || 'report.xlsx';
+            await downloadReport(result.filePath, fileName);
+            showSuccess('文件下载完成', '下载成功');
+          }
+        } catch (downloadError) {
+          console.error('下载失败:', downloadError);
+          showError(
+            `下载失败: ${downloadError instanceof Error ? downloadError.message : '未知错误'}`,
+            '下载失败'
+          );
+        } finally {
+          setConfirmDialog(prev => ({ ...prev, open: false, loading: false }));
+        }
+      };
+      
+      setConfirmDialog({
+        open: true,
+        title: '报表生成成功',
+        message: `报表生成成功：${template.template_name}\n\n是否立即下载？`,
+        onConfirm: handleDownloadConfirm,
+        confirmText: '立即下载',
+        confirmVariant: 'success',
+        loading: false
+      });
       
       // 刷新数据
       reportManagement.refetch.jobs();
@@ -139,7 +363,10 @@ export default function ReportManagementPageReal() {
       
     } catch (error) {
       console.error('生成报表失败:', error);
-      alert(`❌ 生成报表失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      showError(
+        `生成报表失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        '生成失败'
+      );
     }
   };
 
@@ -148,11 +375,15 @@ export default function ReportManagementPageReal() {
     try {
       if (historyItem.file_path) {
         await downloadReport(historyItem.file_path, historyItem.report_name);
+        showSuccess('文件下载完成', '下载成功');
       } else {
-        alert(`文件路径不存在：${historyItem.report_name}`);
+        showError(`文件路径不存在：${historyItem.report_name}`, '下载失败');
       }
     } catch (error) {
-      alert(`下载失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      showError(
+        `下载失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        '下载失败'
+      );
     }
   };
 
@@ -290,33 +521,17 @@ export default function ReportManagementPageReal() {
           {/* 模板网格 */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {templates.map((template: any) => (
-              <div key={template.id} className="card bg-base-100 shadow-xl">
-                <div className="card-body">
-                  <h2 className="card-title">{template.template_name}</h2>
-                  <p className="text-base-content/70">{template.description}</p>
-                  <div className="flex justify-between items-center mt-2 text-sm text-base-content/50">
-                    <span>创建于: {new Date(template.created_at).toLocaleDateString('zh-CN')}</span>
-                    <div className={`badge ${template.is_active ? 'badge-success' : 'badge-error'} badge-sm`}>
-                      {template.is_active ? '激活' : '禁用'}
-                    </div>
-                  </div>
-                  <div className="card-actions justify-end mt-4">
-                    <button 
-                      className="btn btn-outline btn-sm"
-                      onClick={() => handleEditTemplate(template)}
-                    >
-                      编辑
-                    </button>
-                    <button 
-                      className={`btn btn-primary btn-sm ${isGenerating ? 'loading' : ''}`}
-                      onClick={() => handleGenerateReport(template)}
-                      disabled={isGenerating}
-                    >
-                      {isGenerating ? '生成中...' : '生成报表'}
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <ReportTemplateCard
+                key={template.id}
+                template={template}
+                onQuickGenerate={() => handleGenerateReport(template)}
+                onGenerate={() => handleGenerateReport(template)}
+                onEdit={() => handleEditTemplate(template)}
+                onDelete={() => handleDeleteTemplate(template)}
+                isGenerating={isGenerating}
+                isQuickGenerating={isGenerating}
+                isDeleting={deletingItems.has(template.id)}
+              />
             ))}
           </div>
 
@@ -407,21 +622,34 @@ export default function ReportManagementPageReal() {
                   {job.status === 'running' && (
                     <button 
                       className="btn btn-outline btn-sm"
-                      onClick={async () => {
-                        if (confirm(`确定要取消任务"${job.job_name}"吗？`)) {
+                      onClick={() => {
+                        const executeCancelJob = async () => {
                           try {
+                            setConfirmDialog(prev => ({ ...prev, loading: true }));
                             await reportManagement.actions.updateJobStatus({
                               id: job.id,
                               status: 'failed',
                               error_message: '用户主动取消'
                             });
-                            alert('任务已取消');
+                            showSuccess('任务已取消', '取消成功');
                             reportManagement.refetch.jobs();
                           } catch (error) {
                             console.error('取消任务失败:', error);
-                            alert('取消任务失败');
+                            showError('取消任务失败', '操作失败');
+                          } finally {
+                            setConfirmDialog(prev => ({ ...prev, open: false, loading: false }));
                           }
-                        }
+                        };
+                        
+                        setConfirmDialog({
+                          open: true,
+                          title: '确认取消任务',
+                          message: `确定要取消任务"${job.job_name}"吗？\n\n此操作不可撤销。`,
+                          onConfirm: executeCancelJob,
+                          confirmText: '确认取消',
+                          confirmVariant: 'warning',
+                          loading: false
+                        });
                       }}
                     >
                       取消
@@ -430,7 +658,7 @@ export default function ReportManagementPageReal() {
                   {job.status === 'completed' && (
                     <button 
                       className="btn btn-primary btn-sm"
-                      onClick={() => alert(`查看结果：${job.job_name}`)}
+                      onClick={() => showInfo(`查看结果：${job.job_name}`, '任务结果')}
                     >
                       查看结果
                     </button>
@@ -448,11 +676,11 @@ export default function ReportManagementPageReal() {
                             period_id: job.period_id,
                             data_filters: job.data_filters || {}
                           });
-                          alert('任务已重新创建');
+                          showSuccess('任务已重新创建', '重新执行');
                           reportManagement.refetch.jobs();
                         } catch (error) {
                           console.error('重新执行失败:', error);
-                          alert('重新执行失败');
+                          showError('重新执行失败', '操作失败');
                         }
                       }}
                     >
@@ -486,9 +714,11 @@ export default function ReportManagementPageReal() {
             <h2 className="text-xl font-bold mb-4">历史记录</h2>
             <button 
               className="btn btn-outline btn-sm"
-              onClick={async () => {
-                if (confirm('确定要清理30天前的过期文件吗？此操作不可撤销。')) {
+              onClick={() => {
+                const executeCleanup = async () => {
                   try {
+                    setConfirmDialog(prev => ({ ...prev, loading: true }));
+                    
                     // 计算30天前的日期
                     const thirtyDaysAgo = new Date();
                     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -512,17 +742,35 @@ export default function ReportManagementPageReal() {
                         throw deleteError;
                       }
                       
-                      alert(`✅ 已清理 ${expiredFiles.length} 个过期文件`);
+                      showSuccess(
+                        `已清理 ${expiredFiles.length} 个过期文件`,
+                        '清理完成'
+                      );
                       reportManagement.refetch.history();
                       reportManagement.refetch.statistics();
                     } else {
-                      alert('没有找到需要清理的过期文件');
+                      showInfo('没有找到需要清理的过期文件', '清理结果');
                     }
                   } catch (error) {
                     console.error('清理过期文件失败:', error);
-                    alert(`❌ 清理失败: ${error instanceof Error ? error.message : '未知错误'}`);
+                    showError(
+                      `清理失败: ${error instanceof Error ? error.message : '未知错误'}`,
+                      '清理失败'
+                    );
+                  } finally {
+                    setConfirmDialog(prev => ({ ...prev, open: false, loading: false }));
                   }
-                }
+                };
+                
+                setConfirmDialog({
+                  open: true,
+                  title: '确认清理过期文件',
+                  message: '确定要清理30天前的过期文件吗？\n\n此操作不可撤销，将永久删除这些文件记录。',
+                  onConfirm: executeCleanup,
+                  confirmText: '确认清理',
+                  confirmVariant: 'warning',
+                  loading: false
+                });
               }}
             >
               清理过期文件

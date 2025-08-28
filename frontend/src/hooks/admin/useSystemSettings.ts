@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
 import { usePermissions } from '@/hooks/permissions';
+import { useCacheInvalidationManager } from '@/hooks/core/useCacheInvalidationManager';
 import type { Permission } from '@/types/permission';
 
 // 系统设置相关类型定义
@@ -361,6 +362,7 @@ export function useSystemSettingsMutations() {
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
   const permissions = usePermissions();
+  const cacheManager = useCacheInvalidationManager();
 
   // 更新系统设置
   const updateSetting = useMutation({
@@ -381,19 +383,9 @@ export function useSystemSettingsMutations() {
         throw error;
       }
     },
-    onSuccess: (_, { key }) => {
-      // 更新相关查询缓存
-      queryClient.invalidateQueries({ queryKey: SYSTEM_SETTINGS_KEYS.setting(key) });
-      queryClient.invalidateQueries({ queryKey: SYSTEM_SETTINGS_KEYS.settings() });
-      
-      // 根据具体设置键更新特定查询缓存
-      if (key === 'new_user_default_role') {
-        queryClient.invalidateQueries({ queryKey: SYSTEM_SETTINGS_KEYS.newUserConfig() });
-      } else if (key === 'user_registration_settings') {
-        queryClient.invalidateQueries({ queryKey: SYSTEM_SETTINGS_KEYS.registrationSettings() });
-      } else if (key === 'role_assignment_rules') {
-        queryClient.invalidateQueries({ queryKey: SYSTEM_SETTINGS_KEYS.roleAssignmentRules() });
-      }
+    onSuccess: async (_, { key }) => {
+      // 使用统一缓存失效管理器
+      await cacheManager.invalidateByEvent('system:settings:updated');
     },
     onError: (error) => {
       handleError(error, { customMessage: '更新系统设置失败' });
@@ -420,8 +412,8 @@ export function useSystemSettingsMutations() {
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: SYSTEM_SETTINGS_KEYS.settings() });
+    onSuccess: async () => {
+      await cacheManager.invalidateByEvent('system:settings:updated');
     },
     onError: (error) => {
       handleError(error, { customMessage: '创建系统设置失败' });
@@ -450,9 +442,9 @@ export function useSystemSettingsMutations() {
         }
       }
     },
-    onSuccess: () => {
-      // 清除所有相关缓存
-      queryClient.invalidateQueries({ queryKey: SYSTEM_SETTINGS_KEYS.all });
+    onSuccess: async () => {
+      // 批量更新使用统一缓存失效
+      await cacheManager.invalidateByEvent('system:settings:updated');
     },
     onError: (error) => {
       handleError(error, { customMessage: '批量更新设置失败' });

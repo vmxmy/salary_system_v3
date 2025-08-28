@@ -19,11 +19,18 @@ import {
   type ReportGenerationConfig 
 } from '@/hooks/reports';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
+import type { FieldFilterConfig } from '@/types/report-config';
+import { 
+  resolveDynamicFilterValue, 
+  buildSupabaseFilters, 
+  validateFieldFilters 
+} from '@/hooks/reports/useReportGenerator';
 
 export default function ReportManagementTest() {
   const { user } = useUnifiedAuth();
   const [testResults, setTestResults] = useState<Record<string, any>>({});
   const [isRunningTests, setIsRunningTests] = useState(false);
+  const [filterTestResults, setFilterTestResults] = useState<Record<string, any>>({});
 
   // 测试主要的组合 hook
   const reportManagement = useReportManagement({
@@ -170,6 +177,271 @@ export default function ReportManagementTest() {
     }
   };
 
+  // 测试字段筛选功能
+  const testFieldFilters = async () => {
+    const results: Record<string, any> = {};
+    
+    try {
+      // 测试 1: 动态筛选值解析
+      const testFilters: FieldFilterConfig[] = [
+        {
+          id: 'test_current_date',
+          name: '当前日期筛选',
+          operator: 'eq',
+          enabled: true,
+          condition_type: 'dynamic',
+          dynamic_config: { type: 'current_date' }
+        },
+        {
+          id: 'test_last_7_days',
+          name: '最近7天筛选',
+          operator: 'gte',
+          enabled: true,
+          condition_type: 'dynamic',
+          dynamic_config: { type: 'last_n_days', offset: 7 }
+        },
+        {
+          id: 'test_current_month',
+          name: '当前月份筛选',
+          operator: 'like',
+          enabled: true,
+          condition_type: 'dynamic',
+          dynamic_config: { type: 'current_month' }
+        },
+        {
+          id: 'test_fixed_value',
+          name: '固定值筛选',
+          operator: 'eq',
+          value: 'test_value',
+          enabled: true,
+          condition_type: 'fixed'
+        },
+        {
+          id: 'test_user_input',
+          name: '用户输入筛选',
+          operator: 'like',
+          enabled: true,
+          condition_type: 'user_input',
+          input_config: {
+            input_type: 'text',
+            required: true,
+            placeholder: '请输入搜索关键词'
+          }
+        }
+      ];
+
+      results.dynamicValueResolution = {};
+      testFilters.forEach(filter => {
+        if (filter.condition_type === 'dynamic') {
+          try {
+            const resolvedValue = resolveDynamicFilterValue(filter);
+            results.dynamicValueResolution[filter.id] = {
+              success: true,
+              originalConfig: filter.dynamic_config,
+              resolvedValue,
+              valueType: typeof resolvedValue
+            };
+          } catch (error) {
+            results.dynamicValueResolution[filter.id] = {
+              success: false,
+              error: error instanceof Error ? error.message : '未知错误'
+            };
+          }
+        }
+      });
+
+      // 测试 2: 筛选条件验证
+      const fieldFiltersConfig = {
+        employee_name: {
+          filters: testFilters,
+          userInputs: {
+            'test_user_input': 'test input value'
+          }
+        },
+        salary_amount: {
+          filters: [
+            {
+              id: 'salary_range',
+              name: '薪资范围筛选',
+              operator: 'between' as const,
+              value: 5000,
+              value_end: 15000,
+              enabled: true,
+              condition_type: 'fixed' as const
+            }
+          ],
+          userInputs: {}
+        }
+      };
+
+      const validationResult = validateFieldFilters(fieldFiltersConfig);
+      results.validation = validationResult;
+
+      // 测试 3: Supabase 查询构建（模拟）
+      const mockQuery = {
+        filters: [] as any[],
+        eq: function(field: string, value: any) { 
+          this.filters.push({ type: 'eq', field, value }); 
+          return this; 
+        },
+        gte: function(field: string, value: any) { 
+          this.filters.push({ type: 'gte', field, value }); 
+          return this; 
+        },
+        ilike: function(field: string, value: any) { 
+          this.filters.push({ type: 'ilike', field, value }); 
+          return this; 
+        },
+        lte: function(field: string, value: any) { 
+          this.filters.push({ type: 'lte', field, value }); 
+          return this; 
+        },
+        in: function(field: string, values: any[]) { 
+          this.filters.push({ type: 'in', field, values }); 
+          return this; 
+        },
+        is: function(field: string, value: any) { 
+          this.filters.push({ type: 'is', field, value }); 
+          return this; 
+        },
+        not: {
+          ilike: (field: string, value: any) => {
+            mockQuery.filters.push({ type: 'not_ilike', field, value });
+            return mockQuery;
+          },
+          in: (field: string, values: any[]) => {
+            mockQuery.filters.push({ type: 'not_in', field, values });
+            return mockQuery;
+          },
+          is: (field: string, value: any) => {
+            mockQuery.filters.push({ type: 'not_is', field, value });
+            return mockQuery;
+          }
+        }
+      };
+
+      try {
+        buildSupabaseFilters(mockQuery, fieldFiltersConfig);
+        results.queryBuilding = {
+          success: true,
+          appliedFilters: mockQuery.filters,
+          filterCount: mockQuery.filters.length
+        };
+      } catch (error) {
+        results.queryBuilding = {
+          success: false,
+          error: error instanceof Error ? error.message : '未知错误'
+        };
+      }
+
+      // 测试 4: 报表生成配置测试
+      if (reportManagement.data.templates.length > 0) {
+        const firstTemplate = reportManagement.data.templates[0];
+        const configWithFilters: ReportGenerationConfig = {
+          templateId: firstTemplate.id,
+          format: 'xlsx',
+          filters: {},
+          fieldFilters: fieldFiltersConfig
+        };
+
+        results.reportGenerationConfig = {
+          templateFound: true,
+          configValid: true,
+          fieldFilterCount: Object.keys(fieldFiltersConfig).length,
+          totalFilterConditions: Object.values(fieldFiltersConfig)
+            .reduce((sum, field) => sum + field.filters.length, 0)
+        };
+      } else {
+        results.reportGenerationConfig = {
+          templateFound: false,
+          message: '没有可用的报表模板进行测试'
+        };
+      }
+
+      setFilterTestResults(results);
+    } catch (error) {
+      setFilterTestResults({
+        error: error instanceof Error ? error.message : '未知错误',
+        timestamp: new Date().toISOString()
+      });
+    }
+  };
+
+  // 测试字段筛选报表生成（完整流程）
+  const testFilteredReportGeneration = async () => {
+    if (reportManagement.data.templates.length === 0) {
+      alert('⚠️ 没有可用的模板进行筛选生成测试');
+      return;
+    }
+
+    const firstTemplate = reportManagement.data.templates[0];
+    
+    // 创建包含各种筛选条件的配置
+    const fieldFiltersConfig = {
+      employee_name: {
+        filters: [
+          {
+            id: 'name_search',
+            name: '员工姓名搜索',
+            operator: 'like' as const,
+            enabled: true,
+            condition_type: 'user_input' as const,
+            input_config: {
+              input_type: 'text' as const,
+              required: false,
+              placeholder: '请输入员工姓名'
+            }
+          }
+        ],
+        userInputs: { 'name_search': '张' } // 模拟用户输入
+      },
+      pay_month: {
+        filters: [
+          {
+            id: 'current_month_filter',
+            name: '当前月份筛选',
+            operator: 'eq' as const,
+            enabled: true,
+            condition_type: 'dynamic' as const,
+            dynamic_config: { type: 'current_month' as const }
+          }
+        ],
+        userInputs: {}
+      },
+      gross_pay: {
+        filters: [
+          {
+            id: 'salary_range',
+            name: '薪资范围筛选',
+            operator: 'between' as const,
+            value: 5000,
+            value_end: 20000,
+            enabled: true,
+            condition_type: 'fixed' as const
+          }
+        ],
+        userInputs: {}
+      }
+    };
+
+    const config: ReportGenerationConfig = {
+      templateId: firstTemplate.id,
+      format: 'xlsx',
+      filters: {},
+      fieldFilters: fieldFiltersConfig
+    };
+
+    try {
+      const result = await reportGenerator.generateReport(config);
+      alert(`✅ 筛选报表生成测试成功！\n` +
+            `文件大小: ${result.fileSize} bytes\n` +
+            `记录数: ${result.recordCount}\n` +
+            `应用了 ${Object.keys(fieldFiltersConfig).length} 个字段的筛选条件`);
+    } catch (error) {
+      alert(`❌ 筛选报表生成测试失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="card bg-base-100 shadow-lg">
@@ -215,6 +487,29 @@ export default function ReportManagementTest() {
                 </>
               ) : (
                 '📄 测试报表生成'
+              )}
+            </button>
+            
+            <button 
+              className="btn btn-info"
+              onClick={testFieldFilters}
+              disabled={isRunningTests}
+            >
+              🔍 测试字段筛选功能
+            </button>
+            
+            <button 
+              className="btn btn-warning"
+              onClick={testFilteredReportGeneration}
+              disabled={reportGenerator.isGenerating}
+            >
+              {reportGenerator.isGenerating ? (
+                <>
+                  <span className="loading loading-spinner loading-sm"></span>
+                  筛选生成中...
+                </>
+              ) : (
+                '📊 测试筛选报表生成'
               )}
             </button>
           </div>
@@ -381,6 +676,126 @@ export default function ReportManagementTest() {
             </div>
           </div>
 
+          {/* 字段筛选功能测试结果 */}
+          {Object.keys(filterTestResults).length > 0 && (
+            <div className="card bg-base-100 shadow">
+              <div className="card-body">
+                <h2 className="card-title">🔍 字段筛选功能测试结果</h2>
+                
+                {filterTestResults.error ? (
+                  <div className="alert alert-error">
+                    <div>
+                      <strong>测试失败:</strong> {filterTestResults.error}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* 动态值解析测试 */}
+                    {filterTestResults.dynamicValueResolution && (
+                      <div className="card bg-base-200">
+                        <div className="card-body p-4">
+                          <h3 className="card-title text-base">📅 动态值解析测试</h3>
+                          <div className="space-y-2">
+                            {Object.entries(filterTestResults.dynamicValueResolution).map(([id, result]: [string, any]) => (
+                              <div key={id} className={`alert ${result.success ? 'alert-success' : 'alert-error'} alert-sm`}>
+                                <div className="text-sm">
+                                  <strong>{id}:</strong> {result.success ? (
+                                    <>
+                                      解析值: <code className="bg-base-300 px-1 rounded">{JSON.stringify(result.resolvedValue)}</code>
+                                      <span className="ml-2 badge badge-ghost badge-sm">({result.valueType})</span>
+                                    </>
+                                  ) : (
+                                    `❌ ${result.error}`
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 筛选条件验证测试 */}
+                    {filterTestResults.validation && (
+                      <div className="card bg-base-200">
+                        <div className="card-body p-4">
+                          <h3 className="card-title text-base">✅ 筛选条件验证测试</h3>
+                          <div className={`alert ${filterTestResults.validation.isValid ? 'alert-success' : 'alert-warning'}`}>
+                            <div>
+                              <strong>验证结果:</strong> {filterTestResults.validation.isValid ? '✅ 全部通过' : '⚠️ 有错误'}
+                              {filterTestResults.validation.errors?.length > 0 && (
+                                <ul className="mt-2 list-disc list-inside">
+                                  {filterTestResults.validation.errors.map((error: string, index: number) => (
+                                    <li key={index} className="text-sm">{error}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Supabase 查询构建测试 */}
+                    {filterTestResults.queryBuilding && (
+                      <div className="card bg-base-200">
+                        <div className="card-body p-4">
+                          <h3 className="card-title text-base">🗄️ Supabase 查询构建测试</h3>
+                          <div className={`alert ${filterTestResults.queryBuilding.success ? 'alert-success' : 'alert-error'}`}>
+                            <div>
+                              <strong>构建结果:</strong> {filterTestResults.queryBuilding.success ? (
+                                <>
+                                  ✅ 成功 - 应用了 {filterTestResults.queryBuilding.filterCount} 个筛选条件
+                                  <div className="mt-2">
+                                    <strong>应用的筛选条件:</strong>
+                                    <pre className="text-xs bg-base-300 p-2 rounded mt-1 overflow-auto max-h-32">
+                                      {JSON.stringify(filterTestResults.queryBuilding.appliedFilters, null, 2)}
+                                    </pre>
+                                  </div>
+                                </>
+                              ) : (
+                                `❌ ${filterTestResults.queryBuilding.error}`
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 报表生成配置测试 */}
+                    {filterTestResults.reportGenerationConfig && (
+                      <div className="card bg-base-200">
+                        <div className="card-body p-4">
+                          <h3 className="card-title text-base">📊 报表生成配置测试</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="stat bg-base-100 rounded">
+                              <div className="stat-title">模板状态</div>
+                              <div className={`stat-value text-sm ${filterTestResults.reportGenerationConfig.templateFound ? 'text-success' : 'text-warning'}`}>
+                                {filterTestResults.reportGenerationConfig.templateFound ? '✅ 找到模板' : '⚠️ 无模板'}
+                              </div>
+                            </div>
+                            <div className="stat bg-base-100 rounded">
+                              <div className="stat-title">筛选字段数</div>
+                              <div className="stat-value text-sm">
+                                {filterTestResults.reportGenerationConfig.fieldFilterCount || 0}
+                              </div>
+                            </div>
+                            <div className="stat bg-base-100 rounded">
+                              <div className="stat-title">筛选条件总数</div>
+                              <div className="stat-value text-sm">
+                                {filterTestResults.reportGenerationConfig.totalFilterConditions || 0}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* 详细测试数据 */}
           <div className="collapse collapse-arrow bg-base-200">
             <input type="checkbox" />
@@ -393,6 +808,21 @@ export default function ReportManagementTest() {
               </pre>
             </div>
           </div>
+          
+          {/* 字段筛选测试详细数据 */}
+          {Object.keys(filterTestResults).length > 0 && (
+            <div className="collapse collapse-arrow bg-base-200">
+              <input type="checkbox" />
+              <div className="collapse-title text-xl font-medium">
+                🔍 字段筛选测试详细数据 (JSON)
+              </div>
+              <div className="collapse-content">
+                <pre className="text-xs bg-base-300 p-4 rounded overflow-auto max-h-96">
+                  {JSON.stringify(filterTestResults, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -418,8 +848,33 @@ export default function ReportManagementTest() {
               <span><strong>优化查询逻辑:</strong> 数据源查询的默认处理逻辑已优化</span>
             </div>
             <div className="flex items-start gap-2">
+              <span className="badge badge-success">✅</span>
+              <span><strong>字段筛选功能:</strong> 完整的字段级筛选条件配置和生成系统</span>
+            </div>
+            <div className="flex items-start gap-2">
               <span className="badge badge-info">ℹ️</span>
               <span><strong>实时测试:</strong> 此页面提供所有修复功能的实时测试环境</span>
+            </div>
+          </div>
+
+          <div className="divider">新增筛选功能测试</div>
+          
+          <div className="space-y-2">
+            <div className="flex items-start gap-2">
+              <span className="badge badge-primary">🔍</span>
+              <span><strong>动态值解析:</strong> 测试当前日期、最近N天、当前月份等动态筛选值的解析</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="badge badge-primary">✅</span>
+              <span><strong>筛选条件验证:</strong> 测试必填字段、范围值、多选值等筛选条件的验证逻辑</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="badge badge-primary">🗄️</span>
+              <span><strong>查询构建:</strong> 测试将筛选条件转换为Supabase查询的功能</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="badge badge-primary">📊</span>
+              <span><strong>筛选报表生成:</strong> 测试带有字段筛选条件的完整报表生成流程</span>
             </div>
           </div>
         </div>

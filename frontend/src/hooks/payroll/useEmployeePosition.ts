@@ -544,6 +544,7 @@ export const useAssignPosition = useAssignEmployeePosition;
 export const useBatchAssignEmployeePositions = () => {
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (params: {
@@ -580,25 +581,17 @@ export const useBatchAssignEmployeePositions = () => {
       
       return data || [];
     },
-    onSuccess: (data, variables) => {
-      // 使所有相关查询失效
-      const employeeIds = [...new Set(variables.assignments.map(a => a.employeeId))];
-      const departmentIds = [...new Set(variables.assignments.map(a => a.departmentId))];
-      
-      employeeIds.forEach(employeeId => {
-        queryClient.invalidateQueries({ 
-          queryKey: employeePositionQueryKeys.employeePosition(employeeId) 
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: employeePositionQueryKeys.positionHistory(employeeId) 
-        });
-      });
-      
-      departmentIds.forEach(departmentId => {
-        queryClient.invalidateQueries({ 
-          queryKey: employeePositionQueryKeys.departmentPositions(departmentId) 
-        });
-      });
+    onSuccess: async (data, variables) => {
+      // 为每个分配的员工触发缓存失效事件
+      for (const assignment of variables.assignments) {
+        await cacheManager.invalidateByEvent('employee:position:assigned', 
+          CacheInvalidationUtils.createEmployeeContext(
+            assignment.employeeId, 
+            assignment.departmentId, 
+            assignment.positionId
+          )
+        );
+      }
     },
   });
 };
