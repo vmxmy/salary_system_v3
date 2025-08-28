@@ -3,7 +3,6 @@
  * 支持丰富的单元格样式和格式化功能
  */
 
-import * as ExcelJS from 'exceljs';
 import type { 
   ExportTemplateConfig, 
   ExportSheetTemplate, 
@@ -134,7 +133,39 @@ export async function generateStyledExcelFromTemplate(
     `${key}: ${items?.length || 0}条`
   ).join(', '));
 
-  const workbook = new ExcelJS.Workbook();
+  // 动态导入ExcelJS并创建工作簿
+  const ExcelJS = await import('exceljs');
+  
+  let workbook: any = null;
+  
+  // 优先使用全局变量方式 (UMD模式，ExcelJS在浏览器中的主要模式)
+  if (typeof window !== 'undefined' && (window as any).ExcelJS) {
+    if ((window as any).ExcelJS.Workbook) {
+      workbook = new (window as any).ExcelJS.Workbook();
+    } else if (typeof (window as any).ExcelJS === 'function') {
+      workbook = new (window as any).ExcelJS();
+    }
+  }
+  
+  // Fallback到ES模块方式
+  if (!workbook && ExcelJS.default && (ExcelJS.default as any).Workbook) {
+    workbook = new (ExcelJS.default as any).Workbook();
+  }
+  
+  // Fallback到CommonJS方式
+  if (!workbook && (ExcelJS as any).Workbook) {
+    workbook = new (ExcelJS as any).Workbook();
+  }
+  
+  // 最后的fallback
+  if (!workbook && typeof ExcelJS.default === 'function') {
+    workbook = new (ExcelJS.default as any)();
+  }
+  
+  // 如果所有方法都失败，抛出错误
+  if (!workbook) {
+    throw new Error('无法创建ExcelJS工作簿，所有构造方法均失败');
+  }
   workbook.creator = '薪资管理系统';
   workbook.lastModifiedBy = '系统自动生成';
   workbook.created = new Date();
@@ -194,7 +225,7 @@ export async function generateStyledExcelFromTemplate(
  * 创建样式化的透视工作表
  */
 async function createStyledPivotWorksheet(
-  workbook: ExcelJS.Workbook,
+  workbook: any,
   sheetConfig: ExportSheetTemplate,
   data: any[]
 ): Promise<void> {
@@ -412,7 +443,7 @@ async function createStyledPivotWorksheet(
     const dataRow = worksheet.addRow(rowData);
     
     // 设置数据行样式
-    dataRow.eachCell((cell) => {
+    dataRow.eachCell((cell: any) => {
       cell.border = {
         top: { style: 'thin' },
         left: { style: 'thin' },
@@ -437,7 +468,7 @@ async function createStyledPivotWorksheet(
  * 创建样式化的普通工作表
  */
 async function createStyledNormalWorksheet(
-  workbook: ExcelJS.Workbook,
+  workbook: any,
   sheetConfig: ExportSheetTemplate,
   data: any[]
 ): Promise<void> {
@@ -453,7 +484,7 @@ async function createStyledNormalWorksheet(
   const headerRow = worksheet.addRow(headers);
   headerRow.height = 25;
   
-  headerRow.eachCell((cell) => {
+  headerRow.eachCell((cell: any) => {
     cell.font = {
       bold: true,
       size: 11,
@@ -494,7 +525,7 @@ async function createStyledNormalWorksheet(
     const dataRow = worksheet.addRow(rowData);
     
     // 设置数据行样式
-    dataRow.eachCell((cell) => {
+    dataRow.eachCell((cell: any) => {
       cell.border = {
         top: { style: 'thin' },
         left: { style: 'thin' },
@@ -517,7 +548,7 @@ async function createStyledNormalWorksheet(
  * 创建空的样式化工作表
  */
 function createEmptyStyledSheet(
-  workbook: ExcelJS.Workbook,
+  workbook: any,
   sheetConfig: ExportSheetTemplate
 ): void {
   const worksheet = workbook.addWorksheet(sheetConfig.sheetName);
@@ -533,7 +564,7 @@ function createEmptyStyledSheet(
     const explanationRow = worksheet.addRow(['', '', '', '', '', '无数据时无法显示动态薪资项目列']);
     
     // 设置样式
-    headerRow.eachCell((cell) => {
+    headerRow.eachCell((cell: any) => {
       cell.font = { bold: true };
       cell.fill = {
         type: 'pattern',
@@ -546,7 +577,7 @@ function createEmptyStyledSheet(
     const headers = sheetConfig.fields.map(field => field.label);
     const headerRow = worksheet.addRow(headers);
     
-    headerRow.eachCell((cell) => {
+    headerRow.eachCell((cell: any) => {
       cell.font = { bold: true };
       cell.fill = {
         type: 'pattern',
