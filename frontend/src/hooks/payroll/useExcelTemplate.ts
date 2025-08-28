@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import * as XLSX from 'xlsx';
+import { excelLoader } from '@/lib/excel-lazy-loader';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
 import type { Database } from '@/types/supabase';
@@ -29,7 +29,7 @@ interface TemplateConfig {
 interface UseExcelTemplateReturn {
   generating: boolean;
   error: string | null;
-  generateTemplate: (config: TemplateConfig) => Promise<XLSX.WorkBook>;
+  generateTemplate: (config: TemplateConfig) => Promise<any>;
   downloadTemplate: (config: TemplateConfig) => Promise<void>;
 }
 
@@ -222,12 +222,19 @@ export const useExcelTemplate = (): UseExcelTemplateReturn => {
     setError(null);
 
     try {
+      // 懒加载 Excel 库
+      const libraries = await excelLoader.load();
+      if (!libraries.available) {
+        throw new Error('Excel库加载失败');
+      }
+      const { XLSX } = libraries;
+
       // 创建新的工作簿
       const workbook = XLSX.utils.book_new();
 
       // 为每个数据组创建工作表
       for (const group of config.groups) {
-        const sheetData = await generateSheetData(group, config);
+        const sheetData = await generateSheetData(group, config, XLSX);
         const worksheet = XLSX.utils.json_to_sheet(sheetData.data, {
           header: sheetData.headers
         });
@@ -236,7 +243,7 @@ export const useExcelTemplate = (): UseExcelTemplateReturn => {
         worksheet['!cols'] = sheetData.colWidths;
 
         // 添加数据验证和格式
-        applySheetFormatting(worksheet, sheetData.mappings);
+        applySheetFormatting(worksheet, sheetData.mappings, XLSX);
 
         // 添加工作表到工作簿
         const sheetName = getSheetName(group);
@@ -244,7 +251,7 @@ export const useExcelTemplate = (): UseExcelTemplateReturn => {
       }
 
       // 添加说明工作表
-      const instructionSheet = createInstructionSheet(config.groups);
+      const instructionSheet = createInstructionSheet(config.groups, XLSX);
       XLSX.utils.book_append_sheet(workbook, instructionSheet, '使用说明');
 
       return workbook;
@@ -263,6 +270,13 @@ export const useExcelTemplate = (): UseExcelTemplateReturn => {
    */
   const downloadTemplate = useCallback(async (config: TemplateConfig) => {
     try {
+      // 懒加载 Excel 库
+      const libraries = await excelLoader.load();
+      if (!libraries.available) {
+        throw new Error('Excel库加载失败');
+      }
+      const { XLSX } = libraries;
+
       const workbook = await generateTemplate(config);
       
       // 生成文件名
@@ -280,7 +294,7 @@ export const useExcelTemplate = (): UseExcelTemplateReturn => {
   /**
    * 生成工作表数据
    */
-  async function generateSheetData(group: ImportDataGroup, config: TemplateConfig) {
+  async function generateSheetData(group: ImportDataGroup, config: TemplateConfig, XLSX: any) {
     const mappings = getFieldMappings(group);
     const headers = mappings.map(m => m.excelColumn);
     
@@ -319,7 +333,7 @@ export const useExcelTemplate = (): UseExcelTemplateReturn => {
 /**
  * 应用工作表格式
  */
-function applySheetFormatting(worksheet: XLSX.WorkSheet, mappings: FieldMapping[]) {
+function applySheetFormatting(worksheet: any, mappings: FieldMapping[], XLSX: any) {
   const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
   
   // 设置表头样式
@@ -377,7 +391,7 @@ function applySheetFormatting(worksheet: XLSX.WorkSheet, mappings: FieldMapping[
 /**
  * 创建使用说明工作表
  */
-function createInstructionSheet(groups: ImportDataGroup[]): XLSX.WorkSheet {
+function createInstructionSheet(groups: ImportDataGroup[], XLSX: any) {
   const instructions = [
     ['薪资数据导入模板使用说明'],
     [''],

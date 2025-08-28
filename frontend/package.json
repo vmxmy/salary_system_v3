@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "NODE_OPTIONS='--max-old-space-size=2048' npx tsc -b && NODE_OPTIONS='--max-old-space-size=2048' vite build",
+    "build:prod": "NODE_ENV=production npm run build",
+    "build:analyze": "ANALYZE=true npm run build",
+    "build:cdn": "VITE_USE_CDN=true npm run build:prod",
     "lint": "eslint .",
     "preview": "vite preview",
+    "preview:prod": "NODE_ENV=production vite preview",
     "i18n:check": "node scripts/check-i18n.js",
     "i18n:check-ui": "node scripts/check-ui-i18n.js",
     "i18n:scan": "npm run i18n:check-ui"
@@ -66,9 +70,12 @@
     "glob": "^11.0.3",
     "globals": "^16.2.0",
     "postcss": "^8.5.6",
+    "rollup-plugin-visualizer": "^6.0.3",
     "tailwindcss": "^4.1.11",
+    "terser": "^5.43.1",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.34.1",
-    "vite": "^7.0.0"
+    "vite": "^7.0.0",
+    "vite-plugin-compression": "^0.5.1"
   }
 }

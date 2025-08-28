@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import type { Table } from '@tanstack/react-table';
 import { useModal } from '@/components/common/Modal';
 import { cn } from '@/lib/utils';
-import * as XLSX from 'xlsx';
+import { excelLoader } from '@/lib/excel-lazy-loader';
 
 interface EmployeeExportProps<TData> {
   table: Table<TData>;
@@ -153,7 +153,12 @@ export function EmployeeExport<TData>({
   };
 
   const generateExcel = async (data: any[], columns: any[]) => {
-    // 使用 XLSX 库生成真正的 Excel 文件
+    // 懒加载 Excel 库
+    const libraries = await excelLoader.load();
+    if (!libraries.available) {
+      throw new Error('Excel库加载失败');
+    }
+    const { XLSX } = libraries;
     
     // 1. 准备数据
     const worksheetData = [];

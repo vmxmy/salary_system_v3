@@ -13,7 +13,7 @@ import { useModal } from '@/components/common/Modal';
 import { UserPlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { createDataTableColumnHelper } from '@/components/common/DataTable/utils';
 import type { EmployeeListItem } from '@/types/employee';
-import * as XLSX from 'xlsx';
+import { excelLoader } from '@/lib/excel-lazy-loader';
 import { OnboardingButton } from '@/components/onboarding';
 import { cardEffects } from '@/styles/design-effects';
 
@@ -338,6 +338,13 @@ export default function EmployeeManagementPage() {
   // 通用Excel导出函数
   const generateExcelFile = useCallback(async (exportData: any[], filename: string) => {
     try {
+      // 懒加载 Excel 库
+      const libraries = await excelLoader.load();
+      if (!libraries.available) {
+        throw new Error('Excel库加载失败');
+      }
+      const { XLSX } = libraries;
+
       // 准备Excel数据
       const headers = ['员工姓名', '部门', '职位', '人员类别', '状态', '入职日期'];
       const worksheetData = [];
