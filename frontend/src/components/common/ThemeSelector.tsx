@@ -291,7 +291,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
       <div
         tabIndex={0}
         role="button"
-        className={`btn ${buttonSize} btn-primary gap-2 transition-colors`}
+        className={`btn ${buttonSize} btn-ghost gap-2 transition-colors`}
         aria-label="选择主题"
       >
         <PaintBrushIcon className={iconSize} />
