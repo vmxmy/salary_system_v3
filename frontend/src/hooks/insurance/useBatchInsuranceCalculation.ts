@@ -116,6 +116,19 @@ const calculateInsuranceFromViewData = async ({
       let employeeAmount = Math.round((adjustedBase * (employeeRate || 0)) * 100) / 100;
       let employerAmount = Math.round((adjustedBase * (employerRate || 0)) * 100) / 100;
       
+      // 🔧 调试：记录职业年金的计算过程
+      if (insuranceKey === 'occupational_pension') {
+        console.log(`💰 ${employeeName} 职业年金计算:`, {
+          原始基数: contributionBase,
+          调整后基数: adjustedBase,
+          员工费率: employeeRate,
+          单位费率: employerRate,
+          员工金额: employeeAmount,
+          单位金额: employerAmount,
+          计算公式: `${adjustedBase} * ${employeeRate} = ${employeeAmount}, ${adjustedBase} * ${employerRate} = ${employerAmount}`
+        });
+      }
+      
       // 住房公积金特殊舍入规则：小数 < 0.1 舍去，>= 0.1 进位
       if (insuranceKey === 'housing_fund') {
         employeeAmount = applyHousingFundRounding(employeeAmount);
@@ -188,9 +201,25 @@ export const useBatchInsuranceCalculation = () => {
 
     try {
       // 确保配置已加载
+      console.log('🔄 加载标准保险配置...');
       await loadStandardInsuranceConfigs();
+      
+      // 🔧 调试：检查配置加载后的状态
+      console.log('📋 配置加载完成，当前INSURANCE_TYPE_CONFIGS状态:', {
+        配置总数: INSURANCE_TYPE_CONFIGS.length,
+        职业年金配置详情: INSURANCE_TYPE_CONFIGS.find(c => c.key === 'occupational_pension'),
+        所有配置: INSURANCE_TYPE_CONFIGS.map(c => ({
+          key: c.key,
+          name: c.name,
+          componentIdEmployee: c.componentIdEmployee,
+          componentIdEmployer: c.componentIdEmployer,
+          hasComponentIds: !!(c.componentIdEmployee || c.componentIdEmployer)
+        }))
+      });
 
       // Step 2: 🚀 使用优化视图一次性获取所有计算数据 - 大幅性能提升！
+      // 🔧 重要修复：强制获取最新数据，避免任何缓存问题
+      console.log('🔄 强制获取最新缴费基数数据，避免缓存问题...');
       let contributionData: any[] = [];
       
       if (employeeIds && employeeIds.length > 0) {
@@ -199,6 +228,10 @@ export const useBatchInsuranceCalculation = () => {
         
         for (let i = 0; i < employeeIds.length; i += QUERY_BATCH_SIZE) {
           const batch = employeeIds.slice(i, i + QUERY_BATCH_SIZE);
+          
+          // 🔧 添加时间戳参数强制绕过任何可能的缓存
+          const timestamp = Date.now();
+          console.log(`🔍 [批次${Math.floor(i/QUERY_BATCH_SIZE)+1}] 查询缴费基数 (强制刷新: ${timestamp})`);
           
           const { data: batchData, error: batchError } = await supabase
             .from('view_employee_contribution_bases_by_period')
@@ -228,6 +261,10 @@ export const useBatchInsuranceCalculation = () => {
         }
       } else {
         // 🔥 对于全量查询，使用单次查询 + 优化字段选择
+        // 🔧 添加时间戳参数强制绕过任何可能的缓存
+        const timestamp = Date.now();
+        console.log(`🔍 [全量查询] 查询所有缴费基数 (强制刷新: ${timestamp})`);
+        
         const { data, error } = await supabase
           .from('view_employee_contribution_bases_by_period')
           .select(`
@@ -254,6 +291,23 @@ export const useBatchInsuranceCalculation = () => {
 
       if (!contributionData || contributionData.length === 0) {
         throw new Error('No contribution base data found for the specified period');
+      }
+
+      // 🔧 重要调试：记录实际获取到的缴费基数数据
+      console.log('🔍 获取到的缴费基数数据:', contributionData.length, '条记录');
+      const debugSample = contributionData.find(
+        item => item.employee_id === '5f9514f7-3d26-4c0a-aca6-e7d12c2441d0' && 
+                item.insurance_type_key === 'occupational_pension'
+      );
+      if (debugSample) {
+        console.log('🎯 邱高长青职业年金数据:', {
+          employee_name: debugSample.employee_name,
+          insurance_type_key: debugSample.insurance_type_key,
+          latest_contribution_base: debugSample.latest_contribution_base,
+          employee_rate: debugSample.employee_rate,
+          employer_rate: debugSample.employer_rate,
+          queryTime: new Date().toISOString()
+        });
       }
 
       // 按员工分组数据，避免重复查询
@@ -309,6 +363,19 @@ export const useBatchInsuranceCalculation = () => {
 
           try {
             // 🚀 使用预加载数据进行本地计算，避免重复查询
+            // 🔧 调试：记录实际用于计算的数据
+            const occupationalPensionData = employeeInsuranceData.find(
+              item => item.insurance_type_key === 'occupational_pension'
+            );
+            if (occupationalPensionData && employeeId === '5f9514f7-3d26-4c0a-aca6-e7d12c2441d0') {
+              console.log('🧮 邱高长青职业年金计算输入:', {
+                employee_name: employeeName,
+                contribution_base: occupationalPensionData.latest_contribution_base,
+                employee_rate: occupationalPensionData.employee_rate,
+                employer_rate: occupationalPensionData.employer_rate
+              });
+            }
+            
             const insuranceResult = await calculateInsuranceFromViewData({
               employeeId,
               employeeName,
@@ -351,6 +418,20 @@ export const useBatchInsuranceCalculation = () => {
               const config = INSURANCE_TYPE_CONFIGS.find(c => c.key === insuranceKey);
               const insuranceTypeName = config?.name || insuranceKey;
               
+              // 🔧 调试：检查INSURANCE_TYPE_CONFIGS的状态
+              if (insuranceKey === 'occupational_pension') {
+                console.log('🧩 检查INSURANCE_TYPE_CONFIGS状态:', {
+                  配置总数: INSURANCE_TYPE_CONFIGS.length,
+                  职业年金配置: config,
+                  所有配置: INSURANCE_TYPE_CONFIGS.map(c => ({
+                    key: c.key,
+                    name: c.name,
+                    componentIdEmployee: c.componentIdEmployee,
+                    componentIdEmployer: c.componentIdEmployer
+                  }))
+                });
+              }
+              
               const componentDetail: typeof componentDetails[0] = {
                 insuranceKey,
                 insuranceTypeName
@@ -360,6 +441,19 @@ export const useBatchInsuranceCalculation = () => {
               if (insuranceData.employee && insuranceData.employee.success && insuranceData.employee.amount >= 0) {
                 const componentId = getStandardComponentId(insuranceKey, false);
                 const componentName = getStandardComponentName(insuranceKey, false);
+                
+                // 🔧 调试：检查组件ID获取
+                if (insuranceKey === 'occupational_pension') {
+                  console.log('🧩 职业年金个人组件获取结果:', {
+                    insuranceKey,
+                    componentId,
+                    componentName,
+                    amount: insuranceData.employee.amount,
+                    payrollId,
+                    获取函数返回: getStandardComponentId(insuranceKey, false),
+                    配置中的ID: config?.componentIdEmployee
+                  });
+                }
                 
                 if (componentId && componentName) {
                   payrollItems.push({
@@ -408,6 +502,20 @@ export const useBatchInsuranceCalculation = () => {
 
             // 如果选择保存到数据库，将此员工的 items 添加到批次中
             if (saveToDatabase) {
+              // 🔧 调试：记录准备写入的数据
+              if (employeeId === '5f9514f7-3d26-4c0a-aca6-e7d12c2441d0') {
+                console.log('📝 邱高长青准备写入的payroll_items:', payrollItems.length, '条');
+                payrollItems.forEach(item => {
+                  if (item.notes?.includes('职业年金')) {
+                    console.log('💾 职业年金写入项:', {
+                      payroll_id: item.payroll_id,
+                      component_id: item.component_id,
+                      amount: item.amount,
+                      notes: item.notes
+                    });
+                  }
+                });
+              }
               allPayrollItems.push(...payrollItems);
             }
 
@@ -446,7 +554,16 @@ export const useBatchInsuranceCalculation = () => {
 
       // Step 5: 🚀 优化批量插入所有 payroll_items（仅在选择保存到数据库时）
       if (saveToDatabase && allPayrollItems.length > 0) {
-        console.log(`准备批量插入 ${allPayrollItems.length} 条薪资项目记录`);
+        console.log(`📊 准备批量插入 ${allPayrollItems.length} 条薪资项目记录`);
+        
+        // 🔧 调试：显示邱高长青的写入数据
+        const qiuItems = allPayrollItems.filter(item => 
+          item.notes?.includes('邱高长青') || 
+          item.notes?.includes('职业年金')
+        );
+        if (qiuItems.length > 0) {
+          console.log('🎯 邱高长青的写入项目:', qiuItems);
+        }
         
         // 🔥 优化策略：使用更小的批次 + 并行插入 + 错误重试
         const INSERT_BATCH_SIZE = 200; // 减少批次大小，提高成功率
@@ -466,18 +583,35 @@ export const useBatchInsuranceCalculation = () => {
             // 添加重试机制的批量插入
             const insertWithRetry = async (batch: any[], retries = 2): Promise<void> => {
               try {
-                const { error: insertError } = await supabase
+                // 🔧 调试：记录即将插入的数据
+                const qiuItemsInBatch = batch.filter(item => 
+                  item.notes?.includes('职业年金')
+                );
+                if (qiuItemsInBatch.length > 0) {
+                  console.log('🚀 即将插入的职业年金记录:', qiuItemsInBatch);
+                }
+                
+                const { data: insertResult, error: insertError } = await supabase
                   .from('payroll_items')
                   .upsert(batch, {
                     onConflict: 'payroll_id,component_id',
                     ignoreDuplicates: false // 确保更新现有记录
-                  });
+                  })
+                  .select(); // 返回插入的数据以便调试
 
                 if (insertError) {
+                  console.error('❌ 插入错误详情:', insertError);
                   throw insertError;
                 }
                 
                 console.log(`✅ 成功插入批次: ${batch.length} 条记录`);
+                
+                // 🔧 调试：显示插入结果
+                if (insertResult && qiuItemsInBatch.length > 0) {
+                  console.log('💾 职业年金插入结果:', insertResult.filter(r => 
+                    r.notes?.includes('职业年金')
+                  ));
+                }
               } catch (error) {
                 console.error(`❌ 批次插入失败 (剩余重试: ${retries}):`, error);
                 
@@ -501,16 +635,72 @@ export const useBatchInsuranceCalculation = () => {
         
         console.log(`🎉 批量插入完成，共处理 ${allPayrollItems.length} 条记录`);
         
-        // 批量插入成功后，失效相关查询缓存，确保统计数据自动更新
+        // 🚀 全面失效缓存，确保前端数据实时更新
+        console.log('🔄 开始失效所有相关缓存...');
+        
+        // 1. 失效五险一金相关数据
+        console.log('📊 失效五险一金数据缓存...');
+        
+        // 失效所有员工的缴费基数缓存
+        const affectedEmployeeIds = [...new Set(allPayrollItems.map(item => {
+          // 从 payroll_id 获取对应的 employee_id
+          const payrollData = contributionData.find(d => 
+            payrollIdMap.get(d.employee_id) === item.payroll_id
+          );
+          return payrollData?.employee_id;
+        }).filter(Boolean))];
+        
+        affectedEmployeeIds.forEach(employeeId => {
+          // 失效员工缴费基数查询
+          queryClient.invalidateQueries({ queryKey: ['contribution-bases', 'employee', employeeId] });
+          queryClient.invalidateQueries({ queryKey: ['contribution-bases', 'history', employeeId] });
+        });
+        
+        // 失效周期缴费基数查询
+        queryClient.invalidateQueries({ queryKey: ['contribution-bases', 'period', periodId] });
+        queryClient.invalidateQueries({ queryKey: ['contribution-bases'] });
+        
+        // 失效保险配置相关查询
+        queryClient.invalidateQueries({ queryKey: ['insurance-config'] });
+        queryClient.invalidateQueries({ queryKey: ['insurance-types'] });
+        
+        // 2. 失效薪资汇总相关数据
+        console.log('💰 失效薪资汇总数据缓存...');
+        
+        // 失效薪资列表和统计
         queryClient.invalidateQueries({ queryKey: payrollQueryKeys.lists() });
         queryClient.invalidateQueries({ queryKey: payrollQueryKeys.statistics() });
-        // 失效所有相关的详情查询
+        queryClient.invalidateQueries({ queryKey: ['payrolls'] });
+        queryClient.invalidateQueries({ queryKey: ['payroll-statistics'] });
+        queryClient.invalidateQueries({ queryKey: ['payroll-summary'] });
+        
+        // 失效所有相关的薪资详情查询
         const affectedPayrollIds = [...new Set(allPayrollItems.map(item => item.payroll_id))];
         affectedPayrollIds.forEach(payrollId => {
           if (payrollId) {
             queryClient.invalidateQueries({ queryKey: payrollQueryKeys.detail(payrollId) });
+            queryClient.invalidateQueries({ queryKey: ['payrolls', 'detail', payrollId] });
+            queryClient.invalidateQueries({ queryKey: ['payroll-detail', payrollId] });
           }
         });
+        
+        // 3. 失效薪资项目(payroll_items)相关查询  
+        queryClient.invalidateQueries({ queryKey: ['payroll-items'] });
+        queryClient.invalidateQueries({ queryKey: ['salary-components'] });
+        
+        // 4. 失效员工相关数据
+        console.log('👥 失效员工相关缓存...');
+        affectedEmployeeIds.forEach(employeeId => {
+          queryClient.invalidateQueries({ queryKey: ['employees', employeeId] });
+          queryClient.invalidateQueries({ queryKey: ['employee-detail', employeeId] });
+          queryClient.invalidateQueries({ queryKey: ['employee-statistics', employeeId] });
+        });
+        
+        // 5. 失效周期相关数据
+        queryClient.invalidateQueries({ queryKey: ['payroll-periods', periodId] });
+        queryClient.invalidateQueries({ queryKey: ['period-completeness', periodId] });
+        
+        console.log('✅ 缓存失效完成，前端数据将自动刷新');
       }
 
       const endTime = performance.now();

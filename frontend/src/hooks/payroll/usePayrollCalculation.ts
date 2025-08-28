@@ -324,10 +324,37 @@ export const usePayrollCalculation = () => {
           result.errors.push(updateError.message);
         } else {
           result.message = '计算并保存成功';
-          // 失效相关查询缓存，确保统计数据自动更新
+          
+          // 🚀 全面失效缓存，确保前端数据实时更新
+          console.log('🔄 薪资汇总计算完成，开始失效所有相关缓存...');
+          
+          // 1. 失效薪资汇总相关数据
+          console.log('💰 失效薪资汇总数据缓存...');
           queryClient.invalidateQueries({ queryKey: payrollQueryKeys.lists() });
           queryClient.invalidateQueries({ queryKey: payrollQueryKeys.statistics() });
           queryClient.invalidateQueries({ queryKey: payrollQueryKeys.detail(result.payrollId) });
+          queryClient.invalidateQueries({ queryKey: ['payrolls'] });
+          queryClient.invalidateQueries({ queryKey: ['payroll-statistics'] });
+          queryClient.invalidateQueries({ queryKey: ['payroll-summary'] });
+          queryClient.invalidateQueries({ queryKey: ['payroll-detail', result.payrollId] });
+          
+          // 2. 失效薪资项目(payroll_items)相关查询
+          queryClient.invalidateQueries({ queryKey: ['payroll-items'] });
+          queryClient.invalidateQueries({ queryKey: ['salary-components'] });
+          
+          // 3. 失效员工相关数据
+          console.log('👥 失效员工相关缓存...');
+          queryClient.invalidateQueries({ queryKey: ['employees', result.employeeId] });
+          queryClient.invalidateQueries({ queryKey: ['employee-detail', result.employeeId] });
+          queryClient.invalidateQueries({ queryKey: ['employee-statistics', result.employeeId] });
+          
+          // 4. 失效周期相关数据
+          if (result.periodId) {
+            queryClient.invalidateQueries({ queryKey: ['payroll-periods', result.periodId] });
+            queryClient.invalidateQueries({ queryKey: ['period-completeness', result.periodId] });
+          }
+          
+          console.log('✅ 单条记录缓存失效完成，前端数据将自动刷新');
         }
       } catch (saveError) {
         result.success = false;
@@ -429,13 +456,47 @@ export const usePayrollCalculation = () => {
             successfulResults.forEach(result => {
               result.message = '计算并保存成功';
             });
-            // 批量更新成功后，失效相关查询缓存，确保统计数据自动更新
+            
+            // 🚀 全面失效缓存，确保前端数据实时更新
+            console.log('🔄 批量薪资汇总计算完成，开始失效所有相关缓存...');
+            
+            // 1. 失效薪资汇总相关数据
+            console.log('💰 失效薪资汇总数据缓存...');
             queryClient.invalidateQueries({ queryKey: payrollQueryKeys.lists() });
             queryClient.invalidateQueries({ queryKey: payrollQueryKeys.statistics() });
-            // 失效所有详情查询
-            successfulResults.forEach(result => {
-              queryClient.invalidateQueries({ queryKey: payrollQueryKeys.detail(result.payrollId) });
+            queryClient.invalidateQueries({ queryKey: ['payrolls'] });
+            queryClient.invalidateQueries({ queryKey: ['payroll-statistics'] });
+            queryClient.invalidateQueries({ queryKey: ['payroll-summary'] });
+            
+            // 失效所有相关的薪资详情查询
+            const affectedPayrollIds = [...new Set(successfulResults.map(result => result.payrollId))];
+            const affectedEmployeeIds = [...new Set(successfulResults.map(result => result.employeeId))];
+            const affectedPeriodIds = [...new Set(successfulResults.map(result => result.periodId).filter(Boolean))];
+            
+            affectedPayrollIds.forEach(payrollId => {
+              queryClient.invalidateQueries({ queryKey: payrollQueryKeys.detail(payrollId) });
+              queryClient.invalidateQueries({ queryKey: ['payroll-detail', payrollId] });
             });
+            
+            // 2. 失效薪资项目(payroll_items)相关查询
+            queryClient.invalidateQueries({ queryKey: ['payroll-items'] });
+            queryClient.invalidateQueries({ queryKey: ['salary-components'] });
+            
+            // 3. 失效员工相关数据
+            console.log('👥 失效员工相关缓存...');
+            affectedEmployeeIds.forEach(employeeId => {
+              queryClient.invalidateQueries({ queryKey: ['employees', employeeId] });
+              queryClient.invalidateQueries({ queryKey: ['employee-detail', employeeId] });
+              queryClient.invalidateQueries({ queryKey: ['employee-statistics', employeeId] });
+            });
+            
+            // 4. 失效周期相关数据  
+            affectedPeriodIds.forEach(periodId => {
+              queryClient.invalidateQueries({ queryKey: ['payroll-periods', periodId] });
+              queryClient.invalidateQueries({ queryKey: ['period-completeness', periodId] });
+            });
+            
+            console.log(`✅ 批量薪资汇总缓存失效完成 (影响${successfulResults.length}条记录)，前端数据将自动刷新`);
           }
         }
       }

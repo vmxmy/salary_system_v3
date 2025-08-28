@@ -73,6 +73,17 @@ export async function loadStandardInsuranceConfigs(): Promise<void> {
 
 async function loadConfigsInternal(): Promise<void> {
   try {
+    console.log('🔄 开始从数据库加载标准保险组件配置...');
+    
+    // 🔧 调试：先测试视图权限
+    console.log('🔍 测试视图访问权限...');
+    const testQuery = await supabase
+      .from('v_standard_insurance_components')
+      .select('count')
+      .limit(1);
+    
+    console.log('🔍 视图权限测试结果:', testQuery);
+    
     // 从视图获取标准组件映射，添加超时控制
     const { data, error } = await supabase
       .from('v_standard_insurance_components')
@@ -80,12 +91,79 @@ async function loadConfigsInternal(): Promise<void> {
       .abortSignal(AbortSignal.timeout(10000)); // 10秒超时
 
     if (error) {
-      console.error('Failed to load standard insurance configs:', error);
+      console.error('❌ 加载标准保险配置失败:', error);
+      console.error('❌ 错误详情:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       return;
     }
 
+    console.log('📊 从数据库获取的组件数据:', data);
+    console.log('📊 数据类型和长度:', typeof data, data?.length);
+
     if (!data || data.length === 0) {
-      console.warn('No standard insurance components found');
+      console.warn('⚠️  视图为空，尝试直接查询基础表...');
+      
+      // 🔧 备用方案：直接查询相关表构建配置
+      const { data: components, error: compError } = await supabase
+        .from('salary_components')
+        .select(`
+          id,
+          name,
+          category,
+          type
+        `)
+        .in('category', ['personal_insurance', 'employer_insurance'])
+        .eq('type', 'deduction');
+        
+      if (compError) {
+        console.error('❌ 查询组件表失败:', compError);
+        return;
+      }
+      
+      console.log('📊 从组件表获取的数据:', components);
+      
+      if (!components || components.length === 0) {
+        console.error('❌ 组件表中也没有找到保险相关组件');
+        return;
+      }
+      
+      // 手动映射已知的组件（基于数据库查询结果）
+      const manualMapping = [
+        { key: 'occupational_pension', isEmployer: false, componentId: '9ca71474-e167-44a3-bbef-e9ae655c9915' },
+        { key: 'occupational_pension', isEmployer: true, componentId: 'cc2e7cbd-1d14-4302-a0f3-c7f9603380b9' },
+        // 其他保险类型...
+      ];
+      
+      const configMap = new Map<string, InsuranceTypeConfig>();
+      INSURANCE_TYPE_CONFIGS.forEach(config => {
+        configMap.set(config.key, { ...config });
+      });
+      
+      // 应用手动映射
+      manualMapping.forEach(mapping => {
+        const config = configMap.get(mapping.key);
+        if (config) {
+          if (mapping.isEmployer) {
+            config.componentIdEmployer = mapping.componentId;
+          } else {
+            config.componentIdEmployee = mapping.componentId;
+          }
+        }
+      });
+      
+      INSURANCE_TYPE_CONFIGS = Array.from(configMap.values());
+      
+      console.log('✅ 使用手动映射更新配置:', INSURANCE_TYPE_CONFIGS.map(c => ({
+        key: c.key,
+        name: c.name,
+        componentIdEmployee: c.componentIdEmployee,
+        componentIdEmployer: c.componentIdEmployer
+      })));
+      
       return;
     }
 
@@ -97,26 +175,48 @@ async function loadConfigsInternal(): Promise<void> {
       configMap.set(config.key, { ...config });
     });
 
+    console.log('📋 初始化配置映射:', Array.from(configMap.entries()).map(([key, config]) => ({
+      key,
+      name: config.name
+    })));
+
     // 更新标准名称和组件ID
     data.forEach((item: any) => {
+      console.log('🔧 处理数据库记录:', {
+        insurance_type: item.insurance_type,
+        payer_type: item.payer_type,
+        standard_name: item.standard_name,
+        component_id: item.component_id
+      });
+      
       const config = configMap.get(item.insurance_type);
       if (config) {
         if (item.payer_type === 'employee') {
           config.standardNameEmployee = item.standard_name;
           config.componentIdEmployee = item.component_id;
+          console.log(`✅ 更新 ${item.insurance_type} 个人组件:`, config.componentIdEmployee);
         } else if (item.payer_type === 'employer') {
           config.standardNameEmployer = item.standard_name;
           config.componentIdEmployer = item.component_id;
+          console.log(`✅ 更新 ${item.insurance_type} 单位组件:`, config.componentIdEmployer);
         }
+      } else {
+        console.warn(`⚠️  未找到配置项:`, item.insurance_type);
       }
     });
 
     // 更新全局配置
     INSURANCE_TYPE_CONFIGS = Array.from(configMap.values());
     
-    console.log('Standard insurance configs loaded:', INSURANCE_TYPE_CONFIGS);
+    console.log('✅ 标准保险配置加载完成:', INSURANCE_TYPE_CONFIGS.map(c => ({
+      key: c.key,
+      name: c.name,
+      componentIdEmployee: c.componentIdEmployee,
+      componentIdEmployer: c.componentIdEmployer,
+      hasComponentIds: !!(c.componentIdEmployee || c.componentIdEmployer)
+    })));
   } catch (err) {
-    console.error('Error loading standard insurance configs:', err);
+    console.error('❌ 加载标准保险配置时发生错误:', err);
   }
 }
 

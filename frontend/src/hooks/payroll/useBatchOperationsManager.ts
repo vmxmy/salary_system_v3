@@ -1,8 +1,10 @@
 import { useState, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePayrollApproval } from '@/hooks/payroll/usePayrollApproval';
 import { useBatchInsuranceCalculation } from '@/hooks/insurance';
 import { usePayrollCalculation } from '@/hooks/payroll/usePayrollCalculation';
 import { useToast } from '@/contexts/ToastContext';
+import { contributionBaseQueryKeys } from '@/hooks/payroll/useContributionBase';
 import { 
   createBatchApprovalItems,
   updateBatchApprovalItem,
@@ -70,6 +72,7 @@ interface BatchOperationsManager {
  */
 export function useBatchOperationsManager(onRefetch?: () => void): BatchOperationsManager {
   const { showSuccess, showError } = useToast();
+  const queryClient = useQueryClient();
   const approval = usePayrollApproval();
   const { calculateBatchInsurance, loading: batchInsuranceLoading } = useBatchInsuranceCalculation();
   const payrollCalculation = usePayrollCalculation();
@@ -340,6 +343,25 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
         });
 
         try {
+          // 🔧 重要修复：在批量计算前强制失效所有相关缓存，确保使用最新数据
+          console.log('🔄 强制刷新缓费基数缓存以确保使用最新数据...');
+          
+          // 失效所有缴费基数相关的查询缓存
+          batch.forEach(employeeId => {
+            queryClient.invalidateQueries({ 
+              queryKey: contributionBaseQueryKeys.employeeBases(employeeId, selectedPeriodId) 
+            });
+            queryClient.invalidateQueries({ 
+              queryKey: contributionBaseQueryKeys.employeeHistory(employeeId) 
+            });
+          });
+          queryClient.invalidateQueries({ 
+            queryKey: contributionBaseQueryKeys.periodBases(selectedPeriodId) 
+          });
+          
+          // 等待缓存失效完成
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
           // 执行批量计算
           const results = await calculateBatchInsurance({
             periodId: selectedPeriodId,
