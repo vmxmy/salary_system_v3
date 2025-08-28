@@ -85,7 +85,7 @@ jobs:
     if: true   # ✅ 已配置SSH凭据，启用静态文件部署
     
     environment: 
-      name: ${{ github.event.inputs.environment || 'production' }}
+      name: production  # 明确指定环境名，确保与 Environment secrets 匹配
       
     steps:
     - name: Download build artifacts
