@@ -116,12 +116,6 @@ export default defineConfig({
       // External dependencies that should be loaded from CDN in production
       ...(process.env.VITE_USE_CDN === 'true' && {
         external: ['react', 'react-dom'],
-        output: {
-          globals: {
-            react: 'React',
-            'react-dom': 'ReactDOM'
-          }
-        }
       }),
       // 低内存模式下的优化配置
       ...(isLowMemoryBuild && {
@@ -136,6 +130,13 @@ export default defineConfig({
         experimentalCacheExpiry: 10,
       }),
       output: {
+        // CDN globals configuration
+        ...(process.env.VITE_USE_CDN === 'true' && {
+          globals: {
+            react: 'React',
+            'react-dom': 'ReactDOM'
+          }
+        }),
         // Better chunk naming for caching - 确保正确的文件扩展名
         entryFileNames: (chunkInfo) => {
           return `assets/${chunkInfo.name}-[hash].js`;
