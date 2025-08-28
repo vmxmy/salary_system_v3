@@ -7,6 +7,10 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // GitHub Pages 部署配置
+  base: process.env.NODE_ENV === 'production' 
+    ? '/salary_system_v3/' // GitHub Pages 仓库名
+    : '/',
   plugins: [
     tailwindcss(), 
     react(),
