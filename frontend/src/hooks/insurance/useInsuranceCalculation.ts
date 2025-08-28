@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useInsuranceCore } from './core/useInsuranceCore';
 import type { CalculationResult } from './core/insuranceCalculator';
 
-export interface InsuranceCalculationResult extends CalculationResult {}
+export type InsuranceCalculationResult = CalculationResult
 
 export interface InsuranceCalculationParams {
   employeeId: string;

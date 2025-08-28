@@ -73,17 +73,17 @@ export const CHART_COLORS = {
   text: () => getDaisyUIColor('--bc'),
   
   // 透明度变体
-  primaryOpacity: (opacity: number = 0.3) => {
+  primaryOpacity: (opacity = 0.3) => {
     const base = getDaisyUIColor('--p');
     return base.replace('hsl(', `hsla(`).replace(')', `, ${opacity})`);
   },
   
-  secondaryOpacity: (opacity: number = 0.3) => {
+  secondaryOpacity: (opacity = 0.3) => {
     const base = getDaisyUIColor('--s');
     return base.replace('hsl(', `hsla(`).replace(')', `, ${opacity})`);
   },
   
-  accentOpacity: (opacity: number = 0.3) => {
+  accentOpacity: (opacity = 0.3) => {
     const base = getDaisyUIColor('--a');
     return base.replace('hsl(', `hsla(`).replace(')', `, ${opacity})`);
   },

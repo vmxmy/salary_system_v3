@@ -377,7 +377,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   };
 
   // 渲染菜单项
-  const renderMenuItem = (item: MenuItem, level: number = 0) => {
+  const renderMenuItem = (item: MenuItem, level = 0) => {
     if (!hasPermission(item.permissions)) return null;
 
     const hasChildren = item.children && item.children.length > 0;

@@ -259,7 +259,7 @@ const calculateDataQualityMetrics = (
   }
   
   // 2. 数据及时性检查（基于员工数据最后更新时间）
-  let timeliness = 100;
+  const timeliness = 100;
   // 使用当前时间作为基准，假设数据是实时的
   const lastUpdate = new Date();
   const hoursOld = 0; // 假设实时数据

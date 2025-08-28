@@ -198,7 +198,7 @@ export const performExactFieldMatching = (
 export const analyzeFieldMapping = async (
   excelColumns: string[], 
   dataGroup?: ImportDataGroup,
-  sheetName: string = 'Sheet1'
+  sheetName = 'Sheet1'
 ): Promise<FieldMappingAnalysis> => {
   console.log('🔍 开始分析字段映射...');
   console.log('📊 Excel列名:', excelColumns);

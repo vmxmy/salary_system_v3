@@ -263,7 +263,7 @@ export interface UseResourceReturn {
 }
 
 // 资源访问控制Hook返回类型（别名）
-export interface UseResourceAccessReturn extends UseResourceReturn {}
+export type UseResourceAccessReturn = UseResourceReturn
 
 // 权限申请过滤选项
 export interface PermissionRequestFilter {

@@ -22,7 +22,7 @@ interface BatchProgressModal {
 }
 
 // 提交审批进度模态框状态
-interface SubmitProgressModal extends BatchProgressModal {}
+type SubmitProgressModal = BatchProgressModal
 
 // 计算进度模态框状态
 interface CalculationProgressModal extends BatchProgressModal {

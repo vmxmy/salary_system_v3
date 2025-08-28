@@ -39,13 +39,13 @@ export interface ImportLogSession {
  */
 export class ImportLogger {
   private session: ImportLogSession;
-  private isConsoleEnabled: boolean = true;
-  private isDatabaseEnabled: boolean = false; // 暂时禁用数据库存储
+  private isConsoleEnabled = true;
+  private isDatabaseEnabled = false; // 暂时禁用数据库存储
   
   constructor(
     periodId: string,
     importType: string,
-    totalRows: number = 0,
+    totalRows = 0,
     options: {
       enableConsole?: boolean;
       enableDatabase?: boolean;
@@ -354,7 +354,7 @@ export class ImportLogger {
 export const createImportLogger = (
   periodId: string,
   importType: string,
-  totalRows: number = 0,
+  totalRows = 0,
   options?: {
     enableConsole?: boolean;
     enableDatabase?: boolean;

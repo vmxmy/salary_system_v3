@@ -17,7 +17,7 @@ export interface AvailablePayrollMonth {
  * Returns a list of months that have payroll data available
  * @param enabled - Whether to enable the query (default: true)
  */
-export function useAvailablePayrollMonths(enabled: boolean = true) {
+export function useAvailablePayrollMonths(enabled = true) {
   return useQuery({
     queryKey: ['available-payroll-months'],
     queryFn: async (): Promise<AvailablePayrollMonth[]> => {

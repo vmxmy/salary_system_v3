@@ -197,8 +197,8 @@ export function canModifyPayroll(status: PayrollPeriodStatus): boolean {
  */
 export function getMonthIndicatorConfig(
   status: PayrollPeriodStatus,
-  hasData: boolean = false,
-  isLocked: boolean = false
+  hasData = false,
+  isLocked = false
 ) {
   const config = getStatusConfig(status);
   

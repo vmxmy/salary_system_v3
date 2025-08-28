@@ -37,7 +37,7 @@ export const useDataSources = () => {
 };
 
 // 获取指定表/视图的列信息
-export const useTableColumns = (tableName: string, enabled: boolean = true) => {
+export const useTableColumns = (tableName: string, enabled = true) => {
   return useQuery({
     queryKey: ['database', 'columns', tableName],
     queryFn: async (): Promise<ColumnInfo[]> => {
@@ -308,7 +308,7 @@ async function getRealDataSources(options?: {
 }
 
 // 增强的字段查询hook
-export const useTableColumnsEnhanced = (tableName?: string, enabled: boolean = true) => {
+export const useTableColumnsEnhanced = (tableName?: string, enabled = true) => {
   return useQuery({
     queryKey: ['database', 'columns-enhanced', tableName],
     queryFn: async (): Promise<ColumnInfoEnhanced[]> => {

@@ -275,7 +275,7 @@ export function useOptimizedRealtime(config: OptimizedRealtimeConfig) {
 /**
  * 用于薪资页面的优化Realtime Hook
  */
-export function usePayrollRealtime(enabled: boolean = true) {
+export function usePayrollRealtime(enabled = true) {
   return useOptimizedRealtime({
     tables: ['payrolls', 'payroll_items', 'payroll_periods'],
     enabled,
@@ -296,7 +296,7 @@ export function usePayrollRealtime(enabled: boolean = true) {
 /**
  * 用于员工页面的优化Realtime Hook  
  */
-export function useEmployeeRealtime(enabled: boolean = true) {
+export function useEmployeeRealtime(enabled = true) {
   return useOptimizedRealtime({
     tables: ['employees', 'employee_job_history', 'departments'],
     enabled,

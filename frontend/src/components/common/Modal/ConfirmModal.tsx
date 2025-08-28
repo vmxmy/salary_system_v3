@@ -190,7 +190,7 @@ export function useConfirmModal() {
   const confirmDelete = React.useCallback((
     message: string,
     onConfirm: () => void | Promise<void>,
-    title: string = '确认删除'
+    title = '确认删除'
   ) => {
     showConfirm({
       message,

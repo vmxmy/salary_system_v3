@@ -169,7 +169,7 @@ export function DepartmentTree({
     setSearchTerm('');
   }, []);
 
-  const renderTreeNodes = useCallback((nodes: DepartmentNode[], level: number = 0) => {
+  const renderTreeNodes = useCallback((nodes: DepartmentNode[], level = 0) => {
     return nodes.map((node) => (
       <DepartmentTreeNode
         key={node.id}

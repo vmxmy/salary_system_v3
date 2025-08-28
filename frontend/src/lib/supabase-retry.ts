@@ -112,7 +112,7 @@ export class RetryableSupabaseQuery {
    */
   async viewQuery<T>(
     viewName: any,
-    selectClause: string = '*',
+    selectClause = '*',
     additionalOptions: {
       filters?: (query: any) => any;
       ordering?: (query: any) => any;

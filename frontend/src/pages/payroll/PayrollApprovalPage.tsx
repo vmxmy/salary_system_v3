@@ -29,9 +29,7 @@ import { cardEffects } from '@/styles/design-effects';
 type PayrollStatus = Database['public']['Enums']['payroll_status'];
 
 // 扩展接口以支持审批页面特定需求
-interface PayrollApprovalData extends BasePayrollData {
-  // 审批页面特有的字段
-}
+type PayrollApprovalData = BasePayrollData
 
 /**
  * 薪资审批管理页面

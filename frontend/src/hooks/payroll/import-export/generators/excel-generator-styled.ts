@@ -629,7 +629,7 @@ function extractFieldValue(
 export function generateStyledFileName(
   template: ExportTemplateConfig,
   periodId: string,
-  format: string = 'xlsx'
+  format = 'xlsx'
 ): string {
   const timestamp = new Date().toISOString().slice(0, 16).replace('T', '_').replace(/:/g, '-');
   return `${template.filePrefix}_${periodId}_${timestamp}.${format}`;

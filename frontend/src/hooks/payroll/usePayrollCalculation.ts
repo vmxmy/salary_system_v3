@@ -371,7 +371,7 @@ export const usePayrollCalculation = () => {
    */
   const calculateBatch = useCallback(async (
     payrollIds: string[], 
-    saveToDatabase: boolean = false
+    saveToDatabase = false
   ): Promise<BatchPayrollCalculationResult> => {
     setLoading(true);
     setError(null);
@@ -572,7 +572,7 @@ export const usePayrollCalculation = () => {
   const calculateByPeriod = useCallback(async (
     periodId: string,
     employeeIds?: string[],
-    saveToDatabase: boolean = false
+    saveToDatabase = false
   ): Promise<BatchPayrollCalculationResult> => {
     try {
       // 获取期间内的薪资记录

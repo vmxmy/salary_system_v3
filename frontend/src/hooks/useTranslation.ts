@@ -73,7 +73,7 @@ export function useTranslation(namespace?: string | string[]) {
   };
 
   // Helper function to safely translate status values
-  const translateStatus = (status: string | null | undefined, namespace: string = 'common'): string => {
+  const translateStatus = (status: string | null | undefined, namespace = 'common'): string => {
     if (!status || typeof status !== 'string') {
       return t('unknown');
     }

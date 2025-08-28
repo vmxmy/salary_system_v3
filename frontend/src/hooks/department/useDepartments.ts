@@ -588,7 +588,7 @@ async function checkCircularReference(
   return false;
 }
 
-function formatNumber(value: any, decimals: number = 2): number {
+function formatNumber(value: any, decimals = 2): number {
   if (value == null || value === '') return 0;
   const num = typeof value === 'string' ? parseFloat(value) : value;
   return isNaN(num) ? 0 : parseFloat(num.toFixed(decimals));

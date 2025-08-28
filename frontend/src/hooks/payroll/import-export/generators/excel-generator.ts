@@ -304,7 +304,7 @@ function createPivotWorksheet(
     
     // 将薪资项目的值添加到对应的字段中
     // 检查多种可能的金额字段名
-    let componentValue = item.component_value || item.item_amount || item.amount || 0;
+    const componentValue = item.component_value || item.item_amount || item.amount || 0;
     
     if (item.component_name && componentValue !== undefined) {
       employee.salaryComponents[item.component_name] = componentValue;
@@ -512,7 +512,7 @@ function extractFieldValue(
 export function generateFileName(
   template: ExportTemplateConfig,
   periodId: string,
-  format: string = 'xlsx'
+  format = 'xlsx'
 ): string {
   const timestamp = new Date().toISOString().slice(0, 16).replace('T', '_').replace(/:/g, '-');
   return `${template.filePrefix}_${periodId}_${timestamp}.${format}`;

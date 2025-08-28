@@ -44,7 +44,7 @@ export const enumQueryKeys = {
  * @param enumNames 要获取的枚举类型名称数组
  * @param enabled 是否启用查询
  */
-export function useEnumValues(enumNames: string[], enabled: boolean = true) {
+export function useEnumValues(enumNames: string[], enabled = true) {
   const { handleError } = useErrorHandler();
 
   return useQuery({
@@ -87,7 +87,7 @@ export function useEnumValues(enumNames: string[], enabled: boolean = true) {
  * @param enumName 枚举类型名称
  * @param enabled 是否启用查询
  */
-export function useSingleEnumValues(enumName: string, enabled: boolean = true) {
+export function useSingleEnumValues(enumName: string, enabled = true) {
   const { handleError } = useErrorHandler();
 
   return useQuery({

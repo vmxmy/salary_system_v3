@@ -314,7 +314,7 @@ export function useLoadingState(options: LoadingStateOptions = {}) {
 /**
  * 简化版加载状态Hook - 用于单一操作
  */
-export function useSimpleLoading(initialLoading: boolean = false) {
+export function useSimpleLoading(initialLoading = false) {
   const [isLoading, setIsLoading] = useState(initialLoading);
 
   const withLoading = useCallback(async <T>(

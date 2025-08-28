@@ -8,8 +8,8 @@
  */
 export function formatCurrency(
   amount: number | null | undefined, 
-  showSymbol: boolean = false,
-  precision: number = 2
+  showSymbol = false,
+  precision = 2
 ): string {
   if (amount === null || amount === undefined) {
     return '--';
@@ -30,7 +30,7 @@ export function formatCurrency(
  */
 export function formatPercent(
   value: number | null | undefined, 
-  precision: number = 2
+  precision = 2
 ): string {
   if (value === null || value === undefined) {
     return '--';
@@ -178,7 +178,7 @@ export function formatPhone(phone: string | null | undefined): string {
  */
 export function formatIdCard(
   idCard: string | null | undefined,
-  maskLength: number = 8
+  maskLength = 8
 ): string {
   if (!idCard) {
     return '--';

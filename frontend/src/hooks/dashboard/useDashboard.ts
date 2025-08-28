@@ -354,7 +354,7 @@ export const dashboardFormatters = {
   },
 
   // 格式化百分比
-  percentage: (value: number | string, decimals: number = 1) => {
+  percentage: (value: number | string, decimals = 1) => {
     const num = typeof value === 'string' ? parseFloat(value) : value;
     return `${num.toFixed(decimals)}%`;
   },

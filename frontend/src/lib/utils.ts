@@ -34,8 +34,8 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function formatCurrency(
   amount: number,
-  currency: string = 'CNY',
-  locale: string = 'zh-CN'
+  currency = 'CNY',
+  locale = 'zh-CN'
 ): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -58,7 +58,7 @@ export function formatCurrency(
  * formatPercentage(0.123, 2) // "12.30%"
  * ```
  */
-export function formatPercentage(value: number, decimals: number = 1): string {
+export function formatPercentage(value: number, decimals = 1): string {
   return `${(value * 100).toFixed(decimals)}%`;
 }
 
@@ -79,7 +79,7 @@ export function formatPercentage(value: number, decimals: number = 1): string {
  */
 export function formatDate(
   date: Date | string,
-  locale: string = 'zh-CN',
+  locale = 'zh-CN',
   options: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
@@ -104,7 +104,7 @@ export function formatDate(
  */
 export function formatDateTime(
   date: Date | string,
-  locale: string = 'zh-CN'
+  locale = 'zh-CN'
 ): string {
   return formatDate(date, locale, {
     year: 'numeric',
@@ -330,7 +330,7 @@ export const cardEffects = {
  * Provides themed icon containers with various sizes and colors
  */
 export const iconContainer = {
-  modern: (variant: string = 'primary', size: string = 'md') => {
+  modern: (variant = 'primary', size = 'md') => {
     const sizeClasses = {
       xs: 'w-6 h-6',
       sm: 'w-8 h-8', 

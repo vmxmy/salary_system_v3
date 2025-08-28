@@ -193,7 +193,7 @@ export const formatImportConfig = (config: {
  * @param decimals 小数位数
  * @returns 格式化的数值字符串
  */
-export const formatNumber = (value: number, decimals: number = 2): string => {
+export const formatNumber = (value: number, decimals = 2): string => {
   return new Intl.NumberFormat('zh-CN', {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals

@@ -101,7 +101,7 @@ export const payrollQueryKeys = {
 };
 
 // 数值格式化工具函数
-const formatNumber = (value: any, decimals: number = 2): number => {
+const formatNumber = (value: any, decimals = 2): number => {
   if (value == null || value === '') return 0;
   const num = typeof value === 'string' ? parseFloat(value) : value;
   return isNaN(num) ? 0 : parseFloat(num.toFixed(decimals));
@@ -922,7 +922,7 @@ export const payrollFormatters = {
   },
 
   // 格式化百分比
-  percentage: (value: number, decimals: number = 2) => {
+  percentage: (value: number, decimals = 2) => {
     return `${(value * 100).toFixed(decimals)}%`;
   },
 

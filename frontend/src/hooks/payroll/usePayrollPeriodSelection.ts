@@ -6,7 +6,7 @@ import { useAvailablePayrollMonths } from './useAvailablePayrollMonths';
  * 薪资周期选择管理Hook
  * 提供智能的默认周期选择、持久化存储和状态管理
  */
-export function usePayrollPeriodSelection(storageKey: string = 'payroll-period') {
+export function usePayrollPeriodSelection(storageKey = 'payroll-period') {
   // 从localStorage获取上次选择的周期
   const getStoredPeriod = () => {
     try {

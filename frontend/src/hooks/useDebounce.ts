@@ -70,7 +70,7 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
  * @param delay 防抖延迟时间（毫秒），默认300ms
  * @returns 搜索相关的状态和方法
  */
-export function useSearchDebounce(initialValue: string = '', delay: number = 300) {
+export function useSearchDebounce(initialValue = '', delay = 300) {
   const [searchValue, setSearchValue] = useState(initialValue);
   const [debouncedSearchValue, setDebouncedSearchValue] = useState(initialValue);
 

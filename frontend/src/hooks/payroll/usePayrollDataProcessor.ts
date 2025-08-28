@@ -279,7 +279,7 @@ export function useSimplePayrollDataProcessor<T extends BasePayrollData = BasePa
  */
 export function useSearchablePayrollData<T extends BasePayrollData = BasePayrollData>(
   rawData: T[] = [],
-  searchQuery: string = '',
+  searchQuery = '',
   statusFilter: PayrollStatusType | 'all' = 'all',
   customSearchFields?: SearchFieldConfig[]
 ) {

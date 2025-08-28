@@ -28,7 +28,7 @@ export const contributionBaseTrendQueryKeys = {
  */
 export function useEmployeeContributionBaseTrend(
   employeeId: string, 
-  insuranceTypeKey: string = 'housing_fund', // 默认住房公积金
+  insuranceTypeKey = 'housing_fund', // 默认住房公积金
   year?: number
 ) {
   const { handleError } = useErrorHandler();

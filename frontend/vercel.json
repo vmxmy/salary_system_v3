@@ -8,7 +8,7 @@
   "devCommand": "npm run dev",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|_next/|favicon.ico|assets/).*)",
       "destination": "/index.html"
     }
   ],

@@ -200,7 +200,7 @@ export const useEmployeeStatistics = (params?: StatisticsQueryParams) => {
 };
 
 // 获取员工趋势数据
-export const useEmployeeTrends = (months: number = 12) => {
+export const useEmployeeTrends = (months = 12) => {
   return useQuery({
     queryKey: ['employee-trends', months],
     queryFn: async (): Promise<EmployeeTrends> => {

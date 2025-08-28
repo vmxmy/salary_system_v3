@@ -151,7 +151,7 @@ function checkNodeMatch(
 export function getDepartmentSuggestions(
   departments: DepartmentNode[],
   searchTerm: string,
-  limit: number = 10
+  limit = 10
 ): DepartmentNode[] {
   if (!searchTerm) return [];
 
@@ -194,7 +194,7 @@ export function getDepartmentSuggestions(
 export function highlightDepartmentPath(
   path: string,
   searchTerm: string,
-  separator: string = ' / '
+  separator = ' / '
 ): Array<{ text: string; isHighlight: boolean }> {
   if (!searchTerm) {
     return [{ text: path, isHighlight: false }];

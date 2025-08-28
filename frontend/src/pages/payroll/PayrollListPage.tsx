@@ -52,9 +52,7 @@ import { PayrollStatusBadge } from '@/components/common/PayrollStatusBadge';
 import type { BasePayrollData } from '@/components/payroll/PayrollTableContainer';
 
 // 扩展接口以支持本页面特定需求
-interface PayrollData extends BasePayrollData {
-  // 本页面特有的其他字段可以在这里添加
-}
+type PayrollData = BasePayrollData
 
 export default function PayrollListPage() {
   const { t } = useTranslation(['common', 'payroll']);

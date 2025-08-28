@@ -400,7 +400,7 @@ class UnifiedPermissionManager implements IPermissionManager {
    */
   private async withRetry<T>(
     operation: () => Promise<T>,
-    operationName: string = 'operation',
+    operationName = 'operation',
     attempts: number = this.config.retryAttempts
   ): Promise<T> {
     let lastError: any;
