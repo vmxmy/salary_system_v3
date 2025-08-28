@@ -267,18 +267,18 @@ jobs:
           # 尝试重载 Nginx
           if command -v nginx >/dev/null 2>&1; then
             echo "📋 检测到 Nginx，尝试重载配置..."
-            sudo nginx -t && sudo systemctl reload nginx || echo "⚠️  Nginx 重载失败"
+            nginx -t && systemctl reload nginx || echo "⚠️  Nginx 重载失败"
             echo "✅ Nginx 状态: $(systemctl is-active nginx)"
           fi
           
           # 尝试重载 Apache
           if command -v apache2 >/dev/null 2>&1; then
             echo "📋 检测到 Apache2，尝试重载配置..."
-            sudo apache2ctl configtest && sudo systemctl reload apache2 || echo "⚠️  Apache2 重载失败"
+            apache2ctl configtest && systemctl reload apache2 || echo "⚠️  Apache2 重载失败"
             echo "✅ Apache2 状态: $(systemctl is-active apache2)"
           elif command -v httpd >/dev/null 2>&1; then
             echo "📋 检测到 httpd，尝试重载配置..."
-            sudo httpd -t && sudo systemctl reload httpd || echo "⚠️  httpd 重载失败"
+            httpd -t && systemctl reload httpd || echo "⚠️  httpd 重载失败"
             echo "✅ httpd 状态: $(systemctl is-active httpd)"
           fi
           
@@ -290,8 +290,10 @@ jobs:
       env:
         WEB_ROOT: ${{ secrets.SERVER_WEB_ROOT }}
       run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           echo "🔍 执行部署后健康检查..."
+          
+          WEB_ROOT="${{ secrets.SERVER_WEB_ROOT }}"
           
           # 检查文件是否成功部署
           if [ ! -f "$WEB_ROOT/index.html" ]; then
@@ -309,10 +311,10 @@ jobs:
           # 检查关键文件
           echo "📋 关键文件检查:"
           for file in index.html assets/index-*.js assets/index-*.css; do
-            if find $WEB_ROOT -path "*\$file" | head -1 | read; then
-              echo "✅ 找到: \$file"
+            if find $WEB_ROOT -path "*$file" | head -1 | read; then
+              echo "✅ 找到: $file"
             else
-              echo "⚠️  未找到: \$file"  
+              echo "⚠️  未找到: $file"  
             fi
           done
         EOF
