@@ -13,14 +13,6 @@ on:
         options:
         - rolling    # 滚动部署
         - blue_green # 蓝绿部署
-      registry_type:
-        description: 'Docker 镜像仓库'
-        required: true
-        default: 'dockerhub'
-        type: choice
-        options:
-        - dockerhub  # Docker Hub
-        - aliyun     # 阿里云容器镜像
 
 env:
   NODE_VERSION: '20'
@@ -84,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-test
     
-    # ✅ 使用 github-pages Environment secrets
+    # 使用 github-pages Environment secrets
     environment: 
       name: github-pages
       
@@ -105,35 +97,17 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       
-    # 动态选择镜像仓库
-    - name: Login to Docker Registry
-      run: |
-        REGISTRY_TYPE="${{ github.event.inputs.registry_type || 'dockerhub' }}"
-        
-        if [ "$REGISTRY_TYPE" = "dockerhub" ]; then
-          echo "🔐 登录 Docker Hub..."
-          REGISTRY="docker.io"
-          echo "REGISTRY=$REGISTRY" >> $GITHUB_ENV  
-          echo "NAMESPACE=${{ secrets.DOCKERHUB_USERNAME || 'salaryapp' }}" >> $GITHUB_ENV
-          
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-        elif [ "$REGISTRY_TYPE" = "aliyun" ] && [ -n "${{ secrets.ALIYUN_REGISTRY_USERNAME }}" ]; then
-          echo "🔐 登录阿里云容器镜像服务..."
-          REGISTRY="${{ vars.ALIYUN_REGISTRY || 'registry.cn-beijing.aliyuncs.com' }}"
-          echo "REGISTRY=$REGISTRY" >> $GITHUB_ENV
-          echo "NAMESPACE=salary-system" >> $GITHUB_ENV
-          
-          echo "${{ secrets.ALIYUN_REGISTRY_PASSWORD }}" | docker login --username "${{ secrets.ALIYUN_REGISTRY_USERNAME }}" --password-stdin "$REGISTRY"
-        else
-          echo "❌ 未配置有效的镜像仓库凭据"
-          exit 1
-        fi
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
         
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.APP_NAME }}
+        images: ${{ secrets.DOCKER_USERNAME }}/${{ env.APP_NAME }}
         tags: |
           type=ref,event=branch
           type=ref,event=pr
@@ -173,9 +147,8 @@ jobs:
     name: Deploy to Private Server
     runs-on: ubuntu-latest
     needs: build-and-push-image
-    if: true   # ✅ 已配置SSH凭据，启用容器部署
     
-    # ✅ 使用 github-pages Environment secrets
+    # 使用 github-pages Environment secrets
     environment: 
       name: github-pages
       
@@ -205,7 +178,17 @@ jobs:
           exit 1
         fi
         
-        echo "✅ SSH 配置验证通过"
+        if [ -z "${{ secrets.DOCKER_USERNAME }}" ]; then
+          echo "❌ DOCKER_USERNAME secret 未配置"
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+          echo "❌ DOCKERHUB_TOKEN secret 未配置"
+          exit 1
+        fi
+        
+        echo "✅ SSH 和 Docker 配置验证通过"
         echo "用户: ${{ secrets.SSH_USER }}"
         echo "主机: ${{ secrets.SSH_HOST }}"
         echo "镜像: ${{ needs.build-and-push-image.outputs.image-tag }}"
@@ -245,22 +228,12 @@ jobs:
           echo "✅ 服务器状态正常，可以开始部署"
         EOF
         
-    # 登录镜像仓库（服务器端）
-    - name: Login to Docker Registry on Server
+    # 登录 Docker Hub（服务器端）
+    - name: Login to Docker Hub on Server
       run: |
-        REGISTRY_TYPE="${{ github.event.inputs.registry_type || 'dockerhub' }}"
-        
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-          if [ "$REGISTRY_TYPE" = "dockerhub" ]; then
-            echo "🔐 服务器登录 Docker Hub..."
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          elif [ "$REGISTRY_TYPE" = "aliyun" ]; then
-            echo "🔐 服务器登录阿里云容器镜像服务..."
-            echo "${{ secrets.ALIYUN_REGISTRY_PASSWORD }}" | docker login --username "${{ secrets.ALIYUN_REGISTRY_USERNAME }}" --password-stdin "${{ vars.ALIYUN_REGISTRY || 'registry.cn-beijing.aliyuncs.com' }}"
-          else
-            echo "❌ 未知的镜像仓库类型: $REGISTRY_TYPE"
-            exit 1
-          fi
+          echo "🔐 服务器登录 Docker Hub..."
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKER_USERNAME }}" --password-stdin
         EOF
         
     # 容器部署
@@ -430,7 +403,11 @@ jobs:
           
           if [ $attempt -eq $max_attempts ]; then
             echo "⚠️  HTTP 检查未通过，但容器正在运行"
-            echo "请手动检查应用：http://${{ secrets.SSH_HOST }}:${{ env.HOST_PORT }}"
+            if [ -n "${{ secrets.SERVER_DOMAIN }}" ]; then
+              echo "请手动检查应用：http://${{ secrets.SERVER_DOMAIN }}"
+            else
+              echo "请手动检查应用：http://${{ secrets.SSH_HOST }}:${{ env.HOST_PORT }}"
+            fi
           fi
           
           sleep 10
@@ -466,8 +443,13 @@ jobs:
           echo "镜像: ${{ needs.build-and-push-image.outputs.image-tag }}"
           echo "版本: ${{ github.sha }}"
           echo "部署类型: ${{ github.event.inputs.deploy_type || 'rolling' }}"
-          echo "访问地址: http://${{ secrets.SSH_HOST }}:${{ env.HOST_PORT }}"
           echo "部署时间: $(date)"
+          echo ""
+          if [ -n "${{ secrets.SERVER_DOMAIN }}" ]; then
+            echo "🌐 访问地址: http://${{ secrets.SERVER_DOMAIN }}"
+          else
+            echo "🌐 访问地址: http://${{ secrets.SSH_HOST }}:${{ env.HOST_PORT }}"
+          fi
           echo ""
           echo "🔍 监控命令："
           echo "docker logs ${{ env.APP_NAME }} -f"
