@@ -7,10 +7,12 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // GitHub Pages 部署配置
-  base: process.env.NODE_ENV === 'production' 
-    ? '/salary_system_v3/' // GitHub Pages 仓库名
-    : '/',
+  // 根据部署平台设置 base path
+  base: process.env.VERCEL 
+    ? '/' // Vercel 使用根路径
+    : process.env.NODE_ENV === 'production' 
+      ? '/salary_system_v3/' // GitHub Pages 仓库名
+      : '/', // 开发环境
   plugins: [
     tailwindcss(), 
     react(),
