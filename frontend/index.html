@@ -14,14 +14,6 @@
     <!-- Preconnect to Supabase for faster API connections -->
     <link rel="preconnect" href="https://your-project.supabase.co" crossorigin>
     
-    <!-- Resource hints for critical assets -->
-    <link rel="preload" href="/src/main.tsx" as="script" crossorigin>
-    <link rel="modulepreload" href="/src/main.tsx">
-    
-    <!-- Preload critical CSS (DaisyUI core) -->
-    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
-    
     <!-- Prefetch likely navigation targets for faster page loads -->
     <link rel="prefetch" href="/employees" as="document">
     <link rel="prefetch" href="/payroll" as="document">
