@@ -477,6 +477,194 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
     }
   }, [calculateBatchInsurance, showSuccess, showError, onRefetch]);
 
+  // 批量删除薪资记录
+  const handleBatchDelete = useCallback(async (selectedIds: string[], processedData: any[]) => {
+    if (selectedIds.length === 0) {
+      showError('请选择要删除的记录');
+      return;
+    }
+
+    // 从选中的薪资记录中获取详细信息
+    const selectedRecords = processedData
+      .filter(p => selectedIds.includes(p.id || p.payroll_id || ''))
+      .filter(p => p.employee_name);
+
+    if (selectedRecords.length === 0) {
+      showError('未找到对应的记录信息');
+      return;
+    }
+
+    // 创建批量项目
+    const batchItems = createBatchApprovalItems(
+      selectedRecords.map(record => ({
+        payroll_id: record.id || record.payroll_id || '',
+        employee_name: record.employee_name || '',
+        net_pay: record.net_pay || 0
+      }))
+    );
+
+    // 打开删除进度模态框
+    setDeleteProgressModal({
+      open: true,
+      type: 'delete',
+      items: batchItems,
+      totalProgress: 0,
+      allowCancel: true
+    });
+
+    try {
+      // 批量删除处理
+      const batchSize = 5;
+      const totalItems = selectedIds.length;
+      let processedCount = 0;
+      let successCount = 0;
+      let failureCount = 0;
+
+      for (let i = 0; i < totalItems; i += batchSize) {
+        const batch = selectedIds.slice(i, i + batchSize);
+        const batchRecords = selectedRecords.slice(i, i + batchSize);
+        const currentBatch = Math.floor(i / batchSize) + 1;
+        const totalBatches = Math.ceil(totalItems / batchSize);
+
+        console.log(`处理删除第${currentBatch}/${totalBatches}批, 包含${batch.length}条记录`);
+
+        // 更新当前批次状态为处理中
+        batchRecords.forEach(record => {
+          const recordId = record.id || record.payroll_id || '';
+          setDeleteProgressModal(prev => ({
+            ...prev,
+            items: updateBatchApprovalItem(prev.items, recordId, {
+              status: 'processing',
+              message: '正在删除薪资记录...'
+            }),
+            currentItemId: recordId
+          }));
+        });
+
+        try {
+          // 执行当前批次的删除操作
+          let batchSuccessCount = 0;
+          let batchFailureCount = 0;
+
+          // 逐个删除记录以提供详细的反馈
+          for (let j = 0; j < batch.length; j++) {
+            const recordId = batch[j];
+            const record = batchRecords[j];
+            
+            try {
+              // 使用现有的删除hook
+              await new Promise<void>((resolve, reject) => {
+                deletePayrollMutation.mutate(recordId, {
+                  onSuccess: () => {
+                    batchSuccessCount++;
+                    
+                    // 更新单个记录状态为成功
+                    setDeleteProgressModal(prev => ({
+                      ...prev,
+                      items: updateBatchApprovalItem(prev.items, recordId, {
+                        status: 'completed',
+                        message: '薪资记录删除成功'
+                      })
+                    }));
+                    
+                    resolve();
+                  },
+                  onError: (error) => {
+                    batchFailureCount++;
+                    const errorMessage = error instanceof Error ? error.message : '删除失败';
+                    
+                    // 更新单个记录状态为失败
+                    setDeleteProgressModal(prev => ({
+                      ...prev,
+                      items: updateBatchApprovalItem(prev.items, recordId, {
+                        status: 'error',
+                        error: errorMessage
+                      })
+                    }));
+                    
+                    resolve(); // 继续处理其他记录，不中断整个批次
+                  }
+                });
+              });
+
+              // 短暂延迟以显示进度效果
+              await new Promise(resolve => setTimeout(resolve, 200));
+              
+            } catch (error) {
+              batchFailureCount++;
+              console.error(`删除记录 ${recordId} 失败:`, error);
+            }
+          }
+
+          successCount += batchSuccessCount;
+          failureCount += batchFailureCount;
+
+          console.log(`删除批次${currentBatch}完成: 成功${batchSuccessCount}, 失败${batchFailureCount}`);
+
+        } catch (error) {
+          // 处理批次级别的错误
+          console.error(`删除批次${currentBatch}失败:`, error);
+          failureCount += batch.length;
+          
+          batchRecords.forEach(record => {
+            const recordId = record.id || record.payroll_id || '';
+            setDeleteProgressModal(prev => ({
+              ...prev,
+              items: updateBatchApprovalItem(prev.items, recordId, {
+                status: 'error',
+                error: error instanceof Error ? error.message : '删除失败'
+              })
+            }));
+          });
+        }
+
+        // 更新总体进度
+        processedCount += batch.length;
+        const progress = Math.min((processedCount / totalItems) * 100, 100);
+        setDeleteProgressModal(prev => ({
+          ...prev,
+          totalProgress: progress,
+          currentItemId: undefined
+        }));
+
+        console.log(`删除批次 ${currentBatch} 完成，总进度: ${progress.toFixed(1)}%`);
+
+        // 批次间延迟
+        if (i + batchSize < totalItems) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+
+      // 显示完成结果
+      if (successCount > 0) {
+        showSuccess(`批量删除完成: 成功删除 ${successCount}/${totalItems} 条薪资记录${failureCount > 0 ? `，失败 ${failureCount} 条` : ''}`);
+        if (onRefetch) {
+          onRefetch();
+        }
+      } else if (failureCount > 0) {
+        showError(`批量删除失败: ${failureCount}/${totalItems} 条记录删除失败`);
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      console.error('批量删除操作失败:', error);
+      showError(`批量删除失败: ${errorMessage}`);
+      
+      setDeleteProgressModal(prev => ({
+        ...prev,
+        allowCancel: false,
+        items: prev.items.map(item => 
+          item.status === 'pending' || item.status === 'processing' ? {
+            ...item,
+            status: 'error' as const,
+            error: errorMessage
+          } : item
+        ),
+        totalProgress: 100
+      }));
+    }
+  }, [deletePayrollMutation, showSuccess, showError, onRefetch]);
+
   // 批量计算薪资汇总
   const handleBatchCalculatePayroll = useCallback(async (
     selectedIds: string[], 
@@ -664,6 +852,18 @@ export function useBatchOperationsManager(onRefetch?: () => void): BatchOperatio
   // 关闭计算进度模态框
   const closeCalculationProgressModal = useCallback(() => {
     setCalculationProgressModal(prev => ({ ...prev, open: false }));
+  }, []);
+
+  // 关闭删除进度模态框
+  const closeDeleteProgressModal = useCallback(() => {
+    setDeleteProgressModal({
+      open: false,
+      type: 'delete',
+      items: [],
+      currentItemId: '',
+      totalProgress: 0,
+      allowCancel: true
+    });
   }, []);
 
   // 检查是否有任何操作正在进行
