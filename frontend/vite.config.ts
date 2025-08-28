@@ -101,6 +101,8 @@ export default defineConfig({
     reportCompressedSize: !isLowMemoryBuild,
     // 低内存模式下的目标配置
     target: isLowMemoryBuild ? 'es2018' : 'es2015',
+    // 确保资源内联限制合理，避免过度内联导致MIME类型问题
+    assetsInlineLimit: isLowMemoryBuild ? 2048 : 4096, // 低内存模式降低内联限制
     // 低内存环境下的特殊配置
     ...((isMinimalBuild || isLowMemoryBuild) && {
       // ESBuild 配置优化
@@ -119,15 +121,17 @@ export default defineConfig({
       }),
       // 低内存模式下的优化配置
       ...(isLowMemoryBuild && {
-        cache: false, // 禁用缓存以节省内存
+        // 使用有限缓存而非完全禁用，避免文件类型识别问题
+        cache: true,
+        maxParallelFileReads: 2, // 限制并发文件读取
         treeshake: {
-          moduleSideEffects: false,
+          // 保留一些关键的副作用检测，确保模块正确性
+          moduleSideEffects: 'no-external',
           unknownGlobalSideEffects: false,
           tryCatchDeoptimization: false,
         },
-        preserveEntrySignatures: 'strict',
-        // 优化内存使用
-        experimentalCacheExpiry: 10,
+        preserveEntrySignatures: 'exports-only', // 更宽松的签名保留
+        // 移除实验性配置以提高稳定性
       }),
       output: {
         // CDN globals configuration
