@@ -26,28 +26,13 @@ const PayrollApprovalPage = lazy(() => import('@/pages/payroll/PayrollApprovalPa
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const NetworkSettingsPage = lazy(() => import('@/pages/settings/NetworkSettingsPage'));
 const StatisticsPage = lazy(() => import('@/pages/statistics/StatisticsPage'));
-const ThemeShowcasePage = lazy(() => import('@/pages/ThemeShowcasePage'));
-const DesignTokensPage = lazy(() => import('@/pages/DesignTokensPage'));
-const DesignSystemShowcase = lazy(() => import('@/pages/DesignSystemShowcase'));
-const TypographyShowcasePage = lazy(() => import('@/pages/TypographyShowcasePage'));
-const FontTestPage = lazy(() => import('@/pages/FontTestPage'));
-const MonthPickerDemoPage = lazy(() => import('@/pages/MonthPickerDemoPage'));
-const ThemeBorderTestPage = lazy(() => import('@/pages/demo/ThemeBorderTestPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
-const DebugPage = lazy(() => import('@/pages/DebugPage'));
-// const PayrollHookTestPage = lazy(() => import('@/pages/PayrollHooksTestPage')); // 已删除
-const InsuranceCalculationTest = lazy(() => import('@/pages/test/InsuranceCalculationTest'));
-const InsuranceConfigTest = lazy(() => import('@/pages/test/InsuranceConfigTest'));
-const PayrollCalculationTest = lazy(() => import('@/pages/test/PayrollCalculationTest'));
-const PermissionHooksTestPage = lazy(() => import('@/pages/test/PermissionHooksTestPage'));
-const PayrollImportTestPage = lazy(() => import('@/pages/test/PayrollImportTestPage'));
 const PayrollImportPageV2 = lazy(() => import('@/components/payroll/import/PayrollImportPageV2'));
 const InsuranceConfigPage = lazy(() => import('@/pages/payroll/InsuranceConfigPage'));
 
 // Report management page
 const ReportManagementPageReal = lazy(() => import('@/components/reports/ReportManagementPageReal'));
-const ReportManagementTest = lazy(() => import('@/pages/ReportManagementTest'));
 
 // Admin pages
 const UserManagementPage = lazy(() => import('@/pages/admin/UserManagementPage'));
@@ -55,7 +40,6 @@ const RoleManagementPage = lazy(() => import('@/pages/admin/RoleManagementPage')
 const PermissionManagementPage = lazy(() => import('@/pages/admin/PermissionManagementPage'));
 const SystemSettingsPage = lazy(() => import('@/pages/admin/SystemSettingsPage'));
 const SalaryComponentManagementPage = lazy(() => import('@/pages/admin/SalaryComponentManagementPage'));
-const PermissionDebugPage = lazy(() => import('@/pages/admin/PermissionDebugPage'));
 // Permission pages moved to archive
 // const PermissionResourceManagementPage = lazy(() => import('@/pages/admin/PermissionResourceManagementPage'));
 // const PermissionAssignmentPage = lazy(() => import('@/pages/admin/PermissionAssignmentPage'));
@@ -118,14 +102,6 @@ export const router = createBrowserRouter([
         element: <Navigate to="/auth/login" replace />,
       },
     ],
-  },
-  {
-    path: '/debug',
-    element: (
-      <Suspense fallback={<LoadingScreen />}>
-        <DebugPage />
-      </Suspense>
-    ),
   },
   // {
   //   path: '/test/payroll-hooks',
@@ -337,123 +313,6 @@ export const router = createBrowserRouter([
                 <ProtectedRoute requiredPermissions={['user_management.read']}>
                   <SalaryComponentManagementPage />
                 </ProtectedRoute>
-              </Suspense>
-            ),
-          },
-          {
-            path: 'debug-permissions',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <PermissionDebugPage />
-              </Suspense>
-            ),
-          },
-        ],
-      },
-      {
-        path: 'theme-showcase',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <ThemeShowcasePage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'theme-border-test',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <ThemeBorderTestPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'design-tokens',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <DesignTokensPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'design-system',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <DesignSystemShowcase />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'typography',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <TypographyShowcasePage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'font-test',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <FontTestPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'test',
-        children: [
-          {
-            path: 'insurance-calculation',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <InsuranceCalculationTest />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'insurance-config',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <InsuranceConfigTest />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'payroll-calculation',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <PayrollCalculationTest />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'permission-hooks',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <PermissionHooksTestPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'payroll-import',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <PayrollImportTestPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'payroll-import-v2',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <PayrollImportPageV2 />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'report-management',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <ReportManagementTest />
               </Suspense>
             ),
           },
