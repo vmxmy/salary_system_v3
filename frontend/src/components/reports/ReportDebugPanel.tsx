@@ -1,6 +1,6 @@
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
-import { useReportTemplates, useReportJobs, useReportHistory } from '@/hooks/reports/useReportManagementMock';
-import { useReportGenerator } from '@/hooks/reports/useReportGeneratorMock';
+import { useReportTemplates, useReportJobs, useReportHistory } from '@/hooks/reports';
+import { useReportGenerator } from '@/hooks/reports';
 import { useAvailablePayrollMonths } from '@/hooks/payroll/useAvailablePayrollMonths';
 
 export default function ReportDebugPanel() {

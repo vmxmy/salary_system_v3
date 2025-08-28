@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cardEffects } from '@/styles/design-effects';
-import type { ReportHistory } from '@/hooks/reports/useReportManagementMock';
-import { formatFileSize } from '@/hooks/reports/useReportManagementMock';
+import type { ReportHistory } from '@/hooks/reports';
+import { formatFileSize } from '@/hooks/reports';
 
 interface ReportHistoryPanelProps {
   history: ReportHistory[];
@@ -60,8 +60,8 @@ export function ReportHistoryPanel({ history, loading }: ReportHistoryPanelProps
 
   // 处理文件下载
   const handleDownload = async (record: ReportHistory) => {
-    if (!record.file_url) {
-      console.error('No file URL available for download');
+    if (!record.file_path) {
+      console.error('No file path available for download');
       return;
     }
 
@@ -71,8 +71,8 @@ export function ReportHistoryPanel({ history, loading }: ReportHistoryPanelProps
     try {
       // 创建隐藏的链接进行下载
       const link = document.createElement('a');
-      link.href = record.file_url;
-      link.download = record.file_name || `report_${record.id}.${record.format}`;
+      link.href = record.file_path;
+      link.download = `report_${record.id}.${record.file_format || 'xlsx'}`;
       link.style.display = 'none';
       
       document.body.appendChild(link);
@@ -102,11 +102,11 @@ export function ReportHistoryPanel({ history, loading }: ReportHistoryPanelProps
             <div className="flex justify-between items-start mb-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-medium">{record.template?.template_name}</h4>
+                  <h4 className="font-medium">{record.report_name}</h4>
                   <div className="flex items-center gap-1">
-                    {getFormatIcon(record.format)}
+                    {getFormatIcon(record.file_format || 'xlsx')}
                     <span className="text-xs badge badge-outline">
-                      {record.format.toUpperCase()}
+                      {(record.file_format || 'xlsx').toUpperCase()}
                     </span>
                   </div>
                 </div>
@@ -128,7 +128,7 @@ export function ReportHistoryPanel({ history, loading }: ReportHistoryPanelProps
                 )}
                 
                 {/* 下载按钮 */}
-                {record.file_url && (
+                {record.file_path && (
                   <button 
                     className={`btn btn-ghost btn-xs ${downloadingItems.has(record.id) ? 'loading' : ''}`}
                     onClick={() => handleDownload(record)}
@@ -148,29 +148,13 @@ export function ReportHistoryPanel({ history, loading }: ReportHistoryPanelProps
               </div>
             </div>
 
-            {/* 生成配置信息 */}
-            {record.generation_config && (
-              <div className="mb-3 p-2 bg-base-200 rounded text-sm">
-                <div className="text-base-content/70 mb-1">生成配置:</div>
-                {record.generation_config.filters?.statusFilter && (
-                  <div className="text-xs">
-                    状态筛选: {record.generation_config.filters.statusFilter}
-                  </div>
-                )}
-                {record.generation_config.filters?.searchQuery && (
-                  <div className="text-xs">
-                    关键字: {record.generation_config.filters.searchQuery}
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* 时间信息 */}
             <div className="flex justify-between items-center text-sm text-base-content/60">
               <div className="flex gap-4">
-                <span>生成于 {new Date(record.generated_at).toLocaleString()}</span>
-                {record.generated_by_name && (
-                  <span>操作人: {record.generated_by_name}</span>
+                <span>生成于 {record.generated_at ? new Date(record.generated_at).toLocaleString() : '未知'}</span>
+                {record.generated_by && (
+                  <span>操作人: {record.generated_by}</span>
                 )}
               </div>
               

@@ -1,6 +1,6 @@
 import { cardEffects } from '@/styles/design-effects';
-import type { ReportJob } from '@/hooks/reports/useReportManagementMock';
-import { formatJobStatus, formatFileSize } from '@/hooks/reports/useReportManagementMock';
+import type { ReportJob } from '@/hooks/reports';
+import { formatJobStatus, formatFileSize } from '@/hooks/reports';
 
 interface ReportJobsPanelProps {
   jobs: ReportJob[];
@@ -37,7 +37,7 @@ export function ReportJobsPanel({ jobs, loading }: ReportJobsPanelProps) {
       
       <div className="space-y-3">
         {jobs.map((job) => {
-          const statusInfo = formatJobStatus(job.status);
+          const statusInfo = formatJobStatus(job.status || 'unknown');
           
           return (
             <div key={job.id} className={`${cardEffects.standard} bg-base-100 p-4`}>
@@ -45,7 +45,7 @@ export function ReportJobsPanel({ jobs, loading }: ReportJobsPanelProps) {
                 <div>
                   <h4 className="font-medium">{job.job_name}</h4>
                   <div className="text-sm text-base-content/70">
-                    {job.template?.template_name}
+                    {job.job_name}
                   </div>
                 </div>
                 <div className={`badge ${statusInfo.color}`}>
@@ -62,7 +62,7 @@ export function ReportJobsPanel({ jobs, loading }: ReportJobsPanelProps) {
                   </div>
                   <progress 
                     className="progress progress-primary w-full" 
-                    value={job.progress} 
+                    value={job.progress || 0} 
                     max="100"
                   ></progress>
                 </div>
@@ -82,7 +82,7 @@ export function ReportJobsPanel({ jobs, loading }: ReportJobsPanelProps) {
               {/* 任务信息 */}
               <div className="flex justify-between items-center text-sm text-base-content/60">
                 <div className="flex gap-4">
-                  <span>创建于 {new Date(job.created_at).toLocaleString()}</span>
+                  <span>创建于 {job.created_at ? new Date(job.created_at).toLocaleString() : '未知'}</span>
                   {job.completed_at && (
                     <span>完成于 {new Date(job.completed_at).toLocaleString()}</span>
                   )}

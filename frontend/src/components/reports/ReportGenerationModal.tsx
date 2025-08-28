@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { cardEffects } from '@/styles/design-effects';
-import type { ReportGenerationConfig, GenerationState } from '@/hooks/reports/useReportGeneratorMock';
-import { useReportTemplates } from '@/hooks/reports/useReportManagementMock';
+import type { ReportGenerationConfig, GenerationState } from '@/hooks/reports';
+import { useReportTemplates } from '@/hooks/reports';
 
 interface ReportGenerationModalProps {
   isOpen: boolean;
@@ -74,7 +74,7 @@ export function ReportGenerationModal({
             <div className="text-sm text-base-content/70">
               <div>名称: {template.template_name}</div>
               <div>类型: {template.category}</div>
-              <div>字段数: {template.field_mappings.filter(f => f.visible).length}</div>
+              <div>字段数: {template.field_mappings.filter((f: any) => f.visible).length}</div>
             </div>
           </div>
 
@@ -116,7 +116,7 @@ export function ReportGenerationModal({
               <span className="label-text font-medium">输出格式 *</span>
             </label>
             <div className="grid grid-cols-3 gap-3">
-              {template.output_formats.map((format) => (
+              {template.output_formats?.map((format) => (
                 <label key={format} className="cursor-pointer">
                   <input
                     type="radio"
@@ -131,7 +131,7 @@ export function ReportGenerationModal({
                   />
                   <span className="label-text">{format.toUpperCase()}</span>
                 </label>
-              ))}
+              )) || []}
             </div>
           </div>
 
@@ -229,7 +229,7 @@ export function ReportGenerationModal({
                 <div>报表名称: {template.template_name}</div>
                 <div>数据周期: {config.periodName}</div>
                 <div>输出格式: {config.format.toUpperCase()}</div>
-                <div>预计字段: {template.field_mappings.filter(f => f.visible).length} 个</div>
+                <div>预计字段: {template.field_mappings.filter((f: any) => f.visible).length} 个</div>
                 {config.filters?.statusFilter && (
                   <div>状态筛选: {config.filters.statusFilter}</div>
                 )}

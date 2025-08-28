@@ -121,11 +121,6 @@ export const useReportGenerator = () => {
     for (const { step, progress } of steps) {
       await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 500));
       updateProgress(step, progress);
-      
-      // 模拟可能的错误
-      if (Math.random() < 0.05) { // 5% 概率出错
-        throw new Error('生成过程中遇到数据错误');
-      }
     }
   }, [updateProgress]);
 

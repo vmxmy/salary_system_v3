@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cardEffects } from '@/styles/design-effects';
-import type { ReportTemplate } from '@/hooks/reports/useReportManagementMock';
+import type { ReportTemplate } from '@/hooks/reports';
 
 interface ReportTemplateCardProps {
   template: ReportTemplate;
@@ -125,7 +125,7 @@ export function ReportTemplateCard({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                 d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V9a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <span>{template.field_mappings.filter(f => f.visible).length} 个字段</span>
+            <span>{template.field_mappings.filter((f: any) => f.visible).length} 个字段</span>
           </div>
 
           {template.is_scheduled && (
@@ -143,7 +143,7 @@ export function ReportTemplateCard({
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xs text-base-content/60">支持格式:</span>
           <div className="flex gap-1">
-            {template.output_formats.map((format) => (
+            {template.output_formats?.map((format) => (
               <div 
                 key={format} 
                 className="tooltip" 
@@ -153,7 +153,7 @@ export function ReportTemplateCard({
                   {getFormatIcon(format)}
                 </div>
               </div>
-            ))}
+            )) || []}
           </div>
         </div>
 
@@ -204,7 +204,7 @@ export function ReportTemplateCard({
 
         {/* 状态指示 */}
         <div className="flex justify-between items-center text-xs text-base-content/50 mt-2">
-          <span>更新于 {new Date(template.updated_at).toLocaleDateString()}</span>
+          <span>更新于 {template.updated_at ? new Date(template.updated_at).toLocaleDateString() : '未知'}</span>
           <div className={`badge badge-xs ${template.is_active ? 'badge-success' : 'badge-neutral'}`}>
             {template.is_active ? '启用' : '禁用'}
           </div>

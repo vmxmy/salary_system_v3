@@ -229,7 +229,8 @@ export const useDataSourcesEnhanced = (options?: {
   return useQuery({
     queryKey: ['database', 'data-sources-enhanced', options],
     queryFn: async (): Promise<DataSourceEnhanced[]> => {
-      if (options?.enableRealQuery !== false) {
+      // 默认启用真实查询，除非明确禁用
+      if (options?.enableRealQuery ?? true) {
         try {
           return await getRealDataSources(options);
         } catch (error) {

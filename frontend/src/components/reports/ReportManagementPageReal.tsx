@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useReportManagement } from '@/hooks/reports';
+import { useReportManagement, useUpdateReportTemplate } from '@/hooks/reports';
 import { supabase } from '@/lib/supabase';
 import ReportTemplateModal from './ReportTemplateModal';
 
@@ -24,6 +24,9 @@ export default function ReportManagementPageReal() {
     jobFilters: { limit: 20 },
     historyFilters: { limit: 50 },
   });
+
+  // 模板更新 hook
+  const updateTemplateMutation = useUpdateReportTemplate();
 
   const {
     data: { templates, jobs, history, statistics },
@@ -91,9 +94,8 @@ export default function ReportManagementPageReal() {
         await createTemplate(templateConfig);
         alert(`✅ 模板创建成功：${templateConfig.template_name}`);
       } else if (modalState.editingTemplate?.id) {
-        // 实现模板更新功能
-        const { updateTemplate } = reportManagement.actions;
-        await updateTemplate({
+        // 使用专用的更新 hook
+        await updateTemplateMutation.mutateAsync({
           id: modalState.editingTemplate.id,
           ...templateConfig
         });
