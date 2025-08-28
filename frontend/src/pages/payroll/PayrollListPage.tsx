@@ -26,6 +26,7 @@ import { PayrollViewSwitcher, type ViewType } from '@/components/payroll/Payroll
 import { PayrollDetailContainer } from '@/components/payroll/PayrollDetailContainer';
 import { OnboardingButton } from '@/components/onboarding';
 import { PayrollModalManager, createBatchModalsConfig } from '@/components/payroll/PayrollModalManager';
+import { PayrollBatchReportGenerator } from '@/components/reports/PayrollBatchReportGenerator';
 import { PayrollElement, PAYROLL_ELEMENTS_CONFIG } from '@/types/payroll-completeness';
 import { usePayrollPeriodCompleteness } from '@/hooks/payroll/usePayrollPeriodCompleteness';
 import { ManagementPageLayout } from '@/components/layout/ManagementPageLayout';
@@ -126,6 +127,7 @@ export default function PayrollListPage() {
   const [isMissingEmployeesModalOpen, setIsMissingEmployeesModalOpen] = useState(false);
   const [missingEmployeesElement, setMissingEmployeesElement] = useState<PayrollElement | undefined>();
   const [missingEmployeesData, setMissingEmployeesData] = useState<string[]>([]);
+  const [isBatchReportModalOpen, setIsBatchReportModalOpen] = useState(false);
   
 
   // 从选中的周期获取年月信息
@@ -514,7 +516,23 @@ export default function PayrollListPage() {
     <>
       <ManagementPageLayout
         title="薪资管理"
-        headerActions={<OnboardingButton />}
+        headerActions={
+          <div className="flex items-center gap-2">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => setIsBatchReportModalOpen(true)}
+              disabled={!selectedPeriodId}
+              title={selectedPeriodId ? '批量生成薪资报表' : '请先选择薪资周期'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              生成报表
+            </button>
+            <OnboardingButton />
+          </div>
+        }
         loading={totalLoading}
         exportComponent={null}
         customContent={
@@ -796,6 +814,21 @@ export default function PayrollListPage() {
         />
       }
       />
+
+      {/* 批量报表生成模态框 */}
+      {isBatchReportModalOpen && selectedPeriodId && (
+        <PayrollBatchReportGenerator
+          periodId={selectedPeriodId}
+          periodName={formatMonth(selectedMonth)}
+          currentFilters={{
+            searchQuery,
+            statusFilter: statusFilter === 'all' ? undefined : statusFilter,
+            // 这里可以添加其他筛选条件
+          }}
+          isModal={true}
+          onClose={() => setIsBatchReportModalOpen(false)}
+        />
+      )}
     </>
   );
 }

@@ -2197,6 +2197,9 @@ export type Database = {
           config: Json
           created_at: string | null
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           description: string | null
           field_mappings: Json
           id: string
@@ -2213,6 +2216,9 @@ export type Database = {
           config?: Json
           created_at?: string | null
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           description?: string | null
           field_mappings?: Json
           id?: string
@@ -2229,6 +2235,9 @@ export type Database = {
           config?: Json
           created_at?: string | null
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           description?: string | null
           field_mappings?: Json
           id?: string
