@@ -170,30 +170,30 @@ jobs:
         WEB_ROOT: ${{ secrets.SERVER_WEB_ROOT }}
         DEPLOY_TYPE: ${{ github.event.inputs.deploy_type || 'rolling' }}
       run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           echo "📁 准备部署目录..."
           
           # 设置变量
-          WEB_ROOT="$WEB_ROOT"
-          BACKUP_DIR="/opt/backups/salary-system/\$(date +%Y%m%d_%H%M%S)"
+          WEB_ROOT="${{ secrets.SERVER_WEB_ROOT }}"
+          BACKUP_DIR="/opt/backups/salary-system/$(date +%Y%m%d_%H%M%S)"
           
           # 创建备份目录
-          sudo mkdir -p \$BACKUP_DIR
-          sudo chown $USER:$USER /opt/backups/salary-system/
+          mkdir -p $BACKUP_DIR
+          chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /opt/backups/salary-system/ 2>/dev/null || echo "备份目录权限设置完成"
           
           # 备份当前网站文件（如果存在）
-          if [ -d "\$WEB_ROOT" ] && [ "\$(ls -A \$WEB_ROOT 2>/dev/null)" ]; then
-            echo "💾 备份当前网站文件到: \$BACKUP_DIR"
-            cp -r \$WEB_ROOT/* \$BACKUP_DIR/ || echo "⚠️  备份过程中遇到一些警告，继续执行"
-            echo "BACKUP_DIR=\$BACKUP_DIR" >> /tmp/deploy_env
+          if [ -d "$WEB_ROOT" ] && [ "$(ls -A $WEB_ROOT 2>/dev/null)" ]; then
+            echo "💾 备份当前网站文件到: $BACKUP_DIR"
+            cp -r $WEB_ROOT/* $BACKUP_DIR/ || echo "⚠️  备份过程中遇到一些警告，继续执行"
+            echo "BACKUP_DIR=$BACKUP_DIR" >> /tmp/deploy_env
           else
             echo "ℹ️  没有发现现有文件，跳过备份"
           fi
           
           # 确保 Web 根目录存在并设置正确权限
-          sudo mkdir -p \$WEB_ROOT
-          sudo chown -R $USER:www-data \$WEB_ROOT 2>/dev/null || sudo chown -R $USER:apache \$WEB_ROOT 2>/dev/null || sudo chown $USER \$WEB_ROOT
-          sudo chmod -R 755 \$WEB_ROOT
+          mkdir -p $WEB_ROOT
+          chown -R ${{ secrets.SSH_USER }}:www-data $WEB_ROOT 2>/dev/null || chown -R ${{ secrets.SSH_USER }}:apache $WEB_ROOT 2>/dev/null || chown -R ${{ secrets.SSH_USER }} $WEB_ROOT
+          chmod -R 755 $WEB_ROOT
           
           echo "✅ 目录准备完成"
         EOF
@@ -212,22 +212,24 @@ jobs:
           # 蓝绿部署：先部署到临时目录，然后原子切换
           echo "💙💚 使用蓝绿部署策略"
           
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
-            TEMP_DIR="\$HOME/temp_deploy_\$(date +%Y%m%d_%H%M%S)"
-            mkdir -p \$TEMP_DIR
-            echo "TEMP_DIR=\$TEMP_DIR" >> /tmp/deploy_env
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            TEMP_DIR="$HOME/temp_deploy_$(date +%Y%m%d_%H%M%S)"
+            mkdir -p $TEMP_DIR
+            echo "TEMP_DIR=$TEMP_DIR" >> /tmp/deploy_env
+            echo $TEMP_DIR
           EOF
           
-          # 复制文件到临时目录
-          scp -r ./dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/temp_deploy_*/
+          # 获取临时目录路径并复制文件
+          TEMP_DIR=$(ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'source /tmp/deploy_env && echo $TEMP_DIR')
+          scp -r ./dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:$TEMP_DIR/
           
           # 原子切换
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             source /tmp/deploy_env
-            sudo rm -rf ${{ secrets.SERVER_WEB_ROOT }}/*
-            sudo cp -r $TEMP_DIR/* ${{ secrets.SERVER_WEB_ROOT }}/
-            sudo chown -R $USER:www-data ${{ secrets.SERVER_WEB_ROOT }} 2>/dev/null || sudo chown -R $USER:apache ${{ secrets.SERVER_WEB_ROOT }} 2>/dev/null || sudo chown -R $USER ${{ secrets.SERVER_WEB_ROOT }}
-            sudo chmod -R 755 ${{ secrets.SERVER_WEB_ROOT }}
+            rm -rf ${{ secrets.SERVER_WEB_ROOT }}/*
+            cp -r $TEMP_DIR/* ${{ secrets.SERVER_WEB_ROOT }}/
+            chown -R ${{ secrets.SSH_USER }}:www-data ${{ secrets.SERVER_WEB_ROOT }} 2>/dev/null || chown -R ${{ secrets.SSH_USER }}:apache ${{ secrets.SERVER_WEB_ROOT }} 2>/dev/null || chown -R ${{ secrets.SSH_USER }} ${{ secrets.SERVER_WEB_ROOT }}
+            chmod -R 755 ${{ secrets.SERVER_WEB_ROOT }}
             rm -rf $TEMP_DIR
             echo "✅ 蓝绿部署完成"
           EOF
@@ -237,21 +239,21 @@ jobs:
           echo "🔄 使用滚动部署策略"
           
           # 清理目标目录
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             echo "🧹 清理目标目录..."
-            sudo find $WEB_ROOT -mindepth 1 -delete 2>/dev/null || echo "目录已清空"
+            find ${{ secrets.SERVER_WEB_ROOT }} -mindepth 1 -delete 2>/dev/null || echo "目录已清空"
           EOF
           
           # 复制新文件
           echo "📦 复制新文件..."
-          scp -r ./dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:$WEB_ROOT/
+          scp -r ./dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SERVER_WEB_ROOT }}/
           
           # 设置权限
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             echo "🔐 设置文件权限..."
-            sudo chown -R $USER:www-data $WEB_ROOT 2>/dev/null || sudo chown -R $USER:apache $WEB_ROOT 2>/dev/null || sudo chown -R $USER $WEB_ROOT
-            sudo chmod -R 755 $WEB_ROOT
-            sudo find $WEB_ROOT -type f -exec chmod 644 {} \;
+            chown -R ${{ secrets.SSH_USER }}:www-data ${{ secrets.SERVER_WEB_ROOT }} 2>/dev/null || chown -R ${{ secrets.SSH_USER }}:apache ${{ secrets.SERVER_WEB_ROOT }} 2>/dev/null || chown -R ${{ secrets.SSH_USER }} ${{ secrets.SERVER_WEB_ROOT }}
+            chmod -R 755 ${{ secrets.SERVER_WEB_ROOT }}
+            find ${{ secrets.SERVER_WEB_ROOT }} -type f -exec chmod 644 {} \;
             echo "✅ 滚动部署完成"
           EOF
         fi
