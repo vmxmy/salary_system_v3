@@ -11,6 +11,8 @@
     "build:cdn": "VITE_USE_CDN=true npm run build:prod",
     "build:optimized": "NODE_OPTIONS='--max-old-space-size=1024 --max-semi-space-size=128' npx tsc -b tsconfig.low-memory.json && NODE_OPTIONS='--max-old-space-size=1024 --max-semi-space-size=128' vite build",
     "build:minimal": "NODE_OPTIONS='--max-old-space-size=768 --max-semi-space-size=64' VITE_MINIMAL_BUILD=true npx tsc -b tsconfig.low-memory.json && NODE_OPTIONS='--max-old-space-size=768 --max-semi-space-size=64' VITE_MINIMAL_BUILD=true vite build",
+    "build:server": "./scripts/build-server.sh",
+    "build:server-direct": "NODE_OPTIONS='--max-old-space-size=1024 --max-semi-space-size=128' npx tsc -b tsconfig.server.json && NODE_OPTIONS='--max-old-space-size=1024 --max-semi-space-size=128' vite build --config vite.config.server.ts",
     "build:legacy": "NODE_OPTIONS='--max-old-space-size=2048' npx tsc -b && NODE_OPTIONS='--max-old-space-size=2048' vite build",
     "lint": "eslint .",
     "preview": "vite preview",

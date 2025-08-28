@@ -1,0 +1,72 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // 内存优化的合理配置 - 保持功能性
+    "incremental": false,
+    "composite": false,
+    
+    // 跳过类型检查以节省内存和时间
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    
+    // 保持基本的严格模式但放宽一些检查
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": false,
+    "noImplicitThis": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    
+    // 支持 JSX 和现代模块
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "target": "ES2020",
+    "moduleResolution": "node",
+    
+    // 减少生成的代码
+    "removeComments": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    
+    // 模块互操作
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": false,
+    
+    // 优化编译性能 - 只做类型检查，让Vite处理编译
+    "isolatedModules": true,
+    "noEmit": true,
+    
+    // 减少类型检查范围
+    "assumeChangesOnlyAffectDirectDependencies": true,
+    
+    // 支持导入元属性
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    
+    // 禁用装饰器支持（项目中不需要）
+    "experimentalDecorators": false,
+    "emitDecoratorMetadata": false,
+    
+    // 迭代器支持
+    "downlevelIteration": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts", 
+    "**/*.spec.tsx",
+    "src/**/*.test.*",
+    "src/**/*.spec.*",
+    // 排除归档文件以减少编译负担
+    "src/archived/**/*",
+    "src/pages/test/**/*",
+    "src/**/*.stories.*",
+    "src/**/*.story.*"
+  ]
+}
