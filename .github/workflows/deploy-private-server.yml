@@ -84,8 +84,12 @@ jobs:
     needs: build-and-test
     if: true   # ✅ 已配置SSH凭据，启用静态文件部署
     
-    environment: 
-      name: production  # 明确指定环境名，确保与 Environment secrets 匹配
+    # 🔧 支持两种配置方式：
+    # 1. Repository secrets（直接在仓库设置中）
+    # 2. Environment secrets（在 production 环境中）
+    # 暂时使用 Repository secrets，如需使用 Environment secrets 请取消注释
+    # environment: 
+    #   name: production
       
     steps:
     - name: Download build artifacts

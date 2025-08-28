@@ -8,8 +8,9 @@ jobs:
     name: Test SSH Connection and Secrets
     runs-on: ubuntu-latest
     
-    environment: 
-      name: production  # 使用 production 环境访问 Environment secrets
+    # 暂时移除 environment 以测试 Repository secrets
+    # environment: 
+    #   name: production
       
     steps:
     - name: Test Environment Secrets
