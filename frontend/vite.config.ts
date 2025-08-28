@@ -10,22 +10,22 @@ export default defineConfig({
   plugins: [
     tailwindcss(), 
     react(),
-    // Gzip compression for smaller files (temporarily disabled due to import issue)
-    // compression({
-    //   algorithm: 'gzip',
-    //   ext: '.gz',
-    //   threshold: 1024, // Only compress files larger than 1KB
-    //   deleteOriginFile: false,
-    //   verbose: process.env.NODE_ENV === 'development'
-    // }),
-    // // Brotli compression for even better compression
-    // compression({
-    //   algorithm: 'brotliCompress',
-    //   ext: '.br',
-    //   threshold: 1024,
-    //   deleteOriginFile: false,
-    //   verbose: process.env.NODE_ENV === 'development'
-    // }),
+    // Gzip compression for smaller files
+    compression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      threshold: 1024, // Only compress files larger than 1KB
+      deleteOriginFile: false,
+      verbose: process.env.NODE_ENV === 'development'
+    }),
+    // Brotli compression for even better compression
+    compression({
+      algorithm: 'brotliCompress',
+      ext: '.br',
+      threshold: 1024,
+      deleteOriginFile: false,
+      verbose: process.env.NODE_ENV === 'development'
+    }),
     // Bundle analyzer for development
     ...(process.env.ANALYZE ? [
       visualizer({
