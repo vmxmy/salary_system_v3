@@ -1,0 +1,121 @@
+name: Debug Docker Login
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug-docker-login:
+    name: Debug Docker Hub Login
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    # 检查 secrets 是否存在（不会泄露实际值）
+    - name: Check Docker Hub secrets
+      run: |
+        echo "🔍 检查 Docker Hub Secrets..."
+        
+        if [ -z "${{ secrets.DOCKER_USERNAME }}" ]; then
+          echo "❌ DOCKER_USERNAME secret 未设置"
+          echo "请在 GitHub Settings > Secrets 中添加 DOCKER_USERNAME"
+        else
+          echo "✅ DOCKER_USERNAME secret 已设置"
+          echo "用户名长度: $(echo '${{ secrets.DOCKER_USERNAME }}' | wc -c)"
+        fi
+        
+        if [ -z "${{ secrets.DOCKER_PASSWORD }}" ]; then
+          echo "❌ DOCKER_PASSWORD secret 未设置"
+          echo "请在 GitHub Settings > Secrets 中添加 DOCKER_PASSWORD"
+        else
+          echo "✅ DOCKER_PASSWORD secret 已设置"
+          echo "密码/令牌长度: $(echo '${{ secrets.DOCKER_PASSWORD }}' | wc -c)"
+        fi
+        
+    # 测试网络连接
+    - name: Test Docker Hub connectivity
+      run: |
+        echo "🌐 测试 Docker Hub 连接..."
+        
+        # 测试网络连接
+        if ping -c 3 hub.docker.com; then
+          echo "✅ Docker Hub 网络连接正常"
+        else
+          echo "❌ Docker Hub 网络连接失败"
+        fi
+        
+        # 测试 Docker Hub API
+        if curl -f -s https://hub.docker.com/v2/users/login/ > /dev/null; then
+          echo "✅ Docker Hub API 可访问"
+        else
+          echo "❌ Docker Hub API 访问失败"
+        fi
+        
+    # 设置 Docker Buildx
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    # 尝试登录（使用详细日志）
+    - name: Test Docker Hub login with debug
+      env:
+        DOCKER_CLI_EXPERIMENTAL: enabled
+        BUILDX_CONFIG: /tmp/.buildx
+      run: |
+        echo "🔑 测试 Docker Hub 登录..."
+        
+        # 启用调试模式
+        export ACTIONS_STEP_DEBUG=true
+        
+        # 显示 Docker 版本信息
+        docker version
+        docker info
+        
+        # 尝试登录（不显示凭据）
+        echo "正在尝试登录到 Docker Hub..."
+        
+    - name: Login to Docker Hub (with error handling)
+      id: docker-login
+      continue-on-error: true
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        
+    # 检查登录结果
+    - name: Check login result
+      run: |
+        if [ "${{ steps.docker-login.outcome }}" = "success" ]; then
+          echo "✅ Docker Hub 登录成功!"
+          
+          # 测试推送权限
+          echo "测试推送权限..."
+          docker pull hello-world
+          docker tag hello-world ${{ secrets.DOCKER_USERNAME }}/test-login:latest
+          
+          if docker push ${{ secrets.DOCKER_USERNAME }}/test-login:latest; then
+            echo "✅ 推送权限正常"
+            # 清理测试镜像
+            docker rmi ${{ secrets.DOCKER_USERNAME }}/test-login:latest || true
+          else
+            echo "❌ 推送权限异常"
+          fi
+          
+        else
+          echo "❌ Docker Hub 登录失败!"
+          echo "常见解决方案:"
+          echo "1. 检查 DOCKER_USERNAME 是否正确"
+          echo "2. 确认 DOCKER_PASSWORD 使用的是访问令牌，不是密码"
+          echo "3. 检查 Docker Hub 账户是否被锁定"
+          echo "4. 验证访问令牌权限是否足够"
+        fi
+        
+    # 显示有用的调试信息
+    - name: Debug information
+      if: always()
+      run: |
+        echo "🔧 调试信息:"
+        echo "Docker 版本: $(docker version --format '{{.Client.Version}}')"
+        echo "当前时间: $(date)"
+        echo "GitHub Runner: ${{ runner.os }}"
+        echo "工作流触发事件: ${{ github.event_name }}"

@@ -41,17 +41,17 @@ async function buildAuthUser(user: User): Promise<AuthUser> {
   try {
     console.log('[Auth] Building user with permissions for:', user.email);
     
-    // 🔧 修复：使用更简单、直接的查询，避免复杂的重试机制
+    // 🔧 修复：进一步简化查询，快速失败机制
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
-        reject(new Error('Auth query timeout after 8 seconds'));
-      }, 8000); // 减少到8秒，避免用户等待太久
+        reject(new Error('Auth query timeout after 3 seconds'));
+      }, 3000); // 进一步减少到3秒，快速失败并使用fallback
     });
 
     // 直接查询，不使用复杂的重试包装器
     const queryPromise = supabase
       .from('view_user_permissions')
-      .select('user_role, permissions, page_permissions, data_scope')
+      .select('user_role, permissions')  // 减少查询字段
       .eq('user_id', user.id)
       .limit(1)
       .single();

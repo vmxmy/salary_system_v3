@@ -55,8 +55,9 @@ export const createProxyFetch = () => {
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const proxyConfig = getProxyConfig();
     
-    // 如果没有启用代理或在开发环境中，使用标准 fetch
-    if (!proxyConfig || process.env.NODE_ENV === 'development') {
+    // 🔧 修复：默认关闭代理，只有明确配置且启用时才使用代理
+    // 避免代理配置导致的网络延迟和连接问题
+    if (!proxyConfig || process.env.NODE_ENV === 'development' || import.meta.env.VITE_DISABLE_PROXY !== 'false') {
       return fetch(input, init);
     }
     
