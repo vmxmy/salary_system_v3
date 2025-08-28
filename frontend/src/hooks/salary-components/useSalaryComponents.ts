@@ -5,6 +5,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useCacheInvalidationManager } from '@/hooks/core/useCacheInvalidationManager';
 import type { 
   SalaryComponent, 
   CreateSalaryComponentRequest, 
@@ -186,7 +187,7 @@ export function useSalaryComponentStats() {
  * 创建薪资组件
  */
 export function useCreateSalaryComponent() {
-  const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (data: CreateSalaryComponentRequest): Promise<SalaryComponent> => {
@@ -218,9 +219,8 @@ export function useCreateSalaryComponent() {
 
       return newComponent as SalaryComponent;
     },
-    onSuccess: () => {
-      // 清除相关缓存
-      queryClient.invalidateQueries({ queryKey: SALARY_COMPONENT_KEYS.all });
+    onSuccess: async (data) => {
+      await cacheManager.invalidateByEvent('salary-component:created');
     },
   });
 }
@@ -229,7 +229,7 @@ export function useCreateSalaryComponent() {
  * 更新薪资组件
  */
 export function useUpdateSalaryComponent() {
-  const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async ({ id, ...updateData }: UpdateSalaryComponentRequest): Promise<SalaryComponent> => {
@@ -265,11 +265,8 @@ export function useUpdateSalaryComponent() {
 
       return updatedComponent as SalaryComponent;
     },
-    onSuccess: (data) => {
-      // 更新相关缓存
-      queryClient.setQueryData(SALARY_COMPONENT_KEYS.detail(data.id), data);
-      queryClient.invalidateQueries({ queryKey: SALARY_COMPONENT_KEYS.lists() });
-      queryClient.invalidateQueries({ queryKey: SALARY_COMPONENT_KEYS.stats() });
+    onSuccess: async (data) => {
+      await cacheManager.invalidateByEvent('salary-component:updated');
     },
   });
 }
@@ -278,7 +275,7 @@ export function useUpdateSalaryComponent() {
  * 删除薪资组件
  */
 export function useDeleteSalaryComponent() {
-  const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
@@ -308,11 +305,8 @@ export function useDeleteSalaryComponent() {
         throw new Error(`删除薪资组件失败: ${error.message}`);
       }
     },
-    onSuccess: (_, deletedId) => {
-      // 清除相关缓存
-      queryClient.removeQueries({ queryKey: SALARY_COMPONENT_KEYS.detail(deletedId) });
-      queryClient.invalidateQueries({ queryKey: SALARY_COMPONENT_KEYS.lists() });
-      queryClient.invalidateQueries({ queryKey: SALARY_COMPONENT_KEYS.stats() });
+    onSuccess: async (_, deletedId) => {
+      await cacheManager.invalidateByEvent('salary-component:deleted');
     },
   });
 }
@@ -321,7 +315,7 @@ export function useDeleteSalaryComponent() {
  * 批量删除薪资组件
  */
 export function useBatchDeleteSalaryComponents() {
-  const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (ids: string[]): Promise<void> => {
@@ -351,13 +345,8 @@ export function useBatchDeleteSalaryComponents() {
         throw new Error(`批量删除薪资组件失败: ${error.message}`);
       }
     },
-    onSuccess: (_, deletedIds) => {
-      // 清除相关缓存
-      deletedIds.forEach(id => {
-        queryClient.removeQueries({ queryKey: SALARY_COMPONENT_KEYS.detail(id) });
-      });
-      queryClient.invalidateQueries({ queryKey: SALARY_COMPONENT_KEYS.lists() });
-      queryClient.invalidateQueries({ queryKey: SALARY_COMPONENT_KEYS.stats() });
+    onSuccess: async (_, deletedIds) => {
+      await cacheManager.invalidateByEvent('salary-component:deleted');
     },
   });
 }

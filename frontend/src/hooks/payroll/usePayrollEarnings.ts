@@ -247,7 +247,7 @@ export const useCreateEarning = () => {
       if (data.payroll_id) {
         // 使用统一缓存管理器，自动处理所有相关缓存失效
         await cacheManager.invalidateByEvent('payroll:item:created', 
-          CacheInvalidationUtils.createPayrollContext(data.payroll_id, data.employee_id, data.period_id)
+          CacheInvalidationUtils.createPayrollContext(data.payroll_id, undefined, data.period_id || undefined)
         );
       }
     },
@@ -312,7 +312,7 @@ export const useUpdateEarning = () => {
       if (data.payroll_id) {
         // 使用统一缓存管理器，自动处理所有相关缓存失效
         await cacheManager.invalidateByEvent('payroll:item:updated', 
-          CacheInvalidationUtils.createPayrollContext(data.payroll_id, data.employee_id, data.period_id)
+          CacheInvalidationUtils.createPayrollContext(data.payroll_id, undefined, data.period_id || undefined)
         );
       }
     },
@@ -323,13 +323,14 @@ export const useUpdateEarning = () => {
 export const useDeleteEarning = () => {
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (earningId: string) => {
       // 先获取要删除的记录信息
       const { data: earning } = await supabase
         .from('payroll_items')
-        .select('payroll_id')
+        .select('payroll_id, period_id')
         .eq('id', earningId)
         .single();
 
@@ -339,17 +340,22 @@ export const useDeleteEarning = () => {
         .eq('id', earningId);
 
       if (error) {
-        handleError(error, { customMessage: '删除收入项失败' });
+        handleError(error, { customMessage: '删除薪资项目失败' });
         throw error;
       }
       
-      return { earningId, payrollId: earning?.payroll_id };
+      return { 
+        earningId, 
+        payrollId: earning?.payroll_id,
+        periodId: earning?.period_id
+      };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.payrollId) {
-        queryClient.invalidateQueries({ 
-          queryKey: payrollEarningsQueryKeys.payrollEarnings(data.payrollId) 
-        });
+        // 使用统一缓存管理器，自动处理所有相关缓存失效
+        await cacheManager.invalidateByEvent('payroll:item:deleted', 
+          CacheInvalidationUtils.createPayrollContext(data.payrollId, undefined, data.periodId || undefined)
+        );
       }
     },
   });

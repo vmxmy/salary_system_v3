@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
+import { useCacheInvalidationManager } from '@/hooks/core/useCacheInvalidationManager';
 import type { Database } from '@/types/supabase';
 
 // 类型定义
@@ -352,7 +353,7 @@ export function useDepartmentPayrollStats(filters?: {
  * Hook for creating department
  */
 export function useCreateDepartment() {
-  const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
   const { handleError } = useErrorHandler();
 
   return useMutation({
@@ -366,8 +367,8 @@ export function useCreateDepartment() {
       if (error) throw error;
       return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DEPARTMENT_KEYS.all });
+    onSuccess: async () => {
+      await cacheManager.invalidateByEvent('department:created');
     },
     onError: (error) => {
       handleError(error, { customMessage: '创建部门失败' });
@@ -379,7 +380,7 @@ export function useCreateDepartment() {
  * Hook for updating department
  */
 export function useUpdateDepartment() {
-  const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
   const { handleError } = useErrorHandler();
 
   return useMutation({
@@ -394,8 +395,8 @@ export function useUpdateDepartment() {
       if (error) throw error;
       return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DEPARTMENT_KEYS.all });
+    onSuccess: async () => {
+      await cacheManager.invalidateByEvent('department:updated');
     },
     onError: (error) => {
       handleError(error, { customMessage: '更新部门失败' });
@@ -407,7 +408,7 @@ export function useUpdateDepartment() {
  * Hook for deleting department
  */
 export function useDeleteDepartment() {
-  const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
   const { handleError } = useErrorHandler();
 
   return useMutation({
@@ -419,8 +420,8 @@ export function useDeleteDepartment() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DEPARTMENT_KEYS.all });
+    onSuccess: async () => {
+      await cacheManager.invalidateByEvent('department:deleted');
     },
     onError: (error) => {
       handleError(error, { customMessage: '删除部门失败' });
@@ -432,7 +433,7 @@ export function useDeleteDepartment() {
  * Hook for moving department
  */
 export function useMoveDepartment() {
-  const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
   const { handleError } = useErrorHandler();
 
   return useMutation({
@@ -455,8 +456,8 @@ export function useMoveDepartment() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DEPARTMENT_KEYS.all });
+    onSuccess: async () => {
+      await cacheManager.invalidateByEvent('department:updated');
     },
     onError: (error) => {
       handleError(error, { customMessage: '移动部门失败' });

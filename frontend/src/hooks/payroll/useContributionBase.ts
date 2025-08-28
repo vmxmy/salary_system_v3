@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
+import { useCacheInvalidationManager, CacheInvalidationUtils } from '@/hooks/core/useCacheInvalidationManager';
 import type { Database } from '@/types/supabase';
 
 // 类型定义 - 基于实际数据库结构
@@ -348,7 +349,7 @@ export const usePeriodContributionBases = (periodId: string) => {
 
 // 设置员工缴费基数
 export const useSetContributionBase = () => {
-  const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
   const { handleError } = useErrorHandler();
 
   return useMutation({
@@ -412,35 +413,21 @@ export const useSetContributionBase = () => {
         return data;
       }
     },
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: contributionBaseQueryKeys.employeeBases(variables.employeeId, variables.periodId) 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: contributionBaseQueryKeys.employeeHistory(variables.employeeId) 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: contributionBaseQueryKeys.periodBases(variables.periodId) 
-      });
-      // 失效该员工在该周期的所有薪资详情查询，确保薪资明细自动更新
-      queryClient.invalidateQueries({ 
-        queryKey: ['payrolls', 'detail'] 
-      });
-      // 也失效薪资列表查询
-      queryClient.invalidateQueries({ 
-        queryKey: ['payrolls', 'list'] 
-      });
-      // 失效统计查询，确保统计数据自动更新
-      queryClient.invalidateQueries({ 
-        queryKey: ['payrolls', 'statistics'] 
-      });
+    onSuccess: async (data, variables) => {
+      await cacheManager.invalidateByEvent('contribution:base:updated', 
+        CacheInvalidationUtils.createContributionContext(
+          variables.employeeId, 
+          variables.periodId, 
+          variables.insuranceTypeId
+        )
+      );
     },
   });
 };
 
 // 批量设置缴费基数
 export const useBatchSetContributionBases = () => {
-  const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
   const { handleError } = useErrorHandler();
 
   return useMutation({
@@ -481,26 +468,11 @@ export const useBatchSetContributionBases = () => {
       
       return data || [];
     },
-    onSuccess: (data, variables) => {
-      // 使所有相关查询失效
-      const employeeIds = [...new Set(variables.bases.map(b => b.employeeId))];
-      const periodIds = [...new Set(variables.bases.map(b => b.periodId))];
-      
-      employeeIds.forEach(employeeId => {
-        queryClient.invalidateQueries({ 
-          queryKey: contributionBaseQueryKeys.employeeHistory(employeeId) 
-        });
-        periodIds.forEach(periodId => {
-          queryClient.invalidateQueries({ 
-            queryKey: contributionBaseQueryKeys.employeeBases(employeeId, periodId) 
-          });
-        });
-      });
-      
-      periodIds.forEach(periodId => {
-        queryClient.invalidateQueries({ 
-          queryKey: contributionBaseQueryKeys.periodBases(periodId) 
-        });
+    onSuccess: async (data, variables) => {
+      // 批量失效缴费基数缓存
+      await cacheManager.invalidateByEvent('insurance:batch:calculated', {
+        employeeIds: [...new Set(variables.bases.map(b => b.employeeId))],
+        periodId: variables.bases[0]?.periodId
       });
     },
   });

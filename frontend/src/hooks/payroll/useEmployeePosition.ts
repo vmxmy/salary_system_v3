@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useErrorHandler } from '@/hooks/core/useErrorHandler';
+import { useCacheInvalidationManager, CacheInvalidationUtils } from '@/hooks/core/useCacheInvalidationManager';
 import type { Database } from '@/types/supabase';
 
 // 类型定义
@@ -420,6 +421,7 @@ const getPositionSalaryGrade = async (positionId: string): Promise<EmployeePosit
 export const useAssignEmployeePosition = () => {
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
+  const cacheManager = useCacheInvalidationManager();
 
   return useMutation({
     mutationFn: async (params: {
@@ -513,29 +515,24 @@ export const useAssignEmployeePosition = () => {
         return data;
       }
     },
-    onSuccess: (data, variables) => {
-      console.log('[useAssignEmployeePosition] onSuccess 开始无效化缓存:', {
+    onSuccess: async (data, variables) => {
+      console.log('[useAssignEmployeePosition] onSuccess 开始统一缓存失效:', {
         employeeId: variables.employeeId,
         departmentId: variables.departmentId,
         result: data
       });
       
-      queryClient.invalidateQueries({ 
-        queryKey: employeePositionQueryKeys.employeePosition(variables.employeeId) 
-      });
-      console.log('[useAssignEmployeePosition] 已无效化员工职位缓存');
+      // 使用统一缓存管理器，自动处理所有相关缓存失效
+      // 包括职位历史、薪资相关查询等
+      await cacheManager.invalidateByEvent('employee:position:assigned', 
+        CacheInvalidationUtils.createEmployeeContext(
+          variables.employeeId, 
+          variables.departmentId, 
+          variables.positionId
+        )
+      );
       
-      queryClient.invalidateQueries({ 
-        queryKey: employeePositionQueryKeys.positionHistory(variables.employeeId) 
-      });
-      console.log('[useAssignEmployeePosition] 已无效化职位历史缓存');
-      
-      queryClient.invalidateQueries({ 
-        queryKey: employeePositionQueryKeys.departmentPositions(variables.departmentId) 
-      });
-      console.log('[useAssignEmployeePosition] 已无效化部门职位缓存');
-      
-      console.log('[useAssignEmployeePosition] 缓存无效化完成');
+      console.log('[useAssignEmployeePosition] 统一缓存失效完成');
     },
   });
 };

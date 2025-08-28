@@ -12,7 +12,7 @@ import { useEmployeePositionByPeriod, useEmployeePositionHistory, useAssignEmplo
 import { useDepartmentList } from '@/hooks/department/useDepartments';
 import { useEmployeePositions } from '@/hooks/payroll/useEmployeePosition';
 import { useEmployeeContributionBasesByPeriod } from '@/hooks/payroll/useContributionBase';
-import { useUpdateEarning, useCreateEarning, useEarningComponents } from '@/hooks/payroll/usePayrollEarnings';
+import { useUpdateEarning, useCreateEarning, useDeleteEarning, useEarningComponents } from '@/hooks/payroll/usePayrollEarnings';
 import { useSetContributionBase } from '@/hooks/payroll/useContributionBase';
 import { useCurrentYearProvidentFundTrend } from '@/hooks/payroll/useContributionBaseTrend';
 import { ContributionBaseTrendChart } from '@/components/common/ContributionBaseTrendChart';
@@ -34,6 +34,7 @@ import {
   DocumentTextIcon,
   CreditCardIcon,
   BriefcaseIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 
 // 薪资详情数据类型
@@ -984,12 +985,18 @@ function PayrollBreakdownSection({
   // 使用薪资项目相关 hooks
   const updateEarningMutation = useUpdateEarning();
   const createEarningMutation = useCreateEarning();
+  const deleteEarningMutation = useDeleteEarning();
   const { data: earningComponents = [], isLoading: isLoadingComponents } = useEarningComponents();
 
   // 内联编辑状态管理
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingAmount, setEditingAmount] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // 删除确认状态管理
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDeleteItem, setConfirmDeleteItem] = useState<PayrollItemDetail | null>(null);
 
   // 添加薪资明细表单状态管理
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -1171,6 +1178,53 @@ function PayrollBreakdownSection({
     }
   }, [addForm, showError, showSuccess, createEarningMutation, handleCancelAddingItem, categoryTotals, groupedItems]);
 
+  // 显示删除确认对话框
+  const handleDeleteItem = useCallback((item: PayrollItemDetail) => {
+    if (!item.item_id) {
+      showError('无法删除：项目ID不存在');
+      return;
+    }
+    setConfirmDeleteItem(item);
+  }, [showError]);
+
+  // 确认删除薪资项目
+  const handleConfirmDelete = useCallback(async () => {
+    if (!confirmDeleteItem || !confirmDeleteItem.item_id) {
+      return;
+    }
+
+    setDeletingItemId(confirmDeleteItem.item_id);
+    setIsDeleting(true);
+
+    try {
+      console.log('[删除薪资明细] 删除项目:', {
+        itemId: confirmDeleteItem.item_id,
+        componentName: confirmDeleteItem.component_name,
+        amount: confirmDeleteItem.amount
+      });
+
+      await deleteEarningMutation.mutateAsync(confirmDeleteItem.item_id);
+      
+      console.log('[删除薪资明细] 项目删除成功');
+      showSuccess(`成功删除 ${confirmDeleteItem.component_name}`);
+      
+      // 关闭确认对话框
+      setConfirmDeleteItem(null);
+      
+    } catch (error) {
+      console.error('删除薪资明细失败:', error);
+      showError('删除失败，请重试');
+    } finally {
+      setDeletingItemId(null);
+      setIsDeleting(false);
+    }
+  }, [confirmDeleteItem, deleteEarningMutation, showError, showSuccess]);
+
+  // 取消删除
+  const handleCancelDelete = useCallback(() => {
+    setConfirmDeleteItem(null);
+  }, []);
+
   // 计算可用的薪资组件（去除重复）
   const getAvailableComponents = useCallback((componentType: 'earning' | 'deduction') => {
     return earningComponents.filter(component => {
@@ -1290,6 +1344,7 @@ function PayrollBreakdownSection({
               className="btn btn-xs btn-success"
               onClick={() => handleSaveEdit(item, currentEditingAmount)}
               disabled={isSaving}
+              title="保存修改"
             >
               {isSaving ? (
                 <span className="loading loading-xs loading-spinner"></span>
@@ -1298,9 +1353,22 @@ function PayrollBreakdownSection({
               )}
             </button>
             <button
+              className="btn btn-xs btn-error"
+              onClick={() => handleDeleteItem(item)}
+              disabled={isSaving || isDeleting}
+              title="删除此项目"
+            >
+              {(deletingItemId === item.item_id && isDeleting) ? (
+                <span className="loading loading-xs loading-spinner"></span>
+              ) : (
+                <TrashIcon className="w-3 h-3" />
+              )}
+            </button>
+            <button
               className="btn btn-xs btn-ghost"
               onClick={handleCancelEdit}
               disabled={isSaving}
+              title="取消编辑"
             >
               ✕
             </button>
@@ -1846,6 +1914,65 @@ function PayrollBreakdownSection({
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* 删除确认模态框 */}
+      {confirmDeleteItem && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg flex items-center gap-2 text-error">
+              <TrashIcon className="w-5 h-5" />
+              确认删除
+            </h3>
+            
+            <div className="py-4">
+              <p className="text-base-content/80 mb-4">
+                您确定要删除以下薪资项目吗？此操作不可撤销。
+              </p>
+              
+              <div className="bg-base-200/50 rounded-lg p-3 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-base-content/70">项目名称：</span>
+                  <span className="font-medium">{confirmDeleteItem.component_name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-base-content/70">金额：</span>
+                  <span className="font-mono font-medium">{formatCurrency(confirmDeleteItem.amount)}</span>
+                </div>
+                {(confirmDeleteItem as any).notes && (
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm text-base-content/70">备注：</span>
+                    <span className="text-sm max-w-48 text-right">{(confirmDeleteItem as any).notes}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="modal-action">
+              <button 
+                className="btn btn-ghost"
+                onClick={handleCancelDelete}
+                disabled={isDeleting}
+              >
+                取消
+              </button>
+              <button 
+                className="btn btn-error"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="loading loading-spinner loading-xs"></span>
+                    删除中...
+                  </>
+                ) : (
+                  '确认删除'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

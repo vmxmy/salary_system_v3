@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
+import { useCacheInvalidationManager, CacheInvalidationUtils } from '@/hooks/core/useCacheInvalidationManager';
 
 // 员工数据接口
 export interface EmployeeCreateData {
@@ -26,7 +27,7 @@ export interface EmployeeUpdateData extends Partial<EmployeeCreateData> {
  * 提供员工的 CRUD 操作
  */
 export function useEmployeeActions() {
-  const queryClient = useQueryClient();
+  const cacheManager = useCacheInvalidationManager();
   const { showSuccess, showError } = useToast();
 
   // 创建员工
@@ -61,11 +62,14 @@ export function useEmployeeActions() {
 
       return data;
     },
-    onSuccess: () => {
-      // 清除相关缓存
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-table'] });
+    onSuccess: async (data) => {
+      await cacheManager.invalidateByEvent('employee:created', 
+        CacheInvalidationUtils.createEmployeeContext(
+          data.id,
+          undefined, // employees表中不直接包含department_id
+          undefined  // employees表中不直接包含position_id
+        )
+      );
       
       showSuccess('员工创建成功');
     },
@@ -95,11 +99,14 @@ export function useEmployeeActions() {
 
       return data;
     },
-    onSuccess: () => {
-      // 清除相关缓存
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-table'] });
+    onSuccess: async (data) => {
+      await cacheManager.invalidateByEvent('employee:updated', 
+        CacheInvalidationUtils.createEmployeeContext(
+          data.id,
+          undefined, // employees表中不直接包含department_id
+          undefined  // employees表中不直接包含position_id
+        )
+      );
       
       showSuccess('员工信息更新成功');
     },
@@ -131,11 +138,8 @@ export function useEmployeeActions() {
 
       return id;
     },
-    onSuccess: () => {
-      // 清除相关缓存
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-table'] });
+    onSuccess: async (id) => {
+      await cacheManager.invalidateByEvent('employee:deleted');
       
       showSuccess('员工已移除');
     },
@@ -167,11 +171,8 @@ export function useEmployeeActions() {
 
       return ids;
     },
-    onSuccess: (ids) => {
-      // 清除相关缓存
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-table'] });
+    onSuccess: async (ids) => {
+      await cacheManager.invalidateByEvent('employee:deleted');
       
       showSuccess(`成功移除 ${ids.length} 名员工`);
     },
@@ -202,11 +203,8 @@ export function useEmployeeActions() {
 
       return id;
     },
-    onSuccess: () => {
-      // 清除相关缓存
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-table'] });
+    onSuccess: async (id) => {
+      await cacheManager.invalidateByEvent('employee:updated');
       
       showSuccess('员工已恢复');
     },
@@ -247,10 +245,8 @@ export function useEmployeeActions() {
 
       return id;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['table-data', 'view_employee_basic_info'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-table'] });
+    onSuccess: async (id) => {
+      await cacheManager.invalidateByEvent('employee:deleted');
       
       showSuccess('员工记录已永久删除');
     },

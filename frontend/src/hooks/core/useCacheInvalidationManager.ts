@@ -40,7 +40,26 @@ export type CacheInvalidationEvent =
   // 周期相关事件
   | 'payroll-period:created'
   | 'payroll-period:updated'
-  | 'payroll-period:completed';
+  | 'payroll-period:completed'
+  | 'payroll-period:cleared'
+  | 'payroll-period:finalized'
+  
+  // 报告相关事件
+  | 'report:template:created'
+  | 'report:template:updated'
+  | 'report:template:deleted'
+  | 'report:job:created'
+  | 'report:job:updated'
+  | 'report:generated'
+  
+  // 系统配置相关事件
+  | 'system:settings:updated'
+  | 'view:personalization:updated'
+  
+  // 批量操作相关事件
+  | 'insurance:batch:calculated'
+  | 'payroll:batch:created'
+  | 'payroll:batch:updated';
 
 // 缓存失效配置接口
 interface CacheInvalidationConfig {
@@ -60,7 +79,8 @@ const CACHE_INVALIDATION_MAP: Record<CacheInvalidationEvent, CacheInvalidationCo
       ['payroll', 'unified'],
       ['view_payroll_unified'],
       ['view_payroll_summary'],
-      ['payroll-earnings']
+      ['payroll-earnings'],
+      ['batch-payroll'] // 批量薪资查询缓存
     ],
     dynamicQueries: (context: { payrollId?: string }) => [
       ...(context.payrollId ? [
@@ -80,7 +100,8 @@ const CACHE_INVALIDATION_MAP: Record<CacheInvalidationEvent, CacheInvalidationCo
       ['payroll', 'unified'],
       ['view_payroll_unified'],
       ['view_payroll_summary'],
-      ['payroll-earnings']
+      ['payroll-earnings'],
+      ['batch-payroll'] // 批量薪资查询缓存
     ],
     dynamicQueries: (context: { payrollId?: string }) => [
       ...(context.payrollId ? [
@@ -100,7 +121,8 @@ const CACHE_INVALIDATION_MAP: Record<CacheInvalidationEvent, CacheInvalidationCo
       ['payroll', 'unified'], 
       ['view_payroll_unified'],
       ['view_payroll_summary'],
-      ['payroll-earnings']
+      ['payroll-earnings'],
+      ['batch-payroll'] // 批量薪资查询缓存
     ],
     dynamicQueries: (context: { payrollId?: string }) => [
       ...(context.payrollId ? [
@@ -166,7 +188,8 @@ const CACHE_INVALIDATION_MAP: Record<CacheInvalidationEvent, CacheInvalidationCo
       ['payrolls', 'list'],
       ['payrolls', 'statistics'],
       ['employees', 'payroll-status'],
-      ['dashboard', 'overview']
+      ['dashboard', 'overview'],
+      ['batch-payroll'] // 批量薪资查询缓存
     ],
     dynamicQueries: (context: { employeeId?: string; periodId?: string }) => [
       ...(context.employeeId ? [
@@ -185,7 +208,8 @@ const CACHE_INVALIDATION_MAP: Record<CacheInvalidationEvent, CacheInvalidationCo
       ['payrolls', 'list'],
       ['payrolls', 'statistics'],
       ['view_payroll_summary'],
-      ['view_payroll_unified']
+      ['view_payroll_unified'],
+      ['batch-payroll'] // 批量薪资查询缓存
     ],
     dynamicQueries: (context: { payrollId?: string; employeeId?: string }) => [
       ...(context.payrollId ? [
@@ -205,7 +229,8 @@ const CACHE_INVALIDATION_MAP: Record<CacheInvalidationEvent, CacheInvalidationCo
       ['payrolls', 'list'],
       ['payrolls', 'statistics'],
       ['payrolls', 'approval-queue'],
-      ['dashboard', 'overview']
+      ['dashboard', 'overview'],
+      ['batch-payroll'] // 批量薪资查询缓存
     ],
     dynamicQueries: (context: { payrollId?: string; employeeId?: string; periodId?: string }) => [
       ...(context.payrollId ? [
@@ -220,9 +245,108 @@ const CACHE_INVALIDATION_MAP: Record<CacheInvalidationEvent, CacheInvalidationCo
     ]
   },
 
-  // 其他事件的基础配置（可扩展）
-  'payroll:deleted': { event: 'payroll:deleted', queries: [['payrolls', 'list'], ['payrolls', 'statistics']] },
-  'payroll:rejected': { event: 'payroll:rejected', queries: [['payrolls', 'list'], ['payrolls', 'approval-queue']] },
+  // 薪资相关事件配置
+  'payroll:deleted': { 
+    event: 'payroll:deleted', 
+    queries: [['payrolls', 'list'], ['payrolls', 'statistics'], ['batch-payroll']] 
+  },
+  'payroll:rejected': { 
+    event: 'payroll:rejected', 
+    queries: [['payrolls', 'list'], ['payrolls', 'approval-queue'], ['batch-payroll']] 
+  },
+
+  // 报告系统失效配置
+  'report:template:created': {
+    event: 'report:template:created',
+    queries: [
+      ['reports', 'templates'],
+      ['reports', 'statistics'],
+      ['dashboard', 'overview']
+    ]
+  },
+
+  'report:template:updated': {
+    event: 'report:template:updated',
+    queries: [
+      ['reports', 'templates'],
+      ['reports', 'statistics']
+    ],
+    dynamicQueries: (context: { templateId?: string }) => [
+      ...(context.templateId ? [
+        ['reports', 'template', context.templateId]
+      ] : [])
+    ]
+  },
+
+  'report:job:created': {
+    event: 'report:job:created',
+    queries: [
+      ['reports', 'jobs'],
+      ['reports', 'statistics'],
+      ['dashboard', 'recent-activities']
+    ]
+  },
+
+  'report:generated': {
+    event: 'report:generated',
+    queries: [
+      ['reports', 'jobs'],
+      ['reports', 'history'],
+      ['dashboard', 'overview']
+    ]
+  },
+
+  // 批量操作失效配置
+  'insurance:batch:calculated': {
+    event: 'insurance:batch:calculated',
+    queries: [
+      ['insurance', 'calculation'],
+      ['payrolls', 'list'],
+      ['payrolls', 'statistics'],
+      ['contribution-base'],
+      ['dashboard', 'overview'],
+      ['batch-payroll'] // 批量薪资查询缓存
+    ],
+    dynamicQueries: (context: { employeeIds?: string[]; periodId?: string }) => [
+      ...(context.periodId ? [
+        ['payroll-periods', context.periodId, 'completeness']
+      ] : []),
+      ...(context.employeeIds ? 
+        context.employeeIds.map(employeeId => ['employees', 'insurance', employeeId]) : []
+      )
+    ]
+  },
+
+  'payroll:batch:created': {
+    event: 'payroll:batch:created',
+    queries: [
+      ['payrolls', 'list'],
+      ['payrolls', 'statistics'],
+      ['employees', 'payroll-status'],
+      ['dashboard', 'overview'],
+      ['batch-payroll'] // 批量薪资查询缓存
+    ]
+  },
+
+  // 系统配置失效配置
+  'system:settings:updated': {
+    event: 'system:settings:updated',
+    queries: [
+      ['system', 'settings'],
+      ['system', 'config'],
+      // 系统配置变更可能影响所有计算，需要失效相关查询
+      ['payrolls', 'statistics'],
+      ['insurance', 'config']
+    ]
+  },
+
+  'view:personalization:updated': {
+    event: 'view:personalization:updated',
+    queries: [
+      ['personalization', 'views'],
+      ['user', 'preferences']
+    ]
+  },
   'employee:created': { event: 'employee:created', queries: [['employees', 'list']] },
   'employee:updated': { event: 'employee:updated', queries: [['employees', 'list']] },
   'employee:deleted': { event: 'employee:deleted', queries: [['employees', 'list']] },
@@ -240,7 +364,15 @@ const CACHE_INVALIDATION_MAP: Record<CacheInvalidationEvent, CacheInvalidationCo
   'salary-component:deleted': { event: 'salary-component:deleted', queries: [['salary-components', 'list']] },
   'payroll-period:created': { event: 'payroll-period:created', queries: [['payroll-periods', 'list']] },
   'payroll-period:updated': { event: 'payroll-period:updated', queries: [['payroll-periods', 'list']] },
-  'payroll-period:completed': { event: 'payroll-period:completed', queries: [['payroll-periods', 'list']] }
+  'payroll-period:completed': { event: 'payroll-period:completed', queries: [['payroll-periods', 'list']] },
+  'payroll-period:cleared': { event: 'payroll-period:cleared', queries: [['payroll-periods', 'list']] },
+  'payroll-period:finalized': { event: 'payroll-period:finalized', queries: [['payroll-periods', 'list']] },
+  'report:template:deleted': { event: 'report:template:deleted', queries: [['report-templates', 'list']] },
+  'report:job:updated': { event: 'report:job:updated', queries: [['report-jobs', 'list']] },
+  'payroll:batch:updated': { 
+    event: 'payroll:batch:updated', 
+    queries: [['payrolls', 'list'], ['batch-payroll']] 
+  }
 };
 
 /**
