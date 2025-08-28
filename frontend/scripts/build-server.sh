@@ -7,8 +7,8 @@ set -e
 
 echo "🚀 开始分步编译服务器构建..."
 
-# 设置内存限制变量
-MEMORY_LIMIT="1024"
+# 设置内存限制变量 (1.2GB = 1200MB)
+MEMORY_LIMIT="1200"
 NODE_OPTIONS_BASE="--max-old-space-size=${MEMORY_LIMIT} --max-semi-space-size=128"
 
 # 强制垃圾回收的额外选项
