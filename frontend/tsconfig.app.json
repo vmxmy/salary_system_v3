@@ -17,6 +17,13 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "jsxImportSource": "react",
+
+    /* React 19 compatibility */
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
 
     /* Path mapping */
     "baseUrl": ".",

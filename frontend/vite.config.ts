@@ -9,6 +9,13 @@ import path from 'path'
 export default defineConfig({
   // 根据部署平台设置 base path
   base: process.env.VITE_BASE_PATH || '/', // 默认根路径，适用于 Docker 容器和大多数部署方式
+  
+  // Enable experimental features for React 19 compatibility
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'react'
+  },
+  
   plugins: [
     tailwindcss(), 
     react(),
@@ -57,10 +64,15 @@ export default defineConfig({
     minify: 'terser',
     // Report compressed size
     reportCompressedSize: true,
-    // Modern target
-    target: 'es2020',
+    // Modern target compatible with React 19
+    target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
     // Standard assets inline limit
     assetsInlineLimit: 4096,
+    // Additional build options for React 19 compatibility
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    },
     rollupOptions: {
       // External dependencies that should be loaded from CDN in production
       ...(process.env.VITE_USE_CDN === 'true' && {
@@ -78,26 +90,14 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Manual chunk splitting for better caching
+        // Simplified chunk splitting to avoid module resolution issues
         manualChunks: {
-          // React ecosystem
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          // Excel libraries
-          'excel-core': ['xlsx'],
-          'excel-advanced': ['exceljs'], 
-          // Charts
-          'charts': ['recharts'],
-          // UI libraries
-          'ui-framer': ['framer-motion'],
-          'ui-icons': ['@heroicons/react', 'lucide-react'],
-          // Data fetching and state
-          'data-vendor': ['@tanstack/react-query', '@supabase/supabase-js', 'zustand'],
-          // i18n
-          'i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
+          // React ecosystem - keep together to avoid ForwardRef issues
+          'react-vendor': ['react', 'react-dom'],
+          // Large libraries
+          'data-vendor': ['@supabase/supabase-js', '@tanstack/react-query'],
           // Utilities
-          'utils': ['date-fns', 'clsx', 'tailwind-merge', 'zod'],
-          // Markdown
-          'markdown': ['react-markdown', 'remark-gfm', 'rehype-highlight', 'rehype-raw']
+          'utils': ['date-fns', 'clsx', 'tailwind-merge', 'zod']
         }
       }
     }
@@ -107,13 +107,20 @@ export default defineConfig({
     include: [
       'react',
       'react-dom',
+      'react-router-dom',
       '@tanstack/react-query',
-      '@supabase/supabase-js'
+      '@supabase/supabase-js',
+      'framer-motion',
+      '@heroicons/react/24/outline',
+      'lucide-react',
+      'recharts'
     ],
     exclude: [
       // Keep Excel libraries separate for lazy loading
       'xlsx',
       'exceljs'
-    ]
+    ],
+    // Force React 19 compatibility
+    force: true
   }
 })
