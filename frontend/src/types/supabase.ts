@@ -2892,6 +2892,60 @@ export type Database = {
         }
         Relationships: []
       }
+      report_payroll_pivot_detail: {
+        Row: {
+          个人保险小计: number | null
+          个人所得税: number | null
+          九三年工改保留津补贴: number | null
+          人员身份: string | null
+          住房公积金个人: number | null
+          住房公积金单位: number | null
+          公务交通补贴: number | null
+          公务员规范后津补贴: number | null
+          其他补助: number | null
+          养老保险个人: number | null
+          养老保险单位: number | null
+          医疗保险个人: number | null
+          医疗保险单位: number | null
+          单位保险小计: number | null
+          员工姓名: string | null
+          周期名称: string | null
+          基本工资: number | null
+          基本工资小计: number | null
+          基础绩效奖: number | null
+          大病医疗个人: number | null
+          大病医疗单位: number | null
+          失业保险个人: number | null
+          失业保险单位: number | null
+          季度绩效考核薪酬: number | null
+          实发合计: number | null
+          岗位工资: number | null
+          岗位职务补贴: number | null
+          工伤保险个人: number | null
+          工伤保险单位: number | null
+          应发合计: number | null
+          扣发合计: number | null
+          月份显示: string | null
+          月基础绩效: number | null
+          月奖励绩效: number | null
+          津贴补助小计: number | null
+          独生子女父母奖励金: number | null
+          生育保险个人: number | null
+          生育保险单位: number | null
+          级别岗位级别工资: number | null
+          绩效工资: number | null
+          职业年金个人: number | null
+          职业年金单位: number | null
+          职位: string | null
+          职务技术等级工资: number | null
+          薪级工资: number | null
+          薪资周期: string | null
+          试用期工资: number | null
+          身份证号: string | null
+          部门: string | null
+        }
+        Relationships: []
+      }
       rls_performance_summary: {
         Row: {
           metric: string | null
