@@ -2997,6 +2997,18 @@ export type Database = {
           },
         ]
       }
+      view_auth_debug: {
+        Row: {
+          active_roles: number | null
+          current_email: string | null
+          current_role: string | null
+          current_user_id: string | null
+          info_type: string | null
+          total_profiles: number | null
+          total_users: number | null
+        }
+        Relationships: []
+      }
       view_dashboard_stats: {
         Row: {
           active_employees: number | null
@@ -4051,6 +4063,10 @@ export type Database = {
         Args: { user_email: string; user_id_param?: string }
         Returns: string
       }
+      auth_debug_info: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       batch_mark_as_paid: {
         Args: { p_comments?: string; p_payroll_ids: string[] }
         Returns: {
@@ -4126,6 +4142,10 @@ export type Database = {
       }
       can_access_payroll_data_cached: {
         Args: { target_employee_id: string }
+        Returns: boolean
+      }
+      can_access_user_management: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       can_view_sensitive_data: {
@@ -5098,6 +5118,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_user_admin: {
+        Args: { check_user_id?: string }
+        Returns: boolean
+      }
       log_access_event: {
         Args: {
           p_data_size_bytes?: number
@@ -5196,6 +5220,10 @@ export type Database = {
           period_name: string
           updated: boolean
         }[]
+      }
+      test_user_management_access: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       transfer_employee: {
         Args: {
