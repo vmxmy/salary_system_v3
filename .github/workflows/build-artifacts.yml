@@ -74,7 +74,7 @@ jobs:
       working-directory: ./frontend/dist
       run: |
         # 创建构建信息文件
-        cat > BUILD_INFO.txt << 'BUILD_INFO'
+        cat > BUILD_INFO.txt << 'BUILD_INFO_EOF'
         # 薪资管理系统 V3 - 构建信息
         
         ## 构建详情
@@ -120,7 +120,7 @@ jobs:
         
         ---
         自动生成于: ${{ steps.build-info.outputs.BUILD_TIME }}
-        BUILD_INFO
+        BUILD_INFO_EOF
         
     - name: Create deployment package
       working-directory: ./frontend
@@ -134,114 +134,114 @@ jobs:
         cp -r dist/* package/salary-system-v3/
         
         # 创建部署脚本
-        cat > package/deploy.sh << 'DEPLOY_SCRIPT'
-#!/bin/bash
-# 薪资管理系统 V3 - 快速部署脚本
-
-set -e
-
-APP_NAME="salary-system-v3"
-PORT=${1:-3001}
-BUILD_DIR="salary-system-v3"
-
-echo "🚀 开始部署薪资管理系统 V3..."
-echo "端口: $PORT"
-
-# 检查是否存在构建目录
-if [ ! -d "$BUILD_DIR" ]; then
-    echo "❌ 错误: 找不到构建目录 $BUILD_DIR"
-    echo "请确保在解压后的目录中运行此脚本"
-    exit 1
-fi
-
-# 停止现有容器
-echo "🛑 停止现有容器..."
-docker stop $APP_NAME 2>/dev/null || echo "容器不存在，跳过停止"
-docker rm $APP_NAME 2>/dev/null || echo "容器不存在，跳过删除"
-
-# 启动新容器
-echo "🐳 启动 Docker 容器..."
-docker run -d \
-  --name $APP_NAME \
-  --restart unless-stopped \
-  -p $PORT:80 \
-  -v $(pwd)/$BUILD_DIR:/usr/share/nginx/html:ro \
-  --health-cmd="curl -f http://localhost/ || exit 1" \
-  --health-interval=30s \
-  --health-timeout=10s \
-  --health-retries=3 \
-  nginx:alpine
-
-echo "⏳ 等待容器启动..."
-sleep 5
-
-# 健康检查
-if curl -f -s http://localhost:$PORT > /dev/null; then
-    echo "✅ 部署成功！"
-    echo ""
-    echo "🌐 访问地址: http://localhost:$PORT"
-    echo "🔍 查看日志: docker logs $APP_NAME -f"
-    echo "📈 查看状态: docker stats $APP_NAME"
-else
-    echo "⚠️  容器已启动，但健康检查失败"
-    echo "请检查: docker logs $APP_NAME"
-fi
-DEPLOY_SCRIPT
+        cat > package/deploy.sh << 'DEPLOY_SCRIPT_EOF'
+        #!/bin/bash
+        # 薪资管理系统 V3 - 快速部署脚本
+        
+        set -e
+        
+        APP_NAME="salary-system-v3"
+        PORT=${1:-3001}
+        BUILD_DIR="salary-system-v3"
+        
+        echo "🚀 开始部署薪资管理系统 V3..."
+        echo "端口: $PORT"
+        
+        # 检查是否存在构建目录
+        if [ ! -d "$BUILD_DIR" ]; then
+            echo "❌ 错误: 找不到构建目录 $BUILD_DIR"
+            echo "请确保在解压后的目录中运行此脚本"
+            exit 1
+        fi
+        
+        # 停止现有容器
+        echo "🛑 停止现有容器..."
+        docker stop $APP_NAME 2>/dev/null || echo "容器不存在，跳过停止"
+        docker rm $APP_NAME 2>/dev/null || echo "容器不存在，跳过删除"
+        
+        # 启动新容器
+        echo "🐳 启动 Docker 容器..."
+        docker run -d \
+          --name $APP_NAME \
+          --restart unless-stopped \
+          -p $PORT:80 \
+          -v $(pwd)/$BUILD_DIR:/usr/share/nginx/html:ro \
+          --health-cmd="curl -f http://localhost/ || exit 1" \
+          --health-interval=30s \
+          --health-timeout=10s \
+          --health-retries=3 \
+          nginx:alpine
+        
+        echo "⏳ 等待容器启动..."
+        sleep 5
+        
+        # 健康检查
+        if curl -f -s http://localhost:$PORT > /dev/null; then
+            echo "✅ 部署成功！"
+            echo ""
+            echo "🌐 访问地址: http://localhost:$PORT"
+            echo "🔍 查看日志: docker logs $APP_NAME -f"
+            echo "📈 查看状态: docker stats $APP_NAME"
+        else
+            echo "⚠️  容器已启动，但健康检查失败"
+            echo "请检查: docker logs $APP_NAME"
+        fi
+        DEPLOY_SCRIPT_EOF
         
         chmod +x package/deploy.sh
         
         # 创建 README 文件
-        cat > package/README.md << 'README'
-# 薪资管理系统 V3 - 构建包
-
-## 包含内容
-
-- `salary-system-v3/` - 完整的前端构建文件
-- `deploy.sh` - 快速部署脚本
-- `README.md` - 此文件
-
-## 快速部署
-
-### 方法 1: 使用部署脚本 (推荐)
-```bash
-# 解压构建包后运行
-./deploy.sh [端口号]
-
-# 示例: 在端口 3001 部署
-./deploy.sh 3001
-```
-
-### 方法 2: 手动 Docker 部署
-```bash
-docker run -d --name salary-system-v3 \
-  --restart unless-stopped \
-  -p 3001:80 \
-  -v $(pwd)/salary-system-v3:/usr/share/nginx/html:ro \
-  nginx:alpine
-```
-
-### 方法 3: 直接 Web 服务器部署
-将 `salary-system-v3/` 目录内容复制到 Web 服务器根目录。
-
-## 系统要求
-
-- Docker (推荐)
-- 或任何支持静态文件的 Web 服务器 (Nginx, Apache 等)
-
-## 访问地址
-
-部署完成后访问: http://localhost:3001 (或您设置的端口)
-
-## 故障排除
-
-1. **端口被占用**: 修改部署脚本中的端口号
-2. **Docker 未安装**: 请安装 Docker 或使用其他 Web 服务器
-3. **权限问题**: 确保脚本有执行权限 `chmod +x deploy.sh`
-
----
-构建时间: ${{ steps.build-info.outputs.BUILD_TIME }}
-构建版本: ${{ steps.build-info.outputs.COMMIT_SHORT }}
-README
+        cat > package/README.md << 'README_EOF'
+        # 薪资管理系统 V3 - 构建包
+        
+        ## 包含内容
+        
+        - `salary-system-v3/` - 完整的前端构建文件
+        - `deploy.sh` - 快速部署脚本
+        - `README.md` - 此文件
+        
+        ## 快速部署
+        
+        ### 方法 1: 使用部署脚本 (推荐)
+        ```bash
+        # 解压构建包后运行
+        ./deploy.sh [端口号]
+        
+        # 示例: 在端口 3001 部署
+        ./deploy.sh 3001
+        ```
+        
+        ### 方法 2: 手动 Docker 部署
+        ```bash
+        docker run -d --name salary-system-v3 \
+          --restart unless-stopped \
+          -p 3001:80 \
+          -v $(pwd)/salary-system-v3:/usr/share/nginx/html:ro \
+          nginx:alpine
+        ```
+        
+        ### 方法 3: 直接 Web 服务器部署
+        将 `salary-system-v3/` 目录内容复制到 Web 服务器根目录。
+        
+        ## 系统要求
+        
+        - Docker (推荐)
+        - 或任何支持静态文件的 Web 服务器 (Nginx, Apache 等)
+        
+        ## 访问地址
+        
+        部署完成后访问: http://localhost:3001 (或您设置的端口)
+        
+        ## 故障排除
+        
+        1. **端口被占用**: 修改部署脚本中的端口号
+        2. **Docker 未安装**: 请安装 Docker 或使用其他 Web 服务器
+        3. **权限问题**: 确保脚本有执行权限 `chmod +x deploy.sh`
+        
+        ---
+        构建时间: ${{ steps.build-info.outputs.BUILD_TIME }}
+        构建版本: ${{ steps.build-info.outputs.COMMIT_SHORT }}
+        README_EOF
         
         # 打包成 ZIP 文件
         PACKAGE_NAME="salary-system-v3-build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}"
