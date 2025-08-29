@@ -1,6 +1,65 @@
-# 服务器部署指南
+# 部署指南
 
-## 自动化部署脚本
+## 🚀 容器化部署 (推荐)
+
+### 问题解决: "Missing Supabase environment variables"
+
+#### 原始问题
+容器访问时出现错误：`Uncaught Error: Missing Supabase environment variables`
+
+#### 根本原因与解决方案
+- **问题**: Docker 构建过程中没有注入 Vite 环境变量，导致 `import.meta.env.VITE_SUPABASE_URL` 为 undefined
+- **解决**: 修改 Dockerfile 在容器内构建应用，并通过 GitHub Environment secrets 注入环境变量
+
+#### 部署方法
+
+##### 方法 1: GitHub Actions 自动构建 (推荐)
+使用 GitHub Environment secrets，自动构建并推送 Docker 镜像：
+
+**所需的 Environment Secrets**:
+- `VITE_SUPABASE_URL`: https://rjlymghylrshudywrzec.supabase.co  
+- `VITE_SUPABASE_ANON_KEY`: [从 Supabase Dashboard 获取]
+- `DOCKERHUB_TOKEN` / `DOCKER_USERNAME`: Docker Hub 凭据
+
+##### 方法 2: 本地 Docker 构建
+```bash
+# 确保环境变量配置
+cp .env.local.example .env.local
+# 编辑 .env.local 设置实际的 Supabase 配置
+
+# 使用构建脚本
+./build-docker.sh
+
+# 或手动构建
+docker build \
+  --build-arg VITE_SUPABASE_URL="https://rjlymghylrshudywrzec.supabase.co" \
+  --build-arg VITE_SUPABASE_ANON_KEY="your-anon-key" \
+  -t salary-system-v3-frontend:latest .
+
+# 运行容器
+docker run -p 3000:3000 --name salary-frontend salary-system-v3-frontend:latest
+```
+
+##### 方法 3: Docker Compose
+```bash
+# 使用预配置的环境变量文件
+docker-compose --env-file .env.docker up --build
+
+# 后台运行
+docker-compose up -d --build
+```
+
+#### 容器部署验证
+✅ 部署成功后应该：
+- 不出现 "Missing Supabase environment variables" 错误  
+- 能够正常连接 Supabase 服务
+- 认证功能正常工作
+
+---
+
+## 📁 静态文件部署
+
+### 自动化部署脚本
 
 ### 使用方法
 

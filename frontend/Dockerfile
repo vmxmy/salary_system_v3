@@ -19,15 +19,28 @@ RUN apk add --no-cache \
 
 # 复制 package 文件并安装依赖
 COPY package*.json ./
-RUN npm ci --only=production --silent && \
+RUN npm ci --silent && \
     npm cache clean --force
 
 # 复制源代码
 COPY . .
 
-# 复制构建产物（从 GitHub Actions 传入）
-# 注意：这假设构建产物已通过 Actions 生成
-COPY dist/ ./dist/
+# 设置构建时环境变量
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_APP_URL
+ARG VITE_DISABLE_PROXY
+ARG VITE_SHOW_DEBUG_INFO
+
+# 设置环境变量用于构建
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+ENV VITE_APP_URL=$VITE_APP_URL
+ENV VITE_DISABLE_PROXY=$VITE_DISABLE_PROXY
+ENV VITE_SHOW_DEBUG_INFO=$VITE_SHOW_DEBUG_INFO
+
+# 构建应用程序
+RUN npm run build
 
 # 创建非 root 用户
 RUN addgroup -g 1001 -S nodejs && \
