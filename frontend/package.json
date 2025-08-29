@@ -6,12 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:prod": "NODE_ENV=production npm run build",
-    "build:analyze": "ANALYZE=true npm run build",
-    "build:cdn": "VITE_USE_CDN=true npm run build:prod",
     "lint": "eslint .",
     "preview": "vite preview",
-    "preview:prod": "NODE_ENV=production vite preview",
     "i18n:check": "node scripts/check-i18n.js",
     "i18n:check-ui": "node scripts/check-ui-i18n.js",
     "i18n:scan": "npm run i18n:check-ui"

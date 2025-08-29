@@ -1,0 +1,343 @@
+name: Build and Package Artifacts
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-package:
+    name: Build Frontend and Create Download Package
+    runs-on: ubuntu-latest
+    
+    # Use github-pages environment for secrets access
+    environment: 
+      name: github-pages
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: |
+        echo "🔄 安装项目依赖..."
+        npm ci --prefer-offline --no-audit
+        
+    - name: Build frontend application
+      working-directory: ./frontend
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_BASE_PATH: '/'
+        NODE_ENV: production
+      run: |
+        echo "🏗️  开始构建生产版本..."
+        npm run build
+        
+        # 显示构建结果统计
+        echo "📦 构建完成，文件统计:"
+        ls -la dist/
+        du -sh dist/
+        echo ""
+        echo "📊 主要文件大小:"
+        find dist/ -name "*.js" -o -name "*.css" -o -name "*.html" | head -10 | xargs ls -lh
+        
+    - name: Prepare build information
+      id: build-info
+      run: |
+        # 生成构建信息
+        echo "BUILD_TIME=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
+        echo "BUILD_DATE=$(date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
+        echo "BUILD_TIMESTAMP=$(date -u '+%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+        echo "COMMIT_SHORT=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
+        
+        # 计算文件统计
+        cd frontend/dist
+        TOTAL_SIZE=$(du -sb . | cut -f1)
+        FILE_COUNT=$(find . -type f | wc -l)
+        echo "TOTAL_SIZE_BYTES=$TOTAL_SIZE" >> $GITHUB_OUTPUT
+        echo "TOTAL_SIZE_MB=$((TOTAL_SIZE / 1024 / 1024))" >> $GITHUB_OUTPUT
+        echo "FILE_COUNT=$FILE_COUNT" >> $GITHUB_OUTPUT
+        
+    - name: Create build information file
+      working-directory: ./frontend/dist
+      run: |
+        # 创建构建信息文件
+        cat > BUILD_INFO.txt << 'BUILD_INFO'
+        # 薪资管理系统 V3 - 构建信息
+        
+        ## 构建详情
+        - 构建时间: ${{ steps.build-info.outputs.BUILD_TIME }}
+        - 提交版本: ${{ github.sha }}
+        - 提交短码: ${{ steps.build-info.outputs.COMMIT_SHORT }}
+        - 分支: ${{ github.ref_name }}
+        - 构建者: ${{ github.actor }}
+        
+        ## 构建统计
+        - 总文件数: ${{ steps.build-info.outputs.FILE_COUNT }} 个文件
+        - 总大小: ${{ steps.build-info.outputs.TOTAL_SIZE_MB }} MB
+        - 压缩后估计: ~${{ steps.build-info.outputs.TOTAL_SIZE_MB }}/3 MB (gzip)
+        
+        ## 部署说明
+        将此构建包解压到 Web 服务器根目录即可部署。
+        
+        ## 环境配置
+        - Node.js: ${{ env.NODE_VERSION }}
+        - Vite: 7.x
+        - React: 19.x
+        - 构建目标: ES2020
+        
+        ## 快速部署命令
+        ```bash
+        # 解压构建包
+        unzip salary-system-v3-build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}.zip
+        
+        # 使用 Docker 部署
+        docker run -d --name salary-system-v3 \\
+          --restart unless-stopped \\
+          -p 3001:80 \\
+          -v $(pwd)/dist:/usr/share/nginx/html:ro \\
+          nginx:alpine
+        
+        # 使用 Python 简单服务器测试
+        cd dist
+        python3 -m http.server 8080
+        ```
+        
+        ## 访问地址
+        部署完成后访问: http://localhost:3001
+        
+        ---
+        自动生成于: ${{ steps.build-info.outputs.BUILD_TIME }}
+        BUILD_INFO
+        
+    - name: Create deployment package
+      working-directory: ./frontend
+      run: |
+        echo "📦 创建部署包..."
+        
+        # 创建包目录结构
+        mkdir -p package/salary-system-v3
+        
+        # 复制构建文件
+        cp -r dist/* package/salary-system-v3/
+        
+        # 创建部署脚本
+        cat > package/deploy.sh << 'DEPLOY_SCRIPT'
+#!/bin/bash
+# 薪资管理系统 V3 - 快速部署脚本
+
+set -e
+
+APP_NAME="salary-system-v3"
+PORT=${1:-3001}
+BUILD_DIR="salary-system-v3"
+
+echo "🚀 开始部署薪资管理系统 V3..."
+echo "端口: $PORT"
+
+# 检查是否存在构建目录
+if [ ! -d "$BUILD_DIR" ]; then
+    echo "❌ 错误: 找不到构建目录 $BUILD_DIR"
+    echo "请确保在解压后的目录中运行此脚本"
+    exit 1
+fi
+
+# 停止现有容器
+echo "🛑 停止现有容器..."
+docker stop $APP_NAME 2>/dev/null || echo "容器不存在，跳过停止"
+docker rm $APP_NAME 2>/dev/null || echo "容器不存在，跳过删除"
+
+# 启动新容器
+echo "🐳 启动 Docker 容器..."
+docker run -d \
+  --name $APP_NAME \
+  --restart unless-stopped \
+  -p $PORT:80 \
+  -v $(pwd)/$BUILD_DIR:/usr/share/nginx/html:ro \
+  --health-cmd="curl -f http://localhost/ || exit 1" \
+  --health-interval=30s \
+  --health-timeout=10s \
+  --health-retries=3 \
+  nginx:alpine
+
+echo "⏳ 等待容器启动..."
+sleep 5
+
+# 健康检查
+if curl -f -s http://localhost:$PORT > /dev/null; then
+    echo "✅ 部署成功！"
+    echo ""
+    echo "🌐 访问地址: http://localhost:$PORT"
+    echo "🔍 查看日志: docker logs $APP_NAME -f"
+    echo "📈 查看状态: docker stats $APP_NAME"
+else
+    echo "⚠️  容器已启动，但健康检查失败"
+    echo "请检查: docker logs $APP_NAME"
+fi
+DEPLOY_SCRIPT
+        
+        chmod +x package/deploy.sh
+        
+        # 创建 README 文件
+        cat > package/README.md << 'README'
+# 薪资管理系统 V3 - 构建包
+
+## 包含内容
+
+- `salary-system-v3/` - 完整的前端构建文件
+- `deploy.sh` - 快速部署脚本
+- `README.md` - 此文件
+
+## 快速部署
+
+### 方法 1: 使用部署脚本 (推荐)
+```bash
+# 解压构建包后运行
+./deploy.sh [端口号]
+
+# 示例: 在端口 3001 部署
+./deploy.sh 3001
+```
+
+### 方法 2: 手动 Docker 部署
+```bash
+docker run -d --name salary-system-v3 \
+  --restart unless-stopped \
+  -p 3001:80 \
+  -v $(pwd)/salary-system-v3:/usr/share/nginx/html:ro \
+  nginx:alpine
+```
+
+### 方法 3: 直接 Web 服务器部署
+将 `salary-system-v3/` 目录内容复制到 Web 服务器根目录。
+
+## 系统要求
+
+- Docker (推荐)
+- 或任何支持静态文件的 Web 服务器 (Nginx, Apache 等)
+
+## 访问地址
+
+部署完成后访问: http://localhost:3001 (或您设置的端口)
+
+## 故障排除
+
+1. **端口被占用**: 修改部署脚本中的端口号
+2. **Docker 未安装**: 请安装 Docker 或使用其他 Web 服务器
+3. **权限问题**: 确保脚本有执行权限 `chmod +x deploy.sh`
+
+---
+构建时间: ${{ steps.build-info.outputs.BUILD_TIME }}
+构建版本: ${{ steps.build-info.outputs.COMMIT_SHORT }}
+README
+        
+        # 打包成 ZIP 文件
+        PACKAGE_NAME="salary-system-v3-build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}"
+        cd package
+        zip -r "$PACKAGE_NAME.zip" . -x "*.DS_Store*" "*.git*"
+        
+        echo "✅ 构建包创建完成: $PACKAGE_NAME.zip"
+        ls -lh "$PACKAGE_NAME.zip"
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: salary-system-v3-build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}
+        path: frontend/package/salary-system-v3-build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}.zip
+        retention-days: 30
+        compression-level: 6
+        
+    - name: Upload individual build files (backup)
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-files-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}
+        path: frontend/dist/
+        retention-days: 7
+        
+    - name: Create GitHub Release (on main branch)
+      if: github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}
+        name: "构建版本 ${{ steps.build-info.outputs.BUILD_DATE }} (${{ steps.build-info.outputs.COMMIT_SHORT }})"
+        body: |
+          ## 🚀 薪资管理系统 V3 - 自动构建包
+
+          ### 📋 构建信息
+          - **构建时间**: ${{ steps.build-info.outputs.BUILD_TIME }}
+          - **提交版本**: `${{ github.sha }}`
+          - **提交短码**: `${{ steps.build-info.outputs.COMMIT_SHORT }}`
+          - **分支**: `${{ github.ref_name }}`
+          - **总文件数**: ${{ steps.build-info.outputs.FILE_COUNT }} 个
+          - **总大小**: ${{ steps.build-info.outputs.TOTAL_SIZE_MB }} MB
+
+          ### 📦 下载说明
+          1. 下载下方的构建包 ZIP 文件
+          2. 解压到服务器目录
+          3. 运行 `./deploy.sh` 快速部署
+          4. 访问 http://localhost:3001
+
+          ### 🛠️ 快速部署命令
+          ```bash
+          # 下载并解压
+          wget https://github.com/${{ github.repository }}/releases/download/build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}/salary-system-v3-build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}.zip
+          unzip salary-system-v3-build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}.zip
+          
+          # 使用部署脚本
+          ./deploy.sh 3001
+          ```
+
+          ### 📝 更新内容
+          请查看最近的 commit 记录了解本次构建包含的更新内容。
+
+          ---
+          🤖 自动生成于 GitHub Actions
+        files: |
+          frontend/package/salary-system-v3-build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}.zip
+        draft: false
+        prerelease: false
+        generate_release_notes: false
+        
+    - name: Build completion summary
+      if: always()
+      run: |
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "🎉 构建包生成成功！"
+          echo ""
+          echo "📊 构建统计:"
+          echo "- 构建时间: ${{ steps.build-info.outputs.BUILD_TIME }}"
+          echo "- 文件数量: ${{ steps.build-info.outputs.FILE_COUNT }} 个"
+          echo "- 包大小: ${{ steps.build-info.outputs.TOTAL_SIZE_MB }} MB"
+          echo "- 提交版本: ${{ steps.build-info.outputs.COMMIT_SHORT }}"
+          echo ""
+          echo "📥 下载方式:"
+          echo "1. GitHub Actions Artifacts (30天保存期)"
+          echo "2. GitHub Release (永久保存)"
+          echo ""
+          echo "🔗 下载链接:"
+          echo "- Artifacts: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "- Release: https://github.com/${{ github.repository }}/releases/tag/build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}"
+          echo ""
+          echo "🚀 快速部署:"
+          echo "下载ZIP文件，解压后运行 ./deploy.sh"
+        else
+          echo "❌ 构建包生成失败！"
+          echo ""
+          echo "🔧 故障排除建议:"
+          echo "1. 检查前端依赖是否正确安装"
+          echo "2. 验证环境变量配置"
+          echo "3. 确认构建脚本无误"
+          echo "4. 查看详细构建日志"
+        fi

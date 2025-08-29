@@ -5,12 +5,6 @@
     { "path": "./tsconfig.node.json" }
   ],
   "compilerOptions": {
-    "incremental": true,
     "composite": true
-  },
-  "ts-node": {
-    "compilerOptions": {
-      "incremental": true
-    }
   }
 }

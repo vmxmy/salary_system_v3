@@ -5,7 +5,6 @@ import { router } from './router';
 import { UnifiedAuthProvider } from './contexts/UnifiedAuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { OnboardingProvider } from './contexts/OnboardingContext';
-import { SessionMonitor } from './components/auth/SessionMonitor';
 
 // 测试工具已归档到 archived/test-pages-20250828/
 // if (import.meta.env.DEV) {
