@@ -129,11 +129,11 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
           : ''
       },
       
-      // 删除相关验证 - 只有草稿状态的记录可以删除
+      // 删除相关验证 - 草稿和已计算状态的记录可以删除
       delete: { 
-        canOperate: statuses.every(status => status === 'draft'),
-        reason: statuses.some(status => status !== 'draft') 
-          ? '选中记录中包含非草稿状态的记录，只能删除草稿状态的薪资记录' 
+        canOperate: statuses.every(status => status === 'draft' || status === 'calculated'),
+        reason: statuses.some(status => status !== 'draft' && status !== 'calculated') 
+          ? '选中记录中包含已提交审批或更高状态的记录，只能删除草稿或已计算状态的薪资记录' 
           : ''
       },
       
@@ -157,7 +157,7 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
         canRollback: approvalUtils.canRollback(status),
         canCancel: approvalUtils.canCancel(status),
         canSubmit: status === 'calculated', // 只有已计算状态可以提交审批
-        canDelete: status === 'draft', // 只有草稿状态可以删除
+        canDelete: status === 'draft' || status === 'calculated', // 草稿和已计算状态可以删除
         nextAction: approvalUtils.getNextAction(status),
       };
     };
@@ -262,7 +262,7 @@ export function usePayrollBatchValidation<T extends BasePayrollData = BasePayrol
           return selectedRecordsInfo.statuses.filter(s => s !== 'paid' && s !== 'cancelled').length;
         }
         if (operation === 'delete') {
-          return selectedRecordsInfo.statuses.filter(s => s === 'draft').length;
+          return selectedRecordsInfo.statuses.filter(s => s === 'draft' || s === 'calculated').length;
         }
         return 0;
       },

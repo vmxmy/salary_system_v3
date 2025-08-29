@@ -686,7 +686,7 @@ export default function PayrollListPage() {
                     variant: 'error',
                     disabled: !batchValidation.canBatchOperate.delete(),
                     title: batchValidation.canBatchOperate.delete() 
-                      ? '批量删除选中的薪资记录（包括相关的四要素数据）' 
+                      ? '批量删除选中的薪资记录（包括相关的四要素数据）- 支持草稿和已计算状态' 
                       : batchValidation.getOperationReason.delete(),
                     icon: (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -544,8 +544,8 @@ export const useDeletePayroll = () => {
         throw checkError;
       }
       
-      if (payroll.status !== PayrollStatus.DRAFT) {
-        const error = new Error('只能删除草稿状态的薪资记录');
+      if (payroll.status !== PayrollStatus.DRAFT && payroll.status !== PayrollStatus.CALCULATED) {
+        const error = new Error('只能删除草稿或已计算状态的薪资记录');
         handleError(error, { customMessage: '删除失败' });
         throw error;
       }
