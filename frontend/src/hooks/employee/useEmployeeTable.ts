@@ -126,6 +126,7 @@ export function useEmployeeTable(options?: EmployeeTableOptions) {
   // 通用表格配置 - 使用优化后的性能参数
   const performanceConfig = getOptimizedConfig();
   
+  
   const universalTableOptions: UniversalTableOptions = {
     // 默认使用员工详情视图
     enableRowSelection: options?.enableRowSelection ?? true,
@@ -135,7 +136,7 @@ export function useEmployeeTable(options?: EmployeeTableOptions) {
     columnOverrides,
     
     // 优化后的分页配置
-    pagination: {
+    pagination: options?.pagination === undefined ? undefined : {
       pageSize: performanceConfig.pagination.employeePageSize,
       pageIndex: 0,
       ...options?.pagination,
@@ -168,6 +169,7 @@ export function useEmployeeTable(options?: EmployeeTableOptions) {
     ),
   };
 
+  
   // 使用通用表格 Hook
   const universalTable = useUniversalTable('view_employee_basic_info', universalTableOptions);
 

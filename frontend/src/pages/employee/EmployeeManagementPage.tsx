@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useEmployeeTable } from '@/hooks/employee/useEmployeeTable';
+import { useEmployeeStatsSimple } from '@/hooks/employee/useEmployeeStatsSimple';
 import { ManagementPageLayout } from '@/components/layout/ManagementPageLayout';
 import { 
   EmployeeTableContainer,
@@ -37,6 +38,9 @@ export default function EmployeeManagementPage() {
   // 删除函数引用
   const deleteEmployeeRef = useRef<((id: string) => Promise<void>) | null>(null);
 
+  // 独立的员工统计数据 - 直接从数据库获取，不受分页影响
+  const { data: simpleStats, isLoading: statsLoading, error: statsError } = useEmployeeStatsSimple();
+
   // 事件处理函数
   const handleViewEmployee = useCallback((employee: BaseEmployeeData) => {
     setSelectedEmployee(employee as EmployeeListItem);
@@ -63,12 +67,11 @@ export default function EmployeeManagementPage() {
     });
   }, [confirmDelete]);
 
-  // 使用员工表格 Hook
+  // 使用员工表格 Hook - 恢复分页配置
   const {
     data: allData,
     loading,
     error,
-    statistics,
     createEmployee,
     updateEmployee,
     deleteEmployee,
@@ -83,10 +86,12 @@ export default function EmployeeManagementPage() {
     onEditEmployee: handleEditEmployee,
     onDeleteEmployee: handleDeleteAction,
     statusFilter: statusFilter === 'all' ? undefined : statusFilter as any,
+    // 禁用分页，显示所有员工数据（因为统计已经独立）
+    pagination: undefined,
   });
 
   // 批量操作loading状态
-  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+  // const [isBatchDeleting, setIsBatchDeleting] = useState(false); // 已禁用批量删除功能
 
   // 客户端搜索和筛选处理
   const data = useMemo(() => {
@@ -306,22 +311,23 @@ export default function EmployeeManagementPage() {
   }, [selectedEmployee, updateEmployee, createEmployee, handleCloseModal]);
 
   // 批量操作处理
-  const handleBatchDelete = useCallback(async () => {
-    if (selectedIds.length === 0) return;
-    
-    await confirmDelete(`${selectedIds.length} 名员工`, async () => {
-      setIsBatchDeleting(true);
-      try {
-        await batchDelete(selectedIds);
-        setSelectedIds([]);
-      } catch (error) {
-        console.error('批量删除失败:', error);
-        throw error;
-      } finally {
-        setIsBatchDeleting(false);
-      }
-    });
-  }, [selectedIds, batchDelete, confirmDelete]);
+  // const handleBatchDelete = useCallback(async () => {
+  //   if (selectedIds.length === 0) return;
+  //   
+  //   await confirmDelete(`${selectedIds.length} 名员工`, async () => {
+  //     setIsBatchDeleting(true);
+  //     try {
+  //       await batchDelete(selectedIds);
+  //       setSelectedIds([]);
+  //     } catch (error) {
+  //       console.error('批量删除失败:', error);
+  //       throw error;
+  //     } finally {
+  //       setIsBatchDeleting(false);
+  //     }
+  //   });
+  // }, [selectedIds, batchDelete, confirmDelete]);
+  // 注释：已禁用批量删除功能以保护员工数据
 
   const handleBatchStatusChange = useCallback(async (newStatus: string) => {
     if (selectedIds.length === 0) return;
@@ -512,7 +518,7 @@ export default function EmployeeManagementPage() {
         exportComponent={null}
         customContent={
           <div className="space-y-6">
-            {/* 员工统计概览 - 使用 DaisyUI 标准 stats 组件 */}
+            {/* 员工统计概览 - 使用独立的统计数据，不受表格分页影响 */}
             <div className="stats shadow w-full" data-tour="employee-stats">
               <div className="stat">
                 <div className="stat-figure text-primary">
@@ -522,7 +528,13 @@ export default function EmployeeManagementPage() {
                   </svg>
                 </div>
                 <div className="stat-title">总员工数</div>
-                <div className="stat-value text-primary">{statistics.total}</div>
+                <div className="stat-value text-primary">
+                  {statsLoading ? (
+                    <div className="loading loading-spinner loading-sm"></div>
+                  ) : (
+                    simpleStats?.total || 0
+                  )}
+                </div>
                 <div className="stat-desc">系统中所有员工</div>
               </div>
 
@@ -534,7 +546,13 @@ export default function EmployeeManagementPage() {
                   </svg>
                 </div>
                 <div className="stat-title">在职员工</div>
-                <div className="stat-value text-success">{statistics.active}</div>
+                <div className="stat-value text-success">
+                  {statsLoading ? (
+                    <div className="loading loading-spinner loading-sm"></div>
+                  ) : (
+                    simpleStats?.active || 0
+                  )}
+                </div>
                 <div className="stat-desc">正常工作状态</div>
               </div>
 
@@ -546,7 +564,13 @@ export default function EmployeeManagementPage() {
                   </svg>
                 </div>
                 <div className="stat-title">离职员工</div>
-                <div className="stat-value text-error">{statistics.inactive}</div>
+                <div className="stat-value text-error">
+                  {statsLoading ? (
+                    <div className="loading loading-spinner loading-sm"></div>
+                  ) : (
+                    simpleStats?.inactive || 0
+                  )}
+                </div>
                 <div className="stat-desc">已离开公司</div>
               </div>
 
@@ -558,7 +582,13 @@ export default function EmployeeManagementPage() {
                   </svg>
                 </div>
                 <div className="stat-title">部门数量</div>
-                <div className="stat-value text-info">{statistics.departments}</div>
+                <div className="stat-value text-info">
+                  {statsLoading ? (
+                    <div className="loading loading-spinner loading-sm"></div>
+                  ) : (
+                    simpleStats?.departments || 0
+                  )}
+                </div>
                 <div className="stat-desc">组织架构</div>
               </div>
             </div>
@@ -759,27 +789,6 @@ export default function EmployeeManagementPage() {
                           d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       停职
-                    </button>
-                    <button
-                      className={`btn btn-outline btn-sm btn-error ${isBatchDeleting ? 'loading' : ''}`}
-                      onClick={handleBatchDelete}
-                      disabled={isBatchDeleting}
-                      title="批量删除"
-                    >
-                      {isBatchDeleting ? (
-                        <>
-                          <span className="loading loading-spinner loading-sm"></span>
-                          删除中...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          删除
-                        </>
-                      )}
                     </button>
                   </div>
                 </div>
