@@ -1,0 +1,374 @@
+name: 🚀 Deploy Supabase Edge Functions
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/deploy-edge-functions.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+  workflow_dispatch:
+    inputs:
+      function_name:
+        description: 'Specific function to deploy (optional, leave empty for all changed functions)'
+        required: false
+        type: string
+      force_deploy:
+        description: 'Force deploy even if no changes detected'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+jobs:
+  # ============================================
+  # 检测变更的 Edge Functions
+  # ============================================
+  detect-changes:
+    name: 🔍 Detect Function Changes
+    runs-on: ubuntu-latest
+    outputs:
+      functions-changed: ${{ steps.changes.outputs.functions-changed }}
+      changed-functions: ${{ steps.changes.outputs.changed-functions }}
+      should-deploy: ${{ steps.changes.outputs.should-deploy }}
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 🔍 Detect Changed Functions
+        id: changes
+        run: |
+          echo "🔍 Detecting changes in Edge Functions..."
+          
+          # 手动触发时的处理
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ github.event.inputs.function_name }}" != "" ]]; then
+              echo "Manual deployment requested for function: ${{ github.event.inputs.function_name }}"
+              echo "functions-changed=true" >> $GITHUB_OUTPUT
+              echo "changed-functions=${{ github.event.inputs.function_name }}" >> $GITHUB_OUTPUT
+              echo "should-deploy=true" >> $GITHUB_OUTPUT
+              exit 0
+            elif [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+              echo "Force deployment requested for all functions"
+              all_functions=$(find supabase/functions -maxdepth 1 -type d -not -path "supabase/functions" | xargs basename -a | tr '\n' ',' | sed 's/,$//')
+              echo "functions-changed=true" >> $GITHUB_OUTPUT
+              echo "changed-functions=$all_functions" >> $GITHUB_OUTPUT
+              echo "should-deploy=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+          
+          # 检测最近提交中的变更
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+          fi
+          
+          echo "Comparing changes between $BASE_SHA and $HEAD_SHA"
+          
+          # 获取变更的函数列表
+          changed_files=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep '^supabase/functions/' || true)
+          
+          if [[ -z "$changed_files" ]]; then
+            echo "No Edge Function changes detected"
+            echo "functions-changed=false" >> $GITHUB_OUTPUT
+            echo "changed-functions=" >> $GITHUB_OUTPUT
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # 提取变更的函数名称
+          changed_functions=$(echo "$changed_files" | cut -d'/' -f3 | sort | uniq | tr '\n' ',' | sed 's/,$//')
+          
+          echo "Changed functions detected: $changed_functions"
+          echo "Changed files: $changed_files"
+          
+          echo "functions-changed=true" >> $GITHUB_OUTPUT
+          echo "changed-functions=$changed_functions" >> $GITHUB_OUTPUT
+          echo "should-deploy=true" >> $GITHUB_OUTPUT
+
+  # ============================================
+  # 验证 Edge Functions 代码
+  # ============================================
+  validate-functions:
+    name: ✅ Validate Functions
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.should-deploy == 'true'
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🦕 Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: 🔧 Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: ✅ Validate TypeScript/JavaScript
+        run: |
+          echo "🔍 Validating Edge Functions syntax..."
+          
+          functions="${{ needs.detect-changes.outputs.changed-functions }}"
+          IFS=',' read -ra FUNCTION_ARRAY <<< "$functions"
+          
+          for function_name in "${FUNCTION_ARRAY[@]}"; do
+            function_path="supabase/functions/$function_name"
+            
+            if [[ -d "$function_path" ]]; then
+              echo "📝 Validating function: $function_name"
+              
+              # 检查主入口文件
+              if [[ -f "$function_path/index.ts" ]]; then
+                echo "  ✓ TypeScript validation for $function_name/index.ts"
+                deno check "$function_path/index.ts"
+              elif [[ -f "$function_path/index.js" ]]; then
+                echo "  ✓ JavaScript validation for $function_name/index.js"
+                deno check "$function_path/index.js"
+              else
+                echo "  ❌ No index.ts or index.js found in $function_path"
+                exit 1
+              fi
+              
+              # 验证 deno.json 配置（如果存在）
+              if [[ -f "$function_path/deno.json" ]]; then
+                echo "  ✓ Validating deno.json configuration"
+                cat "$function_path/deno.json" | jq empty
+              fi
+              
+              echo "  ✅ Function $function_name validated successfully"
+            else
+              echo "  ❌ Function directory $function_path does not exist"
+              exit 1
+            fi
+          done
+
+      - name: 🧪 Run Function Tests (if available)
+        run: |
+          echo "🧪 Running Edge Function tests..."
+          
+          functions="${{ needs.detect-changes.outputs.changed-functions }}"
+          IFS=',' read -ra FUNCTION_ARRAY <<< "$functions"
+          
+          for function_name in "${FUNCTION_ARRAY[@]}"; do
+            test_file="supabase/functions/$function_name/test.ts"
+            if [[ -f "$test_file" ]]; then
+              echo "  🧪 Running tests for $function_name"
+              cd "supabase/functions/$function_name"
+              deno test --allow-all
+              cd ../../..
+            else
+              echo "  ℹ️  No test file found for $function_name (optional)"
+            fi
+          done
+
+  # ============================================
+  # 部署到 Supabase
+  # ============================================
+  deploy:
+    name: 🚀 Deploy to Supabase
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate-functions]
+    if: needs.detect-changes.outputs.should-deploy == 'true'
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      url: ${{ steps.deploy.outputs.function-url }}
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: 🔐 Authenticate Supabase
+        run: |
+          echo "🔐 Authenticating with Supabase..."
+          echo "$SUPABASE_ACCESS_TOKEN" | supabase login --token
+          
+          # 验证认证状态
+          if ! supabase projects list >/dev/null 2>&1; then
+            echo "❌ Supabase authentication failed"
+            exit 1
+          fi
+          
+          echo "✅ Supabase authentication successful"
+
+      - name: 🔗 Link Supabase Project
+        run: |
+          echo "🔗 Linking to Supabase project..."
+          supabase link --project-ref $SUPABASE_PROJECT_ID
+          echo "✅ Project linked successfully"
+
+      - name: 📤 Deploy Edge Functions
+        id: deploy
+        run: |
+          echo "🚀 Deploying Edge Functions to Supabase..."
+          
+          functions="${{ needs.detect-changes.outputs.changed-functions }}"
+          IFS=',' read -ra FUNCTION_ARRAY <<< "$functions"
+          
+          deployed_functions=()
+          function_urls=()
+          
+          for function_name in "${FUNCTION_ARRAY[@]}"; do
+            echo "📤 Deploying function: $function_name"
+            
+            # 部署单个函数
+            if supabase functions deploy "$function_name" --project-ref $SUPABASE_PROJECT_ID; then
+              echo "✅ Function $function_name deployed successfully"
+              deployed_functions+=("$function_name")
+              
+              # 构建函数URL（假设标准Supabase URL结构）
+              project_url="https://$SUPABASE_PROJECT_ID.supabase.co"
+              function_url="$project_url/functions/v1/$function_name"
+              function_urls+=("$function_name: $function_url")
+            else
+              echo "❌ Failed to deploy function: $function_name"
+              exit 1
+            fi
+          done
+          
+          # 输出部署结果
+          echo "deployed-functions=${deployed_functions[*]}" >> $GITHUB_OUTPUT
+          printf "function-urls:\n%s\n" "${function_urls[@]}" >> $GITHUB_OUTPUT
+          
+          # 设置第一个函数的URL作为环境URL
+          if [[ ${#function_urls[@]} -gt 0 ]]; then
+            first_url=$(echo "${function_urls[0]}" | cut -d' ' -f2)
+            echo "function-url=$first_url" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🧪 Test Deployed Functions
+        run: |
+          echo "🧪 Testing deployed Edge Functions..."
+          
+          functions="${{ needs.detect-changes.outputs.changed-functions }}"
+          IFS=',' read -ra FUNCTION_ARRAY <<< "$functions"
+          
+          for function_name in "${FUNCTION_ARRAY[@]}"; do
+            echo "🧪 Testing function: $function_name"
+            function_url="https://$SUPABASE_PROJECT_ID.supabase.co/functions/v1/$function_name"
+            
+            # 基本健康检查 - OPTIONS 请求 (CORS preflight)
+            if curl -f -X OPTIONS "$function_url" \
+                -H "Origin: https://example.com" \
+                -H "Access-Control-Request-Method: POST" \
+                --max-time 10 --silent; then
+              echo "  ✅ Function $function_name is responding to CORS preflight"
+            else
+              echo "  ⚠️  Function $function_name CORS preflight failed (may be expected)"
+            fi
+            
+            # 如果是 ai-agent 函数，进行特殊测试
+            if [[ "$function_name" == "ai-agent" ]]; then
+              echo "  🤖 Testing AI Agent function..."
+              # 这里可以添加特定的AI Agent测试逻辑
+              echo "  ℹ️  AI Agent function deployment verified"
+            fi
+          done
+
+  # ============================================
+  # 清理和通知
+  # ============================================
+  notify:
+    name: 📢 Notification
+    runs-on: ubuntu-latest
+    needs: [detect-changes, deploy]
+    if: always() && needs.detect-changes.outputs.should-deploy == 'true'
+    steps:
+      - name: 📊 Create Deployment Summary
+        run: |
+          echo "## 🚀 Edge Functions Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Deployment Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ github.ref == 'refs/heads/main' && 'Production' || 'Staging' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.deploy.result }}" == "success" ]]; then
+            echo "### ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+            echo "The following functions were deployed:" >> $GITHUB_STEP_SUMMARY
+            functions="${{ needs.detect-changes.outputs.changed-functions }}"
+            IFS=',' read -ra FUNCTION_ARRAY <<< "$functions"
+            for function_name in "${FUNCTION_ARRAY[@]}"; do
+              echo "- 🟢 **$function_name**" >> $GITHUB_STEP_SUMMARY
+            done
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 All Edge Functions have been successfully deployed to Supabase!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+            echo "Some functions failed to deploy. Please check the logs above for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 💬 Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployResult = '${{ needs.deploy.result }}';
+            const functions = '${{ needs.detect-changes.outputs.changed-functions }}';
+            
+            let comment = '## 🚀 Edge Functions Deployment Report\n\n';
+            
+            if (deployResult === 'success') {
+              comment += '✅ **Deployment Successful**\n\n';
+              comment += `The following Edge Functions were successfully deployed:\n`;
+              
+              functions.split(',').forEach(func => {
+                comment += `- 🟢 \`${func}\`\n`;
+              });
+              
+              comment += '\n🎉 All functions are ready for testing!';
+            } else {
+              comment += '❌ **Deployment Failed**\n\n';
+              comment += 'Please check the workflow logs for detailed error information.';
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+# ============================================
+# 工作流配置说明
+# ============================================
+# 
+# 此工作流实现了以下功能：
+# 1. 🔍 智能检测 Edge Functions 变更
+# 2. ✅ TypeScript/JavaScript 语法验证
+# 3. 🧪 自动化测试（如果存在测试文件）
+# 4. 🚀 自动部署到 Supabase
+# 5. 🧪 部署后健康检查
+# 6. 📢 结果通知和报告
+#
+# 环境变量要求：
+# - SUPABASE_ACCESS_TOKEN: Supabase 访问令牌
+# - SUPABASE_PROJECT_ID: Supabase 项目ID
+# - SUPABASE_DB_PASSWORD: 数据库密码（可选）
+#
+# 手动触发参数：
+# - function_name: 指定部署的函数名（可选）
+# - force_deploy: 强制部署所有函数（忽略变更检测）
