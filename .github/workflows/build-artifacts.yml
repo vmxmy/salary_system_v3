@@ -13,6 +13,12 @@ jobs:
     name: Build Frontend and Create Download Package
     runs-on: ubuntu-latest
     
+    # Required permissions for creating releases
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    
     # Use github-pages environment for secrets access
     environment: 
       name: github-pages
@@ -268,7 +274,9 @@ jobs:
         
     - name: Create GitHub Release (on main branch)
       if: github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: build-${{ steps.build-info.outputs.BUILD_TIMESTAMP }}
         name: "构建版本 ${{ steps.build-info.outputs.BUILD_DATE }} (${{ steps.build-info.outputs.COMMIT_SHORT }})"
