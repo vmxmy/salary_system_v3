@@ -26,9 +26,32 @@ export interface ExcelDataRow {
   [key: string]: any;
 }
 
+// 字段映射条目
+export interface FieldMappingEntry {
+  /** 目标字段名（数据库字段或组件名） */
+  targetField: string;
+  /** 匹配类型 */
+  matchType: 'exact' | 'high_fuzzy' | 'medium_fuzzy' | 'low_fuzzy' | 'manual';
+  /** 匹配置信度分数 (0-100) */
+  confidence: number;
+  /** 字段类型 */
+  fieldType: 'basic' | 'salary_component' | 'assignment' | 'contribution_base';
+  /** 是否为必填字段 */
+  required: boolean;
+  /** 额外元数据 */
+  metadata?: {
+    componentId?: string;
+    componentType?: string;
+    originalDbField?: string;
+    [key: string]: any;
+  };
+}
+
 // 使用从 payroll-import 导入的 ImportConfig，同时扩展一些额外字段
 export interface ImportConfig extends PayrollImportConfig {
   fieldMappings?: Record<string, string>;
+  /** 智能字段映射配置：Excel列名 -> 目标字段详情 */
+  intelligentFieldMapping?: Map<string, FieldMappingEntry>;
 }
 
 // 导入结果
@@ -67,7 +90,9 @@ export interface ExportConfig {
 export interface ColumnMatchResult {
   excelColumn: string;
   dbField: string | null;
-  matchType: 'exact' | 'fuzzy' | 'unmapped';
+  matchType: 'exact' | 'high_fuzzy' | 'medium_fuzzy' | 'low_fuzzy' | 'fuzzy' | 'unmapped';
+  matchScore?: number;        // 匹配分数 (0-100)
+  matchDetails?: any;         // 匹配详细信息
   suggestions?: string[];
   isRequired?: boolean;
 }
