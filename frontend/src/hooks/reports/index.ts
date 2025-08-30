@@ -69,8 +69,13 @@ export {
   useTableColumns,
   getRecommendedFields,
   getDataSourceCategory,
+  useDataSourcesEnhanced,
+  useTableColumnsEnhanced,
+  getAvailableReportDataSources,
+  selectBestDataSource,
   type DatabaseObject,
-  type ColumnInfo
+  type ColumnInfo,
+  type DataSourceEnhanced
 } from './useDataSources';
 
 // 向后兼容的模拟数据 hooks (逐步废弃)

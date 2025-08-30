@@ -155,10 +155,82 @@ export async function generateReportExcel(
     
     // 添加数据行
     data.forEach((record, index) => {
+      // 在处理第一条记录时，输出详细的字段映射调试信息
+      if (index === 0) {
+        console.log('🔍 Excel生成器 - 字段映射调试信息:', {
+          recordIndex: index,
+          queryResultFields: Object.keys(record),
+          queryResultFieldsCount: Object.keys(record).length,
+          templateFields: visibleFields.map(f => ({
+            field_key: f.field_key,
+            display_name: f.display_name,
+            field_type: f.field_type,
+            sort_order: f.sort_order
+          })),
+          templateFieldsCount: visibleFields.length,
+          sampleRecord: record
+        });
+
+        // 逐个检查字段匹配情况
+        visibleFields.forEach(field => {
+          const fieldName = (field as any).original_field || field.field_key;
+          const hasProperty = record.hasOwnProperty(fieldName);
+          const value = record[fieldName];
+          const isEmpty = value === '' || value === null || value === undefined;
+          
+          console.log(`🔍 字段映射检查: ${field.display_name}`, {
+            field_key: field.field_key,
+            original_field: (field as any).original_field,
+            usedFieldName: fieldName,
+            hasProperty: hasProperty,
+            value: value,
+            valueType: typeof value,
+            isEmpty: isEmpty,
+            rawDataSample: field.display_name.includes('开户行') || field.display_name.includes('银行账号') ? 
+              `原始值: "${value}" | 长度: ${String(value || '').length}` : undefined
+          });
+
+          // 特别关注银行相关字段
+          if (field.display_name.includes('开户行') || field.display_name.includes('银行账号')) {
+            const allBankFields = Object.keys(record).filter(key => 
+              key.includes('银行') || key.includes('开户') || key.includes('账号') || key.includes('bank')
+            );
+            console.log(`🏦 银行字段详细检查: ${field.display_name}`, {
+              fieldName: fieldName,
+              valueInRecord: record[fieldName],
+              valueType: typeof record[fieldName],
+              allBankRelatedFields: allBankFields.map(key => ({ 
+                field: key, 
+                value: record[key], 
+                type: typeof record[key],
+                isEmpty: !record[key] || record[key] === '未设置' || record[key] === '' || record[key] === null
+              })),
+              dataSource: 'report_payroll_pivot_detail',
+              suspicion: record[fieldName] === '未设置' ? '视图可能将NULL转换为未设置字符串' : '正常数据'
+            });
+          }
+        });
+      }
+
       const row = worksheet.addRow({});
       visibleFields.forEach((field, colIndex) => {
         const cell = row.getCell(colIndex + 1);
-        const value = record[field.field_key] ?? '';
+        // 使用original_field（数据库字段名），因为field_key是undefined
+        const fieldName = (field as any).original_field || field.field_key;
+        const value = record[fieldName] ?? '';
+
+        // 为前3条记录添加详细调试
+        if (index < 3) {
+          console.log(`📊 数据处理 [记录${index + 1}]: ${field.display_name}`, {
+            field_key: field.field_key,
+            original_field: (field as any).original_field,
+            usedFieldName: fieldName,
+            hasFieldInRecord: record.hasOwnProperty(fieldName),
+            rawValue: record[fieldName],
+            finalValue: value,
+            sampleRecordKeys: Object.keys(record).slice(0, 10) // 显示前10个数据库字段
+          });
+        }
         
         // 根据字段类型设置值和格式
         switch (field.field_type) {
@@ -358,9 +430,41 @@ function generateCSVContent(data: any[], fieldMappings: any[], templateName?: st
   const headers = visibleFields.map(field => `"${field.display_name}"`).join(',');
   
   // 生成数据行
-  const rows = data.map(record => {
-    return visibleFields.map(field => {
-      const value = record[field.field_key] ?? '';
+  const rows = data.map((record, recordIndex) => {
+    // 在处理第一条记录时，输出详细的字段映射调试信息
+    if (recordIndex === 0) {
+      console.log('🔍 CSV生成器 - 字段映射调试信息:', {
+        recordIndex,
+        queryResultFields: Object.keys(record),
+        queryResultFieldsCount: Object.keys(record).length,
+        templateFields: visibleFields.map(f => ({
+          field_key: f.field_key,
+          display_name: f.display_name,
+          field_type: f.field_type
+        })),
+        templateFieldsCount: visibleFields.length,
+        sampleRecord: record
+      });
+    }
+
+    return visibleFields.map((field, fieldIndex) => {
+      // 使用original_field（数据库字段名），因为field_key是undefined
+      const fieldName = (field as any).original_field || field.field_key;
+      const value = record[fieldName] ?? '';
+
+      // 为前2条记录添加详细调试
+      if (recordIndex < 2) {
+        console.log(`📊 CSV数据处理 [记录${recordIndex + 1}]: ${field.display_name}`, {
+          field_key: field.field_key,
+          original_field: field.original_field,
+          usedFieldName: fieldName,
+          hasFieldInRecord: record.hasOwnProperty(fieldName),
+          rawValue: record[fieldName],
+          finalValue: value,
+          sampleRecordKeys: Object.keys(record).slice(0, 10) // 显示前10个数据库字段
+        });
+      }
+
       // CSV转义：双引号需要转义为两个双引号
       return `"${String(value).replace(/"/g, '""')}"`;
     }).join(',');
